@@ -64,3 +64,5 @@ typings/
 *.tsbuildinfo
 
 .idea/
+# local storage
+data/*
