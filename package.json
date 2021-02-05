@@ -1,0 +1,74 @@
+{
+  "name": "2wp-api",
+  "version": "0.0.1",
+  "description": "Two Way Peg API",
+  "keywords": [
+    "loopback-application",
+    "loopback"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=10.16"
+  },
+  "scripts": {
+    "build": "lb-tsc",
+    "build:watch": "lb-tsc --watch",
+    "lint": "npm run lint:fix && npm run prettier:check && npm run eslint",
+    "lint:fix": "npm run eslint:fix && npm run prettier:fix",
+    "prettier:cli": "lb-prettier \"**/*.ts\" \"**/*.js\"",
+    "prettier:check": "npm run prettier:cli -- -l",
+    "prettier:fix": "npm run prettier:cli -- --write",
+    "eslint": "lb-eslint --report-unused-disable-directives .",
+    "eslint:fix": "npm run eslint -- --fix",
+    "pretest": "npm run clean && npm run build",
+    "test": "lb-nyc mocha dist/__tests__/**/*.js --timeout 10000",
+    "posttest": "npm run lint",
+    "test:dev": "lb-nyc mocha --allow-console-logs dist/__tests__/**/*.js && npm run posttest",
+    "precoverage": "npm test",
+    "coverage": "open-cli coverage/index.html",
+    "coverage:ci": "lb-nyc report --reporter=text-lcov | coveralls",
+    "docker:build": "docker build -t 2wp-api .",
+    "docker:run": "docker run -p 3000:3000 -d 2wp-api",
+    "premigrate": "npm run build",
+    "migrate": "node ./dist/migrate",
+    "preopenapi-spec": "npm run build",
+    "openapi-spec": "node ./dist/openapi-spec",
+    "rebuild": "npm run clean && npm run build",
+    "prestart": "npm run rebuild",
+    "start": "node -r source-map-support/register .",
+    "clean": "lb-clean dist *.tsbuildinfo .eslintcache"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "author": "Mesi Rendon <amrendonsa@unal.edu.co>",
+  "license": "",
+  "files": [
+    "README.md",
+    "dist",
+    "src",
+    "!*/__tests__"
+  ],
+  "dependencies": {
+    "@loopback/boot": "^3.1.2",
+    "@loopback/core": "^2.13.1",
+    "@loopback/repository": "^3.3.0",
+    "@loopback/rest": "^9.1.1",
+    "@loopback/rest-explorer": "^3.0.5",
+    "@loopback/service-proxy": "^3.0.5",
+    "loopback-connector-mongodb": "^5.5.0",
+    "loopback-connector-rest": "^3.7.0",
+    "tslib": "^2.0.0"
+  },
+  "devDependencies": {
+    "@loopback/build": "^6.2.8",
+    "source-map-support": "^0.5.19",
+    "@loopback/testlab": "^3.2.10",
+    "@types/node": "^10.17.48",
+    "@loopback/eslint-config": "^10.0.4",
+    "eslint": "^7.15.0",
+    "typescript": "~4.1.2"
+  }
+}
