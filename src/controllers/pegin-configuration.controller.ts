@@ -7,20 +7,23 @@ import {
   get,
   getModelSchemaRef,
 } from '@loopback/rest';
-import {PeginConfiguration} from '../models';
-import {PeginConfigurationRepository} from '../repositories';
+import {PeginConfiguration, Session} from '../models';
+import {PeginConfigurationRepository, SessionRepository} from '../repositories';
+import crypto from 'crypto';
 
 export class PeginConfigurationController {
   constructor(
     @repository(PeginConfigurationRepository)
     public peginConfigurationRepository : PeginConfigurationRepository,
+    @repository(SessionRepository)
+    public sessionRepository : SessionRepository,
   ) {}
 
 
   @get('/pegin-configuration', {
     responses: {
       '200': {
-        description: 'Array of PeginConfiguration model instances',
+        description: 'Pegin configuration info',
         content: {
           'application/json': {
             schema: {
@@ -34,7 +37,21 @@ export class PeginConfigurationController {
   })
   async find(
     @param.filter(PeginConfiguration) filter?: Filter<PeginConfiguration>,
-  ): Promise<PeginConfiguration[]> {
-    return this.peginConfigurationRepository.find(filter);
+  ): Promise<PeginConfiguration> {
+    const session = {
+      _id: crypto.randomBytes(16).toString('hex'),
+      balance: 0,
+    };
+    return new Promise<PeginConfiguration>((resolve, reject) => {
+      Promise.all([
+        this.sessionRepository.create(new Session(session)),
+        this.peginConfigurationRepository.findById('1',filter),
+      ])
+        .then(([sessionCreated, peginConfig]) => {
+          peginConfig.sessionId = sessionCreated._id;
+          resolve(peginConfig);
+        })
+        .catch(reject);
+    });
   }
 }
