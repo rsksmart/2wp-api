@@ -15,12 +15,8 @@ const config = {
       template: {
         method: 'GET',
         url:
-          'https://testnet.blockchain.info/unspent',
-        query: {
-          format: '{format=json}',
-          active: '{address}',
-        },
-        responsePath: '$.unspent_outputs',
+          `https://blockbook.trugroup.tech:19130/api/v1/utxo/{address}`,
+        responsePath: '$',
       },
       functions: {
         utxoProvider: ['address'],

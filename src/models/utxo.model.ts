@@ -4,52 +4,39 @@ import {Model, model, property} from '@loopback/repository';
 export class Utxo extends Model {
   @property({
     type: 'string',
-    id: true,
-    generated: false,
     required: true,
   })
-  tx_hash: string;
-
-  @property({
-    type: 'string',
-  })
-  tx_hash_big_endian?: string;
+  txid: string;
 
   @property({
     type: 'number',
     required: true,
   })
-  tx_output_n: number;
+  vout: number;
 
   @property({
     type: 'string',
     required: true,
   })
-  script: string;
+  amount: string;
 
   @property({
     type: 'number',
     required: true,
   })
-  value: number;
+  satoshis: number;
 
   @property({
-    type: 'string',
+    type: 'number',
     required: true,
   })
-  value_hex: string;
+  height: number;
 
   @property({
     type: 'number',
     required: true,
   })
   confirmations: number;
-
-  @property({
-    type: 'number',
-    required: true,
-  })
-  tx_index: number;
 
   // Define well-known properties here
 
