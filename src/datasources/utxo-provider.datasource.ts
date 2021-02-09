@@ -16,7 +16,7 @@ const config = {
         method: 'GET',
         url:
           `https://blockbook.trugroup.tech:19130/api/v1/utxo/{address}`,
-        responsePath: '$',
+        responsePath: '$[*]',
       },
       functions: {
         utxoProvider: ['address'],
