@@ -15,7 +15,7 @@ export interface UtxoProvider {
   // this is where you define the Node.js methods that will be
   // mapped to REST/SOAP/gRPC operations as stated in the datasource
   // json file.
-  utxoProvider(address: string): Promise<Utxo []>;
+  utxoProvider(address: string): Promise<Utxo[]>;
 }
 
 export class UtxoProviderProvider implements Provider<UtxoProvider> {

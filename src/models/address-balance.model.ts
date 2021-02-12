@@ -33,4 +33,5 @@ export interface AddressBalanceRelations {
   // describe navigational properties here
 }
 
-export type AddressBalanceWithRelations = AddressBalance & AddressBalanceRelations;
+export type AddressBalanceWithRelations = AddressBalance &
+  AddressBalanceRelations;

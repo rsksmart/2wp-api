@@ -16,7 +16,6 @@ export class GetBalance extends Model {
   })
   addressList: WalletAddress[];
 
-
   constructor(data?: Partial<GetBalance>) {
     super(data);
   }

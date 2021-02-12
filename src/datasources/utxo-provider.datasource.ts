@@ -14,8 +14,7 @@ const config = {
     {
       template: {
         method: 'GET',
-        url:
-          `https://blockbook.trugroup.tech:19130/api/v1/utxo/{address}`,
+        url: `https://blockbook.trugroup.tech:19130/api/v1/utxo/{address}`,
         responsePath: '$[*]',
       },
       functions: {
@@ -30,7 +29,8 @@ const config = {
 // gracefully. The `stop()` method is inherited from `juggler.DataSource`.
 // Learn more at https://loopback.io/doc/en/lb4/Life-cycle.html
 @lifeCycleObserver('datasource')
-export class UtxoProviderDataSource extends juggler.DataSource
+export class UtxoProviderDataSource
+  extends juggler.DataSource
   implements LifeCycleObserver {
   static dataSourceName = 'utxoProvider';
   static readonly defaultConfig = config;

@@ -12,7 +12,7 @@ const config = {
     password: '2wp-api-password',
   },
   database: 'database',
-  useNewUrlParser: true
+  useNewUrlParser: true,
 };
 
 // Observe application's life cycle to disconnect the datasource when
@@ -20,7 +20,8 @@ const config = {
 // gracefully. The `stop()` method is inherited from `juggler.DataSource`.
 // Learn more at https://loopback.io/doc/en/lb4/Life-cycle.html
 @lifeCycleObserver('datasource')
-export class MongoDatasource extends juggler.DataSource
+export class MongoDatasource
+  extends juggler.DataSource
   implements LifeCycleObserver {
   static dataSourceName = 'MongoTestUtxo';
   static readonly defaultConfig = config;

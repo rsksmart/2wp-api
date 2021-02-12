@@ -35,15 +35,20 @@ export class AccountBalance extends Model {
     const [legacyTestReg, segwitTestReg, nativeTestReg] = [
       /^[mn][1-9A-HJ-NP-Za-km-z]{26,35}/,
       /^[2][1-9A-HJ-NP-Za-km-z]{26,35}/,
-      /^[tb][1-9A-HJ-NP-Za-z]{26,41}/];
-    addressBalances.forEach((addressBalance) => {
-      const utxoSatoshis = addressBalance.utxoList
-        ?.map((utxo) => utxo.satoshis);
-      if(utxoSatoshis && utxoSatoshis.length > 0){
-        const addressAmount: number = utxoSatoshis.reduce((accumulator, satoshis) => satoshis + accumulator);
-        if (legacyTestReg.test(addressBalance.address)) this.legacy += addressAmount;
-        else if (segwitTestReg.test(addressBalance.address)) this.segwit += addressAmount;
-        else if (nativeTestReg.test(addressBalance.address)) this.nativeSegwit += addressAmount;
+      /^[tb][1-9A-HJ-NP-Za-z]{26,41}/,
+    ];
+    addressBalances.forEach(addressBalance => {
+      const utxoSatoshis = addressBalance.utxoList?.map(utxo => utxo.satoshis);
+      if (utxoSatoshis && utxoSatoshis.length > 0) {
+        const addressAmount: number = utxoSatoshis.reduce(
+          (accumulator, satoshis) => satoshis + accumulator,
+        );
+        if (legacyTestReg.test(addressBalance.address))
+          this.legacy += addressAmount;
+        else if (segwitTestReg.test(addressBalance.address))
+          this.segwit += addressAmount;
+        else if (nativeTestReg.test(addressBalance.address))
+          this.nativeSegwit += addressAmount;
       }
     });
   }
@@ -53,4 +58,5 @@ export interface AccountBalanceRelations {
   // describe navigational properties here
 }
 
-export type AccountBalanceWithRelations = AccountBalance & AccountBalanceRelations;
+export type AccountBalanceWithRelations = AccountBalance &
+  AccountBalanceRelations;

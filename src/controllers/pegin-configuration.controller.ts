@@ -1,12 +1,5 @@
-import {
-  Filter,
-  repository,
-} from '@loopback/repository';
-import {
-  param,
-  get,
-  getModelSchemaRef,
-} from '@loopback/rest';
+import {Filter, repository} from '@loopback/repository';
+import {param, get, getModelSchemaRef} from '@loopback/rest';
 import {PeginConfiguration, Session} from '../models';
 import {PeginConfigurationRepository, SessionRepository} from '../repositories';
 import crypto from 'crypto';
@@ -14,11 +7,10 @@ import crypto from 'crypto';
 export class PeginConfigurationController {
   constructor(
     @repository(PeginConfigurationRepository)
-    public peginConfigurationRepository : PeginConfigurationRepository,
+    public peginConfigurationRepository: PeginConfigurationRepository,
     @repository(SessionRepository)
-    public sessionRepository : SessionRepository,
+    public sessionRepository: SessionRepository,
   ) {}
-
 
   @get('/pegin-configuration', {
     responses: {
@@ -28,7 +20,9 @@ export class PeginConfigurationController {
           'application/json': {
             schema: {
               type: 'array',
-              items: getModelSchemaRef(PeginConfiguration, {includeRelations: true}),
+              items: getModelSchemaRef(PeginConfiguration, {
+                includeRelations: true,
+              }),
             },
           },
         },
@@ -45,7 +39,7 @@ export class PeginConfigurationController {
     return new Promise<PeginConfiguration>((resolve, reject) => {
       Promise.all([
         this.sessionRepository.create(new Session(session)),
-        this.peginConfigurationRepository.findById('1',filter),
+        this.peginConfigurationRepository.findById('1', filter),
       ])
         .then(([sessionCreated, peginConfig]) => {
           peginConfig.sessionId = sessionCreated._id;

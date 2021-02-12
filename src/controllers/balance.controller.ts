@@ -3,16 +3,22 @@
 import {inject} from '@loopback/core';
 import {UtxoProvider} from '../services';
 import {post, getModelSchemaRef, requestBody} from '@loopback/rest';
-import {AccountBalance, AddressBalance, GetBalance, Session, Utxo, WalletAddress} from '../models';
+import {
+  AccountBalance,
+  AddressBalance,
+  GetBalance,
+  Session,
+  Utxo,
+} from '../models';
 import {repository} from '@loopback/repository';
 import {SessionRepository} from '../repositories';
 
-
 export class BalanceController {
   constructor(
-    @inject('services.UtxoProvider') protected utxoProviderService: UtxoProvider,
+    @inject('services.UtxoProvider')
+    protected utxoProviderService: UtxoProvider,
     @repository(SessionRepository)
-    public sessionRepository : SessionRepository,
+    public sessionRepository: SessionRepository,
   ) {}
 
   @post('/balance', {
@@ -28,24 +34,37 @@ export class BalanceController {
     },
   })
   async getBalance(
-    @requestBody(
-      {schema: getModelSchemaRef(GetBalance)},
-    ) getBalance: GetBalance,
+    @requestBody({schema: getModelSchemaRef(GetBalance)})
+    getBalance: GetBalance,
   ): Promise<AccountBalance> {
-    return new Promise<AccountBalance>( (resolve, reject) => {
-      const eventualUtxos = getBalance.addressList.map((walletAddress) => Promise
-        .all([walletAddress.address, this
-          .utxoProviderService.utxoProvider(walletAddress.address)]));
+    return new Promise<AccountBalance>((resolve, reject) => {
+      const eventualUtxos = getBalance.addressList.map(walletAddress =>
+        Promise.all([
+          walletAddress.address,
+          this.utxoProviderService.utxoProvider(walletAddress.address),
+        ]),
+      );
       Promise.all(eventualUtxos)
-        .then((addressUtxos) => addressUtxos.map(([address, utxoList]) =>
-          new AddressBalance({ address, utxoList: utxoList.map((uxto) => new Utxo(uxto))})
-          ))
-        .then((addressBalances) => {
-          return Promise.all([this.sessionRepository
-            .replaceById(getBalance.sessionId, new Session({
-              balance: 0,
-              addressList: addressBalances,
-            })), addressBalances])
+        .then(addressUtxos =>
+          addressUtxos.map(
+            ([address, utxoList]) =>
+              new AddressBalance({
+                address,
+                utxoList: utxoList.map(uxto => new Utxo(uxto)),
+              }),
+          ),
+        )
+        .then(addressBalances => {
+          return Promise.all([
+            this.sessionRepository.replaceById(
+              getBalance.sessionId,
+              new Session({
+                balance: 0,
+                addressList: addressBalances,
+              }),
+            ),
+            addressBalances,
+          ]);
         })
         .then(([result, addressBalances]) => {
           const accBalance = new AccountBalance({
