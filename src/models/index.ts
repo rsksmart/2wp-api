@@ -4,3 +4,4 @@ export * from './wallet-address.model';
 export * from './utxo.model';
 export * from './address-balance.model';
 export * from './session.model';
+export * from './get-balance.model';

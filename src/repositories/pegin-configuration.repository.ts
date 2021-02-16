@@ -8,9 +8,7 @@ export class PeginConfigurationRepository extends DefaultCrudRepository<
   typeof PeginConfiguration.prototype.ID,
   PeginConfigurationRelations
 > {
-  constructor(
-    @inject('datasources.db') dataSource: DbDataSource,
-  ) {
+  constructor(@inject('datasources.db') dataSource: DbDataSource) {
     super(PeginConfiguration, dataSource);
   }
 }
