@@ -1,5 +1,5 @@
-import {Filter, repository} from '@loopback/repository';
-import {param, get, getModelSchemaRef} from '@loopback/rest';
+import {repository} from '@loopback/repository';
+import {get, getModelSchemaRef} from '@loopback/rest';
 import {PeginConfiguration, Session} from '../models';
 import {PeginConfigurationRepository, SessionRepository} from '../repositories';
 import crypto from 'crypto';
@@ -29,23 +29,18 @@ export class PeginConfigurationController {
       },
     },
   })
-  async find(
-    @param.filter(PeginConfiguration) filter?: Filter<PeginConfiguration>,
-  ): Promise<PeginConfiguration> {
+  async get(): Promise<PeginConfiguration> {
     const session = {
       _id: crypto.randomBytes(16).toString('hex'),
       balance: 0,
     };
-    return new Promise<PeginConfiguration>((resolve, reject) => {
-      Promise.all([
-        this.sessionRepository.create(new Session(session)),
-        this.peginConfigurationRepository.findById('1', filter),
-      ])
-        .then(([sessionCreated, peginConfig]) => {
-          peginConfig.sessionId = sessionCreated._id;
-          resolve(peginConfig);
-        })
-        .catch(reject);
+    const sessionCreated = await this.sessionRepository.create(
+      new Session(session),
+    );
+    const peginConfig = await this.peginConfigurationRepository.findById('1');
+    return new Promise<PeginConfiguration>(resolve => {
+      peginConfig.sessionId = sessionCreated._id;
+      resolve(peginConfig);
     });
   }
 }
