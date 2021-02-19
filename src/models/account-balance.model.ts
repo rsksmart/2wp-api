@@ -35,7 +35,7 @@ export class AccountBalance extends Model {
     const [legacyTestReg, segwitTestReg, nativeTestReg] = [
       /^[mn][1-9A-HJ-NP-Za-km-z]{26,35}/,
       /^[2][1-9A-HJ-NP-Za-km-z]{26,35}/,
-      /^[tb][1-9A-HJ-NP-Za-z]{26,41}/,
+      /^[tb][0-9A-HJ-NP-Za-z]{26,41}/,
     ];
     addressBalances.forEach(addressBalance => {
       const utxoSatoshis = addressBalance.utxoList?.map(utxo => utxo.satoshis);
