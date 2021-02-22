@@ -67,4 +67,4 @@ typings/
 # local storage
 data/*
 # sessionDB local
-SessionDB/data/*
+SessionDB/data/redis-data
