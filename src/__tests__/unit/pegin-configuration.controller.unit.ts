@@ -7,9 +7,8 @@ import {
   PeginConfigurationRepository,
   SessionRepository,
 } from '../../repositories';
-import {PeginConfiguration, Session} from '../../models';
+import {PeginConfiguration} from '../../models';
 import {PeginConfigurationController} from '../../controllers';
-import {givenPeginConfiguration} from '../helper';
 describe('PeginConfiguration controller', () => {
   let controller: PeginConfigurationController;
   let peginConfigurationRepository: StubbedInstanceWithSinonAccessor<PeginConfigurationRepository>;
@@ -39,13 +38,8 @@ describe('PeginConfiguration controller', () => {
     peginConfigurationRepository.stubs.findById
       .withArgs('1')
       .resolves(new PeginConfiguration(peginConf));
-    sessionRepository.stubs.create.resolves(
-      new Session({
-        _id: 'test_id',
-        balance: 0,
-      }),
-    );
-    const pc = await controller.get();
-    expect(pc).to.deepEqual(givenPeginConfiguration(peginConf));
+    const {sessionId, ...peginConfiguration} = await controller.get();
+    expect(sessionId).to.match(/[A-Fa-f0-9]{16}/);
+    expect(peginConfiguration).to.deepEqual(peginConf);
   });
 });

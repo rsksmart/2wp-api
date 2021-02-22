@@ -73,7 +73,7 @@ describe('balance controller', () => {
     ]);
     const balance = await balanceController.getBalance(request);
     sinon.assert.callCount(utxoProvider, 6);
-    sinon.assert.called(sessionRepository.stubs.replaceById);
+    sinon.assert.called(sessionRepository.stubs.set);
     expect(balance).deepEqual(
       new AccountBalance({
         segwit: 200,

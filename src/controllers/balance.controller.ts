@@ -56,7 +56,7 @@ export class BalanceController {
         )
         .then(addressBalances => {
           return Promise.all([
-            this.sessionRepository.replaceById(
+            this.sessionRepository.set(
               getBalance.sessionId,
               new Session({
                 balance: 0,
