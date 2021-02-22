@@ -34,12 +34,10 @@ export class PeginConfigurationController {
       _id: crypto.randomBytes(16).toString('hex'),
       balance: 0,
     };
-    const sessionCreated = await this.sessionRepository.create(
-      new Session(session),
-    );
+    await this.sessionRepository.set(session._id, new Session(session));
     const peginConfig = await this.peginConfigurationRepository.findById('1');
     return new Promise<PeginConfiguration>(resolve => {
-      peginConfig.sessionId = sessionCreated._id;
+      peginConfig.sessionId = session._id;
       resolve(peginConfig);
     });
   }

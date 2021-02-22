@@ -1,16 +1,10 @@
 import {inject} from '@loopback/core';
-import {DefaultCrudRepository} from '@loopback/repository';
-import {MongoDatasource} from '../datasources';
-import {Session, SessionRelations} from '../models';
+import {DefaultKeyValueRepository} from '@loopback/repository';
+import {RedisDataSource} from '../datasources';
+import {Session} from '../models';
 
-export class SessionRepository extends DefaultCrudRepository<
-  Session,
-  typeof Session.prototype.id,
-  SessionRelations
-> {
-  constructor(
-    @inject('datasources.MongoTestUtxo') dataSource: MongoDatasource,
-  ) {
+export class SessionRepository extends DefaultKeyValueRepository<Session> {
+  constructor(@inject('datasources.Redis') dataSource: RedisDataSource) {
     super(Session, dataSource);
   }
 }

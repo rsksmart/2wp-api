@@ -2,7 +2,7 @@ import {Client, expect} from '@loopback/testlab';
 import {TwpapiApplication} from '../..';
 import {setupApplication} from './test-helper';
 
-describe('Pegin configuration Controller', () => {
+describe('Balance Controller', () => {
   let app: TwpapiApplication;
   let client: Client;
 
@@ -15,10 +15,11 @@ describe('Pegin configuration Controller', () => {
   });
 
   it('invokes POST /balance', async () => {
+    const peginConf = await client.get('/pegin-configuration').expect(200);
     const res = await client
       .post('/balance')
       .send({
-        sessionId: 'fc46727917d500fa5bb0c696d5d0e682',
+        sessionId: peginConf.body.sessionId,
         addressList: [
           {
             path: [2147483692, 2147483649, 2147483648, 0, 0],
