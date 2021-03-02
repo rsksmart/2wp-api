@@ -1,6 +1,7 @@
 import {Client, expect} from '@loopback/testlab';
 import {TwpapiApplication} from '../..';
 import {setupApplication} from './test-helper';
+import * as constants from '../../constants';
 
 describe('Pegin Tx Controller', () => {
   let app: TwpapiApplication;
@@ -16,7 +17,7 @@ describe('Pegin Tx Controller', () => {
 
   it('invokes POST /pegin-tx', async () => {
     const peginConf = await client.get('/pegin-configuration').expect(200);
-    const res = await client
+    await client
       .post('/balance')
       .send({
         sessionId: peginConf.body.sessionId,
@@ -54,15 +55,24 @@ describe('Pegin Tx Controller', () => {
         ],
       })
       .expect(200);
+    await client
+      .post('/tx-fee')
+      .send({
+        sessionId: peginConf.body.sessionId,
+        amount: 200,
+        accountType: constants.BITCOIN_NATIVE_SEGWIT_ADDRESS,
+      })
+      .expect(200);
     const peginTxData = {
       sessionId : peginConf.body.sessionId,
       amountToTransferInSatoshi: 1000000,
       refundAddress: 'mzMCEHDUAZaKL9BXt9SzasFPUUqM77TqP1',
       recipient: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
+      feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
     }
     const normalizedTx = await client.post('/pegin-tx')
       .send(peginTxData)
-      .expect(201);
-    console.log(normalizedTx);
+      .expect(200);
+    console.log(normalizedTx.body);
   });
 });

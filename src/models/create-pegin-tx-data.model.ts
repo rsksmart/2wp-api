@@ -22,10 +22,15 @@ export class CreatePeginTxData extends Model {
 
   @property({
     type: 'string',
-    required: false,
+    required: true,
   })
-  sessionId?: string;
+  sessionId: string;
 
+  @property({
+    type: 'string',
+    required: true,
+  })
+  feeLevel: string;
 
   constructor(data?: Partial<CreatePeginTxData>) {
     super(data);

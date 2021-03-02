@@ -65,11 +65,16 @@ export class TxFeeController {
           inputs = inputs.concat(this.selectOptimalInputs(
             accountUtxoList,
             +fastAmount + feeRequestData.amount));
-          fees.high = (inputs.length * inputSize + txBytes) * +fastAmount;
-          fees.average = (inputs.length * inputSize + txBytes) * +averageAmount;
-          fees.low = (inputs.length * inputSize + txBytes) * +lowAmount;
-          resolve(fees);
-      }).catch(reject)
+          fees.high = (inputs.length * inputSize + txBytes) * (+fastAmount * 1e8);
+          fees.average = (inputs.length * inputSize + txBytes) * (+fastAmount * 1e8);
+          fees.low = (inputs.length * inputSize + txBytes) * (+fastAmount * 1e8);
+          return Promise.all([
+            fees,
+            this.sessionRepository.setInputs(feeRequestData.sessionId, inputs),
+          ]);
+      })
+        .then(([feeObj]) => resolve(feeObj))
+        .catch(reject)
     });
   }
 

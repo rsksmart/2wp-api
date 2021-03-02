@@ -1,5 +1,6 @@
 import {Entity, model, property} from '@loopback/repository';
 import {AddressBalance} from './address-balance.model';
+import {TxInput} from './tx-input.model';
 
 @model({settings: {strict: false}})
 export class Session extends Entity {
@@ -23,6 +24,13 @@ export class Session extends Entity {
     required: false,
   })
   addressList?: AddressBalance[];
+
+  @property({
+    type: 'array',
+    itemType: 'object',
+    required: false,
+  })
+  inputs?: TxInput[];
 
   // Define well-known properties here
 
