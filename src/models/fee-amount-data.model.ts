@@ -20,7 +20,6 @@ export class FeeAmountData extends Model {
   })
   high: number;
 
-
   constructor(data?: Partial<FeeAmountData>) {
     super(data);
   }

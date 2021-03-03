@@ -8,14 +8,19 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
     super(Session, dataSource);
   }
 
-  findAccountUtxos(sessionId: string, accountType:string): Promise<Utxo[]>{
+  findAccountUtxos(sessionId: string, accountType: string): Promise<Utxo[]> {
     return new Promise<Utxo[]>((resolve, reject) => {
-      let finalUtxoList:Utxo[] = [];
+      let finalUtxoList: Utxo[] = [];
       this.get(sessionId)
         .then(({addressList}) => {
           addressList?.forEach(({address, utxoList}) => {
-            if( utxoList && AccountBalance.getAccountType(address) === accountType)
-              finalUtxoList = finalUtxoList.concat(utxoList.map((utxo) => Object.assign({address},utxo)));
+            if (
+              utxoList &&
+              AccountBalance.getAccountType(address) === accountType
+            )
+              finalUtxoList = finalUtxoList.concat(
+                utxoList.map(utxo => Object.assign({address}, utxo)),
+              );
           });
           resolve(finalUtxoList);
         })

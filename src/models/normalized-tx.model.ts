@@ -22,7 +22,6 @@ export class NormalizedTx extends Model {
   })
   size: number;
 
-
   constructor(data?: Partial<NormalizedTx>) {
     super(data);
   }

@@ -20,7 +20,6 @@ export class FeeRequestData extends Model {
   })
   accountType: string;
 
-
   constructor(data?: Partial<FeeRequestData>) {
     super(data);
   }
@@ -30,4 +29,5 @@ export interface FeeRequestDataRelations {
   // describe navigational properties here
 }
 
-export type FeeRequestDataWithRelations = FeeRequestData & FeeRequestDataRelations;
+export type FeeRequestDataWithRelations = FeeRequestData &
+  FeeRequestDataRelations;

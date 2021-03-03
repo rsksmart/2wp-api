@@ -26,7 +26,6 @@ export class CreatePeginTxData extends Model {
   })
   sessionId?: string;
 
-
   constructor(data?: Partial<CreatePeginTxData>) {
     super(data);
   }
@@ -36,4 +35,5 @@ export interface CreatePeginTxDataRelations {
   // describe navigational properties here
 }
 
-export type CreatePeginTxDataWithRelations = CreatePeginTxData & CreatePeginTxDataRelations;
+export type CreatePeginTxDataWithRelations = CreatePeginTxData &
+  CreatePeginTxDataRelations;
