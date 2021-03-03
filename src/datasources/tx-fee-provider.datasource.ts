@@ -37,7 +37,7 @@ export class TxFeeProviderDataSource
 
   constructor(
     @inject('datasources.config.txFeeProvider', {optional: true})
-      dsConfig: object = config,
+    dsConfig: object = config,
   ) {
     super(dsConfig);
   }

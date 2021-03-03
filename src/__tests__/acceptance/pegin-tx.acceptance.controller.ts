@@ -1,4 +1,4 @@
-import {Client, expect} from '@loopback/testlab';
+import {Client} from '@loopback/testlab';
 import {TwpapiApplication} from '../..';
 import {setupApplication} from './test-helper';
 import * as constants from '../../constants';
@@ -64,15 +64,20 @@ describe('Pegin Tx Controller', () => {
       })
       .expect(200);
     const peginTxData = {
-      sessionId : peginConf.body.sessionId,
+      sessionId: peginConf.body.sessionId,
       amountToTransferInSatoshi: 1000000,
       refundAddress: 'mzMCEHDUAZaKL9BXt9SzasFPUUqM77TqP1',
       recipient: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
       feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
-    }
-    const normalizedTx = await client.post('/pegin-tx')
+    };
+    const normalizedTx = await client
+      .post('/pegin-tx')
       .send(peginTxData)
       .expect(200);
     console.log(normalizedTx.body);
+    // const normalizedTx = await client.post('/pegin-tx')
+    //   .send(peginTxData)
+    //   .expect(201);
+    // console.log(normalizedTx);
   });
 });

@@ -9,14 +9,19 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
     super(Session, dataSource);
   }
 
-  findAccountUtxos(sessionId: string, accountType:string): Promise<Utxo[]>{
+  findAccountUtxos(sessionId: string, accountType: string): Promise<Utxo[]> {
     return new Promise<Utxo[]>((resolve, reject) => {
-      let finalUtxoList:Utxo[] = [];
+      let finalUtxoList: Utxo[] = [];
       this.get(sessionId)
         .then(({addressList}) => {
           addressList?.forEach(({address, utxoList}) => {
-            if( utxoList && AccountBalance.getAccountType(address) === accountType)
-              finalUtxoList = finalUtxoList.concat(utxoList.map((utxo) => Object.assign({address},utxo)));
+            if (
+              utxoList &&
+              AccountBalance.getAccountType(address) === accountType
+            )
+              finalUtxoList = finalUtxoList.concat(
+                utxoList.map(utxo => Object.assign({address}, utxo)),
+              );
           });
           resolve(finalUtxoList);
         })
@@ -36,20 +41,19 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
   }
 
   setInputs(sessionId: string, inputs: TxInput[]): Promise<void> {
-    return this.get(sessionId)
-      .then((sessionObject) => {
-        sessionObject.inputs = inputs;
-        return this.set(sessionId, sessionObject)
-      });
+    return this.get(sessionId).then(sessionObject => {
+      sessionObject.inputs = inputs;
+      return this.set(sessionId, sessionObject);
+    });
   }
 
   getFeeLevel(sessionId: string, feeLevel: string): Promise<number> {
     return new Promise<number>((resolve, reject) => {
       this.get(sessionId)
         .then(({fees}) => {
-          switch (feeLevel){
+          switch (feeLevel) {
             case constants.BITCOIN_FAST_FEE_LEVEL:
-              resolve(fees.fast)
+              resolve(fees.fast);
               break;
             case constants.BITCOIN_AVERAGE_FEE_LEVEL:
               resolve(fees.average);

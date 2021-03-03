@@ -11,14 +11,14 @@ export class TxOutput extends Model {
     type: 'array',
     itemType: 'number',
   })
-    // eslint-disable-next-line @typescript-eslint/naming-convention
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   address_n?: number[];
 
   @property({
     type: 'string',
     required: true,
   })
-    // eslint-disable-next-line @typescript-eslint/naming-convention
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   script_type: string;
 
   @property({
@@ -30,7 +30,7 @@ export class TxOutput extends Model {
   @property({
     type: 'string',
   })
-    // eslint-disable-next-line @typescript-eslint/naming-convention
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   op_return_data?: string;
 
   // Define well-known properties here

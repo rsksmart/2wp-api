@@ -3,19 +3,19 @@ import {getService} from '@loopback/service-proxy';
 import {TxProviderDataSource} from '../datasources';
 
 export interface Tx {
-  txid: string,
-  version: number,
-  vin: object[],
-  vout: object[],
-  blockhash: string,
-  blockheight: number,
-  confirmations: number,
-  time: number,
-  blocktime: number,
-  valueOut: string,
-  valueIn: string,
-  fees: string,
-  hex: string,
+  txid: string;
+  version: number;
+  vin: object[];
+  vout: object[];
+  blockhash: string;
+  blockheight: number;
+  confirmations: number;
+  time: number;
+  blocktime: number;
+  valueOut: string;
+  valueIn: string;
+  fees: string;
+  hex: string;
 }
 
 export interface TxService {

@@ -41,4 +41,5 @@ export interface CreatePeginTxDataRelations {
   // describe navigational properties here
 }
 
-export type CreatePeginTxDataWithRelations = CreatePeginTxData & CreatePeginTxDataRelations;
+export type CreatePeginTxDataWithRelations = CreatePeginTxData &
+  CreatePeginTxDataRelations;
