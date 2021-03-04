@@ -1,3 +1,0 @@
-[submodule "dependencies"]
-	path = dependencies
-	url = git@github.com:rsksmart/pegin-address-verifier.git

@@ -62,6 +62,7 @@
     "loopback-connector-mongodb": "^5.5.0",
     "loopback-connector-redis": "^3.0.0",
     "loopback-connector-rest": "^3.7.0",
+    "pegin-address-verifier": "rsksmart/pegin-address-verifier#master",
     "tslib": "^2.0.0"
   },
   "devDependencies": {
