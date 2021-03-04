@@ -62,9 +62,9 @@ export class TxFeeController {
             fees.high =
               (inputs.length * inputSize + txBytes) * (+fastAmount * 1e8);
             fees.average =
-              (inputs.length * inputSize + txBytes) * (+fastAmount * 1e8);
+              (inputs.length * inputSize + txBytes) * (+averageAmount * 1e8);
             fees.low =
-              (inputs.length * inputSize + txBytes) * (+fastAmount * 1e8);
+              (inputs.length * inputSize + txBytes) * (+lowAmount * 1e8);
             return Promise.all([
               fees,
               this.sessionRepository.setInputs(
@@ -93,6 +93,7 @@ export class TxFeeController {
             prev_hash: utxo.txid,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             prev_index: utxo.vout,
+            amount: (+utxo.amount * 1e8).toString(),
           }),
         );
         remainingSatoshis -= utxo.satoshis;

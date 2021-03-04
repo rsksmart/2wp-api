@@ -18,6 +18,12 @@ export class CreatePeginTxData extends Model {
     type: 'string',
     required: true,
   })
+  changeAddress: string;
+
+  @property({
+    type: 'string',
+    required: true,
+  })
   recipient: string;
 
   @property({

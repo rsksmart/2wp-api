@@ -69,12 +69,13 @@ describe('Pegin Tx Controller', () => {
       refundAddress: 'mzMCEHDUAZaKL9BXt9SzasFPUUqM77TqP1',
       recipient: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
       feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
+      changeAddress: 'mzMCEHDUAZaKL9BXt9SzasFPUUqM77TqP1',
     };
     await client.post('/pegin-tx').send(peginTxData).expect(200);
   });
   it('invokes POST /pegin-tx with P2SH address', async () => {
     const peginConf = await client.get('/pegin-configuration').expect(200);
-    await client
+    const balance = await client
       .post('/balance')
       .send({
         sessionId: peginConf.body.sessionId,
@@ -117,15 +118,16 @@ describe('Pegin Tx Controller', () => {
       .send({
         sessionId: peginConf.body.sessionId,
         amount: 200,
-        accountType: constants.BITCOIN_NATIVE_SEGWIT_ADDRESS,
+        accountType: constants.BITCOIN_LEGACY_ADDRESS,
       })
       .expect(200);
     const peginTxData = {
       sessionId: peginConf.body.sessionId,
-      amountToTransferInSatoshi: 1000000,
+      amountToTransferInSatoshi: balance.body.legacy,
       refundAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
       recipient: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
       feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
+      changeAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
     };
     await client.post('/pegin-tx').send(peginTxData).expect(200);
   });

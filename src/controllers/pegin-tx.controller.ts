@@ -1,6 +1,6 @@
 import {repository} from '@loopback/repository';
 import {post, getModelSchemaRef, requestBody, response} from '@loopback/rest';
-import {CreatePeginTxData, NormalizedTx, TxOutput} from '../models';
+import {CreatePeginTxData, NormalizedTx, TxInput, TxOutput} from '../models';
 import {SessionRepository} from '../repositories';
 import peginAddressVerifier from 'pegin-address-verifier';
 
@@ -48,6 +48,18 @@ export class PeginTxController {
               createPeginTxData.refundAddress,
             ),
           );
+          outputs.push(
+            this.getFederationOutput(
+              createPeginTxData.amountToTransferInSatoshi,
+            ),
+          );
+          outputs.push(
+            this.getChangeOutput(
+              inputs,
+              createPeginTxData.changeAddress,
+              createPeginTxData.amountToTransferInSatoshi,
+            ),
+          );
           resolve(
             new NormalizedTx({
               inputs,
@@ -59,7 +71,7 @@ export class PeginTxController {
     });
   }
 
-  private getRSKOutput(recipient: string, refundAddress: string): TxOutput {
+  getRSKOutput(recipient: string, refundAddress: string): TxOutput {
     const output: TxOutput = new TxOutput({
       amount: '0',
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -71,7 +83,6 @@ export class PeginTxController {
     const addressInfo = peginAddressVerifier.getAddressInformation(
       refundAddress,
     );
-    console.log(addressInfo);
     if (peginAddressVerifier.canPegIn(addressInfo)) {
       switch (addressInfo.type) {
         case 'p2pkh':
@@ -83,5 +94,30 @@ export class PeginTxController {
       }
     }
     return output;
+  }
+
+  getFederationOutput(amountToTransferInSatoshi: number): TxOutput {
+    const federationAddress =
+      process.env.FEDERATION_ADDRESS ??
+      'tb1qtanvhhl8ve32tcdxkrsamyy6vq5p62ctdv89l0';
+    return new TxOutput({
+      amount: amountToTransferInSatoshi.toString(),
+      address: federationAddress,
+    });
+  }
+
+  private getChangeOutput(
+    inputs: TxInput[],
+    changeAddress: string,
+    amountToTransferInSatoshi: number,
+  ): TxOutput {
+    let capacity = 0;
+    inputs.forEach(input => {
+      capacity += input.amount ? +input.amount : 0;
+    });
+    return new TxOutput({
+      amount: (capacity - amountToTransferInSatoshi).toString(),
+      address: changeAddress,
+    });
   }
 }
