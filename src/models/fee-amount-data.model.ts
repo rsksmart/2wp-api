@@ -6,7 +6,7 @@ export class FeeAmountData extends Model {
     type: 'number',
     required: true,
   })
-  low: number;
+  slow: number;
 
   @property({
     type: 'number',
@@ -18,7 +18,7 @@ export class FeeAmountData extends Model {
     type: 'number',
     required: true,
   })
-  high: number;
+  fast: number;
 
   constructor(data?: Partial<FeeAmountData>) {
     super(data);

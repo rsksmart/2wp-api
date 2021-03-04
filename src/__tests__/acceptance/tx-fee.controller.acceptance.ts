@@ -63,8 +63,8 @@ describe('Tx Fee Controller', () => {
         accountType: constants.BITCOIN_SEGWIT_ADDRESS,
       })
       .expect(200);
-    expect(typeof txFee.body.low).to.eql('number');
+    expect(typeof txFee.body.slow).to.eql('number');
     expect(typeof txFee.body.average).to.eql('number');
-    expect(typeof txFee.body.high).to.eql('number');
+    expect(typeof txFee.body.fast).to.eql('number');
   });
 });

@@ -36,9 +36,9 @@ export class TxFeeController {
       const [fast, average, low] = [1, 6, 12];
       let inputs: TxInput[] = [];
       const fees: FeeAmountData = new FeeAmountData({
-        low: 0,
+        slow: 0,
         average: 0,
-        high: 0,
+        fast: 0,
       });
       const inputSize = 180;
       const txBytes = 3 * 34 + 10 + 46;
@@ -59,11 +59,11 @@ export class TxFeeController {
                 +fastAmount + feeRequestData.amount,
               ),
             );
-            fees.high =
+            fees.fast =
               (inputs.length * inputSize + txBytes) * (+fastAmount * 1e8);
             fees.average =
               (inputs.length * inputSize + txBytes) * (+averageAmount * 1e8);
-            fees.low =
+            fees.slow =
               (inputs.length * inputSize + txBytes) * (+lowAmount * 1e8);
             return Promise.all([
               fees,
