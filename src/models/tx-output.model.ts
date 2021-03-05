@@ -1,23 +1,25 @@
 import {Model, model, property} from '@loopback/repository';
 
 @model({settings: {strict: false}})
-export class Utxo extends Model {
+export class TxOutput extends Model {
   @property({
     type: 'string',
   })
   address?: string;
 
   @property({
+    type: 'array',
+    itemType: 'number',
+  })
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  address_n?: number[];
+
+  @property({
     type: 'string',
     required: true,
   })
-  txid: string;
-
-  @property({
-    type: 'number',
-    required: true,
-  })
-  vout: number;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  script_type: string;
 
   @property({
     type: 'string',
@@ -26,22 +28,10 @@ export class Utxo extends Model {
   amount: string;
 
   @property({
-    type: 'number',
-    required: true,
+    type: 'string',
   })
-  satoshis: number;
-
-  @property({
-    type: 'number',
-    required: true,
-  })
-  height: number;
-
-  @property({
-    type: 'number',
-    required: true,
-  })
-  confirmations: number;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  op_return_data?: string;
 
   // Define well-known properties here
 
@@ -49,13 +39,13 @@ export class Utxo extends Model {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;
 
-  constructor(data?: Partial<Utxo>) {
+  constructor(data?: Partial<TxOutput>) {
     super(data);
   }
 }
 
-export interface UtxoRelations {
+export interface TxOutputRelations {
   // describe navigational properties here
 }
 
-export type UtxoWithRelations = Utxo & UtxoRelations;
+export type TxOutputWithRelations = TxOutput & TxOutputRelations;
