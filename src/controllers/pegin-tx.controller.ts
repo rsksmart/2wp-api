@@ -39,9 +39,14 @@ export class PeginTxController {
         reject(
           `Invalid Refund Address provided ${createPeginTxData.refundAddress} for network ${network}`,
         );
-      this.sessionRepository
-        .getAccountInputs(createPeginTxData.sessionId)
-        .then(inputs => {
+      Promise.all([
+        this.sessionRepository.getAccountInputs(createPeginTxData.sessionId),
+        this.sessionRepository.getFeeLevel(
+          createPeginTxData.sessionId,
+          createPeginTxData.feeLevel,
+        ),
+      ])
+        .then(([inputs, fee]) => {
           outputs.push(
             this.getRSKOutput(
               createPeginTxData.recipient,
@@ -58,6 +63,7 @@ export class PeginTxController {
               inputs,
               createPeginTxData.changeAddress,
               createPeginTxData.amountToTransferInSatoshi,
+              fee,
             ),
           );
           resolve(
@@ -110,13 +116,14 @@ export class PeginTxController {
     inputs: TxInput[],
     changeAddress: string,
     amountToTransferInSatoshi: number,
+    fee: number,
   ): TxOutput {
     let capacity = 0;
     inputs.forEach(input => {
       capacity += input.amount ? +input.amount : 0;
     });
     return new TxOutput({
-      amount: (capacity - amountToTransferInSatoshi).toString(),
+      amount: (capacity - (amountToTransferInSatoshi + fee)).toString(),
       address: changeAddress,
     });
   }

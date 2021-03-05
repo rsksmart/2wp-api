@@ -70,6 +70,7 @@ export class TxFeeController {
               this.sessionRepository.setInputs(
                 feeRequestData.sessionId,
                 inputs,
+                fees,
               ),
             ]);
           },

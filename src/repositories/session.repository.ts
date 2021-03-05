@@ -1,7 +1,7 @@
 import {inject} from '@loopback/core';
 import {DefaultKeyValueRepository} from '@loopback/repository';
 import {RedisDataSource} from '../datasources';
-import {AccountBalance, Session, TxInput, Utxo} from '../models';
+import {AccountBalance, FeeAmountData, Session, TxInput, Utxo} from '../models';
 import * as constants from '../constants';
 
 export class SessionRepository extends DefaultKeyValueRepository<Session> {
@@ -40,9 +40,14 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
     });
   }
 
-  setInputs(sessionId: string, inputs: TxInput[]): Promise<void> {
+  setInputs(
+    sessionId: string,
+    inputs: TxInput[],
+    fees: FeeAmountData,
+  ): Promise<void> {
     return this.get(sessionId).then(sessionObject => {
       sessionObject.inputs = inputs;
+      sessionObject.fees = fees;
       return this.set(sessionId, sessionObject);
     });
   }
@@ -51,18 +56,26 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
     return new Promise<number>((resolve, reject) => {
       this.get(sessionId)
         .then(({fees}) => {
-          switch (feeLevel) {
-            case constants.BITCOIN_FAST_FEE_LEVEL:
-              resolve(fees.fast);
-              break;
-            case constants.BITCOIN_AVERAGE_FEE_LEVEL:
-              resolve(fees.average);
-              break;
-            case constants.BITCOIN_SLOW_FEE_LEVEL:
-              resolve(fees.slow);
-              break;
-            default:
-              reject(new Error(`Wrong Fee Level: ${feeLevel}`));
+          if (fees) {
+            switch (feeLevel) {
+              case constants.BITCOIN_FAST_FEE_LEVEL:
+                resolve(fees.fast);
+                break;
+              case constants.BITCOIN_AVERAGE_FEE_LEVEL:
+                resolve(fees.average);
+                break;
+              case constants.BITCOIN_SLOW_FEE_LEVEL:
+                resolve(fees.slow);
+                break;
+              default:
+                reject(new Error(`Wrong Fee Level: ${feeLevel}`));
+            }
+          } else {
+            reject(
+              new Error(
+                `There is not fee amount stored for sessionId ${sessionId}`,
+              ),
+            );
           }
         })
         .catch(reject);
