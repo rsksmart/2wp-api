@@ -14,6 +14,12 @@ export class TxInput extends Model {
     type: 'string',
     required: true,
   })
+  address: string;
+
+  @property({
+    type: 'string',
+    required: true,
+  })
   // eslint-disable-next-line @typescript-eslint/naming-convention
   prev_hash: string;
 
