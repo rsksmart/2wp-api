@@ -15,7 +15,7 @@ const config = {
       template: {
         method: 'GET',
         url: `https://blockbook.trugroup.tech:19130/api/v2/sendtx/{tx}`,
-        responsePath: '$..*',
+        responsePath: '$',
       },
       functions: {
         broadcast: ['tx'],

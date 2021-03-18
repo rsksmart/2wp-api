@@ -13,7 +13,7 @@ export interface Broadcast {
   // this is where you define the Node.js methods that will be
   // mapped to REST/SOAP/gRPC operations as stated in the datasource
   // json file.
-  broadcast(hexTx: string): Promise<TxStatus>
+  broadcast(hexTx: string): Promise<TxStatus[]>
 }
 
 export class BroadcastProvider implements Provider<Broadcast> {

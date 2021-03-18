@@ -24,13 +24,13 @@ export class BroadcastController {
   sendTx(@requestBody({schema: getModelSchemaRef(BroadcastRequest)}) req: BroadcastRequest): Promise<BroadcastResponse>{
     return new Promise<BroadcastResponse>((resolve, reject) => {
       this.broadcastProvider.broadcast(req.data)
-        .then((txStatus) => {
+        .then(([txStatus]) => {
           resolve(new BroadcastResponse({
             txId: txStatus.result ?? '',
-            error: txStatus.error ?? {}
-          }))
+            error: txStatus.error ?? undefined,
+          }));
         })
-        .catch(reject);
+       .catch(reject);
     });
   }
 }
