@@ -11,3 +11,5 @@ export * from './tx-input.model';
 export * from './tx-output.model';
 export * from './normalized-tx.model';
 export * from './fee-request-data.model';
+export * from './broadcast-response.model';
+export * from './broadcast-request.model';

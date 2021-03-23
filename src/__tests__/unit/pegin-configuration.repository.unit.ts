@@ -9,7 +9,7 @@ import {
 } from '../../repositories';
 import {PeginConfiguration} from '../../models';
 import {PeginConfigurationController} from '../../controllers';
-describe('PeginConfiguration controller', () => {
+describe('PeginConfiguration Repository', () => {
   let controller: PeginConfigurationController;
   let peginConfigurationRepository: StubbedInstanceWithSinonAccessor<PeginConfigurationRepository>;
   let sessionRepository: StubbedInstanceWithSinonAccessor<SessionRepository>;
