@@ -8,7 +8,6 @@ export class BroadcastRequest extends Model {
   })
   data: string;
 
-
   constructor(data?: Partial<BroadcastRequest>) {
     super(data);
   }
@@ -18,4 +17,5 @@ export interface BroadcastRequestRelations {
   // describe navigational properties here
 }
 
-export type BroadcastRequestWithRelations = BroadcastRequest & BroadcastRequestRelations;
+export type BroadcastRequestWithRelations = BroadcastRequest &
+  BroadcastRequestRelations;

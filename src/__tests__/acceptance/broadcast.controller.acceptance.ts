@@ -15,10 +15,11 @@ describe('Broadcast Controller', () => {
   });
 
   it('invokes POST /broadcast with value on hex', async () => {
-   await client
-     .post('/broadcast')
-     .send({
-       data: 'value on hex',
-     }).expect(201);
+    await client
+      .post('/broadcast')
+      .send({
+        data: 'value on hex',
+      })
+      .expect(400);
   });
 });

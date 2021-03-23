@@ -27,4 +27,5 @@ export interface BroadcastResponseRelations {
   // describe navigational properties here
 }
 
-export type BroadcastResponseWithRelations = BroadcastResponse & BroadcastResponseRelations;
+export type BroadcastResponseWithRelations = BroadcastResponse &
+  BroadcastResponseRelations;

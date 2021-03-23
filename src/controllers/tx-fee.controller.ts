@@ -3,7 +3,7 @@ import {post, getModelSchemaRef, requestBody, response} from '@loopback/rest';
 import {FeeAmountData, FeeRequestData, Utxo, TxInput} from '../models';
 import {SessionRepository} from '../repositories';
 import {inject} from '@loopback/core';
-import {FeeLevel, TxService} from '../services';
+import {FeeLevel} from '../services';
 import {config} from 'dotenv';
 
 config();
@@ -14,8 +14,6 @@ export class TxFeeController {
     public sessionRepository: SessionRepository,
     @inject('services.FeeLevel')
     protected feeLevelProviderService: FeeLevel,
-    @inject('services.TxService')
-    protected txService: TxService,
   ) {}
 
   @post('/tx-fee')
@@ -46,7 +44,7 @@ export class TxFeeController {
         fast: 0,
       });
       const inputSize = process.env.INPUT_SIZE ?? 180;
-      const txBytes = (3 * 34) + 10 + 46;
+      const txBytes = 3 * 34 + 10 + 46;
       Promise.all([
         this.sessionRepository.findAccountUtxos(
           feeRequestData.sessionId,
@@ -59,15 +57,15 @@ export class TxFeeController {
         .then(
           ([accountUtxoList, [fastAmount], [averageAmount], [lowAmount]]) => {
             inputs = this.selectOptimalInputs(
-                accountUtxoList,
-              (+fastAmount * txBytes) + feeRequestData.amount,
-              );
+              accountUtxoList,
+              +fastAmount * txBytes + feeRequestData.amount,
+            );
             fees.fast =
-              ((inputs.length * (+inputSize)) + txBytes) * (+fastAmount * 1e8);
+              (inputs.length * +inputSize + txBytes) * (+fastAmount * 1e8);
             fees.average =
-              ((inputs.length * (+inputSize)) + txBytes) * (+averageAmount * 1e8);
+              (inputs.length * +inputSize + txBytes) * (+averageAmount * 1e8);
             fees.slow =
-              ((inputs.length * (+inputSize)) + txBytes) * (+lowAmount * 1e8);
+              (inputs.length * +inputSize + txBytes) * (+lowAmount * 1e8);
             return Promise.all([
               fees,
               this.sessionRepository.setInputs(
