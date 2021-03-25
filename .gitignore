@@ -68,3 +68,5 @@ typings/
 data/*
 # sessionDB local
 SessionDB/data/redis-data
+sonar-project.properties
+.scannerwork
