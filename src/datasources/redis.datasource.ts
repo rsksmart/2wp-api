@@ -1,14 +1,17 @@
 import {inject, lifeCycleObserver, LifeCycleObserver} from '@loopback/core';
 import {juggler} from '@loopback/repository';
+import {config} from 'dotenv';
 
-const config = {
+config();
+
+const configuration = {
   name: 'Redis',
   connector: 'kv-redis',
   url: '',
-  host: '127.0.0.1',
-  port: 6379,
-  password: '2wp-api-password',
-  db: 1,
+  host: process.env.SESSIONDB_HOST,
+  port: process.env.SESSIONDB_PORT,
+  password: process.env.SESSIONDB_PASSWORD,
+  db: process.env.SESSIONDB_INDEX,
 };
 
 // Observe application's life cycle to disconnect the datasource when
@@ -24,7 +27,7 @@ export class RedisDataSource
 
   constructor(
     @inject('datasources.config.Redis', {optional: true})
-    dsConfig: object = config,
+    dsConfig: object = configuration,
   ) {
     super(dsConfig);
   }
