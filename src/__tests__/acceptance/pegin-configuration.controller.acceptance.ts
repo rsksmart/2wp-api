@@ -16,13 +16,16 @@ describe('Pegin configuration Controller', () => {
 
   it('invokes GET /pegin-configuration', async () => {
     const res = await client.get('/pegin-configuration').expect(200);
-    expect(res.body).to.containEql({
-      id: 1,
-      minValue: 100000,
-      maxValue: 100000000000000,
-      federationAddress: 'tb1qtanvhhl8ve32tcdxkrsamyy6vq5p62ctdv89l0',
-      feePerKb: 10,
-      btcConfirmations: 100,
-    });
+    const peginConf = res.body;
+    const legacyRegex = new RegExp('^[mn][1-9A-HJ-NP-Za-km-z]{26,35}');
+    const segwitRegex = new RegExp('^[2][1-9A-HJ-NP-Za-km-z]{26,35}');
+    expect(peginConf.minValue).to.be.Number();
+    expect(peginConf.maxValue).to.be.Number();
+    expect(peginConf.maxValue > peginConf.minValue).to.be.true();
+    expect(
+      legacyRegex.test(peginConf.federationAddress) ||
+        segwitRegex.test(peginConf.federationAddress),
+    ).to.be.true();
+    expect(peginConf.btcConfirmations).to.be.Number();
   });
 });

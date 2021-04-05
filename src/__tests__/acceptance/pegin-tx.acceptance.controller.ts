@@ -126,7 +126,7 @@ describe('Pegin Tx Controller', () => {
       amountToTransferInSatoshi: balance.body.legacy,
       refundAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
       recipient: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
-      feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
+      feeLevel: constants.BITCOIN_AVERAGE_FEE_LEVEL,
       changeAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
     };
     await client.post('/pegin-tx').send(peginTxData).expect(200);
@@ -176,7 +176,7 @@ describe('Pegin Tx Controller', () => {
       .send({
         sessionId: peginConf.body.sessionId,
         amount: 200,
-        accountType: constants.BITCOIN_LEGACY_ADDRESS,
+        accountType: constants.BITCOIN_SLOW_FEE_LEVEL,
       })
       .expect(200);
     const peginTxData = {

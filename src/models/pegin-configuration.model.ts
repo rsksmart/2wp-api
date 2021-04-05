@@ -10,20 +10,15 @@ export class PeginConfiguration extends Entity {
 
   @property({
     type: 'number',
+    required: true,
   })
-  maxValue?: number;
+  maxValue: number;
 
   @property({
     type: 'string',
     required: true,
   })
   federationAddress: string;
-
-  @property({
-    type: 'number',
-    required: true,
-  })
-  feePerKb: number;
 
   @property({
     type: 'number',
