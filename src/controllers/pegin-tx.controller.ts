@@ -4,6 +4,7 @@ import {CreatePeginTxData, NormalizedTx, TxInput, TxOutput} from '../models';
 import {SessionRepository} from '../repositories';
 import peginAddressVerifier from 'pegin-address-verifier';
 import {config} from 'dotenv';
+import {BridgeService} from '../services';
 
 config();
 
@@ -33,6 +34,10 @@ export class PeginTxController {
     return new Promise<NormalizedTx>((resolve, reject) => {
       const outputs: TxOutput[] = [];
       const network = process.env.NETWORK ?? 'testnet';
+      const bridgeService = new BridgeService(
+        process.env.BRIDGE_ADDRESS ??
+          '0x0000000000000000000000000000000001000006',
+      );
       const addressInfo = peginAddressVerifier.getAddressInformation(
         createPeginTxData.refundAddress,
       );
@@ -49,8 +54,9 @@ export class PeginTxController {
           createPeginTxData.sessionId,
           createPeginTxData.feeLevel,
         ),
+        bridgeService.getFederationAddress(),
       ])
-        .then(([inputs, fee]) => {
+        .then(([inputs, fee, federationAddress]) => {
           outputs.push(
             this.getRSKOutput(
               createPeginTxData.recipient,
@@ -60,6 +66,7 @@ export class PeginTxController {
           outputs.push(
             this.getFederationOutput(
               createPeginTxData.amountToTransferInSatoshi,
+              federationAddress,
             ),
           );
           outputs.push(
@@ -104,10 +111,10 @@ export class PeginTxController {
     return output;
   }
 
-  getFederationOutput(amountToTransferInSatoshi: number): TxOutput {
-    const federationAddress =
-      process.env.FEDERATION_ADDRESS ??
-      'tb1qtanvhhl8ve32tcdxkrsamyy6vq5p62ctdv89l0';
+  getFederationOutput(
+    amountToTransferInSatoshi: number,
+    federationAddress: string,
+  ): TxOutput {
     return new TxOutput({
       amount: amountToTransferInSatoshi.toString(),
       address: federationAddress,

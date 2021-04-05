@@ -1,26 +1,25 @@
 import Web3 from 'web3';
+import {AbiItem} from 'web3-utils';
+import {Contract} from 'web3-eth-contract';
 import BridgeABI from '../abis/bridge.json';
 
 export class BridgeService {
-  private bridgeContract: object;
+  private bridgeContract: Contract;
   private web3: Web3;
   private bridgeAddress: string;
   private TOTAL_RBTC_STOCK = 21000000;
   constructor(contractAddress: string) {
     this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
     this.bridgeAddress = contractAddress;
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
+    const bridge = BridgeABI as AbiItem[];
     this.bridgeContract = new this.web3.eth.Contract(
-      BridgeABI,
+      bridge,
       this.bridgeAddress,
     );
   }
 
   public getFederationAddress(): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       this.bridgeContract.methods
         .getFederationAddress()
         .call()
@@ -31,8 +30,6 @@ export class BridgeService {
 
   public getMinPeginValue(): Promise<number> {
     return new Promise<number>((resolve, reject) => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       this.bridgeContract.methods
         .getMinimumLockTxValue()
         .call()
@@ -43,8 +40,6 @@ export class BridgeService {
 
   public getLockingCapAmount(): Promise<number> {
     return new Promise<number>((resolve, reject) => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       this.bridgeContract.methods
         .getLockingCap()
         .call()
