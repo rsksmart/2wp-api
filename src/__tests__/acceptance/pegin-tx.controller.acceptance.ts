@@ -196,6 +196,5 @@ describe('Pegin Tx Controller', () => {
           message: 'Internal Server Error',
         },
       });
-    // console.log(res.body);
   });
 });

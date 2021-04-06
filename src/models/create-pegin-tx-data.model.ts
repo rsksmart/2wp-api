@@ -43,9 +43,4 @@ export class CreatePeginTxData extends Model {
   }
 }
 
-export interface CreatePeginTxDataRelations {
-  // describe navigational properties here
-}
-
-export type CreatePeginTxDataWithRelations = CreatePeginTxData &
-  CreatePeginTxDataRelations;
+export type CreatePeginTxDataWithRelations = CreatePeginTxData;

@@ -51,8 +51,4 @@ export class TxInput extends Model {
   }
 }
 
-export interface TxInputRelations {
-  // describe navigational properties here
-}
-
-export type TxInputWithRelations = TxInput & TxInputRelations;
+export type TxInputWithRelations = TxInput;

@@ -50,9 +50,4 @@ export class PeginConfiguration extends Entity {
   }
 }
 
-export interface PeginConfigurationRelations {
-  // describe navigational properties here
-}
-
-export type PeginConfigurationWithRelations = PeginConfiguration &
-  PeginConfigurationRelations;
+export type PeginConfigurationWithRelations = PeginConfiguration;

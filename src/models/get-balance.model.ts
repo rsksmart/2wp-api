@@ -21,8 +21,4 @@ export class GetBalance extends Model {
   }
 }
 
-export interface GetBalanceRelations {
-  // describe navigational properties here
-}
-
-export type GetBalanceWithRelations = GetBalance & GetBalanceRelations;
+export type GetBalanceWithRelations = GetBalance;

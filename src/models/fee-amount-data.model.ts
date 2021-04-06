@@ -25,8 +25,4 @@ export class FeeAmountData extends Model {
   }
 }
 
-export interface FeeAmountDataRelations {
-  // describe navigational properties here
-}
-
-export type FeeAmountDataWithRelations = FeeAmountData & FeeAmountDataRelations;
+export type FeeAmountDataWithRelations = FeeAmountData;

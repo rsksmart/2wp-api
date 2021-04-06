@@ -13,9 +13,4 @@ export class BroadcastRequest extends Model {
   }
 }
 
-export interface BroadcastRequestRelations {
-  // describe navigational properties here
-}
-
-export type BroadcastRequestWithRelations = BroadcastRequest &
-  BroadcastRequestRelations;
+export type BroadcastRequestWithRelations = BroadcastRequest;

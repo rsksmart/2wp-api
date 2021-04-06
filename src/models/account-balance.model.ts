@@ -22,12 +22,6 @@ export class AccountBalance extends Model {
   })
   nativeSegwit: number;
 
-  // Define well-known properties here
-
-  // Indexer property to allow additional data
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [prop: string]: any;
-
   constructor(data?: Partial<AccountBalance>) {
     super(data);
   }
@@ -73,9 +67,4 @@ export class AccountBalance extends Model {
   }
 }
 
-export interface AccountBalanceRelations {
-  // describe navigational properties here
-}
-
-export type AccountBalanceWithRelations = AccountBalance &
-  AccountBalanceRelations;
+export type AccountBalanceWithRelations = AccountBalance;
