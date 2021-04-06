@@ -12,20 +12,9 @@ export class BroadcastResponse extends Model {
   })
   error?: object;
 
-  // Define well-known properties here
-
-  // Indexer property to allow additional data
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [prop: string]: any;
-
   constructor(data?: Partial<BroadcastResponse>) {
     super(data);
   }
 }
 
-export interface BroadcastResponseRelations {
-  // describe navigational properties here
-}
-
-export type BroadcastResponseWithRelations = BroadcastResponse &
-  BroadcastResponseRelations;
+export type BroadcastResponseWithRelations = BroadcastResponse;

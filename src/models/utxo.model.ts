@@ -43,19 +43,9 @@ export class Utxo extends Model {
   })
   confirmations: number;
 
-  // Define well-known properties here
-
-  // Indexer property to allow additional data
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [prop: string]: any;
-
   constructor(data?: Partial<Utxo>) {
     super(data);
   }
 }
 
-export interface UtxoRelations {
-  // describe navigational properties here
-}
-
-export type UtxoWithRelations = Utxo & UtxoRelations;
+export type UtxoWithRelations = Utxo;

@@ -50,8 +50,4 @@ export class Session extends Entity {
   }
 }
 
-export interface SessionRelations {
-  // describe navigational properties here
-}
-
-export type SessionWithRelations = Session & SessionRelations;
+export type SessionWithRelations = Session;

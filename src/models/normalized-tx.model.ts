@@ -23,8 +23,4 @@ export class NormalizedTx extends Model {
   }
 }
 
-export interface NormalizedTxRelations {
-  // describe navigational properties here
-}
-
-export type NormalizedTxWithRelations = NormalizedTx & NormalizedTxRelations;
+export type NormalizedTxWithRelations = NormalizedTx;

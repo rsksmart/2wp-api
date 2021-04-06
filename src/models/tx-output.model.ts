@@ -33,19 +33,9 @@ export class TxOutput extends Model {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   op_return_data?: string;
 
-  // Define well-known properties here
-
-  // Indexer property to allow additional data
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [prop: string]: any;
-
   constructor(data?: Partial<TxOutput>) {
     super(data);
   }
 }
 
-export interface TxOutputRelations {
-  // describe navigational properties here
-}
-
-export type TxOutputWithRelations = TxOutput & TxOutputRelations;
+export type TxOutputWithRelations = TxOutput;
