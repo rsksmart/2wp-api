@@ -1,7 +1,13 @@
 import {inject, lifeCycleObserver, LifeCycleObserver} from '@loopback/core';
 import {juggler} from '@loopback/repository';
+import {config} from 'dotenv';
 
-const config = {
+config();
+
+const blockBookUrl =
+  process.env.BLOCKBOOK_URL ?? 'https://blockbook.trugroup.tech:19130';
+
+const cfg = {
   name: 'txBroadcast',
   connector: 'rest',
   options: {
@@ -14,7 +20,7 @@ const config = {
     {
       template: {
         method: 'GET',
-        url: `https://blockbook.trugroup.tech:19130/api/v2/sendtx/{tx}`,
+        url: `${blockBookUrl}/api/v2/sendtx/{tx}`,
         responsePath: '$',
       },
       functions: {
@@ -33,11 +39,11 @@ export class TxBroadcastDataSource
   extends juggler.DataSource
   implements LifeCycleObserver {
   static dataSourceName = 'txBroadcast';
-  static readonly defaultConfig = config;
+  static readonly defaultConfig = cfg;
 
   constructor(
     @inject('datasources.config.txBroadcast', {optional: true})
-    dsConfig: object = config,
+    dsConfig: object = cfg,
   ) {
     super(dsConfig);
   }
