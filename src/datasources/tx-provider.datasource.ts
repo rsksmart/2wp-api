@@ -21,7 +21,7 @@ const confg = {
       template: {
         method: 'GET',
         url: `${blockBookUrl}/api/v1/tx/{txId}`,
-        responsePath: '$..*',
+        responsePath: '$',
       },
       functions: {
         txProvider: ['txId'],
