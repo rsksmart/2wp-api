@@ -4,7 +4,7 @@ import {CreatePeginTxData, NormalizedTx, TxInput, TxOutput} from '../models';
 import {SessionRepository} from '../repositories';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import peginAddressVerifier from 'pegin-address-verifier';
+import peginAddressVerifier from 'pegin-address-verificator';
 import {config} from 'dotenv';
 import {BridgeService} from '../services';
 
