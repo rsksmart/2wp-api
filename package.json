@@ -28,8 +28,6 @@
     "precoverage": "npm test",
     "coverage": "open-cli coverage/index.html",
     "coverage:ci": "lb-nyc report --reporter=text-lcov | coveralls",
-    "docker:build": "docker build -t 2wp-api .",
-    "docker:run": "docker run -p 3000:3000 -d 2wp-api",
     "premigrate": "npm run build",
     "migrate": "node ./dist/migrate",
     "preopenapi-spec": "npm run build",
