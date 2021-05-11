@@ -4,8 +4,6 @@ import {Model, model, property} from '@loopback/repository';
 export class Tx extends Model {
   @property({
     type: 'string',
-    id: true,
-    generated: false,
   })
   txid?: string;
 

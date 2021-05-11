@@ -4,7 +4,7 @@
 
 import {inject} from '@loopback/core';
 import {TxService} from '../services';
-import {get, getModelSchemaRef } from '@loopback/rest';
+import {get, getModelSchemaRef} from '@loopback/rest';
 import {Tx} from '../models';
 
 export class TxController {
@@ -14,7 +14,7 @@ export class TxController {
   ) {}
 
   @get('/tx', {
-    parameters: [{name: 'name', schema: {type: 'string'}, in: 'query'}],
+    parameters: [{name: 'tx', schema: {type: 'string'}, in: 'query'}],
     responses: {
       '200': {
         description: 'TX information',
@@ -26,11 +26,11 @@ export class TxController {
       },
     },
   })
-  getTx( txId: string ): Promise<Tx> {
+  getTx(txId: string): Promise<Tx> {
     return new Promise<Tx>((resolve, reject) => {
       this.txService
         .txProvider(txId)
-        .then((tx) => {
+        .then(tx => {
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           const [
