@@ -28,5 +28,6 @@
   "eslint.validate": [
     "javascript",
     "typescript"
-  ]
+  ],
+  "js/ts.implicitProjectConfig.experimentalDecorators": true
 }
