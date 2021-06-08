@@ -115,19 +115,27 @@ FeeLevel {
 ### PeginStatus
 
 ```
-{
-    creationDate: Date,
-    amountTransferred: Number,
-    recipientAddress: String,
-    status: Status,
-    peginConfirmations: Number,
-    rejectionReason: RejectionReason,
-    pegoutStatus: PegoutStatus?
+PeginStatus {
+   btc: {
+      creationDate: Date,
+      federationAddress: String,
+      amountTransferred: Number,
+      refundAddress: String,
+      txConfirmations: Number,
+      requiredConfirmations: Number
+
+   },
+   rsk: {
+      recipientAddress: String,
+      confirmations: Number
+   },
+   status: Status
 }
 ```
 
 Notes:
-- recipientAddress: rsk recipient address
+- confirmations: Number of confirmations required for each network.
+- recipientAddress: rsk recipient address.
 - [Status](#Status). Status can't be `rejected_no_refund`. If status is `rejected_refund`. pegoutStatus should have more information.
 - [RejectionReason](#RejectionReason)
 - [PegoutStatus](#PegoutStatus)
