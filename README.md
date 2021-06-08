@@ -2,24 +2,8 @@
 
 This is the API component for 2-Way-Peg solution.
 ## Development Mode
-Include a .env file with the required environment variables:
-```js
-NETWORK='testnet' // or mainnet
-BTC_CONFIRMATIONS=100 // default
-INPUT_SIZE=180 // default
-FAST_MINING_BLOCK=1
-AVERAGE_MINING_BLOCK=6
-LOW_MINING_BLOCK=12
-LEGACY_REGEX='^[mn][1-9A-HJ-NP-Za-km-z]{26,35}' // testnet
-SEGWIT_REGEX='^[2][1-9A-HJ-NP-Za-km-z]{26,35}' // testnet
-NATIVE_SEGWIT_REGEX='^[tb][0-9A-HJ-NP-Za-z]{26,41}' // testnet
-SESSIONDB_HOST=<HOST> // if running docker-compose, SESSIONDB_HOST=sessionDB
-SESSIONDB_PORT=<PORT>
-SESSIONDB_PASSWORD=<PASSWORD>
-SESSIONDB_INDEX=<INDEX> // default 1
-BRIDGE_ADDRESS='0x0000000000000000000000000000000001000006' // default
-RSK_NODE_HOST=<RSK_NODE_HOST:PORT>
-```
+Include a .env file with the required environment variables listed in `.env.test` file (you can copy that file).
+If you are running the API for testing purposes set the variable `LOCAL_TEST=1` with the required `TEST_FEDERATION_ADDRESS`, remove the variable from file or set to `0` in other cases.
 ### Install dependencies
 
 ```sh

@@ -20,10 +20,15 @@ export class BridgeService {
 
   public getFederationAddress(): Promise<string> {
     return new Promise<string>((resolve, reject) => {
+      const localTest = process.env.LOCAL_TEST ?? false;
+      const localAddress: string = process.env.TEST_FEDERATION_ADDRESS ?? '';
       this.bridgeContract.methods
         .getFederationAddress()
         .call()
-        .then(resolve)
+        .then((address: string) => {
+          const fedAddress: string = localTest ? localAddress : address;
+          resolve(fedAddress);
+        })
         .catch(reject);
     });
   }

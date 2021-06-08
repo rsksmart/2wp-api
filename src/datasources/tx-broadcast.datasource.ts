@@ -37,7 +37,8 @@ const cfg = {
 @lifeCycleObserver('datasource')
 export class TxBroadcastDataSource
   extends juggler.DataSource
-  implements LifeCycleObserver {
+  implements LifeCycleObserver
+{
   static dataSourceName = 'txBroadcast';
   static readonly defaultConfig = cfg;
 

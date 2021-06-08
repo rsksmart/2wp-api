@@ -37,7 +37,8 @@ const confg = {
 @lifeCycleObserver('datasource')
 export class TxFeeProviderDataSource
   extends juggler.DataSource
-  implements LifeCycleObserver {
+  implements LifeCycleObserver
+{
   static dataSourceName = 'txFeeProvider';
   static readonly defaultConfig = confg;
 

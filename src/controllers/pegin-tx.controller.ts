@@ -96,12 +96,11 @@ export class PeginTxController {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       script_type: 'PAYTOOPRETURN',
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      op_return_data: '52534b54',
+      op_return_data: '52534b5401',
     });
     output.op_return_data += recipient;
-    const addressInfo = peginAddressVerifier.getAddressInformation(
-      refundAddress,
-    );
+    const addressInfo =
+      peginAddressVerifier.getAddressInformation(refundAddress);
     switch (addressInfo.type) {
       case 'p2pkh':
         output.op_return_data += `01${addressInfo.scriptPubKey}`;

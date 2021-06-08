@@ -58,14 +58,26 @@ export class TxFeeController {
           ([accountUtxoList, [fastAmount], [averageAmount], [lowAmount]]) => {
             inputs = this.selectOptimalInputs(
               accountUtxoList,
-              +fastAmount * txBytes + feeRequestData.amount,
+              (+fastAmount / 1000) * txBytes + feeRequestData.amount,
             );
-            fees.fast =
-              (inputs.length * +inputSize + txBytes) * (+fastAmount * 1e8);
-            fees.average =
-              (inputs.length * +inputSize + txBytes) * (+averageAmount * 1e8);
-            fees.slow =
-              (inputs.length * +inputSize + txBytes) * (+lowAmount * 1e8);
+            fees.fast = Number(
+              (
+                (inputs.length * +inputSize + txBytes) *
+                ((+fastAmount / 1000) * 1e8)
+              ).toFixed(0),
+            );
+            fees.average = Number(
+              (
+                (inputs.length * +inputSize + txBytes) *
+                ((+averageAmount / 1000) * 1e8)
+              ).toFixed(0),
+            );
+            fees.slow = Number(
+              (
+                (inputs.length * +inputSize + txBytes) *
+                ((+lowAmount / 1000) * 1e8)
+              ).toFixed(0),
+            );
             return Promise.all([
               fees,
               this.sessionRepository.setInputs(
