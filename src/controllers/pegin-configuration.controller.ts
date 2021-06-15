@@ -1,9 +1,9 @@
 import {repository} from '@loopback/repository';
 import {get, getModelSchemaRef} from '@loopback/rest';
+import crypto from 'crypto';
 import {PeginConfiguration, Session} from '../models';
 import {PeginConfigurationRepository, SessionRepository} from '../repositories';
 import {BridgeService} from '../services';
-import crypto from 'crypto';
 
 export class PeginConfigurationController {
   constructor(
@@ -35,7 +35,10 @@ export class PeginConfigurationController {
       _id: crypto.randomBytes(16).toString('hex'),
       balance: 0,
     };
+    const ttlSessionDBExpire =
+      process.env.TTL_SESSIONDB_EXPIRE_MILLISECONDS ?? 10800;
     await this.sessionRepository.set(session._id, new Session(session));
+    await this.sessionRepository.expire(session._id, +ttlSessionDBExpire);
     const bridgeService = new BridgeService(
       process.env.BRIDGE_ADDRESS ??
         '0x0000000000000000000000000000000001000006',
