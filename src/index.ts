@@ -1,14 +1,32 @@
+import {configure, getLogger} from 'log4js';
 import {ApplicationConfig, TwpapiApplication} from './application';
 
 export * from './application';
 
-export async function main(options: ApplicationConfig = {}) {
+export async function main(options: ApplicationConfig = {}): Promise<TwpapiApplication> {
+  configure('./log-config.json');
+
+  let logger = getLogger('app');
+
+  async function shutdown() {
+    logger.info('Shutting down');
+    await app.stop();
+  }
+
+  //catches ctrl+c event
+  process.on('SIGINT', shutdown.bind(null));
+
+
+  //catches uncaught exceptions
+  process.on('uncaughtException', shutdown.bind(null));
+
   const app = new TwpapiApplication(options);
   await app.boot();
   await app.start();
 
   const url = app.restServer.url;
-  console.log(`Server is running at ${url}`);
+  logger.info(`Server is running at ${url}`);
+
 
   return app;
 }

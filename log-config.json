@@ -1,0 +1,23 @@
+{
+  "appenders": {
+    "app": {
+      "type": "file",
+      "filename": "log/app.log",
+      "maxLogSize": 1024000,
+      "numBackups": 7,
+      "compress": true
+    },
+    "console": {
+      "type": "stdout"
+    }
+  },
+  "categories": {
+    "default": {
+      "appenders": [
+        "app",
+        "console"
+      ],
+      "level": "trace"
+    }
+  }
+}
