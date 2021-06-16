@@ -1,14 +1,40 @@
+import {configure, getLogger} from 'log4js';
 import {ApplicationConfig, TwpapiApplication} from './application';
+import {DaemonRunner} from './daemon-runner';
 
 export * from './application';
 
-export async function main(options: ApplicationConfig = {}) {
+export async function main(options: ApplicationConfig = {}): Promise<TwpapiApplication> {
+  configure('./log-config.json');
+
+  let logger = getLogger('app');
+
+  async function shutdown() {
+    await app.stop();
+    daemon.stop();
+    logger.info('Shutting down');
+  }
+
+  //catches ctrl+c event
+  process.on('SIGINT', shutdown.bind(null));
+
+  // catches "kill pid" (for example: nodemon restart)
+  // process.on('SIGUSR1', shutdown.bind(null, {exit: true}));
+  // process.on('SIGUSR2', shutdown.bind(null, {exit: true}));
+
+  //catches uncaught exceptions
+  process.on('uncaughtException', shutdown.bind(null));
+
   const app = new TwpapiApplication(options);
   await app.boot();
   await app.start();
 
   const url = app.restServer.url;
-  console.log(`Server is running at ${url}`);
+  logger.info(`Server is running at ${url}`);
+
+  let daemon: DaemonRunner = new DaemonRunner();
+
+  daemon.start();
 
   return app;
 }
