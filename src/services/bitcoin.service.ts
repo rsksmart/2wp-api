@@ -1,34 +1,21 @@
 import {inject} from '@loopback/core';
-import {get, getModelSchemaRef} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
-import {Tx} from '../models';
-import {TxService} from '../services';
+import {TxService} from '.';
+import {BitcoinTx} from '../models/bitcoin-tx.model';
 
-export class TxController {
+export class BitcoinService {
   logger: Logger;
 
   constructor(
     @inject('services.TxService')
     protected txService: TxService,
   ) {
-    this.logger = getLogger('tx-controller');
+
+    this.logger = getLogger('bitcoin-service');
   }
 
-  @get('/tx', {
-    parameters: [{name: 'tx', schema: {type: 'string'}, in: 'query'}],
-    responses: {
-      '200': {
-        description: 'TX information',
-        content: {
-          'application/json': {
-            schema: getModelSchemaRef(Tx),
-          },
-        },
-      },
-    },
-  })
-  getTx(txId: string): Promise<Tx> {
-    return new Promise<Tx>((resolve, reject) => {
+  getTx(txId: string): Promise<BitcoinTx> {
+    return new Promise<BitcoinTx>((resolve, reject) => {
       this.txService
         .txProvider(txId)
         .then(tx => {
@@ -49,7 +36,7 @@ export class TxController {
             fees,
             hex,
           ] = tx;
-          const responseTx = new Tx({
+          const responseTx = new BitcoinTx({
             txid,
             version,
             vin,

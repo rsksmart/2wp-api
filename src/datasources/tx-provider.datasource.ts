@@ -21,7 +21,7 @@ const confg = {
       template: {
         method: 'GET',
         url: `${blockBookUrl}/api/v1/tx/{txId}`,
-        responsePath: '$',
+        responsePath: '$[*]',
       },
       functions: {
         txProvider: ['txId'],
@@ -37,8 +37,7 @@ const confg = {
 @lifeCycleObserver('datasource')
 export class TxProviderDataSource
   extends juggler.DataSource
-  implements LifeCycleObserver
-{
+  implements LifeCycleObserver {
   static dataSourceName = 'txProvider';
   static readonly defaultConfig = confg;
 

@@ -37,8 +37,7 @@ const confg = {
 @lifeCycleObserver('datasource')
 export class UtxoProviderDataSource
   extends juggler.DataSource
-  implements LifeCycleObserver
-{
+  implements LifeCycleObserver {
   static dataSourceName = 'utxoProvider';
   static readonly defaultConfig = confg;
 
