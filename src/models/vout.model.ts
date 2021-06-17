@@ -1,69 +1,36 @@
 import {Model, model, property} from '@loopback/repository';
-import {Vout} from './vout.model';
 
 @model({settings: {strict: false}})
-export class Tx extends Model {
+export class Vout extends Model {
   @property({
-    type: 'string',
+    type: 'number',
   })
-  txid?: string;
+  valueSat?: number;
 
   @property({
     type: 'number',
   })
-  version?: number;
+  n?: number;
 
   @property({
-    type: 'array',
-    itemType: 'object',
+    type: 'boolean',
   })
-  vin?: object[];
-
-  @property({
-    type: 'array',
-    itemType: 'object',
-  })
-  vout?: Vout[];
+  spent?: boolean;
 
   @property({
     type: 'string',
   })
-  blockhash?: string;
+  spentTxID: string;
 
   @property({
     type: 'number',
   })
-  blockheight?: number;
+  spentIndex?: number;
 
   @property({
     type: 'number',
   })
-  confirmations?: number;
-
-  @property({
-    type: 'number',
-  })
-  time?: number;
-
-  @property({
-    type: 'number',
-  })
-  blocktime?: number;
-
-  @property({
-    type: 'string',
-  })
-  valueOut?: string;
-
-  @property({
-    type: 'string',
-  })
-  valueIn?: string;
-
-  @property({
-    type: 'string',
-  })
-  fees?: string;
+  spentHeight?: number;
 
   @property({
     type: 'string',
@@ -71,19 +38,49 @@ export class Tx extends Model {
   })
   hex: string;
 
+  @property({
+    type: 'string',
+    required: true,
+  })
+  asm: string;
+
+  @property({
+    type: 'string',
+  })
+  addrDesc?: string;
+
+  @property({
+    type: 'array',
+    itemType: 'string',
+  })
+  addresses?: string[];
+
+  @property({
+    type: 'boolean',
+  })
+  isAddress?: boolean;
+
+  @property({
+    type: 'string',
+  })
+  type?: string;
+
+
   // Define well-known properties here
 
   // Indexer property to allow additional data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;
 
-  constructor(data?: Partial<Tx>) {
+  constructor(data?: Partial<Vout>) {
     super(data);
+    console.log('txid ' + this.txid);
+    console.log('confirmations ' + this.confirmations);
   }
 }
 
-export interface TxRelations {
+export interface VoutRelations {
   // describe navigational properties here
 }
 
-export type TxWithRelations = Tx & TxRelations;
+export type VoutWithRelations = Vout & VoutRelations;

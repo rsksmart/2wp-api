@@ -1,3 +1,4 @@
+export * from './bitcoin.service';
 export * from './bridge.service';
 export * from './broadcast.service';
 export * from './fee-level.service';
