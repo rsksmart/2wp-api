@@ -1,10 +1,10 @@
-import {repository} from '@loopback/repository';
-import {post, getModelSchemaRef, requestBody, response} from '@loopback/rest';
-import {FeeAmountData, FeeRequestData, Utxo, TxInput} from '../models';
-import {SessionRepository} from '../repositories';
 import {inject} from '@loopback/core';
-import {FeeLevel} from '../services';
+import {repository} from '@loopback/repository';
+import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
 import {config} from 'dotenv';
+import {FeeAmountData, FeeRequestData, TxInput, Utxo} from '../models';
+import {SessionRepository} from '../repositories';
+import {FeeLevel} from '../services';
 
 config();
 
@@ -14,7 +14,7 @@ export class TxFeeController {
     public sessionRepository: SessionRepository,
     @inject('services.FeeLevel')
     protected feeLevelProviderService: FeeLevel,
-  ) {}
+  ) { }
 
   @post('/tx-fee')
   @response(200, {
@@ -108,7 +108,7 @@ export class TxFeeController {
             prev_hash: utxo.txid,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             prev_index: utxo.vout,
-            amount: (+utxo.amount * 1e8).toString(),
+            amount: (+utxo.amount * 1e8).toFixed(0),
           }),
         );
         remainingSatoshis -= utxo.satoshis;
