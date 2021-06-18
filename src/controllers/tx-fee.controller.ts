@@ -14,7 +14,7 @@ export class TxFeeController {
     public sessionRepository: SessionRepository,
     @inject('services.FeeLevel')
     protected feeLevelProviderService: FeeLevel,
-  ) { }
+  ) {}
 
   @post('/tx-fee')
   @response(200, {

@@ -14,7 +14,7 @@ export class PeginTxController {
   constructor(
     @repository(SessionRepository)
     public sessionRepository: SessionRepository,
-  ) { }
+  ) {}
 
   @post('/pegin-tx')
   @response(201, {
@@ -38,7 +38,7 @@ export class PeginTxController {
       const network = process.env.NETWORK ?? 'testnet';
       const bridgeService = new BridgeService(
         process.env.BRIDGE_ADDRESS ??
-        '0x0000000000000000000000000000000001000006',
+          '0x0000000000000000000000000000000001000006',
       );
       const addressInfo = peginAddressVerifier.getAddressInformation(
         createPeginTxData.refundAddress,
