@@ -56,6 +56,7 @@
     "@loopback/rest": "^9.1.1",
     "@loopback/rest-explorer": "^3.0.5",
     "@loopback/service-proxy": "^3.0.5",
+    "@rsksmart/rsk-precompiled-abis": "^3.0.0-PAPYRUS",
     "dotenv": "^8.2.0",
     "log4js": "^6.3.0",
     "loopback-connector-kv-redis": "^3.0.3",

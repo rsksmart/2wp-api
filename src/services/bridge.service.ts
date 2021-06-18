@@ -1,7 +1,7 @@
+import BridgeABI from '@rsksmart/rsk-precompiled-abis/abis/bridge.json';
 import Web3 from 'web3';
-import {AbiItem} from 'web3-utils';
 import {Contract} from 'web3-eth-contract';
-import BridgeABI from '../abis/bridge.json';
+import {AbiItem} from 'web3-utils';
 
 export class BridgeService {
   private bridgeContract: Contract;
