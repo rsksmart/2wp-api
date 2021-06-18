@@ -3,10 +3,12 @@ import {ApplicationConfig, TwpapiApplication} from './application';
 
 export * from './application';
 
-export async function main(options: ApplicationConfig = {}): Promise<TwpapiApplication> {
+export async function main(
+  options: ApplicationConfig = {},
+): Promise<TwpapiApplication> {
   configure('./log-config.json');
 
-  let logger = getLogger('app');
+  const logger = getLogger('app');
 
   async function shutdown() {
     logger.info('Shutting down');
@@ -14,10 +16,11 @@ export async function main(options: ApplicationConfig = {}): Promise<TwpapiAppli
   }
 
   //catches ctrl+c event
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   process.on('SIGINT', shutdown.bind(null));
 
-
   //catches uncaught exceptions
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   process.on('uncaughtException', shutdown.bind(null));
 
   const app = new TwpapiApplication(options);
@@ -26,7 +29,6 @@ export async function main(options: ApplicationConfig = {}): Promise<TwpapiAppli
 
   const url = app.restServer.url;
   logger.info(`Server is running at ${url}`);
-
 
   return app;
 }

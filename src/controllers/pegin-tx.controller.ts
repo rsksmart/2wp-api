@@ -1,11 +1,11 @@
 import {repository} from '@loopback/repository';
-import {post, getModelSchemaRef, requestBody, response} from '@loopback/rest';
-import {CreatePeginTxData, NormalizedTx, TxInput, TxOutput} from '../models';
-import {SessionRepository} from '../repositories';
+import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
+import {config} from 'dotenv';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
-import {config} from 'dotenv';
+import {CreatePeginTxData, NormalizedTx, TxInput, TxOutput} from '../models';
+import {SessionRepository} from '../repositories';
 import {BridgeService} from '../services';
 
 config();
@@ -133,7 +133,7 @@ export class PeginTxController {
       capacity += input.amount ? +input.amount : 0;
     });
     return new TxOutput({
-      amount: (capacity - (amountToTransferInSatoshi + fee)).toString(),
+      amount: (capacity - (amountToTransferInSatoshi + fee)).toFixed(0),
       address: changeAddress,
     });
   }
