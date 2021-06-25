@@ -10,7 +10,6 @@ export class BitcoinService {
     @inject('services.TxService')
     protected txService: TxService,
   ) {
-
     this.logger = getLogger('bitcoin-service');
   }
 
@@ -19,6 +18,7 @@ export class BitcoinService {
       this.txService
         .txProvider(txId)
         .then(tx => {
+
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           const [
@@ -36,22 +36,29 @@ export class BitcoinService {
             fees,
             hex,
           ] = tx;
-          const responseTx = new BitcoinTx({
-            txid,
-            version,
-            vin,
-            vout,
-            blockhash,
-            blockheight,
-            confirmations,
-            time,
-            blocktime,
-            valueOut,
-            valueIn,
-            fees,
-            hex,
-          });
-          resolve(responseTx);
+          if (version == 1) {
+            const responseTx = new BitcoinTx({
+              txid,
+              version,
+              vin,
+              vout,
+              blockhash,
+              blockheight,
+              confirmations,
+              time,
+              blocktime,
+              valueOut,
+              valueIn,
+              fees,
+              hex,
+            });
+
+            resolve(responseTx);
+          } else {
+            const errorMessage = 'Wrong version of bloockbook returned';
+            this.logger.error(errorMessage);
+            throw new Error(errorMessage);
+          }
         })
         .catch(reject);
     });
