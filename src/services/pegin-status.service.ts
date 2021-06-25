@@ -46,7 +46,7 @@ export class PeginStatusService {
       this.getBtcTxInfoFromService(btcTxId)
         .then((btcTxInformation) => {
           this.bridgeService.getMinPeginValue().then((minPeginValue) => {
-            if (minPeginValue > this.fromBtcToSatoshi(btcTxInformation.amountTransferred)) {  //TODO: Just >=
+            if (minPeginValue > this.fromBtcToSatoshi(btcTxInformation.amountTransferred)) {
               const errorMessage = "Amount transferred is less or equal than minimum pegin value. " +
                 "Minimum value accepted: [" + minPeginValue + "]. Value sent: [" +
                 this.fromBtcToSatoshi(btcTxInformation.amountTransferred) + "]";
@@ -65,7 +65,6 @@ export class PeginStatusService {
     return new Promise<BtcPeginStatus>((resolve, reject) => {
       this.bitcoinService.getTx(btcTxId)
         .then((btcTx) => {
-          btcStatus.creationDate = new Date(btcTx.time! * 1000); // We get Timestamp in seconds
           if (btcTx.vout && btcTx.vout.length > 0) {
             this.bridgeService.getFederationAddress()
               .then((federationAddress) => {
@@ -74,12 +73,14 @@ export class PeginStatusService {
                   this.logger.debug(errorMessage);
                   throw new Error(errorMessage);
                 } else {
+                  btcStatus.creationDate = new Date(btcTx.time * 1000); // We get Timestamp in seconds
                   btcStatus.amountTransferred = btcTx.getTxSentAmount();
                   btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
-                  btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100; // get this information
+                  btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;
                   btcStatus.federationAddress = btcTx.getTxSentAddress();
 
-                  btcStatus.refundAddress = btcTx.getTxRefundAddressAddress(); // TODO: Obtain info from txoutput
+                  btcStatus.refundAddress = btcTx.getTxRefundAddressAddress();
+                  resolve(btcStatus);
                 }
               })
           } else {
@@ -88,7 +89,6 @@ export class PeginStatusService {
             throw new Error(errorMessage);
           }
 
-          resolve(btcStatus);
         })
         .catch(reject);
     })
@@ -97,7 +97,7 @@ export class PeginStatusService {
   private getRskInfo(): Promise<RskPeginStatus> {
     const rskStatus = new RskPeginStatus();
     rskStatus.confirmations = 0;  // TODO: Obtain information from database
-    rskStatus.recipientAddress = 'receipientAddess'; // TODO: Obtain the information from database.
+    rskStatus.recipientAddress = 'receipientAddress'; // TODO: Obtain the information from database.
     this.status = Status.confirmed;  // TODO: Verify from database the final status
     return Promise.resolve(rskStatus);
   }
@@ -105,5 +105,6 @@ export class PeginStatusService {
   private fromBtcToSatoshi(btcValue: number): number {
     return (btcValue * 100000000);
   }
+
 }
 
