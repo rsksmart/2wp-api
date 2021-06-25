@@ -74,8 +74,6 @@ export class Vout extends Model {
 
   constructor(data?: Partial<Vout>) {
     super(data);
-    console.log('txid ' + this.txid);
-    console.log('confirmations ' + this.confirmations);
   }
 }
 
