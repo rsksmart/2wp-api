@@ -2,7 +2,6 @@
 import {Model, model, property} from '@loopback/repository';
 import {getLogger, Logger} from 'log4js';
 import {AddressUtilImplementation, AddressUtils} from '../utils/addressUtils';
-import {Tx} from './tx.model';
 import {Vin} from './vin.model';
 import {Vout} from './vout.model';
 
@@ -39,12 +38,12 @@ export class BitcoinTx extends Model {
   @property({
     type: 'string',
   })
-  blockhash?: string;
+  blockHash: string;
 
   @property({
     type: 'number',
   })
-  blockheight?: number;
+  blockHeight: number;
 
   @property({
     type: 'number',
@@ -59,7 +58,7 @@ export class BitcoinTx extends Model {
   @property({
     type: 'number',
   })
-  blocktime?: number;
+  blockTime: number;
 
   @property({
     type: 'string',
@@ -88,23 +87,23 @@ export class BitcoinTx extends Model {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;
 
-  constructor(data?: Partial<Tx>) {
+  constructor(data?: Partial<BitcoinTx>) {
     super(data);
     this.logger = getLogger('BitcoinTxModel');
   }
 
   public isSentToFederationAddress(federationAddress: string): boolean {
     for (let i = 0; this.vout && i < this.vout.length && this.indexFederation == -1; i++) {
-      if (federationAddress == this.vout[i].scriptPubKey!.addresses[0]!) {
+      if (federationAddress == this.vout[i].addresses[0]) {
         this.indexFederation = i;
       }
     }
-    return (this.indexFederation == -1);
+    return (this.indexFederation >= 0);
   }
 
   public getTxSentAmount(): number {
     if (this.vout && this.vout.length > 0 && this.indexFederation) {
-      return Number(this.vout[this.indexFederation]!.value!);
+      return Number(this.vout[this.indexFederation].value!);
     } else {
       throw new Error('Can not access to output tx')
     }
@@ -112,7 +111,7 @@ export class BitcoinTx extends Model {
 
   public getTxSentAddress(): string {
     if (this.vout && this.vout.length > 0) {
-      return this.vout[this.indexFederation].scriptPubKey!.addresses[0]!;
+      return this.vout[this.indexFederation].addresses[0]!;
     } else {
       throw new Error('Can not access to output tx')
     }
@@ -123,11 +122,11 @@ export class BitcoinTx extends Model {
     let foundOpReturn = false;
     if (this.vout && this.vout.length > 0) {
       if (this.vout.length == 2) { // Return change address (no OP_RETURN)
-        return this.vout[Math.abs(this.indexFederation - 1)].scriptPubKey!.addresses[0]!;
+        return this.vout[Math.abs(this.indexFederation - 1)].addresses[0]!;
       } else {
         for (let i = 0; this.vout && i < this.vout.length && !foundOpReturn; i++) {
           if (i != this.indexFederation) {
-            const voutData = this.vout[i].scriptPubKey!.addresses[0]!;
+            const voutData = this.vout[i].addresses[0];
             if (this.hasRefundOpReturn(voutData)) {
               this.parseOpReturn(voutData);
               let utility: AddressUtils = new AddressUtilImplementation();

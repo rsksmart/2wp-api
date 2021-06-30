@@ -68,12 +68,13 @@ export class PeginStatusService {
           if (btcTx.vout && btcTx.vout.length > 0) {
             this.bridgeService.getFederationAddress()
               .then((federationAddress) => {
-                if (btcTx.isSentToFederationAddress(federationAddress)) {
+                if (!btcTx.isSentToFederationAddress(federationAddress)) {
                   const errorMessage = 'Is not a pegin. Tx is not sending to Powpeg Address: ' + federationAddress;
                   this.logger.debug(errorMessage);
                   throw new Error(errorMessage);
                 } else {
-                  btcStatus.creationDate = new Date(btcTx.time * 1000); // We get Timestamp in seconds
+                  const time = btcTx.time ?? btcTx.blocktime;
+                  btcStatus.creationDate = new Date(time * 1000); // We get Timestamp in seconds
                   btcStatus.amountTransferred = btcTx.getTxSentAmount();
                   btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
                   btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;

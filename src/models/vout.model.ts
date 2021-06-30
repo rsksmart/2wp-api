@@ -10,7 +10,7 @@ export class Vout extends Model {
   @property({
     type: 'number',
   })
-  n?: number;
+  n: number;
 
   @property({
     type: 'boolean',
@@ -36,13 +36,13 @@ export class Vout extends Model {
     type: 'string',
     required: true,
   })
-  hex: string;
+  hex?: string;
 
   @property({
     type: 'string',
     required: true,
   })
-  asm: string;
+  asm?: string;
 
   @property({
     type: 'string',
@@ -53,12 +53,12 @@ export class Vout extends Model {
     type: 'array',
     itemType: 'string',
   })
-  addresses?: string[];
+  addresses: string[];
 
   @property({
     type: 'boolean',
   })
-  isAddress?: boolean;
+  isAddress: boolean;
 
   @property({
     type: 'string',

@@ -1,65 +1,48 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
-import {TxService} from '.';
+import {TxV2Service} from '.';
 import {BitcoinTx} from '../models/bitcoin-tx.model';
 
 export class BitcoinService {
   logger: Logger;
 
   constructor(
-    @inject('services.TxService')
-    protected txService: TxService,
+    @inject('services.TxV2Service')
+    protected txV2Service: TxV2Service,
   ) {
     this.logger = getLogger('bitcoin-service');
   }
 
   getTx(txId: string): Promise<BitcoinTx> {
     return new Promise<BitcoinTx>((resolve, reject) => {
-      this.txService
-        .txProvider(txId)
+      this.txV2Service
+        .txV2Provider(txId)
         .then(tx => {
-
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
-          const [
-            txid,
-            version,
-            vin,
-            vout,
-            blockhash,
-            blockheight,
-            confirmations,
-            time,
-            blocktime,
-            valueOut,
-            valueIn,
-            fees,
-            hex,
-          ] = tx;
-          if (version == 1) {
-            const responseTx = new BitcoinTx({
-              txid,
-              version,
-              vin,
-              vout,
-              blockhash,
-              blockheight,
-              confirmations,
-              time,
-              blocktime,
-              valueOut,
-              valueIn,
-              fees,
-              hex,
-            });
 
-            resolve(responseTx);
-          } else {
-            const errorMessage = 'Wrong version of bloockbook returned';
-            this.logger.error(errorMessage);
-            throw new Error(errorMessage);
-          }
+          const [content,] = tx;
+
+          const resultValue = JSON.parse(JSON.stringify(content));
+          this.logger.debug('resultValue[version] ' + resultValue['version']);
+
+          const responseTx = new BitcoinTx();
+          responseTx.txid = resultValue['txid'];
+          responseTx.version = resultValue['version'];
+          responseTx.vin = resultValue['vin'];
+          responseTx.vout = resultValue['vout'];
+          responseTx.blockhash = resultValue['blockHash'];
+          responseTx.blockheight = resultValue['blockHeight'];
+          responseTx.confirmations = resultValue['confirmations'];
+          responseTx.time = resultValue['time'];
+          responseTx.blocktime = resultValue['blockTime'];
+          responseTx.valueOut = resultValue['valueOut'];
+          responseTx.valueIn = resultValue['valueIn'];
+          responseTx.fees = resultValue['fees'];
+          responseTx.hex = resultValue['hex'];
+          resolve(responseTx);
         })
+
         .catch(reject);
     });
   }

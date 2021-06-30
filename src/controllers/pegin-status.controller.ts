@@ -1,13 +1,13 @@
 import {inject} from '@loopback/core';
 import {get, getModelSchemaRef} from '@loopback/rest';
 import {PeginStatus} from '../models';
-import {BitcoinService, PeginStatusService, TxService} from '../services';
+import {BitcoinService, PeginStatusService, TxV2Service} from '../services';
 
 export class PeginStatusController {
   constructor(
-    @inject('services.TxService')
-    protected txService: TxService,
-    protected bitcoinService: BitcoinService = new BitcoinService(txService),
+    @inject('services.TxV2Service')
+    protected txV2Service: TxV2Service,
+    protected bitcoinService: BitcoinService = new BitcoinService(txV2Service),
     protected peginStatusService: PeginStatusService = new PeginStatusService(bitcoinService),
   ) { }
 
