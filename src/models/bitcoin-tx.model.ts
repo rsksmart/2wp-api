@@ -1,17 +1,10 @@
-
 import {Model, model, property} from '@loopback/repository';
-import {getLogger, Logger} from 'log4js';
-import {AddressUtilImplementation, AddressUtils} from '../utils/addressUtils';
 import {Vin} from './vin.model';
 import {Vout} from './vout.model';
 
 
 @model({settings: {strict: false}})
 export class BitcoinTx extends Model {
-  private indexFederation: number = -1;
-  private rskDestinationAddress: string;
-  private btcRefundData: string;
-  private logger: Logger;
 
   @property({
     type: 'string',
@@ -87,94 +80,8 @@ export class BitcoinTx extends Model {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;
 
-  constructor(data?: Partial<BitcoinTx>) {
-    super(data);
-    this.logger = getLogger('BitcoinTxModel');
-  }
-
-  public isSentToFederationAddress(federationAddress: string): boolean {
-    for (let i = 0; this.vout && i < this.vout.length && this.indexFederation == -1; i++) {
-      if (federationAddress == this.vout[i].addresses[0]) {
-        this.indexFederation = i;
-      }
-    }
-    return (this.indexFederation >= 0);
-  }
-
-  public getTxSentAmount(): number {
-    if (this.vout && this.vout.length > 0 && this.indexFederation) {
-      return Number(this.vout[this.indexFederation].value!);
-    } else {
-      throw new Error('Can not access to output tx')
-    }
-  }
-
-  public getTxSentAddress(): string {
-    if (this.vout && this.vout.length > 0) {
-      return this.vout[this.indexFederation].addresses[0]!;
-    } else {
-      throw new Error('Can not access to output tx')
-    }
-  }
-
-  public getTxRefundAddressAddress(): string {
-    let returnValue = '';
-    let foundOpReturn = false;
-    if (this.vout && this.vout.length > 0) {
-      if (this.vout.length == 2) { // Return change address (no OP_RETURN)
-        return this.vout[Math.abs(this.indexFederation - 1)].addresses[0]!;
-      } else {
-        for (let i = 0; this.vout && i < this.vout.length && !foundOpReturn; i++) {
-          if (i != this.indexFederation) {
-            const voutData = this.vout[i].addresses[0];
-            if (this.hasRefundOpReturn(voutData)) {
-              this.parseOpReturn(voutData);
-              let utility: AddressUtils = new AddressUtilImplementation();
-              returnValue = utility.getRefundAddress(this.btcRefundData);
-              foundOpReturn = true;
-            } else {
-              if (returnValue == '') {  // Return first change address
-                returnValue = this.vin[0].addresses[0];  //TODO: Validate with Jose in case that is a pegin not created by the app
-              }
-            }
-          }
-        }
-      }
-    } else {
-      throw new Error('Can not access to output tx')
-    }
-    return returnValue;
-  }
-
-  private hasRefundOpReturn(data: string): boolean {
-    if (this.hasOpReturn(data)) { // Includes version 01 in the same if
-      if (data.length == 102) { //Contain refund address
-        return (true);
-      }
-    }
-    return (false);
-  }
-
-  private hasOpReturn(data: string): boolean {
-    if (data.includes('OP_RETURN 52534b5401')) { // Includes version 01 in the same if
-      if (data.length == 102 || data.length == 60) { //Contain refund address
-        this.logger.debug('Tx contanins OPT_RETURN value:  ', this.txId);
-        return (true);
-      } else {
-        //TODO: log
-        throw new Error('Can not parse OP_RETURN parameter. Invalid transaction');
-      }
-    }
-    return (false);
-  }
-
-  private parseOpReturn(vout: string) {
-    if (!this.rskDestinationAddress) { // If is parsed because has btcRefundData..no parse again
-      this.rskDestinationAddress = vout.substring(20, 60);
-      if (vout.length > 40) {
-        this.btcRefundData = vout.substring(60, 102);
-      }
-    }
+  constructor() {
+    super();
   }
 }
 

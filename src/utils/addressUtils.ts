@@ -2,27 +2,12 @@ import base58 from 'bs58';
 import {getLogger, Logger} from 'log4js';
 const sha256 = require('js-sha256');
 
-
 export interface AddressUtils {
   getRefundAddress(script: string): string;
 }
 
 export class AddressUtilImplementation implements AddressUtils {
   private logger: Logger;
-  private prefixes = {
-    mainnet: {
-      pubKeyHash: '00',
-      scriptHash: '05'
-    },
-    testnet: {
-      pubKeyHash: '6F',
-      scriptHash: 'C4'
-    },
-    regtest: {
-      pubKeyHash: '00',
-      scriptHash: '00'
-    }
-  }
 
   constructor() {
     this.logger = getLogger('AddressUtils');
@@ -79,8 +64,8 @@ export class AddressUtilImplementation implements AddressUtils {
       const network = process.env.NETWORK ?? 'tesnet';
       const prefix = this.getNetPrefix(network, typeAddress);
       data = `${prefix}${data}`;
-      let check = sha256(sha256(data)).slice(0, 8);
-      return base58.encode(Buffer.from(`${data}${check}`, 'hex'))
+      let checksum = sha256(sha256(data)).slice(0, 8);
+      return base58.encode(Buffer.from(`${data}${checksum}`, 'hex'))
     }
     catch (error) {
       this.logger.warn("Error getting P2PKH refund address");
