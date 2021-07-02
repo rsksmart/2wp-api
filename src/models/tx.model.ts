@@ -1,6 +1,4 @@
 import {Model, model, property} from '@loopback/repository';
-import {Vin} from './vin.model';
-import {Vout} from './vout.model';
 
 @model({settings: {strict: false}})
 export class Tx extends Model {
@@ -18,13 +16,13 @@ export class Tx extends Model {
     type: 'array',
     itemType: 'object',
   })
-  vin?: Vin[];
+  vin?: object[];
 
   @property({
     type: 'array',
     itemType: 'object',
   })
-  vout?: Vout[];
+  vout?: object[];
 
   @property({
     type: 'string',

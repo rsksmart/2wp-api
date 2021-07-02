@@ -6,7 +6,7 @@ import {BitcoinService, PeginStatusService, TxV2Service} from '../services';
 export class PeginStatusController {
   constructor(
     @inject('services.TxV2Service')
-    protected txV2Service: TxV2Service,
+    protected txV2Service: TxV2Service, //TODO: Verify if needed to inject or not. Take in account that we are doing an hybrid here.
     protected bitcoinService: BitcoinService = new BitcoinService(txV2Service),
     protected peginStatusService: PeginStatusService = new PeginStatusService(bitcoinService),
   ) { }
@@ -25,6 +25,7 @@ export class PeginStatusController {
     },
   })
   getTx(txId: string): Promise<PeginStatus> {
+    //FIXME: filter request incorrect and return our errors and not loopback error
     return this.peginStatusService.getPeginSatusInfo(txId);
   }
 }

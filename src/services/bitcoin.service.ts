@@ -17,29 +17,22 @@ export class BitcoinService {
     return new Promise<BitcoinTx>((resolve, reject) => {
       this.txV2Service
         .txV2Provider(txId)
-        .then(tx => {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-
-          const [content,] = tx;
-
-          const resultValue = JSON.parse(JSON.stringify(content));
-          this.logger.debug('resultValue[version] ' + resultValue['version']);
+        .then((tx: any) => {
 
           const responseTx = new BitcoinTx();
-          responseTx.txid = resultValue['txid'];
-          responseTx.version = resultValue['version'];
-          responseTx.vin = resultValue['vin'];
-          responseTx.vout = resultValue['vout'];
-          responseTx.blockhash = resultValue['blockHash'];
-          responseTx.blockheight = resultValue['blockHeight'];
-          responseTx.confirmations = resultValue['confirmations'];
-          responseTx.time = resultValue['time'];
-          responseTx.blocktime = resultValue['blockTime'];
-          responseTx.valueOut = resultValue['valueOut'];
-          responseTx.valueIn = resultValue['valueIn'];
-          responseTx.fees = resultValue['fees'];
-          responseTx.hex = resultValue['hex'];
+          responseTx.txid = tx[0].txid;
+          responseTx.version = tx[0].version;
+          responseTx.vin = tx[0].vin;
+          responseTx.vout = tx[0].vout;
+          responseTx.blockhash = tx[0].blockHash;
+          responseTx.blockheight = tx[0].blockHeight;
+          responseTx.confirmations = tx[0].confirmations;
+          responseTx.time = tx[0].time;
+          responseTx.blocktime = tx[0].blockTime;
+          responseTx.valueOut = tx[0].valueOut;
+          responseTx.valueIn = tx[0].valueIn;
+          responseTx.fees = tx[0].fees;
+          responseTx.hex = tx[0].hex;
           resolve(responseTx);
         })
 

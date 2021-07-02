@@ -56,6 +56,16 @@ export class RskPeginStatus extends Model {
   })
   confirmations: number;
 
+  @property({
+    type: 'Date',
+  })
+  createOn: Date;
+
+  @property({
+    type: 'string',
+  })
+  status: string;
+
   constructor() {
     super();
   }
@@ -79,9 +89,9 @@ export class PeginStatus extends Model {
   })
   status: Status;
 
-  constructor(btc: BtcPeginStatus, status: Status, rsk?: RskPeginStatus) {
+  constructor(btc: BtcPeginStatus, rsk?: RskPeginStatus) {
     super();
-    this.status = status;
+    this.status = Status.NOT_IN_BTC_YET;
     if (rsk) {
       this.rsk = rsk;
     } else {
@@ -89,14 +99,24 @@ export class PeginStatus extends Model {
     }
     this.btc = btc;
   }
-}
 
+  public setRskPeginStatus(rskData: RskPeginStatus) {
+    this.rsk = rskData;
+    if (rskData.status == 'REJECTED' || rskData.status == 'INVALID') {
+      this.status = Status.REJECTED_REFUND;  //TODO: Maybe is without REFUND, Resolve when we can get this info
+    } else if (rskData.confirmations < 6) { //TODO: Verify number of confirmations needed
+      this.status = Status.WAITING_CONFIRMATIONS;
+    } else {
+      this.status = Status.CONFIRMED;
+    }
+  }
+}
 export enum Status {
-  not_in_btc_yet,
-  waiting_confirmations,
-  confirmed,
-  rejected_no_refund,
-  rejected_refund
+  NOT_IN_BTC_YET = 'NOT_IN_BTC_YET',
+  WAITING_CONFIRMATIONS = 'WAITING_CONFIRMATIONS',
+  CONFIRMED = 'CONFIRMED',
+  REJECTED_NO_REFUND = 'REJECTED_NO_REFUND',
+  REJECTED_REFUND = 'REJECTED_REFUND'
 }
 
 export type PeginStatusWithRelations = PeginStatus;
