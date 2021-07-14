@@ -1,6 +1,6 @@
 import Web3 from 'web3';
-import {AbiItem} from 'web3-utils';
 import {Contract} from 'web3-eth-contract';
+import {AbiItem} from 'web3-utils';
 import BridgeABI from '../abis/bridge.json';
 
 export class BridgeService {

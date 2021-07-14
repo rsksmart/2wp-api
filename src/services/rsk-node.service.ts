@@ -12,4 +12,7 @@ export class RskNodeService {
   getTransactionReceipt(txHash: string): Promise<any> {
     return this.web3.eth.getTransactionReceipt(txHash);
   }
+  getBlockNumber(): Promise<number> {
+    return this.web3.eth.getBlockNumber();
+  }
 }

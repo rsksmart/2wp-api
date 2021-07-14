@@ -8,7 +8,7 @@ const blockBookUrl =
   process.env.BLOCKBOOK_URL ?? 'https://blockbook.trugroup.tech:19130';
 
 const confg = {
-  name: 'txProvider',
+  name: 'txV2Provider',
   connector: 'rest',
   options: {
     headers: {
@@ -20,11 +20,11 @@ const confg = {
     {
       template: {
         method: 'GET',
-        url: `${blockBookUrl}/api/v1/tx/{txId}`,
-        responsePath: '$[*]',
+        url: `${blockBookUrl}/api/v2/tx/{txId}`,
+        responsePath: '$',
       },
       functions: {
-        txProvider: ['txId'],
+        txV2Provider: ['txId'],
       },
     },
   ],
@@ -35,14 +35,14 @@ const confg = {
 // gracefully. The `stop()` method is inherited from `juggler.DataSource`.
 // Learn more at https://loopback.io/doc/en/lb4/Life-cycle.html
 @lifeCycleObserver('datasource')
-export class TxProviderDataSource
+export class TxV2ProviderDataSource
   extends juggler.DataSource
   implements LifeCycleObserver {
-  static dataSourceName = 'txProvider';
+  static dataSourceName = 'txV2Provider';
   static readonly defaultConfig = confg;
 
   constructor(
-    @inject('datasources.config.txProvider', {optional: true})
+    @inject('datasources.config.txV2Provider', {optional: true})
     dsConfig: object = confg,
   ) {
     super(dsConfig);

@@ -1,17 +1,18 @@
-// Uncomment these imports to begin using these cool features!
-
-// import {inject} from '@loopback/core';
-
 import {inject} from '@loopback/core';
-import {TxService} from '../services';
 import {get, getModelSchemaRef} from '@loopback/rest';
+import {getLogger, Logger} from 'log4js';
 import {Tx} from '../models';
+import {TxService} from '../services';
 
 export class TxController {
+  logger: Logger;
+
   constructor(
     @inject('services.TxService')
     protected txService: TxService,
-  ) {}
+  ) {
+    this.logger = getLogger('tx-controller');
+  }
 
   @get('/tx', {
     parameters: [{name: 'tx', schema: {type: 'string'}, in: 'query'}],

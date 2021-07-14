@@ -1,15 +1,21 @@
+import {inject} from '@loopback/core';
 import {get, getModelSchemaRef} from '@loopback/rest';
-import {PeginStatus, Status} from '../models';
-
+import {PeginStatus} from '../models';
+import {BitcoinService, PeginStatusService, TxV2Service} from '../services';
 
 export class PeginStatusController {
   constructor(
+    @inject('services.TxV2Service')
+    protected txV2Service: TxV2Service, //TODO: Verify if needed to inject or not. Take in account that we are doing an hybrid here.
+    protected bitcoinService: BitcoinService = new BitcoinService(txV2Service),
+    protected peginStatusService: PeginStatusService = new PeginStatusService(bitcoinService),
   ) { }
 
-  @get('get-pegin-status', {
+  @get('/pegin-status', {
+    parameters: [{name: 'txId', schema: {type: 'string'}, in: 'query'}],
     responses: {
       '200': {
-        description: 'get the status of a Pegin Transaction',
+        description: 'return informartion for Pegin Status',
         content: {
           'application/json': {
             schema: getModelSchemaRef(PeginStatus, {includeRelations: true}),
@@ -19,16 +25,8 @@ export class PeginStatusController {
     },
   })
   getTx(txId: string): Promise<PeginStatus> {
-    return new Promise<PeginStatus>((resolve) => {
-      const responsePeginStatus = new PeginStatus(txId);
-      responsePeginStatus.rskRecipient = "rskRecipient"; // TODO
-      responsePeginStatus.rskTxId = "rskTxId" // TODO
-      responsePeginStatus.rskBlockHeight = 0; //TODO
-      responsePeginStatus.status = Status.waiting_confirmations;
-      responsePeginStatus.btcConfirmation = 0; // TOOD
-
-      resolve(responsePeginStatus);
-    })
+    //FIXME: filter request incorrect and return our errors and not loopback error
+    return this.peginStatusService.getPeginSatusInfo(txId);
   }
 }
 
