@@ -1,6 +1,6 @@
 import {getLogger, Logger} from 'log4js';
-import {PeginStatusDataModel} from '../models/rsk/pegin.status-data.model';
-import {PeginStatusDataService} from './pegin-status-data.service';
+import {PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
+import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 
 export class DaemonService implements iDaemonService {
@@ -43,7 +43,7 @@ export class DaemonService implements iDaemonService {
     }
   }
 
-  async fetch(): Promise<void> {
+  private async fetch(): Promise<void> {
     try {
       let response = await this.dataProvider.getData(this.lastBlock);
       this.logger.debug(`Got ${response.data.length} transactions. Max block ${response.maxBlockHeight}`);
@@ -51,18 +51,34 @@ export class DaemonService implements iDaemonService {
       this.lastBlock = response.maxBlockHeight + 1;
       for (let tx of response.data) {
         this.logger.debug(`Got tx ${tx.hash}`);
-        let peginStatus = new PeginStatusDataModel();
-        peginStatus.btcTxId = 'test' + tx.blockHeight;
-        peginStatus.rskTxId = tx.hash.toString('hex');
-        peginStatus.rskBlockHeight = tx.blockHeight;
-        await this.storageService.setPeginStatus(peginStatus);
-
-        await this.storageService.getPeginStatus('test' + tx.blockHeight)
+        let peginStatus = this.parsePeginTxData(tx);
+        try {
+          let found = await this.storageService.getPeginStatus(peginStatus.btcTxId);
+          if (found) {
+            this.logger.debug(`${tx.hash} already registered`);
+          } else {
+            await this.storageService.setPeginStatus(peginStatus);
+          }
+        } catch (e) {
+          await this.storageService.setPeginStatus(peginStatus);
+        }
       }
       // TODO: handle response
     } catch (error) {
       this.logger.warn('Got an error fetching data', error.message);
     }
+  }
+
+  private parsePeginTxData(tx: any): PeginStatusDataModel {
+    // TODO: parse the data properly
+    let peginStatus = new PeginStatusDataModel();
+    peginStatus.btcTxId = tx.hash.toString('hex');
+    peginStatus.rskTxId = tx.hash.toString('hex');
+    peginStatus.rskBlockHeight = tx.blockHeight;
+    peginStatus.createdOn = new Date();
+    peginStatus.status = 'test';
+    peginStatus.rskRecipient = 'TEST ADDRESS';
+    return peginStatus;
   }
 }
 
