@@ -1,5 +1,10 @@
 import {getLogger, Logger} from 'log4js';
-import {PeginStatusDataModel} from '../models/rsk/pegin.status-data.model';
+import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
+
+export interface PeginStatusDataService {
+  getPeginStatus(btcTxId: string): Promise<PeginStatusDataModel>;
+  setPeginStatus(data: PeginStatusDataModel): Promise<void>
+}
 
 export class PeginStatusDataServiceMemoryImplementation implements PeginStatusDataService {
 
@@ -25,9 +30,4 @@ export class PeginStatusDataServiceMemoryImplementation implements PeginStatusDa
     this.dataSource.set(data.btcTxId, data);
     return Promise.resolve();
   }
-}
-
-export interface PeginStatusDataService {
-  getPeginStatus(btcTxId: string): Promise<PeginStatusDataModel>;
-  setPeginStatus(data: PeginStatusDataModel): Promise<void>
 }
