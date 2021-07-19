@@ -2,15 +2,15 @@ import base58 from 'bs58';
 import {getLogger, Logger} from 'log4js';
 const sha256 = require('js-sha256');
 
-export interface AddressUtils {
+export interface BtcAddressUtils {
   getRefundAddress(script: string): string;
 }
 
-export class AddressUtilImplementation implements AddressUtils {
+export class BtcAddressUtilImplementation implements BtcAddressUtils {
   private logger: Logger;
 
   constructor() {
-    this.logger = getLogger('AddressUtils');
+    this.logger = getLogger('BtcAddressUtils');
   }
 
   public getRefundAddress(addressRefundInfo: string): string {
@@ -26,7 +26,7 @@ export class AddressUtilImplementation implements AddressUtils {
       } else if (addressRefundType == 2) { //P2SH_ADDRESS_TYPE
         address = this.getAddress(addressRefundData, 'P2SH');
       } else {
-        const errorMessage = 'Wrong refund address type';
+        const errorMessage = `Wrong refund address type. Current type: ${addressRefundType}`;
         this.logger.error(errorMessage);  //TODO: Verify if we need to throw error or use change address
         throw new Error(errorMessage);
       }
@@ -62,7 +62,8 @@ export class AddressUtilImplementation implements AddressUtils {
 
     try {
       const network = process.env.NETWORK ?? 'tesnet';
-      const prefix = this.getNetPrefix(network, typeAddress);
+      const prefix = this.getNetPrefix(network, typeAddress); s
+
       data = `${prefix}${data}`;
       let checksum = sha256(sha256(data)).slice(0, 8);
       return base58.encode(Buffer.from(`${data}${checksum}`, 'hex'))

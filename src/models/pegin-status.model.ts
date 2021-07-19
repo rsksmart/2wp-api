@@ -104,10 +104,10 @@ export class PeginStatus extends Model {
     this.rsk = rskData;
     if (rskData.status == 'REJECTED' || rskData.status == 'INVALID') {
       this.status = Status.REJECTED_REFUND;  //TODO: Maybe is without REFUND, Resolve when we can get this info
-    } else if (rskData.confirmations < 6) { //TODO: Verify number of confirmations needed
-      this.status = Status.WAITING_CONFIRMATIONS;
-    } else {
+    } else if (rskData.confirmations >= 6) { //TODO: Verify number of confirmations needed
       this.status = Status.CONFIRMED;
+    } else {
+      this.status = Status.WAITING_CONFIRMATIONS;
     }
   }
 }
