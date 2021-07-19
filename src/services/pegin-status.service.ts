@@ -1,11 +1,11 @@
 import {getLogger, Logger} from 'log4js';
 import {BitcoinService, BridgeService} from '.';
 import {BtcPeginStatus, PeginStatus, RskPeginStatus} from '../models';
-import {PeginStatusDataModel} from '../models/rsk/pegin.status-data.model';
+import {PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
 import {Vin} from '../models/vin.model';
 import {Vout} from '../models/vout.model';
 import {AddressUtilImplementation, AddressUtils} from '../utils/addressUtils';
-import {PeginStatusDataServiceMemoryImplementation} from './pegin-status-data.service';
+import {PeginStatusDataServiceMemoryImplementation} from './pegin-status-data-services/pegin-status-data.service';
 import {RskNodeService} from './rsk-node.service';
 
 export class PeginStatusService {

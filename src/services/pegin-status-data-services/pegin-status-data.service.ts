@@ -3,7 +3,9 @@ import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 
 export interface PeginStatusDataService {
   getPeginStatus(btcTxId: string): Promise<PeginStatusDataModel>;
-  setPeginStatus(data: PeginStatusDataModel): Promise<void>
+  setPeginStatus(data: PeginStatusDataModel): Promise<void>;
+  start(): Promise<void>;
+  stop(): Promise<void>;
 }
 
 export class PeginStatusDataServiceMemoryImplementation implements PeginStatusDataService {
@@ -28,6 +30,16 @@ export class PeginStatusDataServiceMemoryImplementation implements PeginStatusDa
 
   setPeginStatus(data: PeginStatusDataModel) {
     this.dataSource.set(data.btcTxId, data);
+    return Promise.resolve();
+  }
+
+  start(): Promise<void> {
+    this.logger.debug('Starting');
+    return Promise.resolve();
+  }
+
+  stop(): Promise<void> {
+    this.logger.debug('Stopping');
     return Promise.resolve();
   }
 }

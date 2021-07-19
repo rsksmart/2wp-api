@@ -25,25 +25,32 @@ export class DaemonService implements iDaemonService {
     this.lastBlock = 1930013;
   }
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.started) {
       return;
     }
-    this.logger.info('Starting');
-    this.started = true;
+    this.logger.trace('Starting');
+    await this.storageService.start();
     // Start up the daemon
     this.dataFetchInterval = setInterval(() => this.fetch(), this.intervalTime);
+    this.logger.debug('Started');
+    this.started = true;
   }
 
-  stop(): void {
+  async stop(): Promise<void> {
     if (this.started) {
+      this.logger.trace('Stopping');
       clearInterval(this.dataFetchInterval);
+      await this.storageService.stop()
       this.started = false;
-      this.logger.info('Stopped');
+      this.logger.debug('Stopped');
     }
   }
 
   private async fetch(): Promise<void> {
+    if (!this.started) {
+      return;
+    }
     try {
       let response = await this.dataProvider.getData(this.lastBlock);
       this.logger.debug(`Got ${response.data.length} transactions. Max block ${response.maxBlockHeight}`);
@@ -60,10 +67,9 @@ export class DaemonService implements iDaemonService {
             await this.storageService.setPeginStatus(peginStatus);
           }
         } catch (e) {
-          await this.storageService.setPeginStatus(peginStatus);
+          this.logger.warn('There was a problem with the storage', e);
         }
       }
-      // TODO: handle response
     } catch (error) {
       this.logger.warn('Got an error fetching data', error.message);
     }

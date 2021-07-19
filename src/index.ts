@@ -11,19 +11,19 @@ export async function main(
 
   const logger = getLogger('app');
 
+  let shuttingDown = false;
   async function shutdown() {
-    await app.stop();
-    daemon.stop();
-    logger.info('Shutting down');
+    if (!shuttingDown) {
+      shuttingDown = true;
+      await app.stop();
+      await daemon.stop();
+      logger.info('Shutting down');
+    }
   }
 
   //catches ctrl+c event
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   process.on('SIGINT', shutdown.bind(null));
-
-  // catches "kill pid" (for example: nodemon restart)
-  // process.on('SIGUSR1', shutdown.bind(null, {exit: true}));
-  // process.on('SIGUSR2', shutdown.bind(null, {exit: true}));
 
   //catches uncaught exceptions
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -37,8 +37,7 @@ export async function main(
   logger.info(`Server is running at ${url}`);
 
   let daemon: DaemonRunner = new DaemonRunner();
-
-  daemon.start();
+  await daemon.start();
 
   return app;
 }
