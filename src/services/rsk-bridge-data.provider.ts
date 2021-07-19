@@ -1,5 +1,7 @@
+import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
 import {BridgeData} from '../models/rsk/bridge-data.model';
 
 export interface RskBridgeDataProvider {
-  getData(startingBlock: string | number): Promise<BridgeData>
+  configure(filters: Array<BridgeDataFilterModel>): void;
+  getData(startingBlock: string | number): Promise<BridgeData>;
 }

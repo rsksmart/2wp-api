@@ -1,4 +1,5 @@
 import {getLogger, Logger} from 'log4js';
+import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
 import {PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
@@ -11,6 +12,8 @@ export class DaemonService implements iDaemonService {
   started: boolean;
   logger: Logger;
   lastBlock: string | number;
+  lastSyncLog: number = 0;
+  ticking: boolean;
   constructor(
     dataProvider: RskBridgeDataProvider,
     storageService: PeginStatusDataService
@@ -20,9 +23,9 @@ export class DaemonService implements iDaemonService {
 
     this.started = false;
     // TODO: add configurations via injection/env variables
-    this.intervalTime = 3000;
+    this.intervalTime = 300;
     this.logger = getLogger('daemon-service');
-    this.lastBlock = 1930013;
+    this.lastBlock = 1930363;
   }
 
   async start(): Promise<void> {
@@ -31,8 +34,10 @@ export class DaemonService implements iDaemonService {
     }
     this.logger.trace('Starting');
     await this.storageService.start();
+    this.configureDataFilters();
     // Start up the daemon
     this.dataFetchInterval = setInterval(() => this.fetch(), this.intervalTime);
+
     this.logger.debug('Started');
     this.started = true;
   }
@@ -48,12 +53,22 @@ export class DaemonService implements iDaemonService {
   }
 
   private async fetch(): Promise<void> {
+    // Avoid processing if the service has not started or was stopped
     if (!this.started) {
       return;
     }
+    // Avoid processing more fetches if there is a pending fetch
+    if (this.ticking) {
+      return;
+    }
+    this.ticking = true;
     try {
+      this.lastSyncLog++;
+      if (this.lastSyncLog >= 10) {
+        this.lastSyncLog = 0;
+        this.logger.trace("Sync status => Last block is " + this.lastBlock);
+      }
       let response = await this.dataProvider.getData(this.lastBlock);
-      this.logger.debug(`Got ${response.data.length} transactions. Max block ${response.maxBlockHeight}`);
       // TODO: I should get the next block to search... ?
       this.lastBlock = response.maxBlockHeight + 1;
       for (let tx of response.data) {
@@ -73,6 +88,7 @@ export class DaemonService implements iDaemonService {
     } catch (error) {
       this.logger.warn('Got an error fetching data', error.message);
     }
+    this.ticking = false;
   }
 
   private parsePeginTxData(tx: any): PeginStatusDataModel {
@@ -85,6 +101,13 @@ export class DaemonService implements iDaemonService {
     peginStatus.status = 'test';
     peginStatus.rskRecipient = 'TEST ADDRESS';
     return peginStatus;
+  }
+
+  private configureDataFilters(): void {
+    let dataFilters = [];
+    // registerBtcTransaction data filter
+    dataFilters.push(new BridgeDataFilterModel('43dc0656'));
+    this.dataProvider.configure(dataFilters);
   }
 }
 
