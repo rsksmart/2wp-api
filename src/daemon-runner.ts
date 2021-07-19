@@ -14,11 +14,11 @@ export class DaemonRunner {
     );
   }
 
-  start(): void {
-    this.daemonService.start();
+  start(): Promise<void> {
+    return this.daemonService.start();
   }
 
-  stop(): void {
-    this.daemonService.stop();
+  stop(): Promise<void> {
+    return this.daemonService.stop();
   }
 }

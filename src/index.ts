@@ -9,18 +9,18 @@ export async function main(options: ApplicationConfig = {}): Promise<TwpapiAppli
 
   let logger = getLogger('app');
 
+  let shuttingDown = false;
   async function shutdown() {
-    await app.stop();
-    daemon.stop();
-    logger.info('Shutting down');
+    if (!shuttingDown) {
+      shuttingDown = true;
+      await app.stop();
+      await daemon.stop();
+      logger.info('Shutting down');
+    }
   }
 
   //catches ctrl+c event
   process.on('SIGINT', shutdown.bind(null));
-
-  // catches "kill pid" (for example: nodemon restart)
-  // process.on('SIGUSR1', shutdown.bind(null, {exit: true}));
-  // process.on('SIGUSR2', shutdown.bind(null, {exit: true}));
 
   //catches uncaught exceptions
   process.on('uncaughtException', shutdown.bind(null));
@@ -33,8 +33,7 @@ export async function main(options: ApplicationConfig = {}): Promise<TwpapiAppli
   logger.info(`Server is running at ${url}`);
 
   let daemon: DaemonRunner = new DaemonRunner();
-
-  daemon.start();
+  await daemon.start();
 
   return app;
 }
