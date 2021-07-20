@@ -1,6 +1,7 @@
 import {DaemonService} from './services/daemon.service';
 import {NodeBridgeDataProvider} from './services/node-bridge-data.provider';
 import {PeginStatusMongoDbDataService} from './services/pegin-status-data-services/peg-status.mongodb.service';
+import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 
 export class DaemonRunner {
   daemonService: DaemonService;
@@ -10,7 +11,8 @@ export class DaemonRunner {
     // TODO: The provider should be injected
     this.daemonService = new DaemonService(
       new NodeBridgeDataProvider(),
-      new PeginStatusMongoDbDataService(MONGO_DB_URI) // TODO: user/pass should be defined by env vars
+      new PeginStatusMongoDbDataService(MONGO_DB_URI),
+      new SyncStatusMongoService(MONGO_DB_URI)
     );
   }
 

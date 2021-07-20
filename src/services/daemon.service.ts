@@ -1,31 +1,45 @@
 import {getLogger, Logger} from 'log4js';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
 import {PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
+import {SyncStatusModel} from '../models/rsk/sync-status.model';
+import {GenericDataService} from './generic-data-service';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 
+const SYNC_ID: number = 1;
+
 export class DaemonService implements iDaemonService {
   dataProvider: RskBridgeDataProvider;
-  storageService: PeginStatusDataService
+  peginStatusStorageService: PeginStatusDataService
+  syncStorageService: GenericDataService<SyncStatusModel>
+
   dataFetchInterval: NodeJS.Timer;
-  intervalTime: number;
   started: boolean;
   logger: Logger;
-  lastBlock: string | number;
   lastSyncLog: number = 0;
   ticking: boolean;
+  lastBlock: number;
+
+  intervalTime: number;
+  defaultLastBlock: number;
+  minDepthToSync: number;
+
   constructor(
     dataProvider: RskBridgeDataProvider,
-    storageService: PeginStatusDataService
+    peginStatusStorageService: PeginStatusDataService,
+    syncStorageService: GenericDataService<SyncStatusModel>
   ) {
     this.dataProvider = dataProvider;
-    this.storageService = storageService;
+    this.peginStatusStorageService = peginStatusStorageService;
+    this.syncStorageService = syncStorageService;
 
     this.started = false;
+    this.logger = getLogger('daemon-service');
+
     // TODO: add configurations via injection/env variables
     this.intervalTime = 300;
-    this.logger = getLogger('daemon-service');
-    this.lastBlock = 1930363;
+    this.defaultLastBlock = 1930363;
+    this.minDepthToSync = 5;
   }
 
   async start(): Promise<void> {
@@ -33,7 +47,11 @@ export class DaemonService implements iDaemonService {
       return;
     }
     this.logger.trace('Starting');
-    await this.storageService.start();
+    await this.peginStatusStorageService.start();
+    await this.syncStorageService.start();
+    // Get initial sync status
+    this.lastBlock = (await this.getSyncStatus()).rskBlockHeight;
+
     this.configureDataFilters();
     // Start up the daemon
     this.dataFetchInterval = setInterval(() => this.fetch(), this.intervalTime);
@@ -46,7 +64,7 @@ export class DaemonService implements iDaemonService {
     if (this.started) {
       this.logger.trace('Stopping');
       clearInterval(this.dataFetchInterval);
-      await this.storageService.stop()
+      await this.peginStatusStorageService.stop()
       this.started = false;
       this.logger.debug('Stopped');
     }
@@ -71,15 +89,16 @@ export class DaemonService implements iDaemonService {
       let response = await this.dataProvider.getData(this.lastBlock);
       // TODO: I should get the next block to search... ?
       this.lastBlock = response.maxBlockHeight + 1;
+      await this.updateSyncStatus();
       for (let tx of response.data) {
         this.logger.debug(`Got tx ${tx.hash}`);
         let peginStatus = this.parsePeginTxData(tx);
         try {
-          let found = await this.storageService.getPeginStatus(peginStatus.btcTxId);
+          let found = await this.peginStatusStorageService.getPeginStatus(peginStatus.btcTxId);
           if (found) {
             this.logger.debug(`${tx.hash} already registered`);
           } else {
-            await this.storageService.setPeginStatus(peginStatus);
+            await this.peginStatusStorageService.setPeginStatus(peginStatus);
           }
         } catch (e) {
           this.logger.warn('There was a problem with the storage', e);
@@ -108,6 +127,30 @@ export class DaemonService implements iDaemonService {
     // registerBtcTransaction data filter
     dataFilters.push(new BridgeDataFilterModel('43dc0656'));
     this.dataProvider.configure(dataFilters);
+  }
+
+  private getSyncStatus(): Promise<SyncStatusModel> {
+    return this.syncStorageService.getMany().then(result => {
+      if (!result || result.length == 0) {
+        let syncStatusModel = new SyncStatusModel();
+        syncStatusModel.syncId = SYNC_ID;
+        syncStatusModel.rskBlockHeight = this.defaultLastBlock;
+        syncStatusModel.lastSyncedOn = new Date();
+        return syncStatusModel;
+      }
+      if (result.length > 1) {
+        throw new Error('Multiple sync status found!');
+      }
+      return result[0];
+    });
+  }
+
+  private updateSyncStatus(): Promise<boolean> {
+    let data = new SyncStatusModel();
+    data.syncId = SYNC_ID;
+    data.rskBlockHeight = this.lastBlock;
+    data.lastSyncedOn = new Date();
+    return this.syncStorageService.set(data);
   }
 }
 
