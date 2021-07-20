@@ -3,6 +3,7 @@ import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
 import {BridgeData} from '../models/rsk/bridge-data.model';
 import {Log} from '../models/rsk/log.model';
 import {Transaction} from '../models/rsk/transaction.model';
+import {getMetricLogger} from '../utils/metric-logger';
 import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 import {RskNodeService} from './rsk-node.service';
 
@@ -16,6 +17,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
     this.logger = getLogger('nodeBridgeDataProvider');
   }
   async getData(startingBlock: string | number): Promise<BridgeData> {
+    let metricLogger = getMetricLogger(this.logger, 'getData');
     let data: BridgeData = new BridgeData();
     // this.logger.trace(`Fetching data for block ${startingBlock}`);
     let lastBlock = await this.rskNodeService.getBlock(startingBlock);
@@ -47,6 +49,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
       }
     }
 
+    metricLogger();
     return Promise.resolve(data);
   }
 
