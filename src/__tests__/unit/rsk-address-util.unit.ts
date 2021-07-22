@@ -1,5 +1,5 @@
 import {expect} from '@loopback/testlab';
-import {RskAddressUtils} from '../../utils/rskAddressUtils';
+import {RskAddressUtils} from '../../utils/rsk-address-utils';
 
 describe('RskAddressUtil', () => {
   const utils = new RskAddressUtils();

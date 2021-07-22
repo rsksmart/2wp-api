@@ -5,9 +5,9 @@ import {BitcoinTx} from '../../models/bitcoin-tx.model';
 import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {Vin} from '../../models/vin.model';
 import {Vout} from '../../models/vout.model';
-import {BtcAddressUtils} from '../../utils/btcAddressUtils';
-import {RskAddressUtils} from '../../utils/rskAddressUtils';
-import {PeginStatusMongoDbDataService} from '../pegin-status-data-services/peg-status.mongodb.service';
+import {BtcAddressUtils} from '../../utils/btc-address-utils';
+import {RskAddressUtils} from '../../utils/rsk-address-utils';
+import {PeginStatusDataService} from '../pegin-status-data-services/pegin-status-data.service';
 import {RskNodeService} from '../rsk-node.service';
 import {BitcoinService} from './bitcoin.service';
 
@@ -17,8 +17,9 @@ export class PeginStatusService {
   private bitcoinService: BitcoinService;
   private rskNodeService: RskNodeService;
   private destinationAddress: string;
+  private rskDataService: PeginStatusDataService;
 
-  constructor(bitcoinService: BitcoinService) {
+  constructor(bitcoinService: BitcoinService, rskDataService: PeginStatusDataService) {
     this.bitcoinService = bitcoinService;
     this.bridgeService = new BridgeService(
       process.env.BRIDGE_ADDRESS ??
@@ -26,6 +27,8 @@ export class PeginStatusService {
     );
     this.rskNodeService = new RskNodeService();
     this.logger = getLogger('peginStatusService');
+    const MONGO_DB_URI = `mongodb://${process.env.RSK_DB_USER}:${process.env.RSK_DB_PASS}@${process.env.RSK_DB_URL}:${process.env.RSK_DB_PORT}/${process.env.RSK_DB_NAME}`;
+    this.rskDataService = rskDataService;
   }
 
   public getPeginSatusInfo(btcTxId: string): Promise<PeginStatus> {
@@ -106,13 +109,11 @@ export class PeginStatusService {
   }
 
   private getRskInfo(btcTxId: string): Promise<RskPeginStatus> {
-    const MONGO_DB_URI = `mongodb://${process.env.RSK_DB_USER}:${process.env.RSK_DB_PASS}@${process.env.RSK_DB_URL}:${process.env.RSK_DB_PORT}/${process.env.RSK_DB_NAME}`;
-    const rskDataService = new PeginStatusMongoDbDataService(MONGO_DB_URI);
     const rskStatus = new RskPeginStatus();
 
-    this.forTestingPurpuses(btcTxId, rskDataService);
+    this.forTestingPurpuses(btcTxId, this.rskDataService);
 
-    return rskDataService.getPeginStatus(btcTxId).then(async (rskData) => {
+    return this.rskDataService.getPeginStatus(btcTxId).then(async (rskData) => {
       if (rskData) {
         let bestHeight = await this.rskNodeService.getBlockNumber();
         rskStatus.confirmations = bestHeight - rskData.rskBlockHeight;
@@ -217,15 +218,24 @@ export class PeginStatusService {
     return (false);
   }
 
-  // //TODO: TO DELETE
-  private forTestingPurpuses(btcTxId: string, rskDataService: PeginStatusMongoDbDataService) {
-    let peginStatusData1 = new PeginStatusDataModel();
-    peginStatusData1.btcTxId = btcTxId;
-    peginStatusData1.rskRecipient = 'rskRecipient1';
-    peginStatusData1.createdOn = new Date();
-    peginStatusData1.rskBlockHeight = 1965349;
-    peginStatusData1.rskTxId = peginStatusData1.btcTxId;
-    peginStatusData1.status = 'REJECTED'; //'ACCEPTED', ' REJECTED', 'INVALID', 'NOT_IN_RSK_YET'  // TODO: return an error when INVALID
-    rskDataService.setPeginStatus(peginStatusData1);
+  //TODO: TO DELETE
+  private async forTestingPurpuses(btcTxId: string, rskDataService: PeginStatusDataService) {
+    try {
+      let found = await rskDataService.getPeginStatus(btcTxId);
+      if (found) {
+        this.logger.debug(`${btcTxId} already registered`);
+      } else {
+        let peginStatusData = new PeginStatusDataModel();
+        peginStatusData.btcTxId = btcTxId;
+        peginStatusData.rskRecipient = 'rskRecipient1';
+        peginStatusData.createdOn = new Date();
+        peginStatusData.rskBlockHeight = 1965349;
+        peginStatusData.rskTxId = peginStatusData.btcTxId;
+        peginStatusData.status = 'REJECTED'; //'ACCEPTED', ' REJECTED', 'INVALID', 'NOT_IN_RSK_YET'  // TODO: return an error when INVALID
+        await rskDataService.setPeginStatus(peginStatusData);
+      }
+    } catch (e) {
+      this.logger.warn('There was a problem with the storage', e);
+    }
   }
 }

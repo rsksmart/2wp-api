@@ -2,15 +2,22 @@ import {inject} from '@loopback/core';
 import {get, getModelSchemaRef} from '@loopback/rest';
 import {PeginStatus} from '../models';
 import {PeginStatusService, TxV2Service} from '../services';
+import {PeginStatusMongoDbDataService} from '../services/pegin-status-data-services/peg-status.mongodb.service';
+import {PeginStatusDataService} from '../services/pegin-status-data-services/pegin-status-data.service';
 import {BitcoinService} from '../services/pegin-status/bitcoin.service';
 
 export class PeginStatusController {
+  private peginStatusService: PeginStatusService;
+
   constructor(
     @inject('services.TxV2Service')
-    protected txV2Service: TxV2Service, //TODO: Verify if needed to inject or not. Take in account that we are doing an hybrid here.
+    protected txV2Service: TxV2Service,
     protected bitcoinService: BitcoinService = new BitcoinService(txV2Service),
-    protected peginStatusService: PeginStatusService = new PeginStatusService(bitcoinService),
-  ) { }
+  ) {
+    const MONGO_DB_URI: string = `mongodb://${process.env.RSK_DB_USER}:${process.env.RSK_DB_PASS}@${process.env.RSK_DB_URL}:${process.env.RSK_DB_PORT}/${process.env.RSK_DB_NAME}`;
+    const rskDataService: PeginStatusDataService = new PeginStatusMongoDbDataService(MONGO_DB_URI);
+    this.peginStatusService = new PeginStatusService(bitcoinService, rskDataService);
+  }
 
   @get('/pegin-status', {
     parameters: [{name: 'txId', schema: {type: 'string'}, in: 'query'}],
