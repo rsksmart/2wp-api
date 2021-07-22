@@ -41,6 +41,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
         let tx = new Transaction();
         tx.blockHeight = lastBlock.number;
         tx.blockHash = lastBlock.hash;
+        tx.createdOn = new Date(lastBlock.timestamp * 1000);
         tx.hash = transaction.hash;
         tx.data = transaction.input;
         let txReceipt = await this.rskNodeService.getTransactionReceipt(tx.hash.toString('hex'));
