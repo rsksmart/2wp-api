@@ -5,4 +5,5 @@ export class PeginStatusDataModel {
   rskTxId: string;
   rskRecipient: string;
   createdOn: Date;
+  // TODO: add value field => value: BigInt;
 }

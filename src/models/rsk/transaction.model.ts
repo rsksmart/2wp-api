@@ -6,6 +6,7 @@ export class Transaction {
   blockHeight: number;
   data: Buffer;
   logs: Array<Log>;
+  createdOn: Date;
 
   constructor() {
     this.logs = [];

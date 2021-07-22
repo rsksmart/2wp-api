@@ -1,17 +1,18 @@
 import {getLogger, Logger} from 'log4js';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
-import {PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
 import {SyncStatusModel} from '../models/rsk/sync-status.model';
 import {GenericDataService} from './generic-data-service';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
+import {RegisterBtcTransactionDataParser} from './register-btc-transaction-data.parser';
 import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 
 const SYNC_ID: number = 1;
 
 export class DaemonService implements iDaemonService {
   dataProvider: RskBridgeDataProvider;
-  peginStatusStorageService: PeginStatusDataService
-  syncStorageService: GenericDataService<SyncStatusModel>
+  peginStatusStorageService: PeginStatusDataService;
+  syncStorageService: GenericDataService<SyncStatusModel>;
+  registerBtcTransactionDataParser: RegisterBtcTransactionDataParser;
 
   dataFetchInterval: NodeJS.Timer;
   started: boolean;
@@ -32,12 +33,13 @@ export class DaemonService implements iDaemonService {
     this.dataProvider = dataProvider;
     this.peginStatusStorageService = peginStatusStorageService;
     this.syncStorageService = syncStorageService;
+    this.registerBtcTransactionDataParser = new RegisterBtcTransactionDataParser();
 
     this.started = false;
     this.logger = getLogger('daemon-service');
 
     // TODO: add configurations via injection/env variables
-    this.intervalTime = 300;
+    this.intervalTime = 5000;
     this.defaultLastBlock = 1930363;
     this.minDepthToSync = 5;
   }
@@ -87,12 +89,15 @@ export class DaemonService implements iDaemonService {
         this.logger.trace("Sync status => Last block is " + this.lastBlock);
       }
       let response = await this.dataProvider.getData(this.lastBlock);
-      // TODO: I should get the next block to search... ?
       this.lastBlock = response.maxBlockHeight + 1;
       await this.updateSyncStatus();
       for (let tx of response.data) {
         this.logger.debug(`Got tx ${tx.hash}`);
-        let peginStatus = this.parsePeginTxData(tx);
+        let peginStatus = this.registerBtcTransactionDataParser.parse(tx);
+        if (!peginStatus) {
+          this.logger.debug('Transaction is not a registerBtcTransaction or has not registered the peg-in');
+          continue;
+        }
         try {
           let found = await this.peginStatusStorageService.getPeginStatus(peginStatus.btcTxId);
           if (found) {
@@ -108,18 +113,6 @@ export class DaemonService implements iDaemonService {
       this.logger.warn('Got an error fetching data', error.message);
     }
     this.ticking = false;
-  }
-
-  private parsePeginTxData(tx: any): PeginStatusDataModel {
-    // TODO: parse the data properly
-    let peginStatus = new PeginStatusDataModel();
-    peginStatus.btcTxId = tx.hash.toString('hex');
-    peginStatus.rskTxId = tx.hash.toString('hex');
-    peginStatus.rskBlockHeight = tx.blockHeight;
-    peginStatus.createdOn = new Date();
-    peginStatus.status = 'test';
-    peginStatus.rskRecipient = 'TEST ADDRESS';
-    return peginStatus;
   }
 
   private configureDataFilters(): void {
