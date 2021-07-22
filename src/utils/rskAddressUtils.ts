@@ -1,14 +1,7 @@
 import {getLogger, Logger} from 'log4js';
 import {keccak256} from 'web3-utils';
 
-
-
-export interface RskAddressUtils {
-  getRskAddressFromPubKeyHash(data: string): string;
-  getRskAddressFromOpReturn(data: string): string;
-}
-
-export class RskAddressUtilImplementation implements RskAddressUtils {
+export class RskAddressUtils {
   private logger: Logger;
 
   constructor() {
@@ -24,7 +17,6 @@ export class RskAddressUtilImplementation implements RskAddressUtils {
   }
 
   public getRskAddressFromOpReturn(data: string): string {
-
     return Buffer.from(`${data}`, 'hex').toString('hex');
   }
 
@@ -38,5 +30,4 @@ export class RskAddressUtilImplementation implements RskAddressUtils {
     const hash = keccak256(pubKey);
     return hash.substr(12, hash.length);
   }
-
 }

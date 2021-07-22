@@ -1,8 +1,8 @@
 import {expect} from '@loopback/testlab';
-import {RskAddressUtilImplementation} from '../../utils/rskAddressUtils';
+import {RskAddressUtils} from '../../utils/rskAddressUtils';
 
 describe('RskAddressUtil', () => {
-  const utils = new RskAddressUtilImplementation();
+  const utils = new RskAddressUtils();
 
   it('Verify RSK Address derivation from sender ', async () => {
     const data = '483045022100f0fc7ee92939b95d4b28c4443147ab05c4e4e4d0f054e6eebae8a5c72e5f60f302205be8d9eb2ed2883eb1145d96b78ca9aa30050a7acf5696ed13e3e27aef8a4b20012102b495b736715d9d4637d130fc95bae49702b66872c577bf052aa160f54c44748a';

@@ -2,11 +2,7 @@ import base58 from 'bs58';
 import {getLogger, Logger} from 'log4js';
 const sha256 = require('js-sha256');
 
-export interface BtcAddressUtils {
-  getRefundAddress(script: string): string;
-}
-
-export class BtcAddressUtilImplementation implements BtcAddressUtils {
+export class BtcAddressUtils {
   private logger: Logger;
 
   constructor() {
@@ -62,7 +58,7 @@ export class BtcAddressUtilImplementation implements BtcAddressUtils {
 
     try {
       const network = process.env.NETWORK ?? 'tesnet';
-      const prefix = this.getNetPrefix(network, typeAddress); s
+      const prefix = this.getNetPrefix(network, typeAddress);
 
       data = `${prefix}${data}`;
       let checksum = sha256(sha256(data)).slice(0, 8);
