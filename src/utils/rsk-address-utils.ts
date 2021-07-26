@@ -1,5 +1,6 @@
 import {getLogger, Logger} from 'log4js';
 import {keccak256} from 'web3-utils';
+import {Vin} from '../models/vin.model';
 
 export class RskAddressUtils {
   private logger: Logger;
@@ -20,10 +21,13 @@ export class RskAddressUtils {
     return Buffer.from(`${data}`, 'hex').toString('hex');
   }
 
-  public getRskAddressFromPubKeyHash(data: string): string {
-    const pubKey = this.parseData(data);
-    const pubKeyHash = this.getKeccak256Omit12(pubKey.substr(1, pubKey.length));
-    return pubKeyHash;
+  public getRskAddressFromScriptSig(vin: Vin): string {
+    //FIXME: Obtain witness and use it to get real velues.
+    const pubKey = this.parseData(vin.hex);
+    if (pubKey.length != 0) {
+      return this.getKeccak256Omit12(pubKey.substr(1, pubKey.length));
+    }
+    return "";
   }
 
   private getKeccak256Omit12(pubKey: string): string {

@@ -1,15 +1,12 @@
 import {getLogger, Logger} from 'log4js';
-import {BridgeService} from '..';
+import {BitcoinService, BridgeService} from '..';
 import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status} from '../../models';
 import {BitcoinTx} from '../../models/bitcoin-tx.model';
-import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
-import {Vin} from '../../models/vin.model';
 import {Vout} from '../../models/vout.model';
-import {BtcAddressUtils} from '../../utils/btc-address-utils';
+import {BtcAddressUtils} from '../../utils/btc-utils';
 import {RskAddressUtils} from '../../utils/rsk-address-utils';
 import {PeginStatusDataService} from '../pegin-status-data-services/pegin-status-data.service';
 import {RskNodeService} from '../rsk-node.service';
-import {BitcoinService} from './bitcoin.service';
 
 export class PeginStatusService {
   private logger: Logger;
@@ -27,7 +24,6 @@ export class PeginStatusService {
     );
     this.rskNodeService = new RskNodeService();
     this.logger = getLogger('peginStatusService');
-    const MONGO_DB_URI = `mongodb://${process.env.RSK_DB_USER}:${process.env.RSK_DB_PASS}@${process.env.RSK_DB_URL}:${process.env.RSK_DB_PORT}/${process.env.RSK_DB_NAME}`;
     this.rskDataService = rskDataService;
   }
 
@@ -37,8 +33,6 @@ export class PeginStatusService {
       .then((btcStatus) => {
         const peginStatusInfo = new PeginStatus(btcStatus);
         if (btcStatus.requiredConfirmation <= btcStatus.confirmations) {
-          // try {
-
           return this.getRskInfo(btcTxId)
             .then((rskStatus) => {
               peginStatusInfo.setRskPeginStatus(rskStatus);
@@ -100,8 +94,8 @@ export class PeginStatusService {
           btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
           btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;
           btcStatus.federationAddress = federationAddress;
-          btcStatus.refundAddress = this.getTxRefundAddress(btcTxId, btcTx.vout, btcTx.vin);
-          this.destinationAddress = this.getxDestinationRskAddress(btcTxId, btcTx.vout, btcTx.vin);
+          btcStatus.refundAddress = this.getTxRefundAddress(btcTx);
+          this.destinationAddress = this.getxDestinationRskAddress(btcTx);
 
           return btcStatus;
         }
@@ -110,8 +104,6 @@ export class PeginStatusService {
 
   private getRskInfo(btcTxId: string): Promise<RskPeginStatus> {
     const rskStatus = new RskPeginStatus();
-
-    this.forTestingPurpuses(btcTxId, this.rskDataService);
 
     return this.rskDataService.getPeginStatus(btcTxId).then(async (rskData) => {
       if (rskData) {
@@ -154,42 +146,42 @@ export class PeginStatusService {
     return acummulatedAmount;
   }
 
-  private getxDestinationRskAddress(txId: string, vout: Vout[], vin: Vin[]): string {
+  private getxDestinationRskAddress(btcTx: BitcoinTx): string {
     let returnValue = '';
     let foundOpReturn = false;
     const utility = new RskAddressUtils();
 
-    for (let i = 0; vout && i < vout.length && !foundOpReturn; i++) {
-      const voutData = vout[i].hex!;
+    for (let i = 0; btcTx.vout && i < btcTx.vout.length && !foundOpReturn; i++) {
+      const voutData = btcTx.vout[i].hex!;
 
-      if (this.hasOpReturn(txId, voutData)) {
-        returnValue = utility.getRskAddressFromOpReturn(voutData.substring(34, 54));
+      if (this.hasOpReturn(btcTx.txid, voutData)) {
+        returnValue = utility.getRskAddressFromOpReturn(voutData.substring(14, 54));
         this.logger.debug(`Destination RSK Address found: ${returnValue}`);
         foundOpReturn = true;
       }
     }
     if (!foundOpReturn) {
-      returnValue = utility.getRskAddressFromPubKeyHash(vin[0].hex)
+      returnValue = utility.getRskAddressFromScriptSig(btcTx.vin[0])
       this.logger.debug(`Uses BTC Address to derivate a RSK address: ${returnValue}`);
     }
     return returnValue;
   }
 
-  private getTxRefundAddress(txId: string, vout: Vout[], vin: Vin[]): string {
+  private getTxRefundAddress(btcTx: BitcoinTx): string {
     let returnValue = '';
     let foundOpReturn = false;
     const utility = new BtcAddressUtils();
 
-    for (let i = 0; vout && i < vout.length && !foundOpReturn; i++) {
-      const voutData = vout[i].hex!;
-      if (this.hasRefundOpReturn(txId, voutData)) {
+    for (let i = 0; btcTx.vout && i < btcTx.vout.length && !foundOpReturn; i++) {
+      const voutData = btcTx.vout[i].hex!;
+      if (this.hasRefundOpReturn(btcTx.txId, voutData)) {
         returnValue = utility.getRefundAddress(voutData.substring(54, 96));
         this.logger.debug(`RefundAddress found: ${returnValue}`);
         foundOpReturn = true;
       }
     }
     if (!foundOpReturn) {
-      returnValue = vin[0].addresses[0];
+      returnValue = btcTx.vin[0].addresses[0];
       this.logger.debug(`Uses sender as refund address: ${returnValue}`);
     }
     return returnValue;
@@ -205,7 +197,7 @@ export class PeginStatusService {
   }
 
   private hasOpReturn(txId: string, data: string): boolean {
-    if (data.startsWith('6a') && data.includes('52534b5401')) { // Includes version 01 in the same if
+    if (data.startsWith('6a') && data.substr(4, 10).startsWith('52534b5401')) { // Includes version 01 in the same if
       if (data.length == 96 || data.length == 54) { //Contain refund address
         this.logger.debug(`Tx contains OPT_RETURN value: ${txId}`);
         return (true);
@@ -218,24 +210,4 @@ export class PeginStatusService {
     return (false);
   }
 
-  //TODO: TO DELETE
-  private async forTestingPurpuses(btcTxId: string, rskDataService: PeginStatusDataService) {
-    try {
-      let found = await rskDataService.getPeginStatus(btcTxId);
-      if (found) {
-        this.logger.debug(`${btcTxId} already registered`);
-      } else {
-        let peginStatusData = new PeginStatusDataModel();
-        peginStatusData.btcTxId = btcTxId;
-        peginStatusData.rskRecipient = 'rskRecipient1';
-        peginStatusData.createdOn = new Date();
-        peginStatusData.rskBlockHeight = 1965349;
-        peginStatusData.rskTxId = peginStatusData.btcTxId;
-        peginStatusData.status = 'REJECTED'; //'ACCEPTED', ' REJECTED', 'INVALID', 'NOT_IN_RSK_YET'  // TODO: return an error when INVALID
-        await rskDataService.setPeginStatus(peginStatusData);
-      }
-    } catch (e) {
-      this.logger.warn('There was a problem with the storage', e);
-    }
-  }
 }
