@@ -34,12 +34,11 @@ export class BtcAddressUtils {
         address = this.getAddress(addressRefundData, 'P2SH');
       } else {
         const errorMessage = `Wrong refund address type. Current type: ${addressRefundType}`;
-        this.logger.error(errorMessage);  //TODO: Verify if we need to throw error or use change address
         throw new Error(errorMessage);
       }
     }
     catch (error) {
-      this.logger.warn("Error parsing refund address"); //TODO: Verify if we need to throw error or use change address
+      this.logger.warn("Error parsing refund address", error.message);
     }
     return address;
   }
@@ -63,7 +62,7 @@ export class BtcAddressUtils {
 
   private getAddress(data: string, typeAddress: string): string { //TODO: To test with Ed's data
     if (data.length != 40) {
-      this.logger.warn("Wrong size for scirpt getting P2SH refund address");
+      this.logger.warn("Wrong size for script getting BTC refund address");
       return '';
     }
 
@@ -76,7 +75,7 @@ export class BtcAddressUtils {
       return base58.encode(Buffer.from(`${data}${checksum}`, 'hex'))
     }
     catch (error) {
-      this.logger.warn("Error getting P2PKH refund address");
+      this.logger.warn("Error getting BTC refund address");
     }
     return '';
   }

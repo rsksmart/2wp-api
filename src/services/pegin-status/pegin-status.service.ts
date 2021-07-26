@@ -154,15 +154,14 @@ export class PeginStatusService {
     for (let i = 0; btcTx.vout && i < btcTx.vout.length && !foundOpReturn; i++) {
       const voutData = btcTx.vout[i].hex!;
 
-      if (this.hasOpReturn(btcTx.txid, voutData)) {
+      if (this.hasOpReturn(btcTx.txId, voutData)) {
         returnValue = utility.getRskAddressFromOpReturn(voutData.substring(14, 54));
         this.logger.debug(`Destination RSK Address found: ${returnValue}`);
         foundOpReturn = true;
       }
     }
     if (!foundOpReturn) {
-      returnValue = utility.getRskAddressFromScriptSig(btcTx.vin[0])
-      this.logger.debug(`Uses BTC Address to derivate a RSK address: ${returnValue}`);
+      //FIXME: Derivate RSK address from BTC address sender.
     }
     return returnValue;
   }
@@ -181,8 +180,7 @@ export class PeginStatusService {
       }
     }
     if (!foundOpReturn) {
-      returnValue = btcTx.vin[0].addresses[0];
-      this.logger.debug(`Uses sender as refund address: ${returnValue}`);
+      //FIXME: Derivate RSK address from sender
     }
     return returnValue;
   }
