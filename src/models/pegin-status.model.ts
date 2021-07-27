@@ -114,7 +114,7 @@ export class PeginStatus extends Model {
         this.status = Status.REJECTED_REFUND;  //TODO: Verify type or REJECTED
         break;
       }
-      case 'ACCEPTED': {
+      case 'LOCKED': {
         this.status = Status.CONFIRMED;
         break;
       }

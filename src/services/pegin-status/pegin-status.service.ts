@@ -4,6 +4,7 @@ import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status} from '../../models'
 import {BitcoinTx} from '../../models/bitcoin-tx.model';
 import {Vout} from '../../models/vout.model';
 import {BtcAddressUtils} from '../../utils/btc-utils';
+import {ensure0x} from '../../utils/hex-utils';
 import {RskAddressUtils} from '../../utils/rsk-address-utils';
 import {PeginStatusDataService} from '../pegin-status-data-services/pegin-status-data.service';
 import {RskNodeService} from '../rsk-node.service';
@@ -105,7 +106,7 @@ export class PeginStatusService {
   private getRskInfo(btcTxId: string): Promise<RskPeginStatus> {
     const rskStatus = new RskPeginStatus();
 
-    return this.rskDataService.getPeginStatus(btcTxId).then(async (rskData) => {
+    return this.rskDataService.getPeginStatus(ensure0x(btcTxId)).then(async (rskData) => {
       if (rskData) {
         let bestHeight = await this.rskNodeService.getBlockNumber();
         rskStatus.confirmations = bestHeight - rskData.rskBlockHeight;
