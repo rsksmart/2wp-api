@@ -1,7 +1,7 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
-import {TxV2Service} from '.';
-import {BitcoinTx} from '../models/bitcoin-tx.model';
+import {TxV2Service} from '../';
+import {BitcoinTx} from '../../models/bitcoin-tx.model';
 
 export class BitcoinService {
   logger: Logger;
