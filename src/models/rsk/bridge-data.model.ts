@@ -1,7 +1,8 @@
+import {Block} from './block.model';
 import {Transaction} from './transaction.model';
 export class BridgeData {
   data: Array<Transaction>;
-  maxBlockHeight: number; // TODO: This should be a complete block
+  block: Block;
 
   constructor() {
     this.data = [];
