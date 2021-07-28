@@ -5,7 +5,6 @@ import {NodeBridgeDataProvider} from './services/node-bridge-data.provider';
 import {PeginStatusMongoDbDataService} from './services/pegin-status-data-services/peg-status.mongodb.service';
 import {RskChainSyncService} from './services/rsk-chain-sync.service';
 import {RskNodeService} from './services/rsk-node.service';
-import {SyncStatusDataService} from './services/sync-status-data.service';
 import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 
 export class DaemonRunner {
@@ -14,24 +13,30 @@ export class DaemonRunner {
 
   constructor() {
     const MONGO_DB_URI = `mongodb://${process.env.RSK_DB_USER}:${process.env.RSK_DB_PASS}@${process.env.RSK_DB_URL}:${process.env.RSK_DB_PORT}/${process.env.RSK_DB_NAME}`;
-    // TODO: The provider should be injected
     this.mongoDbDatasource = new MongoDbDataSource(MONGO_DB_URI);
-    let syncStatusMongoService: SyncStatusDataService = new SyncStatusMongoService(this.mongoDbDatasource);
+
     let defaultInitialBlock = new Block(
-      1930363,
-      '0x6311d47c3b696e33b5ef8b19665c092d0cf44505d8e500a96ee50b8eddecd092',
-      '0x5ffe1faf3ecc07484b47805b13a94be6b43b4d29d8bb7b8c4173eeb9cc86e579'
+      parseInt(process.env.SYNC_INITIAL_BLOCK_HEIGHT || '0'),
+      process.env.SYNC_INITIAL_BLOCK_HASH || '',
+      process.env.SYNC_INITIAL_BLOCK_PREV_HASH || ''
     );
+    let syncService = new RskChainSyncService(
+      new SyncStatusMongoService(this.mongoDbDatasource),
+      new RskNodeService(),
+      defaultInitialBlock,
+      parseInt(process.env.SYNC_MIN_DEPTH || '6')
+    );
+
     this.daemonService = new DaemonService(
       new NodeBridgeDataProvider(),
       new PeginStatusMongoDbDataService(MONGO_DB_URI),
-      new RskChainSyncService(syncStatusMongoService, new RskNodeService(), defaultInitialBlock)
+      syncService
     );
   }
 
   async start(): Promise<void> {
-    await this.daemonService.start();
     await this.mongoDbDatasource.connect();
+    await this.daemonService.start();
   }
 
   async stop(): Promise<void> {

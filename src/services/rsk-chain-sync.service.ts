@@ -16,15 +16,18 @@ export class RskChainSyncService {
   private rskNodeService: RskNodeService;
   private defaultInitialBlock: Block;
   private subscribers: Array<RskChainSyncSubscriber>;
+  private minDepthForSync: number;
 
   constructor(
     syncStorageService: SyncStatusDataService,
     rskNodeService: RskNodeService,
-    defaultInitialBlock: Block
+    defaultInitialBlock: Block,
+    minDepthForSync: number
   ) {
     this.syncStorageService = syncStorageService;
     this.rskNodeService = rskNodeService;
     this.defaultInitialBlock = defaultInitialBlock;
+    this.minDepthForSync = minDepthForSync;
     this.subscribers = [];
 
     this.logger = getLogger('rskChainSyncService');
@@ -111,7 +114,11 @@ export class RskChainSyncService {
   public async sync(): Promise<void> {
     let dbBestBlock = await this.getSyncStatus();
 
-    // TODO: ADD MIN DEPTH CONFIG
+    // Only sync blocks that are buried in the configured depth
+    let rskBestBlock = Block.fromWeb3Block(await this.rskNodeService.getBlock('latest', false));
+    if (rskBestBlock.height - this.minDepthForSync <= dbBestBlock.rskBlockHeight + 1) {
+      return;
+    }
 
     let nextBlock = Block.fromWeb3Block(await this.rskNodeService.getBlock(dbBestBlock.rskBlockHeight + 1, false));
     let blocksToAdd: Array<Block> = [];
