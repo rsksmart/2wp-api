@@ -30,7 +30,8 @@ export class DaemonRunner {
     this.daemonService = new DaemonService(
       new NodeBridgeDataProvider(),
       new PeginStatusMongoDbDataService(MONGO_DB_URI),
-      syncService
+      syncService,
+      process.env.SYNC_INTERVAL_TIME
     );
   }
 

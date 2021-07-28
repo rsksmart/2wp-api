@@ -23,7 +23,8 @@ export class DaemonService implements iDaemonService {
   constructor(
     dataProvider: RskBridgeDataProvider,
     peginStatusStorageService: PeginStatusDataService,
-    syncService: RskChainSyncService
+    syncService: RskChainSyncService,
+    syncIntervalTime: string | undefined
   ) {
     this.dataProvider = dataProvider;
     this.peginStatusStorageService = peginStatusStorageService;
@@ -33,8 +34,7 @@ export class DaemonService implements iDaemonService {
     this.started = false;
     this.logger = getLogger('daemon-service');
 
-    // TODO: add configurations via injection/env variables
-    this.intervalTime = 2000;
+    this.intervalTime = parseInt(syncIntervalTime || '2000');
   }
 
   private async handleNewBestBlock(block: Block): Promise<void> {
