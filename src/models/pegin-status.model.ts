@@ -1,4 +1,5 @@
 import {Model, model, property} from '@loopback/repository';
+import {PeginStatus as RskPeginStatusEnum} from './rsk/pegin-status-data.model';
 
 @model()
 export class BtcPeginStatus extends Model {
@@ -62,9 +63,9 @@ export class RskPeginStatus extends Model {
   createOn: Date;
 
   @property({
-    type: 'string',
+    type: 'object',
   })
-  status: string;
+  status: RskPeginStatusEnum;
 
   constructor() {
     super();
@@ -102,24 +103,18 @@ export class PeginStatus extends Model {
 
   public setRskPeginStatus(rskData: RskPeginStatus) {
     this.rsk = rskData;
-    // if (rskData.status == 'REJECTED' || rskData.status == 'INVALID') {
-    //   this.status = Status.REJECTED_REFUND;  //TODO: Maybe is without REFUND, Resolve when we can get this info
-    // } else if (rskData.confirmations >= (Number(process.env.RSK_MINIMUM_CONFIRMATION) ?? 6)) { //TODO: Verify number of confirmations needed
-    //   this.status = Status.CONFIRMED;
-    // } else {
-    //   this.status = Status.NOT_IN_RSK_YET;  //Not confirmed, not rejected, not invalid. Only not saved in database yet.
-    // }
     switch (rskData.status) {
-      case 'REJECTED': {
-        this.status = Status.REJECTED_REFUND;  //TODO: Verify type or REJECTED
+      case RskPeginStatusEnum.REJECTED_REFUND: {
+        this.status = Status.REJECTED_REFUND;
         break;
       }
-      case 'LOCKED': {
+      case RskPeginStatusEnum.REJECTED_NO_REFUND: {
+        this.status = Status.REJECTED_NO_REFUND;
+        break;
+      }
+      case RskPeginStatusEnum.LOCKED: {
         this.status = Status.CONFIRMED;
         break;
-      }
-      case 'INVALID': {
-        throw new Error(`{this.rsk.txId} Invalid tx for RSK nodes. `);
       }
       default: {
         this.status = Status.NOT_IN_RSK_YET;

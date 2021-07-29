@@ -1,16 +1,9 @@
 import Web3 from 'web3';
 import {Log} from '../models/rsk/log.model';
-import {PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
+import {PeginStatus as RskPeginStatusEnum, PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
 import {RskTransaction} from '../models/rsk/rsk-transaction.model';
 import {calculateBtcTxHash} from '../utils/btc-utils';
 import {ensure0x} from '../utils/hex-utils';
-
-// TODO: this should be an actual enum
-const PEGIN_STATUSES = {
-  locked: 'LOCKED',
-  rejected: 'REJECTED',
-  notRegistered: 'NOT_REGISTERED'
-}
 
 // TODO: instead of hardcoding the signature we should use precompiled abis library
 const LOCK_BTC_SIGNATURE = '0xec2232bdbe54a92238ce7a6b45d53fb31f919496c6abe1554be1cc8eddb6600a';
@@ -39,9 +32,9 @@ const BRIDGE_ABI = [{
 
 class PeginStatus {
   log: Log;
-  status: string;
+  status: RskPeginStatusEnum;
 
-  constructor(status: string) {
+  constructor(status: RskPeginStatusEnum) {
     this.status = status;
   }
 }
@@ -75,18 +68,18 @@ export class RegisterBtcTransactionDataParser {
     return ensure0x(calculateBtcTxHash(decodedParameters.tx));
   }
 
-  private getPeginStatus(transaction: RskTransaction): PeginStatus {
+  private getPeginStatus(transaction: RskTransaction): PeginStatus | undefined {
     let lockBtcLog = this.getLockBtcLogIfExists(transaction.logs);
-    let status: PeginStatus;
     if (lockBtcLog) {
-      status = new PeginStatus(PEGIN_STATUSES.locked);
+      let status = new PeginStatus(RskPeginStatusEnum.LOCKED);
       status.log = lockBtcLog;
-    } else if (this.hasRejectedPeginLog(transaction.logs)) {
-      status = new PeginStatus(PEGIN_STATUSES.rejected);
-    } else {
-      status = new PeginStatus(PEGIN_STATUSES.notRegistered);
+      return status;
     }
-    return status;
+    if (this.hasRejectedPeginLog(transaction.logs)) {
+      let status = new PeginStatus(RskPeginStatusEnum.REJECTED_REFUND);
+      // TODO: get release_requested event to determine if it is a refund or not refund
+      return status;
+    }
   }
 
   getLockBtcLogIfExists(logs: Array<Log>): Log | null {
@@ -107,8 +100,11 @@ export class RegisterBtcTransactionDataParser {
     result.rskBlockHeight = transaction.blockHeight;
     result.createdOn = transaction.createdOn;
     let peginStatus = this.getPeginStatus(transaction);
+    if (!peginStatus) {
+      return null;
+    }
     result.status = peginStatus.status;
-    if (result.status == PEGIN_STATUSES.locked) {
+    if (result.status == RskPeginStatusEnum.LOCKED) {
       // rsk recipient address is always the second topic
       result.rskRecipient = ensure0x(peginStatus.log.topics[1].substr(27));
       // TODO: extract the transferred value from the data of the log

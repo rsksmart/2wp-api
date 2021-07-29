@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
+import {PeginStatus, PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {MongoDbDataService} from '../mongodb-data.service';
 import {PeginStatusDataService} from './pegin-status-data.service';
 
@@ -11,7 +11,7 @@ interface PeginStatusMongoModel extends mongoose.Document, PeginStatusDataModel 
 
 const PeginStatusSchema = new mongoose.Schema({
   btcTxId: {type: String, required: true, unique: true},
-  status: {type: String, required: true},
+  status: {type: String, required: true, enum: Object.values(PeginStatus)},
   rskBlockHeight: {type: Number, required: true},
   rskTxId: {type: String, required: true, unique: true},
   rskRecipient: {type: String, required: true},
