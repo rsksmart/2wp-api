@@ -1,3 +1,4 @@
+import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import mongoose from 'mongoose';
 import {MongoDbDataSource} from '../datasources/mongodb.datasource';
@@ -10,7 +11,10 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
   logger: Logger;
   db: mongoose.Mongoose;
   mongoDbDataSource: MongoDbDataSource;
-  constructor(mongoDbDataSource: MongoDbDataSource) {
+  constructor(
+    @inject('dataSources.MongoDbDataSource')
+    mongoDbDataSource: MongoDbDataSource
+  ) {
     this.mongoDbDataSource = mongoDbDataSource;
     this.logger = getLogger(this.getLoggerName());
   }

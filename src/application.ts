@@ -1,20 +1,19 @@
 import {BootMixin} from '@loopback/boot';
 import {ApplicationConfig} from '@loopback/core';
-import {
-  RestExplorerBindings,
-  RestExplorerComponent,
-} from '@loopback/rest-explorer';
 import {RepositoryMixin} from '@loopback/repository';
 import {RestApplication} from '@loopback/rest';
+import {
+  RestExplorerBindings,
+  RestExplorerComponent
+} from '@loopback/rest-explorer';
 import {ServiceMixin} from '@loopback/service-proxy';
 import path from 'path';
+import {DependencyInjectionHandler} from './dependency-injection-handler';
 import {MySequence} from './sequence';
 
 export {ApplicationConfig};
 
-export class TwpapiApplication extends BootMixin(
-  ServiceMixin(RepositoryMixin(RestApplication)),
-) {
+export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(RestApplication)),) {
   constructor(options: ApplicationConfig = {}) {
     super(options);
 
@@ -40,5 +39,8 @@ export class TwpapiApplication extends BootMixin(
         nested: true,
       },
     };
+
+    DependencyInjectionHandler.configureDependencies(this);
   }
+
 }

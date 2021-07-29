@@ -1,3 +1,4 @@
+import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {BitcoinService, BridgeService} from '..';
 import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status} from '../../models';
@@ -19,7 +20,12 @@ export class PeginStatusService {
   private rskDataService: GenericDataService<PeginStatusDataModel>;
   private status: Status;
 
-  constructor(bitcoinService: BitcoinService, rskDataService: GenericDataService<PeginStatusDataModel>) {
+  constructor(
+    @inject('services.BitcoinService')
+    bitcoinService: BitcoinService,
+    @inject('services.PeginStatusDataService')
+    rskDataService: GenericDataService<PeginStatusDataModel>
+  ) {
     this.bitcoinService = bitcoinService;
     this.bridgeService = new BridgeService(
       process.env.BRIDGE_ADDRESS ??
@@ -44,8 +50,7 @@ export class PeginStatusService {
           return this.getRskInfo(btcTxId)
             .then((rskStatus) => {
               peginStatusInfo.setRskPeginStatus(rskStatus);
-              this.logger.debug(`Tx: ${btcTxId} includes rsk info. RskAddress: ${rskStatus.recipientAddress}
-                      Pegin status: ${peginStatusInfo.status}`);
+              this.logger.debug(`Tx: ${btcTxId} includes rsk info. RskAddress: ${rskStatus.recipientAddress} Pegin status: ${peginStatusInfo.status}`);
               return peginStatusInfo;
             })
             .finally(() => {

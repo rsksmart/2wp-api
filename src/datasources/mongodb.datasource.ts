@@ -1,3 +1,4 @@
+import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {connect as connectToMongo, Mongoose} from 'mongoose';
 
@@ -5,7 +6,10 @@ export class MongoDbDataSource {
   mongoDbUri: string;
   mongoose: Mongoose;
   logger: Logger;
-  constructor(mongoDbUri: string) {
+  constructor(
+    @inject('constants.mongoDbUri')
+    mongoDbUri: string
+  ) {
     this.mongoDbUri = mongoDbUri;
 
     this.logger = getLogger('MongoDb');
