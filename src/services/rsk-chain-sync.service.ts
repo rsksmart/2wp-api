@@ -1,4 +1,6 @@
+import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
+import {ConstantsBindings, ServicesBindings} from '../dependency-injection-bindings';
 import {RskBlock} from '../models/rsk/rsk-block.model';
 import {SyncStatusModel} from '../models/rsk/sync-status.model';
 import {RskNodeService} from './rsk-node.service';
@@ -19,9 +21,13 @@ export class RskChainSyncService {
   private minDepthForSync: number;
 
   constructor(
+    @inject(ServicesBindings.SYNC_STATUS_DATA_SERVICE)
     syncStorageService: SyncStatusDataService,
+    @inject(ServicesBindings.RSK_NODE_SERVICE)
     rskNodeService: RskNodeService,
+    @inject(ConstantsBindings.INITIAL_BLOCK)
     defaultInitialBlock: RskBlock,
+    @inject(ConstantsBindings.MIN_DEPTH_FOR_SYNC)
     minDepthForSync: number
   ) {
     this.syncStorageService = syncStorageService;

@@ -1,4 +1,6 @@
+import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
+import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from '../dependency-injection-bindings';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
 import {RskBlock} from '../models/rsk/rsk-block.model';
 import {getMetricLogger} from '../utils/metric-logger';
@@ -21,9 +23,13 @@ export class DaemonService implements iDaemonService {
   lastSyncLog: number = 0;
 
   constructor(
+    @inject(DatasourcesBindings.RSK_BRIDGE_DATA_PROVIDER)
     dataProvider: RskBridgeDataProvider,
+    @inject(ServicesBindings.PEGIN_STATUS_DATA_SERVICE)
     peginStatusStorageService: PeginStatusDataService,
+    @inject(ServicesBindings.RSK_CHAIN_SYNC_SERVICE)
     syncService: RskChainSyncService,
+    @inject(ConstantsBindings.SYNC_INTERVAL_TIME)
     syncIntervalTime: string | undefined
   ) {
     this.dataProvider = dataProvider;

@@ -1,47 +1,24 @@
-import {MongoDbDataSource} from './datasources/mongodb.datasource';
-import {RskBlock} from './models/rsk/rsk-block.model';
+import {Application} from '@loopback/core';
+import {ServicesBindings} from './dependency-injection-bindings';
+import {DependencyInjectionHandler} from './dependency-injection-handler';
 import {DaemonService} from './services/daemon.service';
-import {NodeBridgeDataProvider} from './services/node-bridge-data.provider';
-import {PeginStatusMongoDbDataService} from './services/pegin-status-data-services/pegin-status-mongo.service';
-import {RskChainSyncService} from './services/rsk-chain-sync.service';
-import {RskNodeService} from './services/rsk-node.service';
-import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 
-export class DaemonRunner {
+export class DaemonRunner extends Application {
   daemonService: DaemonService;
-  mongoDbDatasource: MongoDbDataSource;
 
   constructor() {
-    const MONGO_DB_URI = `mongodb://${process.env.RSK_DB_USER}:${process.env.RSK_DB_PASS}@${process.env.RSK_DB_URL}:${process.env.RSK_DB_PORT}/${process.env.RSK_DB_NAME}`;
-    this.mongoDbDatasource = new MongoDbDataSource(MONGO_DB_URI);
+    super();
 
-    let defaultInitialBlock = new RskBlock(
-      parseInt(process.env.SYNC_INITIAL_BLOCK_HEIGHT || '0'),
-      process.env.SYNC_INITIAL_BLOCK_HASH || '',
-      process.env.SYNC_INITIAL_BLOCK_PREV_HASH || ''
-    );
-    let syncService = new RskChainSyncService(
-      new SyncStatusMongoService(this.mongoDbDatasource),
-      new RskNodeService(),
-      defaultInitialBlock,
-      parseInt(process.env.SYNC_MIN_DEPTH || '6')
-    );
-
-    this.daemonService = new DaemonService(
-      new NodeBridgeDataProvider(),
-      new PeginStatusMongoDbDataService(this.mongoDbDatasource),
-      syncService,
-      process.env.SYNC_INTERVAL_TIME
-    );
+    DependencyInjectionHandler.configureDependencies(this);
   }
 
   async start(): Promise<void> {
-    await this.mongoDbDatasource.connect();
+    await super.start();
+    this.daemonService = await this.get(ServicesBindings.DAEMON_SERVICE);
     await this.daemonService.start();
   }
 
   async stop(): Promise<void> {
     await this.daemonService.stop();
-    await this.mongoDbDatasource.disconnect();
   }
 }

@@ -1,6 +1,7 @@
 import {inject, Provider} from '@loopback/core';
 import {getService} from '@loopback/service-proxy';
 import {TxV2ProviderDataSource} from '../datasources';
+import {DatasourcesBindings} from '../dependency-injection-bindings';
 
 export interface Txv2 {
   content: string;
@@ -16,7 +17,7 @@ export interface TxV2Service {
 export class TxV2ServiceProvider implements Provider<TxV2Service> {
   constructor(
     // txV2Provider must match the name property in the datasource json file
-    @inject('datasources.txV2Provider')
+    @inject(DatasourcesBindings.TX_V2_PROVIDER)
     protected dataSource: TxV2ProviderDataSource = new TxV2ProviderDataSource(),
   ) { }
 

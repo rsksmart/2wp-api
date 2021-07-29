@@ -1,11 +1,12 @@
 import {inject} from '@loopback/core';
 import {get, getModelSchemaRef} from '@loopback/rest';
+import {ServicesBindings} from '../dependency-injection-bindings';
 import {PeginStatus} from '../models';
 import {PeginStatusService} from '../services';
 
 export class PeginStatusController {
   constructor(
-    @inject('services.PeginStatusService')
+    @inject(ServicesBindings.PEGIN_STATUS_SERVICE)
     protected peginStatusService: PeginStatusService
   ) {
   }

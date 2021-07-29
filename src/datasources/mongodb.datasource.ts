@@ -1,13 +1,14 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {connect as connectToMongo, Mongoose} from 'mongoose';
+import {ConstantsBindings} from '../dependency-injection-bindings';
 
 export class MongoDbDataSource {
   mongoDbUri: string;
   mongoose: Mongoose;
   logger: Logger;
   constructor(
-    @inject('constants.mongoDbUri')
+    @inject(ConstantsBindings.MONGO_DB_URI)
     mongoDbUri: string
   ) {
     this.mongoDbUri = mongoDbUri;

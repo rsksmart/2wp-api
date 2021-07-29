@@ -1,6 +1,7 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {BitcoinService, BridgeService} from '..';
+import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status} from '../../models';
 import {BitcoinTx} from '../../models/bitcoin-tx.model';
 import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
@@ -21,9 +22,9 @@ export class PeginStatusService {
   private status: Status;
 
   constructor(
-    @inject('services.BitcoinService')
+    @inject(ServicesBindings.BITCOIN_SERVICE)
     bitcoinService: BitcoinService,
-    @inject('services.PeginStatusDataService')
+    @inject(ServicesBindings.PEGIN_STATUS_DATA_SERVICE)
     rskDataService: GenericDataService<PeginStatusDataModel>
   ) {
     this.bitcoinService = bitcoinService;

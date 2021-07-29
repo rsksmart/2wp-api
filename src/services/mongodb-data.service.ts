@@ -2,6 +2,7 @@ import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import mongoose from 'mongoose';
 import {MongoDbDataSource} from '../datasources/mongodb.datasource';
+import {DatasourcesBindings} from '../dependency-injection-bindings';
 import {SearchableModel} from '../models/rsk/searchable-model';
 import {getMetricLogger} from '../utils/metric-logger';
 import {GenericDataService} from './generic-data-service';
@@ -12,7 +13,7 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
   db: mongoose.Mongoose;
   mongoDbDataSource: MongoDbDataSource;
   constructor(
-    @inject('dataSources.MongoDbDataSource')
+    @inject(DatasourcesBindings.MONGO_DB_DATASOURCE)
     mongoDbDataSource: MongoDbDataSource
   ) {
     this.mongoDbDataSource = mongoDbDataSource;
