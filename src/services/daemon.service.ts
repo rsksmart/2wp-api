@@ -1,6 +1,6 @@
 import {getLogger, Logger} from 'log4js';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
-import {Block} from '../models/rsk/block.model';
+import {RskBlock} from '../models/rsk/rsk-block.model';
 import {getMetricLogger} from '../utils/metric-logger';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {RegisterBtcTransactionDataParser} from './register-btc-transaction-data.parser';
@@ -37,7 +37,7 @@ export class DaemonService implements iDaemonService {
     this.intervalTime = parseInt(syncIntervalTime || '2000');
   }
 
-  private async handleNewBestBlock(block: Block): Promise<void> {
+  private async handleNewBestBlock(block: RskBlock): Promise<void> {
     // TODO: refactor data fetching to avoid getting the block again
     try {
       let response = await this.dataProvider.getData(block.height);
@@ -64,7 +64,7 @@ export class DaemonService implements iDaemonService {
     }
   }
 
-  private async handleDeleteBlock(block: Block): Promise<void> {
+  private async handleDeleteBlock(block: RskBlock): Promise<void> {
     // TODO: implement removing forked transactions from peginStatus db
   }
 

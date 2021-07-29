@@ -1,5 +1,5 @@
 import {MongoDbDataSource} from './datasources/mongodb.datasource';
-import {Block} from './models/rsk/block.model';
+import {RskBlock} from './models/rsk/rsk-block.model';
 import {DaemonService} from './services/daemon.service';
 import {NodeBridgeDataProvider} from './services/node-bridge-data.provider';
 import {PeginStatusMongoDbDataService} from './services/pegin-status-data-services/peg-status.mongodb.service';
@@ -15,7 +15,7 @@ export class DaemonRunner {
     const MONGO_DB_URI = `mongodb://${process.env.RSK_DB_USER}:${process.env.RSK_DB_PASS}@${process.env.RSK_DB_URL}:${process.env.RSK_DB_PORT}/${process.env.RSK_DB_NAME}`;
     this.mongoDbDatasource = new MongoDbDataSource(MONGO_DB_URI);
 
-    let defaultInitialBlock = new Block(
+    let defaultInitialBlock = new RskBlock(
       parseInt(process.env.SYNC_INITIAL_BLOCK_HEIGHT || '0'),
       process.env.SYNC_INITIAL_BLOCK_HASH || '',
       process.env.SYNC_INITIAL_BLOCK_PREV_HASH || ''

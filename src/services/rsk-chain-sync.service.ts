@@ -1,12 +1,12 @@
 import {getLogger, Logger} from 'log4js';
-import {Block} from '../models/rsk/block.model';
+import {RskBlock} from '../models/rsk/rsk-block.model';
 import {SyncStatusModel} from '../models/rsk/sync-status.model';
 import {RskNodeService} from './rsk-node.service';
 import {SyncStatusDataService} from './sync-status-data.service';
 
 export interface RskChainSyncSubscriber {
-  blockDeleted(block: Block): void;
-  blockAdded(block: Block): void;
+  blockDeleted(block: RskBlock): void;
+  blockAdded(block: RskBlock): void;
 }
 
 export class RskChainSyncService {
@@ -14,14 +14,14 @@ export class RskChainSyncService {
   private logger: Logger;
   private syncStorageService: SyncStatusDataService;
   private rskNodeService: RskNodeService;
-  private defaultInitialBlock: Block;
+  private defaultInitialBlock: RskBlock;
   private subscribers: Array<RskChainSyncSubscriber>;
   private minDepthForSync: number;
 
   constructor(
     syncStorageService: SyncStatusDataService,
     rskNodeService: RskNodeService,
-    defaultInitialBlock: Block,
+    defaultInitialBlock: RskBlock,
     minDepthForSync: number
   ) {
     this.syncStorageService = syncStorageService;
@@ -36,7 +36,7 @@ export class RskChainSyncService {
   private async deleteOldBlock(block: SyncStatusModel): Promise<void> {
     await this.syncStorageService.delete(block);
 
-    let deletedBlock = new Block(
+    let deletedBlock = new RskBlock(
       block.rskBlockHeight,
       block.rskBlockHash,
       block.rskBlockParentHash
@@ -44,12 +44,12 @@ export class RskChainSyncService {
     this.subscribers.forEach(s => s.blockDeleted(deletedBlock));
   }
 
-  private async addNewBlocks(blocksToAdd: Array<Block>): Promise<void> {
+  private async addNewBlocks(blocksToAdd: Array<RskBlock>): Promise<void> {
     if (!blocksToAdd) {
       return;
     }
     while (blocksToAdd.length > 0) {
-      let blockToAdd = <Block>(blocksToAdd.pop());
+      let blockToAdd = <RskBlock>(blocksToAdd.pop());
 
       await this.syncStorageService.set(this.blockToSyncStatusDataModel(blockToAdd));
 
@@ -57,7 +57,7 @@ export class RskChainSyncService {
     }
   }
 
-  private blockToSyncStatusDataModel(block: Block): SyncStatusModel {
+  private blockToSyncStatusDataModel(block: RskBlock): SyncStatusModel {
     let result = new SyncStatusModel();
     result.rskBlockHeight = block.height;
     result.rskBlockHash = block.hash;
@@ -115,13 +115,13 @@ export class RskChainSyncService {
     let dbBestBlock = await this.getSyncStatus();
 
     // Only sync blocks that are buried in the configured depth
-    let rskBestBlock = Block.fromWeb3Block(await this.rskNodeService.getBlock('latest', false));
+    let rskBestBlock = RskBlock.fromWeb3Block(await this.rskNodeService.getBlock('latest', false));
     if (rskBestBlock.height - this.minDepthForSync <= dbBestBlock.rskBlockHeight + 1) {
       return;
     }
 
-    let nextBlock = Block.fromWeb3Block(await this.rskNodeService.getBlock(dbBestBlock.rskBlockHeight + 1, false));
-    let blocksToAdd: Array<Block> = [];
+    let nextBlock = RskBlock.fromWeb3Block(await this.rskNodeService.getBlock(dbBestBlock.rskBlockHeight + 1, false));
+    let blocksToAdd: Array<RskBlock> = [];
 
     while (dbBestBlock.rskBlockHash != nextBlock.parentHash) {
       // Stack to insert new block on db
@@ -130,7 +130,7 @@ export class RskChainSyncService {
       await this.deleteOldBlock(dbBestBlock);
       // Go back until finding the split point
       dbBestBlock = await this.syncStorageService.getById(dbBestBlock.rskBlockParentHash);
-      nextBlock = Block.fromWeb3Block(await this.rskNodeService.getBlock(nextBlock.height - 1, false));
+      nextBlock = RskBlock.fromWeb3Block(await this.rskNodeService.getBlock(nextBlock.height - 1, false));
     }
 
     if (blocksToAdd.length == 0) {

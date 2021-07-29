@@ -88,7 +88,7 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
   }
 
   stop(): Promise<void> {
-    this.logger.debug('Service topped');
+    this.logger.debug('Service stopped');
     return Promise.resolve();
   }
 

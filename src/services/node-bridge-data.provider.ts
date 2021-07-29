@@ -1,9 +1,9 @@
 import {getLogger, Logger} from 'log4js';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
-import {Block} from '../models/rsk/block.model';
 import {BridgeData} from '../models/rsk/bridge-data.model';
 import {Log} from '../models/rsk/log.model';
-import {Transaction} from '../models/rsk/transaction.model';
+import {RskBlock} from '../models/rsk/rsk-block.model';
+import {RskTransaction} from '../models/rsk/rsk-transaction.model';
 import {getMetricLogger} from '../utils/metric-logger';
 import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 import {RskNodeService} from './rsk-node.service';
@@ -24,7 +24,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
     if (lastBlock == null) {
       throw new Error(`Block ${startingBlock} doesn't exist`);
     }
-    data.block = new Block(
+    data.block = new RskBlock(
       lastBlock.number,
       lastBlock.hash,
       lastBlock.parentHash
@@ -42,7 +42,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
       ) {
         this.logger.debug(`Tx ${transaction.hash} matches filters`);
 
-        let tx = new Transaction();
+        let tx = new RskTransaction();
         tx.blockHeight = lastBlock.number;
         tx.blockHash = lastBlock.hash;
         tx.createdOn = new Date(lastBlock.timestamp * 1000);

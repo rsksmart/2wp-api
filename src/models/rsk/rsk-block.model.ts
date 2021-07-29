@@ -1,5 +1,5 @@
 
-export class Block {
+export class RskBlock {
   readonly height: number;
   readonly hash: string;
   readonly parentHash: string;
@@ -18,8 +18,8 @@ export class Block {
     return `{hash:${this.hash}, parentHash:${this.parentHash}, height:${this.height}}`;
   }
 
-  public static fromWeb3Block(data: any): Block {
-    return new Block(
+  public static fromWeb3Block(data: any): RskBlock {
+    return new RskBlock(
       data.number,
       data.hash,
       data.parentHash
