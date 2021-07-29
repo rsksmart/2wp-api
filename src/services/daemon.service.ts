@@ -1,16 +1,15 @@
 import {getLogger, Logger} from 'log4js';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
-import {PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
 import {RskBlock} from '../models/rsk/rsk-block.model';
 import {getMetricLogger} from '../utils/metric-logger';
-import {GenericDataService} from './generic-data-service';
+import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {RegisterBtcTransactionDataParser} from './register-btc-transaction-data.parser';
 import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 import {RskChainSyncService} from './rsk-chain-sync.service';
 
 export class DaemonService implements iDaemonService {
   dataProvider: RskBridgeDataProvider;
-  peginStatusStorageService: GenericDataService<PeginStatusDataModel>;
+  peginStatusStorageService: PeginStatusDataService;
   syncService: RskChainSyncService;
   registerBtcTransactionDataParser: RegisterBtcTransactionDataParser;
 
@@ -23,7 +22,7 @@ export class DaemonService implements iDaemonService {
 
   constructor(
     dataProvider: RskBridgeDataProvider,
-    peginStatusStorageService: GenericDataService<PeginStatusDataModel>,
+    peginStatusStorageService: PeginStatusDataService,
     syncService: RskChainSyncService,
     syncIntervalTime: string | undefined
   ) {
@@ -66,7 +65,11 @@ export class DaemonService implements iDaemonService {
   }
 
   private async handleDeleteBlock(block: RskBlock): Promise<void> {
-    // TODO: implement removing forked transactions from peginStatus db
+    try {
+      await this.peginStatusStorageService.deleteByRskBlockHeight(block.height);
+    } catch (e) {
+      this.logger.warn('There was a problem handling the deleted block', e);
+    }
   }
 
   private startTimer(): void {

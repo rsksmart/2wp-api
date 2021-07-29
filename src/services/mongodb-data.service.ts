@@ -74,7 +74,7 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
 
   delete(id: any): Promise<boolean> {
     return this.getConnector()
-      .findByIdAndDelete(this.getByIdFilter(id))
+      .findOneAndDelete(this.getByIdFilter(id))
       .exec()
       .then(() => true);
   }

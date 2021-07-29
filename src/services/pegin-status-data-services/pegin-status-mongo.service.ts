@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {MongoDbDataService} from '../mongodb-data.service';
+import {PeginStatusDataService} from './pegin-status-data.service';
 
 /*
 - THESE MODEL INTERFACES AND CLASSES ARE REQUIRED FOR MONGO BUT WE DON'T WANT THEM EXPOSED OUT OF THIS LAYER
@@ -19,7 +20,7 @@ const PeginStatusSchema = new mongoose.Schema({
 
 const PeginStatusConnector = mongoose.model<PeginStatusMongoModel>("PeginStatus", PeginStatusSchema);
 
-export class PeginStatusMongoDbDataService extends MongoDbDataService<PeginStatusDataModel, PeginStatusMongoModel> {
+export class PeginStatusMongoDbDataService extends MongoDbDataService<PeginStatusDataModel, PeginStatusMongoModel> implements PeginStatusDataService {
 
   protected getLoggerName(): string {
     return 'peginStatusMongoService';
@@ -32,5 +33,12 @@ export class PeginStatusMongoDbDataService extends MongoDbDataService<PeginStatu
   }
   protected getManyFilter(filter?: any) {
     return filter;
+  }
+
+  public deleteByRskBlockHeight(rskBlockHeight: number): Promise<boolean> {
+    return this.getConnector()
+      .deleteMany({rskBlockHeight: rskBlockHeight})
+      .exec()
+      .then(() => true);
   }
 }
