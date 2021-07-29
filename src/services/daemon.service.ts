@@ -1,15 +1,16 @@
 import {getLogger, Logger} from 'log4js';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
+import {PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
 import {RskBlock} from '../models/rsk/rsk-block.model';
 import {getMetricLogger} from '../utils/metric-logger';
-import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
+import {GenericDataService} from './generic-data-service';
 import {RegisterBtcTransactionDataParser} from './register-btc-transaction-data.parser';
 import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 import {RskChainSyncService} from './rsk-chain-sync.service';
 
 export class DaemonService implements iDaemonService {
   dataProvider: RskBridgeDataProvider;
-  peginStatusStorageService: PeginStatusDataService;
+  peginStatusStorageService: GenericDataService<PeginStatusDataModel>;
   syncService: RskChainSyncService;
   registerBtcTransactionDataParser: RegisterBtcTransactionDataParser;
 
@@ -22,7 +23,7 @@ export class DaemonService implements iDaemonService {
 
   constructor(
     dataProvider: RskBridgeDataProvider,
-    peginStatusStorageService: PeginStatusDataService,
+    peginStatusStorageService: GenericDataService<PeginStatusDataModel>,
     syncService: RskChainSyncService,
     syncIntervalTime: string | undefined
   ) {
@@ -49,11 +50,11 @@ export class DaemonService implements iDaemonService {
           continue;
         }
         try {
-          let found = await this.peginStatusStorageService.getPeginStatus(peginStatus.btcTxId);
+          let found = await this.peginStatusStorageService.getById(peginStatus.btcTxId);
           if (found) {
             this.logger.debug(`${tx.hash} already registered`);
           } else {
-            await this.peginStatusStorageService.setPeginStatus(peginStatus);
+            await this.peginStatusStorageService.set(peginStatus);
           }
         } catch (e) {
           this.logger.warn('There was a problem with the storage', e);
