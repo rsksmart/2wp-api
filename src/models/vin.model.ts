@@ -36,10 +36,14 @@ export class Vin extends Model {
   addresses: string[];
 
   @property({
+    type: 'boolean',
+  })
+  isAddres: boolean;
+
+  @property({
     type: 'number',
   })
   value?: number;
-
 
   // Define well-known properties here
 
