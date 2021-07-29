@@ -2,11 +2,12 @@ import {getLogger, Logger} from 'log4js';
 import {BitcoinService, BridgeService} from '..';
 import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status} from '../../models';
 import {BitcoinTx} from '../../models/bitcoin-tx.model';
+import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {Vout} from '../../models/vout.model';
 import {BtcAddressUtils} from '../../utils/btc-utils';
 import {ensure0x} from '../../utils/hex-utils';
 import {RskAddressUtils} from '../../utils/rsk-address-utils';
-import {PeginStatusDataService} from '../pegin-status-data-services/pegin-status-data.service';
+import {GenericDataService} from '../generic-data-service';
 import {RskNodeService} from '../rsk-node.service';
 
 export class PeginStatusService {
@@ -15,9 +16,9 @@ export class PeginStatusService {
   private bitcoinService: BitcoinService;
   private rskNodeService: RskNodeService;
   private destinationAddress: string;
-  private rskDataService: PeginStatusDataService;
+  private rskDataService: GenericDataService<PeginStatusDataModel>;
 
-  constructor(bitcoinService: BitcoinService, rskDataService: PeginStatusDataService) {
+  constructor(bitcoinService: BitcoinService, rskDataService: GenericDataService<PeginStatusDataModel>) {
     this.bitcoinService = bitcoinService;
     this.bridgeService = new BridgeService(
       process.env.BRIDGE_ADDRESS ??
@@ -106,7 +107,7 @@ export class PeginStatusService {
   private getRskInfo(btcTxId: string): Promise<RskPeginStatus> {
     const rskStatus = new RskPeginStatus();
 
-    return this.rskDataService.getPeginStatus(ensure0x(btcTxId)).then(async (rskData) => {
+    return this.rskDataService.getById(ensure0x(btcTxId)).then(async (rskData) => {
       if (rskData) {
         let bestHeight = await this.rskNodeService.getBlockNumber();
         rskStatus.confirmations = bestHeight - rskData.rskBlockHeight;

@@ -49,11 +49,11 @@ export class DaemonService implements iDaemonService {
           continue;
         }
         try {
-          let found = await this.peginStatusStorageService.getPeginStatus(peginStatus.btcTxId);
+          let found = await this.peginStatusStorageService.getById(peginStatus.btcTxId);
           if (found) {
             this.logger.debug(`${tx.hash} already registered`);
           } else {
-            await this.peginStatusStorageService.setPeginStatus(peginStatus);
+            await this.peginStatusStorageService.set(peginStatus);
           }
         } catch (e) {
           this.logger.warn('There was a problem with the storage', e);
@@ -65,7 +65,11 @@ export class DaemonService implements iDaemonService {
   }
 
   private async handleDeleteBlock(block: RskBlock): Promise<void> {
-    // TODO: implement removing forked transactions from peginStatus db
+    try {
+      await this.peginStatusStorageService.deleteByRskBlockHeight(block.height);
+    } catch (e) {
+      this.logger.warn('There was a problem handling the deleted block', e);
+    }
   }
 
   private startTimer(): void {

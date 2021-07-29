@@ -2,7 +2,7 @@ import {MongoDbDataSource} from './datasources/mongodb.datasource';
 import {RskBlock} from './models/rsk/rsk-block.model';
 import {DaemonService} from './services/daemon.service';
 import {NodeBridgeDataProvider} from './services/node-bridge-data.provider';
-import {PeginStatusMongoDbDataService} from './services/pegin-status-data-services/peg-status.mongodb.service';
+import {PeginStatusMongoDbDataService} from './services/pegin-status-data-services/pegin-status-mongo.service';
 import {RskChainSyncService} from './services/rsk-chain-sync.service';
 import {RskNodeService} from './services/rsk-node.service';
 import {SyncStatusMongoService} from './services/sync-status-mongo.service';
@@ -29,7 +29,7 @@ export class DaemonRunner {
 
     this.daemonService = new DaemonService(
       new NodeBridgeDataProvider(),
-      new PeginStatusMongoDbDataService(MONGO_DB_URI),
+      new PeginStatusMongoDbDataService(this.mongoDbDatasource),
       syncService,
       process.env.SYNC_INTERVAL_TIME
     );
