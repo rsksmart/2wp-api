@@ -3,6 +3,18 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "Launch Daemon",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/dist/index.js",
+      "args": [
+        "--appmode=DAEMON"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "Launch Program",
       "skipFiles": [
         "<node_internals>/**"

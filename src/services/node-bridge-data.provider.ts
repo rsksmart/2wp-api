@@ -2,7 +2,8 @@ import {getLogger, Logger} from 'log4js';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
 import {BridgeData} from '../models/rsk/bridge-data.model';
 import {Log} from '../models/rsk/log.model';
-import {Transaction} from '../models/rsk/transaction.model';
+import {RskBlock} from '../models/rsk/rsk-block.model';
+import {RskTransaction} from '../models/rsk/rsk-transaction.model';
 import {getMetricLogger} from '../utils/metric-logger';
 import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 import {RskNodeService} from './rsk-node.service';
@@ -19,12 +20,15 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
   async getData(startingBlock: string | number): Promise<BridgeData> {
     let metricLogger = getMetricLogger(this.logger, 'getData');
     let data: BridgeData = new BridgeData();
-    // this.logger.trace(`Fetching data for block ${startingBlock}`);
     let lastBlock = await this.rskNodeService.getBlock(startingBlock);
     if (lastBlock == null) {
       throw new Error(`Block ${startingBlock} doesn't exist`);
     }
-    data.maxBlockHeight = lastBlock.number;
+    data.block = new RskBlock(
+      lastBlock.number,
+      lastBlock.hash,
+      lastBlock.parentHash
+    );
     for (let transaction of lastBlock.transactions) {
       // TODO: determine why using the precompiled abis reference is not working
       if (transaction.to !== '0x0000000000000000000000000000000001000006') {
@@ -38,7 +42,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
       ) {
         this.logger.debug(`Tx ${transaction.hash} matches filters`);
 
-        let tx = new Transaction();
+        let tx = new RskTransaction();
         tx.blockHeight = lastBlock.number;
         tx.blockHash = lastBlock.hash;
         tx.createdOn = new Date(lastBlock.timestamp * 1000);

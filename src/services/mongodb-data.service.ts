@@ -1,5 +1,6 @@
 import {getLogger, Logger} from 'log4js';
 import mongoose from 'mongoose';
+import {MongoDbDataSource} from '../datasources/mongodb.datasource';
 import {SearchableModel} from '../models/rsk/searchable-model';
 import {getMetricLogger} from '../utils/metric-logger';
 import {GenericDataService} from './generic-data-service';
@@ -8,8 +9,9 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
   mongoDbUri: string;
   logger: Logger;
   db: mongoose.Mongoose;
-  constructor(mongoDbUri: string) {
-    this.mongoDbUri = mongoDbUri;
+  mongoDbDataSource: MongoDbDataSource;
+  constructor(mongoDbDataSource: MongoDbDataSource) {
+    this.mongoDbDataSource = mongoDbDataSource;
     this.logger = getLogger(this.getLoggerName());
   }
 
@@ -70,23 +72,24 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
     });
   }
 
+  delete(id: any): Promise<boolean> {
+    return this.getConnector()
+      .findByIdAndDelete(this.getByIdFilter(id))
+      .exec()
+      .then(() => true);
+  }
+
   start(): Promise<void> {
-    return mongoose.connect(this.mongoDbUri, {useUnifiedTopology: true})
-      .then(
-        (connection: mongoose.Mongoose) => {
-          this.db = connection;
-          this.logger.debug('connected to mongodb');
-        },
-        err => {
-          this.logger.error('there was an error connecting to mongodb', err);
-          throw err;
-        }
-      );
+    return this.mongoDbDataSource.getConnection()
+      .then((connection) => {
+        this.db = connection;
+        this.logger.debug('Service started')
+      });
   }
 
   stop(): Promise<void> {
-    this.logger.debug('Shutting down');
-    return this.db.disconnect();
+    this.logger.debug('Service stopped');
+    return Promise.resolve();
   }
 
 }

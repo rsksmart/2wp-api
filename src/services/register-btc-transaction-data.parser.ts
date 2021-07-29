@@ -1,7 +1,7 @@
 import Web3 from 'web3';
 import {Log} from '../models/rsk/log.model';
 import {PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
-import {Transaction} from '../models/rsk/transaction.model';
+import {RskTransaction} from '../models/rsk/rsk-transaction.model';
 import {calculateBtcTxHash} from '../utils/btc-utils';
 import {ensure0x} from '../utils/hex-utils';
 
@@ -75,7 +75,7 @@ export class RegisterBtcTransactionDataParser {
     return ensure0x(calculateBtcTxHash(decodedParameters.tx));
   }
 
-  private getPeginStatus(transaction: Transaction): PeginStatus {
+  private getPeginStatus(transaction: RskTransaction): PeginStatus {
     let lockBtcLog = this.getLockBtcLogIfExists(transaction.logs);
     let status: PeginStatus;
     if (lockBtcLog) {
@@ -97,7 +97,7 @@ export class RegisterBtcTransactionDataParser {
     return this.getThisLogIfFound(REJECTED_PEGIN_SIGNATURE, logs) != null;
   }
 
-  parse(transaction: Transaction): PeginStatusDataModel | null {
+  parse(transaction: RskTransaction): PeginStatusDataModel | null {
     if (!transaction || !transaction.logs || !transaction.logs.length) {
       // This transaction doesn't have the data required to be parsed
       return null;

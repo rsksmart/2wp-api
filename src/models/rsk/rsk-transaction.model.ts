@@ -1,6 +1,6 @@
 import {Log} from './log.model';
 
-export class Transaction {
+export class RskTransaction {
   hash: Buffer;
   blockHash: Buffer;
   blockHeight: number;

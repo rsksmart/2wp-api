@@ -4,6 +4,7 @@ export interface GenericDataService<Type extends SearchableModel> {
   getById(id: any): Promise<Type>;
   getMany(query?: any): Promise<Array<Type>>;
   set(data: Type): Promise<boolean>;
+  delete(id: any): Promise<boolean>;
   start(): Promise<void>;
   stop(): Promise<void>;
 }
