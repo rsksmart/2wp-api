@@ -43,13 +43,13 @@ export class PeginStatusService {
             })
             .finally(() => {
               if (peginStatusInfo.status == Status.NOT_IN_RSK_YET) {
-                this.logger.debug(`Tx: ${btcTxId} does not include rsk info. Pegin status: ${peginStatusInfo.status}`);
+                this.logger.debug(`Tx: ${btcTxId} not in database. Pegin status: ${peginStatusInfo.status}`);
                 peginStatusInfo.rsk.recipientAddress = this.destinationAddress;
                 return peginStatusInfo;
               }
             })
         } else {
-          this.logger.debug(`Tx: ${btcTxId} does not include rsk info. Pegin status: ${peginStatusInfo.status}`);
+          this.logger.debug(`Tx: ${btcTxId} not in database. Pegin status: ${peginStatusInfo.status}`);
           const peginRskInfo = new RskPeginStatus();
           peginRskInfo.recipientAddress = this.destinationAddress;
           peginStatusInfo.setRskPeginStatus(peginRskInfo);
@@ -181,7 +181,12 @@ export class PeginStatusService {
       }
     }
     if (!foundOpReturn) {
-      //FIXME: Derivate RSK address from sender
+      if (btcTx.vin[0].isAddress) {
+        returnValue = btcTx.vin[0].addresses[0];
+        this.logger.debug(`Uses sender as refund address: ${returnValue}`);
+      } else {
+        this.logger.warn(`Empty value for refund address`);
+      }
     }
     return returnValue;
   }
