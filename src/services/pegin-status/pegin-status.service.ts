@@ -181,7 +181,8 @@ export class PeginStatusService {
       }
     }
     if (!foundOpReturn) {
-      //FIXME: Derivate RSK address from sender
+      returnValue = btcTx.vin[0].addresses[0];
+      this.logger.debug(`Uses sender as refund address: ${returnValue}`);
     }
     return returnValue;
   }
