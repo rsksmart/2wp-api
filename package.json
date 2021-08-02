@@ -21,8 +21,9 @@
     "prettier:fix": "npm run prettier:cli -- --write",
     "eslint": "lb-eslint --report-unused-disable-directives .",
     "eslint:fix": "npm run eslint -- --fix",
+    "unit-test": "npm run clean && npm run build && lb-nyc mocha --recursive dist/__tests__/unit/**/*.js --timeout 10000",
     "pretest": "npm run clean && npm run build",
-    "test": "lb-nyc mocha dist/__tests__/**/*.js --timeout 10000",
+    "test": "lb-nyc mocha --recursive dist/__tests__/unit/**/*.js --timeout 10000",
     "posttest": "npm run lint",
     "test:dev": "lb-nyc mocha --allow-console-logs dist/__tests__/**/*.js && npm run posttest",
     "precoverage": "npm test",
@@ -82,6 +83,7 @@
     "@types/bs58": "^4.0.1",
     "@types/node": "^10.17.48",
     "eslint": "^7.15.0",
+    "sinon": "^11.1.2",
     "sonarqube-scanner": "^2.8.0",
     "source-map-support": "^0.5.19",
     "typescript": "~4.1.2"

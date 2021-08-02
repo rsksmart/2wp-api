@@ -51,9 +51,6 @@ export class RskChainSyncService {
   }
 
   private async addNewBlocks(blocksToAdd: Array<RskBlock>): Promise<void> {
-    if (!blocksToAdd) {
-      return;
-    }
     while (blocksToAdd.length > 0) {
       let blockToAdd = <RskBlock>(blocksToAdd.pop());
 
@@ -129,20 +126,20 @@ export class RskChainSyncService {
     let nextBlock = RskBlock.fromWeb3Block(await this.rskNodeService.getBlock(dbBestBlock.rskBlockHeight + 1, false));
     let blocksToAdd: Array<RskBlock> = [];
 
+    // Stack to insert new block on db (new Best block)
+    blocksToAdd.push(nextBlock);
+
     while (dbBestBlock.rskBlockHash != nextBlock.parentHash) {
-      // Stack to insert new block on db
-      blocksToAdd.push(nextBlock);
       // Delete forked block
       await this.deleteOldBlock(dbBestBlock);
       // Go back until finding the split point
       dbBestBlock = await this.syncStorageService.getById(dbBestBlock.rskBlockParentHash);
       nextBlock = RskBlock.fromWeb3Block(await this.rskNodeService.getBlock(nextBlock.height - 1, false));
+      // Include this block in the stack as well (new Reorganized block)
+      blocksToAdd.push(nextBlock);
     }
 
-    if (blocksToAdd.length == 0) {
-      // No elements, this means no fork, just add the next block
-      blocksToAdd.push(nextBlock);
-    } else {
+    if (blocksToAdd.length > 1) {
       // There was a fork
       this.logger.debug(`There was a fork on the network with depth ${blocksToAdd.length}`);
     }
