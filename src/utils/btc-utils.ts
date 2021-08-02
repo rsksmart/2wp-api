@@ -8,7 +8,7 @@ export const calculateBtcTxHash = (transaction: string) => {
   let hash = sha256(buffer);
   buffer = Buffer.from(hash, 'hex');
   hash = sha256(buffer);
-  let bufferedHash = Buffer.from(hash, 'hex');
+  const bufferedHash = Buffer.from(hash, 'hex');
   bufferedHash.reverse();
   return bufferedHash.toString('hex');
 };
@@ -71,7 +71,7 @@ export class BtcAddressUtils {
       const prefix = this.getNetPrefix(network, typeAddress);
 
       data = `${prefix}${data}`;
-      let checksum = sha256(sha256(data)).slice(0, 8);
+      const checksum = sha256(sha256(data)).slice(0, 8);
       return base58.encode(Buffer.from(`${data}${checksum}`, 'hex'))
     }
     catch (error) {

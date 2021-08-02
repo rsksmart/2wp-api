@@ -12,10 +12,10 @@ enum APP_MODE {
 };
 
 const searchAppMode = (): APP_MODE => {
-  let arg = process.argv.find(a => a.startsWith('--appmode='));
+  const arg = process.argv.find(a => a.startsWith('--appmode='));
   if (arg) {
-    let value: string = arg.split('=')[1];
-    let parsedEnum = APP_MODE[value as keyof typeof APP_MODE];
+    const value: string = arg.split('=')[1];
+    const parsedEnum = APP_MODE[value as keyof typeof APP_MODE];
     return parsedEnum !== undefined ? parsedEnum : APP_MODE.ALL;
   }
   return APP_MODE.ALL;
@@ -51,7 +51,7 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   process.on('uncaughtException', shutdown.bind(null));
 
-  let appMode = searchAppMode();
+  const appMode = searchAppMode();
 
   config();
   if (appMode == APP_MODE.API || appMode == APP_MODE.ALL) {

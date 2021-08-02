@@ -17,7 +17,7 @@ export class MongoDbDataSource {
   }
 
   getConnection(): Promise<Mongoose> {
-    let p = Promise.resolve();
+    const p = Promise.resolve();
     if (!this.mongoose) {
       p.then(() => this.connect());
     }
@@ -39,7 +39,7 @@ export class MongoDbDataSource {
   }
 
   disconnect(): Promise<void> {
-    let p = Promise.resolve();
+    const p = Promise.resolve();
     if (this.mongoose &&
       this.mongoose.STATES[this.mongoose.connection.readyState] != this.mongoose.STATES.disconnected.toString()) {
       p.then(() => this.mongoose.disconnect());

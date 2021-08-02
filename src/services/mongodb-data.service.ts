@@ -29,7 +29,7 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
   protected abstract getManyFilter(filter?: any): any;
 
   getById(id: any): Promise<Type> {
-    let p = Promise.resolve();
+    const p = Promise.resolve();
     if (!this.db) {
       p.then(() => this.start());
     }
@@ -49,20 +49,20 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
   }
 
   set(data: Type): Promise<boolean> {
-    let metricLogger = getMetricLogger(this.logger, 'set');
-    let p = Promise.resolve();
+    const metricLogger = getMetricLogger(this.logger, 'set');
+    const p = Promise.resolve();
     if (!this.db) {
       p.then(() => this.start());
     }
     return p.then(() => {
       return new Promise((resolve, reject) => {
         if (!data) {
-          let err = 'Data was not provided';
+          const err = 'Data was not provided';
           this.logger.debug(err);
           reject(err);
         }
-        let connector = this.getConnector();
-        let filter: any = {};
+        const connector = this.getConnector();
+        const filter: any = {};
         filter[data.getIdFieldName()] = data.getId();
         connector.findOneAndUpdate(filter, <any>data, {upsert: true}, (err: any) => {
           metricLogger();
