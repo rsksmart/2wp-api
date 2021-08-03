@@ -1,4 +1,6 @@
+import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
+import {ServicesBindings} from '../dependency-injection-bindings';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
 import {BridgeData} from '../models/rsk/bridge-data.model';
 import {Log} from '../models/rsk/log.model';
@@ -12,8 +14,11 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
   rskNodeService: RskNodeService;
   logger: Logger;
   filters: Array<BridgeDataFilterModel>;
-  constructor() {
-    this.rskNodeService = new RskNodeService();
+  constructor(
+    @inject(ServicesBindings.RSK_NODE_SERVICE)
+    rskNodeService: RskNodeService
+  ) {
+    this.rskNodeService = rskNodeService;
     this.filters = [];
     this.logger = getLogger('nodeBridgeDataProvider');
   }
