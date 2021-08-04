@@ -155,8 +155,7 @@ export class PeginStatusService {
     }
     if (acummulatedAmount == 0) {
       const errorMessage = `Can not get set amount for address: ${federationAddress} in tx: ${txId}`;
-      this.logger.warn(errorMessage);
-      throw new Error(errorMessage);
+      this.logger.error(errorMessage);
     }
     return acummulatedAmount;
   }
