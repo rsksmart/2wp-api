@@ -35,9 +35,13 @@ export class PeginStatusController {
       },
     },
   })
-  getTx(txId: string): Promise<PeginStatus> {
+  getTx(txId: string): Promise<PeginStatus> | null {
     //FIXME: filter request incorrect and return our errors and not loopback error
-    return this.peginStatusService.getPeginSatusInfo(txId);
+    try {
+      return this.peginStatusService.getPeginSatusInfo(txId);
+    } catch (exception) {
+      return null
+    };
   }
 }
 
