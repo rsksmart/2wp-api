@@ -17,6 +17,7 @@ export class PeginStatusService {
   private rskNodeService: RskNodeService;
   private destinationAddress: string;
   private rskDataService: GenericDataService<PeginStatusDataModel>;
+  private status: Status;
 
   constructor(bitcoinService: BitcoinService, rskDataService: GenericDataService<PeginStatusDataModel>) {
     this.bitcoinService = bitcoinService;
@@ -27,6 +28,7 @@ export class PeginStatusService {
     this.rskNodeService = new RskNodeService();
     this.logger = getLogger('peginStatusService');
     this.rskDataService = rskDataService;
+    this.status = Status.NOT_IN_BTC_YET;
   }
 
   public getPeginSatusInfo(btcTxId: string): Promise<PeginStatus> {
@@ -34,6 +36,10 @@ export class PeginStatusService {
     return this.getBtcInfo(btcTxId)
       .then((btcStatus) => {
         const peginStatusInfo = new PeginStatus(btcStatus);
+        if (this.status == Status.ERROR_BELOW_MIN || this.status == Status.ERROR_NOT_A_PEGIN) {
+          peginStatusInfo.status = this.status;
+          return peginStatusInfo;
+        }
         if (btcStatus.requiredConfirmation <= btcStatus.confirmations) {
           return this.getRskInfo(btcTxId)
             .then((rskStatus) => {
@@ -62,13 +68,15 @@ export class PeginStatusService {
   private getBtcInfo(btcTxId: string): Promise<BtcPeginStatus> {
     return this.getBtcTxInfoFromService(btcTxId)
       .then(async (btcTxInformation) => {
-        const minPeginValue = await this.bridgeService.getMinPeginValue();
-        if (this.fromSatoshiToBtc(minPeginValue) > btcTxInformation.amountTransferred) {
-          const errorMessage = `Amount transferred is less than minimum pegin value.
+        if (this.status != Status.ERROR_NOT_A_PEGIN) {
+          const minPeginValue = await this.bridgeService.getMinPeginValue();
+          if (this.fromSatoshiToBtc(minPeginValue) > btcTxInformation.amountTransferred) {
+            const errorMessage = `Amount transferred is less than minimum pegin value.
                 Minimum value accepted: [" + ${this.fromSatoshiToBtc(minPeginValue)}BTC]. Value sent:
                 [${btcTxInformation.amountTransferred}BTC]`;
-          this.logger.debug(errorMessage);
-          throw new Error(errorMessage);
+            this.logger.debug(errorMessage);
+            this.status = Status.ERROR_BELOW_MIN;
+          }
         }
         return btcTxInformation;
       })
@@ -77,15 +85,15 @@ export class PeginStatusService {
   private getBtcTxInfoFromService(btcTxId: string): Promise<BtcPeginStatus> {
     return this.bitcoinService.getTx(btcTxId)
       .then(async (btcTx: BitcoinTx) => {
+        const btcStatus = new BtcPeginStatus(btcTxId);
         //TODO: Ask federation to the database.
         const federationAddress = await this.bridgeService.getFederationAddress();
         if (!this.isSentToFederationAddress(federationAddress, btcTx.vout)) {
           //TODO: Comparing with the last federation. Need to include to comparing federation during the creation of the tx
           const errorMessage = `Is not a pegin. Tx is not sending to Powpeg Address: ${federationAddress}`;
           this.logger.debug(errorMessage);
-          throw new Error(errorMessage);
+          this.status = Status.ERROR_NOT_A_PEGIN;
         } else {
-          const btcStatus = new BtcPeginStatus(btcTxId);
           const time = btcTx.time ?? btcTx.blocktime;
           btcStatus.creationDate = new Date(time * 1000); // We get Timestamp in seconds
           btcStatus.amountTransferred = this.fromSatoshiToBtc(this.getTxSentAmountByAddress(
@@ -98,15 +106,13 @@ export class PeginStatusService {
           btcStatus.federationAddress = federationAddress;
           btcStatus.refundAddress = this.getTxRefundAddress(btcTx);
           this.destinationAddress = this.getxDestinationRskAddress(btcTx);
-
-          return btcStatus;
         }
+        return btcStatus;
       })
   }
 
   private getRskInfo(btcTxId: string): Promise<RskPeginStatus> {
     const rskStatus = new RskPeginStatus();
-
     return this.rskDataService.getById(ensure0x(btcTxId)).then(async (rskData) => {
       if (rskData) {
         let bestHeight = await this.rskNodeService.getBlockNumber();
@@ -125,18 +131,19 @@ export class PeginStatusService {
   }
 
   private isSentToFederationAddress(federationAddress: string, vout: Vout[]): boolean {
-    for (let i = 0; vout && i < vout.length; i++) {
-      if (federationAddress == vout[i].addresses[0]) {
-        return true;
+    let found = false;
+    for (let i = 0; vout && i < vout.length && !found; i++) {
+      if (federationAddress === vout[i].addresses[0]) {
+        found = true;
       }
     }
-    return false;
+    return found;
   }
 
   private getTxSentAmountByAddress(federationAddress: string, txId: string, vout: Vout[]): number {
     let acummulatedAmount = 0;
     for (let i = 0; vout && i < vout.length; i++) {
-      if (federationAddress == vout[i].addresses[0]) {
+      if (vout[i].isAddress && federationAddress === vout[i].addresses[0]) {
         acummulatedAmount += Number(vout[i].value!);
       }
     }
