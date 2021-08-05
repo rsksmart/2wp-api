@@ -1,6 +1,6 @@
 import {Application, BindingScope} from '@loopback/core';
 import {TxV2ProviderDataSource} from './datasources';
-import {MongoDbDataSource} from './dataSources/mongodb.datasource';
+import {MongoDbDataSource} from './datasources/mongodb.datasource';
 import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from './dependency-injection-bindings';
 import {RskBlock} from './models/rsk/rsk-block.model';
 import {BitcoinService, PeginStatusService} from './services';
