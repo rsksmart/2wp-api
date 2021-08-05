@@ -5,7 +5,7 @@ export class SyncStatusModel implements SearchableModel {
   rskBlockHash: string;
   rskBlockParentHash: string;
 
-  getId(): any {
+  getId(): string {
     return this.rskBlockHash;
   }
 

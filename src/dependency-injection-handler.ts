@@ -1,6 +1,5 @@
 import {Application, BindingScope} from '@loopback/core';
-import {TxV2ProviderDataSource} from './datasources';
-import {MongoDbDataSource} from './datasources/mongodb.datasource';
+import {TxV2ProviderDataSource, MongoDbDataSource} from './datasources';
 import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from './dependency-injection-bindings';
 import {RskBlock} from './models/rsk/rsk-block.model';
 import {BitcoinService, PeginStatusService} from './services';
@@ -27,18 +26,18 @@ export class DependencyInjectionHandler {
     app
       .bind(ConstantsBindings.INITIAL_BLOCK)
       .to(new RskBlock(
-        parseInt(process.env.SYNC_INITIAL_BLOCK_HEIGHT || '0'),
-        process.env.SYNC_INITIAL_BLOCK_HASH || '',
-        process.env.SYNC_INITIAL_BLOCK_PREV_HASH || ''
+        parseInt(process.env.SYNC_INITIAL_BLOCK_HEIGHT ?? '0'),
+        process.env.SYNC_INITIAL_BLOCK_HASH ?? '',
+        process.env.SYNC_INITIAL_BLOCK_PREV_HASH ?? ''
       ));
 
     app
       .bind(ConstantsBindings.MIN_DEPTH_FOR_SYNC)
-      .to(parseInt(process.env.SYNC_MIN_DEPTH || '6'));
+      .to(parseInt(process.env.SYNC_MIN_DEPTH ?? '6'));
 
     app
       .bind(ConstantsBindings.SYNC_INTERVAL_TIME)
-      .to(process.env.SYNC_INTERVAL_TIME || '30000');
+      .to(process.env.SYNC_INTERVAL_TIME ?? '30000');
   }
 
   private static configureDatasources(app: Application): void {

@@ -5,6 +5,7 @@ import {DaemonRunner} from './daemon-runner';
 
 export * from './application';
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 enum APP_MODE {
   API,
   DAEMON,
@@ -54,7 +55,7 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
   const appMode = searchAppMode();
 
   config();
-  if (appMode == APP_MODE.API || appMode == APP_MODE.ALL) {
+  if (appMode === APP_MODE.API || appMode === APP_MODE.ALL) {
     api = new TwpapiApplication(options);
     await api.boot();
     await api.start();
@@ -62,7 +63,7 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
     const url = api.restServer.url;
     logger.info(`Server is running at ${url}`);
   }
-  if (appMode == APP_MODE.DAEMON || appMode == APP_MODE.ALL) {
+  if (appMode === APP_MODE.DAEMON || appMode === APP_MODE.ALL) {
     daemon = new DaemonRunner();
     await daemon.start();
   }
@@ -70,7 +71,7 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
 
 if (require.main === module) {
   // Run the application
-  const config = {
+  const conf = {
     rest: {
       port: +(process.env.PORT ?? 3000),
       host: process.env.HOST,
@@ -86,7 +87,7 @@ if (require.main === module) {
       },
     },
   };
-  main(config).catch(err => {
+  main(conf).catch(err => {
     console.error('Cannot start the application.', err);
     process.exit(1);
   });

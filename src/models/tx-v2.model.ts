@@ -77,6 +77,7 @@ export class TxV2 extends Model {
   })
   hex: string;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;
 
   constructor(data?: Partial<TxV2>) {

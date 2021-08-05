@@ -15,15 +15,18 @@ const mockSyncStatusDataService = () => {
     getBestBlock(): Promise<SyncStatusModel> {
       throw new Error('Method not implemented.');
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getById(id: any): Promise<SyncStatusModel> {
       throw new Error('Method not implemented.');
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getMany(query?: any): Promise<SyncStatusModel[]> {
       throw new Error('Method not implemented.');
     }
     set(data: SyncStatusModel): Promise<boolean> {
       throw new Error('Method not implemented.');
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete(id: any): Promise<boolean> {
       throw new Error('Method not implemented.');
     }
@@ -65,7 +68,7 @@ describe('Service: RskChainSyncService', () => {
     mockedSyncStatusDataService.getBestBlock.resolves(bestSyncedBlock);
 
     const thisService = new RskChainSyncService(mockedSyncStatusDataService, getRskNodeService(), getInitialBlock(), 1);
-    let bestBlock = await thisService.getSyncStatus();
+    const bestBlock = await thisService.getSyncStatus();
     expect(bestBlock).to.be.equal(bestSyncedBlock);
     // If RskChainSyncService start is not manually called it will be called once when the status is requested
     sinon.assert.calledOnce(mockedSyncStatusDataService.start);
@@ -78,7 +81,7 @@ describe('Service: RskChainSyncService', () => {
 
     const thisService = new RskChainSyncService(mockedSyncStatusDataService, getRskNodeService(), initialBlock, 1);
     await thisService.start();
-    let bestBlock = await thisService.getSyncStatus();
+    const bestBlock = await thisService.getSyncStatus();
     expect(bestBlock.rskBlockHash).to.be.equal(initialBlock.hash);
   });
 

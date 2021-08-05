@@ -42,7 +42,7 @@ export class DaemonService implements iDaemonService {
     this.started = false;
     this.logger = getLogger('daemon-service');
 
-    this.intervalTime = parseInt(syncIntervalTime || '2000');
+    this.intervalTime = parseInt(syncIntervalTime ?? '2000');
   }
 
   private async handleNewBestBlock(block: RskBlock): Promise<void> {

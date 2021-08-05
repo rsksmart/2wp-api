@@ -17,11 +17,15 @@ export class MongoDbDataSource {
   }
 
   getConnection(): Promise<Mongoose> {
-    const p = Promise.resolve();
-    if (!this.mongoose) {
-      p.then(() => this.connect());
-    }
-    return p.then(() => this.mongoose);
+    return new Promise<Mongoose>((resolve, reject) => {
+      if (!this.mongoose) {
+        this.connect()
+          .then(() => resolve(this.mongoose))
+          .catch(reject);
+      } else {
+        resolve(this.mongoose);
+      }
+    });
   }
 
   connect(): Promise<void> {
@@ -39,14 +43,17 @@ export class MongoDbDataSource {
   }
 
   disconnect(): Promise<void> {
-    const p = Promise.resolve();
-    if (this.mongoose &&
-      this.mongoose.STATES[this.mongoose.connection.readyState] != this.mongoose.STATES.disconnected.toString()) {
-      p.then(() => this.mongoose.disconnect());
-      p.then(() => {
-        this.logger.trace('Disconnected from mongodb');
-      });
-    }
-    return p;
+
+    return new Promise<void>((resolve, reject) => {
+      if (this.mongoose &&
+        this.mongoose.STATES[this.mongoose.connection.readyState] !== this.mongoose.STATES.disconnected.toString()) {
+        this.mongoose.disconnect()
+          .then(() => {
+            this.logger.trace('Disconnected from mongodb');
+            resolve();
+          })
+          .catch(reject);
+      }
+    });
   }
 }

@@ -33,6 +33,7 @@ export class TxOutput extends Model {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   op_return_data?: string;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;
 
   constructor(data?: Partial<TxOutput>) {

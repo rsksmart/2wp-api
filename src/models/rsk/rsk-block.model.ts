@@ -17,7 +17,7 @@ export class RskBlock {
   public toString(): string {
     return `{hash:${this.hash}, parentHash:${this.parentHash}, height:${this.height}}`;
   }
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public static fromWeb3Block(data: any): RskBlock {
     return new RskBlock(
       data.number,
