@@ -1,14 +1,19 @@
 import {inject} from '@loopback/core';
 import {get, getModelSchemaRef} from '@loopback/rest';
+import {getLogger, Logger} from 'log4js';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {PeginStatus} from '../models';
+import {PeginStatusError} from '../models/pegin-status-error.model';
 import {PeginStatusService} from '../services';
 
 export class PeginStatusController {
+  private logger: Logger;
+
   constructor(
     @inject(ServicesBindings.PEGIN_STATUS_SERVICE)
     protected peginStatusService: PeginStatusService
   ) {
+    this.logger = getLogger('peginStatusController');
   }
 
   @get('/pegin-status', {
@@ -24,12 +29,13 @@ export class PeginStatusController {
       },
     },
   })
-  getTx(txId: string): Promise<PeginStatus> | null {
+  getTx(txId: string): Promise<PeginStatus> {
     //FIXME: filter request incorrect and return our errors and not loopback error
     try {
       return this.peginStatusService.getPeginSatusInfo(txId);
-    } catch (exception) {
-      return null
+    } catch (e) {
+      this.logger.error(`Unexpected error: [${e}]`)
+      return Promise.resolve(new PeginStatusError(txId));
     };
   }
 }
