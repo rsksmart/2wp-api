@@ -1,11 +1,10 @@
 import {expect, sinon} from '@loopback/testlab';
-import {randomBytes} from 'crypto';
 import {BridgeDataFilterModel} from '../../../models/bridge-data-filter.model';
 import {Log} from '../../../models/rsk/log.model';
-import {RskBlock} from '../../../models/rsk/rsk-block.model';
 import {NodeBridgeDataProvider} from '../../../services/node-bridge-data.provider';
 import {RskNodeService} from '../../../services/rsk-node.service';
 import {ensure0x} from '../../../utils/hex-utils';
+import {getRandomAddress, getRandomHash} from '../../helper';
 
 const BridgeAddress = '0x0000000000000000000000000000000001000006';
 const PeginSignature = '0x43dc0656';
@@ -14,12 +13,6 @@ const getRskNodeService = () => {
   const mockedRskNodeService = sinon.createStubInstance(RskNodeService);
   return mockedRskNodeService;
 };
-
-const getRandomHash = () => ensure0x(randomBytes(32).toString('hex'));
-
-const getRandomAddress = () => ensure0x(randomBytes(20).toString('hex'));
-
-const getInitialBlock = () => new RskBlock(0, '0xba5e', '0x');
 
 const getUpdateCollectionsTransaction = () => {
   return getRandomTransaction(BridgeAddress, '0x0c5a9990');
