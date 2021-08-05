@@ -1,5 +1,7 @@
+import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {BitcoinService, BridgeService} from '..';
+import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status} from '../../models';
 import {BitcoinTx} from '../../models/bitcoin-tx.model';
 import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
@@ -19,7 +21,12 @@ export class PeginStatusService {
   private rskDataService: GenericDataService<PeginStatusDataModel>;
   private status: Status;
 
-  constructor(bitcoinService: BitcoinService, rskDataService: GenericDataService<PeginStatusDataModel>) {
+  constructor(
+    @inject(ServicesBindings.BITCOIN_SERVICE)
+    bitcoinService: BitcoinService,
+    @inject(ServicesBindings.PEGIN_STATUS_DATA_SERVICE)
+    rskDataService: GenericDataService<PeginStatusDataModel>
+  ) {
     this.bitcoinService = bitcoinService;
     this.bridgeService = new BridgeService(
       process.env.BRIDGE_ADDRESS ??
@@ -44,8 +51,7 @@ export class PeginStatusService {
           return this.getRskInfo(btcTxId)
             .then((rskStatus) => {
               peginStatusInfo.setRskPeginStatus(rskStatus);
-              this.logger.debug(`Tx: ${btcTxId} includes rsk info. RskAddress: ${rskStatus.recipientAddress}
-                      Pegin status: ${peginStatusInfo.status}`);
+              this.logger.debug(`Tx: ${btcTxId} includes rsk info. RskAddress: ${rskStatus.recipientAddress} Pegin status: ${peginStatusInfo.status}`);
               return peginStatusInfo;
             })
             .finally(() => {
@@ -115,7 +121,7 @@ export class PeginStatusService {
     const rskStatus = new RskPeginStatus();
     return this.rskDataService.getById(ensure0x(btcTxId)).then(async (rskData) => {
       if (rskData) {
-        let bestHeight = await this.rskNodeService.getBlockNumber();
+        const bestHeight = await this.rskNodeService.getBlockNumber();
         rskStatus.confirmations = bestHeight - rskData.rskBlockHeight;
         rskStatus.recipientAddress = rskData.rskRecipient;
         rskStatus.createOn = rskData.createdOn;

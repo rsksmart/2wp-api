@@ -1,4 +1,14 @@
+import {randomBytes} from 'crypto';
 import {PeginConfiguration, TxInput, Utxo, WalletAddress} from '../models';
+import {ensure0x} from '../utils/hex-utils';
+
+export function getRandomHash(): string {
+  return ensure0x(randomBytes(32).toString('hex'));
+}
+
+export function getRandomAddress(): string {
+  return ensure0x(randomBytes(20).toString('hex'));
+}
 
 export function givenPeginConfiguration(
   peginConfiguration?: Partial<PeginConfiguration>,

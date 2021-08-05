@@ -1,4 +1,6 @@
+import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
+import {ServicesBindings} from '../dependency-injection-bindings';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
 import {BridgeData} from '../models/rsk/bridge-data.model';
 import {Log} from '../models/rsk/log.model';
@@ -12,15 +14,18 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
   rskNodeService: RskNodeService;
   logger: Logger;
   filters: Array<BridgeDataFilterModel>;
-  constructor() {
-    this.rskNodeService = new RskNodeService();
+  constructor(
+    @inject(ServicesBindings.RSK_NODE_SERVICE)
+    rskNodeService: RskNodeService
+  ) {
+    this.rskNodeService = rskNodeService;
     this.filters = [];
     this.logger = getLogger('nodeBridgeDataProvider');
   }
   async getData(startingBlock: string | number): Promise<BridgeData> {
-    let metricLogger = getMetricLogger(this.logger, 'getData');
-    let data: BridgeData = new BridgeData();
-    let lastBlock = await this.rskNodeService.getBlock(startingBlock);
+    const metricLogger = getMetricLogger(this.logger, 'getData');
+    const data: BridgeData = new BridgeData();
+    const lastBlock = await this.rskNodeService.getBlock(startingBlock);
     if (lastBlock == null) {
       throw new Error(`Block ${startingBlock} doesn't exist`);
     }
@@ -29,7 +34,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
       lastBlock.hash,
       lastBlock.parentHash
     );
-    for (let transaction of lastBlock.transactions) {
+    for (const transaction of lastBlock.transactions) {
       // TODO: determine why using the precompiled abis reference is not working
       if (transaction.to !== '0x0000000000000000000000000000000001000006') {
         continue;
@@ -42,13 +47,13 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
       ) {
         this.logger.debug(`Tx ${transaction.hash} matches filters`);
 
-        let tx = new RskTransaction();
+        const tx = new RskTransaction();
         tx.blockHeight = lastBlock.number;
         tx.blockHash = lastBlock.hash;
         tx.createdOn = new Date(lastBlock.timestamp * 1000);
         tx.hash = transaction.hash;
         tx.data = transaction.input;
-        let txReceipt = await this.rskNodeService.getTransactionReceipt(tx.hash.toString('hex'));
+        const txReceipt = await this.rskNodeService.getTransactionReceipt(tx.hash.toString('hex'));
         tx.logs = <Array<Log>>txReceipt.logs;
         data.data.push(tx);
       }

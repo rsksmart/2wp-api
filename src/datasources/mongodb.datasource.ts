@@ -1,18 +1,23 @@
+import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {connect as connectToMongo, Mongoose} from 'mongoose';
+import {ConstantsBindings} from '../dependency-injection-bindings';
 
 export class MongoDbDataSource {
   mongoDbUri: string;
   mongoose: Mongoose;
   logger: Logger;
-  constructor(mongoDbUri: string) {
+  constructor(
+    @inject(ConstantsBindings.MONGO_DB_URI)
+    mongoDbUri: string
+  ) {
     this.mongoDbUri = mongoDbUri;
 
     this.logger = getLogger('MongoDb');
   }
 
   getConnection(): Promise<Mongoose> {
-    let p = Promise.resolve();
+    const p = Promise.resolve();
     if (!this.mongoose) {
       p.then(() => this.connect());
     }
@@ -34,7 +39,7 @@ export class MongoDbDataSource {
   }
 
   disconnect(): Promise<void> {
-    let p = Promise.resolve();
+    const p = Promise.resolve();
     if (this.mongoose &&
       this.mongoose.STATES[this.mongoose.connection.readyState] != this.mongoose.STATES.disconnected.toString()) {
       p.then(() => this.mongoose.disconnect());

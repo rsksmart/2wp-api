@@ -42,9 +42,9 @@ class PeginStatus {
 export class RegisterBtcTransactionDataParser {
 
   private getThisLogIfFound(logSignature: string, logs: Array<Log>): Log | null {
-    for (let log of logs) {
+    for (const log of logs) {
       if (log.topics) {
-        for (let topic of log.topics) {
+        for (const topic of log.topics) {
           if (topic == logSignature) {
             return log;
           }
@@ -55,12 +55,12 @@ export class RegisterBtcTransactionDataParser {
   }
 
   private getbtcTxId(data: Buffer): string {
-    let web3 = new Web3();
-    let registerBtcTransactionAbi = BRIDGE_ABI.find(m => m.name == 'registerBtcTransaction');
+    const web3 = new Web3();
+    const registerBtcTransactionAbi = BRIDGE_ABI.find(m => m.name == 'registerBtcTransaction');
     if (!registerBtcTransactionAbi) {
       throw new Error('registerBtcTransaction can\'t be found in bridge ABI!');
     }
-    let decodedParameters = web3.eth.abi.decodeParameters(
+    const decodedParameters = web3.eth.abi.decodeParameters(
       registerBtcTransactionAbi.inputs,
       ensure0x(data.toString('hex').substr(10))
     );
@@ -69,14 +69,14 @@ export class RegisterBtcTransactionDataParser {
   }
 
   private getPeginStatus(transaction: RskTransaction): PeginStatus | undefined {
-    let lockBtcLog = this.getLockBtcLogIfExists(transaction.logs);
+    const lockBtcLog = this.getLockBtcLogIfExists(transaction.logs);
     if (lockBtcLog) {
-      let status = new PeginStatus(RskPeginStatusEnum.LOCKED);
+      const status = new PeginStatus(RskPeginStatusEnum.LOCKED);
       status.log = lockBtcLog;
       return status;
     }
     if (this.hasRejectedPeginLog(transaction.logs)) {
-      let status = new PeginStatus(RskPeginStatusEnum.REJECTED_REFUND);
+      const status = new PeginStatus(RskPeginStatusEnum.REJECTED_REFUND);
       // TODO: get release_requested event to determine if it is a refund or not refund
       return status;
     }
@@ -95,11 +95,11 @@ export class RegisterBtcTransactionDataParser {
       // This transaction doesn't have the data required to be parsed
       return null;
     }
-    let result = new PeginStatusDataModel();
+    const result = new PeginStatusDataModel();
     result.rskTxId = transaction.hash.toString('hex');
     result.rskBlockHeight = transaction.blockHeight;
     result.createdOn = transaction.createdOn;
-    let peginStatus = this.getPeginStatus(transaction);
+    const peginStatus = this.getPeginStatus(transaction);
     if (!peginStatus) {
       return null;
     }

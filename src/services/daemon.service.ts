@@ -1,4 +1,6 @@
+import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
+import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from '../dependency-injection-bindings';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
 import {RskBlock} from '../models/rsk/rsk-block.model';
 import {getMetricLogger} from '../utils/metric-logger';
@@ -18,12 +20,16 @@ export class DaemonService implements iDaemonService {
   logger: Logger;
 
   intervalTime: number;
-  lastSyncLog: number = 0;
+  lastSyncLog = 0;
 
   constructor(
+    @inject(DatasourcesBindings.RSK_BRIDGE_DATA_PROVIDER)
     dataProvider: RskBridgeDataProvider,
+    @inject(ServicesBindings.PEGIN_STATUS_DATA_SERVICE)
     peginStatusStorageService: PeginStatusDataService,
+    @inject(ServicesBindings.RSK_CHAIN_SYNC_SERVICE)
     syncService: RskChainSyncService,
+    @inject(ConstantsBindings.SYNC_INTERVAL_TIME)
     syncIntervalTime: string | undefined
   ) {
     this.dataProvider = dataProvider;
@@ -40,16 +46,16 @@ export class DaemonService implements iDaemonService {
   private async handleNewBestBlock(block: RskBlock): Promise<void> {
     // TODO: refactor data fetching to avoid getting the block again
     try {
-      let response = await this.dataProvider.getData(block.height);
-      for (let tx of response.data) {
+      const response = await this.dataProvider.getData(block.height);
+      for (const tx of response.data) {
         this.logger.debug(`Got tx ${tx.hash}`);
-        let peginStatus = this.registerBtcTransactionDataParser.parse(tx);
+        const peginStatus = this.registerBtcTransactionDataParser.parse(tx);
         if (!peginStatus) {
           this.logger.debug('Transaction is not a registerBtcTransaction or has not registered the peg-in');
           continue;
         }
         try {
-          let found = await this.peginStatusStorageService.getById(peginStatus.btcTxId);
+          const found = await this.peginStatusStorageService.getById(peginStatus.btcTxId);
           if (found) {
             this.logger.debug(`${tx.hash} already registered`);
           } else {
@@ -82,12 +88,12 @@ export class DaemonService implements iDaemonService {
       this.startTimer();
       return;
     }
-    let logMetrics = getMetricLogger(this.logger, 'sync');
+    const logMetrics = getMetricLogger(this.logger, 'sync');
     try {
       this.lastSyncLog++;
       if (this.lastSyncLog >= 5) {
         this.lastSyncLog = 0;
-        let bestBlock = await this.syncService.getSyncStatus();
+        const bestBlock = await this.syncService.getSyncStatus();
         this.logger.debug(`Sync status => Best block is ${bestBlock.rskBlockHeight}[${bestBlock.rskBlockHash}]`);
       }
       await this.syncService.sync();
@@ -99,7 +105,7 @@ export class DaemonService implements iDaemonService {
   }
 
   private configureDataFilters(): void {
-    let dataFilters = [];
+    const dataFilters = [];
     // registerBtcTransaction data filter
     // TODO: THIS SHOULD USE THE PRECOMPILED ABIS
     dataFilters.push(new BridgeDataFilterModel('43dc0656'));
