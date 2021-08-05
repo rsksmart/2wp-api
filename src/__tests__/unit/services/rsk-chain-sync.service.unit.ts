@@ -65,7 +65,7 @@ describe('Service: RskChainSyncService', () => {
     mockedSyncStatusDataService.getBestBlock.resolves(bestSyncedBlock);
 
     const thisService = new RskChainSyncService(mockedSyncStatusDataService, getRskNodeService(), getInitialBlock(), 1);
-    let bestBlock = await thisService.getSyncStatus();
+    const bestBlock = await thisService.getSyncStatus();
     expect(bestBlock).to.be.equal(bestSyncedBlock);
     // If RskChainSyncService start is not manually called it will be called once when the status is requested
     sinon.assert.calledOnce(mockedSyncStatusDataService.start);
@@ -78,7 +78,7 @@ describe('Service: RskChainSyncService', () => {
 
     const thisService = new RskChainSyncService(mockedSyncStatusDataService, getRskNodeService(), initialBlock, 1);
     await thisService.start();
-    let bestBlock = await thisService.getSyncStatus();
+    const bestBlock = await thisService.getSyncStatus();
     expect(bestBlock.rskBlockHash).to.be.equal(initialBlock.hash);
   });
 
