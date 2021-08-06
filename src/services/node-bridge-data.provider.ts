@@ -42,7 +42,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
 
       this.logger.trace(`Found a bridge tx ${transaction.hash} with signature ${transaction.input.substring(0, 10)}`);
 
-      if (this.filters.length == 0 ||
+      if (this.filters.length === 0 ||
         this.filters.some(f => f.isMethodCall(transaction.input))
       ) {
         this.logger.debug(`Tx ${transaction.hash} matches filters`);

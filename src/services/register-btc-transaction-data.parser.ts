@@ -39,7 +39,7 @@ export class RegisterBtcTransactionDataParser {
     for (const log of logs) {
       if (log.topics) {
         for (const topic of log.topics) {
-          if (topic == logSignature) {
+          if (topic === logSignature) {
             return log;
           }
         }
@@ -54,7 +54,7 @@ export class RegisterBtcTransactionDataParser {
 
   private getbtcTxId(data: string): string {
     const web3 = new Web3();
-    const registerBtcTransactionAbi = BRIDGE_ABI.find(m => m.name == 'registerBtcTransaction');
+    const registerBtcTransactionAbi = BRIDGE_ABI.find(m => m.name === 'registerBtcTransaction');
     if (!registerBtcTransactionAbi) {
       throw new Error('registerBtcTransaction can\'t be found in bridge ABI!');
     }

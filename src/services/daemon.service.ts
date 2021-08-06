@@ -9,7 +9,7 @@ import {RegisterBtcTransactionDataParser} from './register-btc-transaction-data.
 import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 import {RskChainSyncService} from './rsk-chain-sync.service';
 
-export class DaemonService implements iDaemonService {
+export class DaemonService implements IdaemonService {
   dataProvider: RskBridgeDataProvider;
   peginStatusStorageService: PeginStatusDataService;
   syncService: RskChainSyncService;
@@ -81,6 +81,7 @@ export class DaemonService implements iDaemonService {
   }
 
   private startTimer(): void {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     this.dataFetchInterval = setTimeout(() => this.sync(), this.intervalTime);
   }
 
@@ -149,8 +150,7 @@ export class DaemonService implements iDaemonService {
 
 }
 
-export interface iDaemonService {
+export interface IdaemonService {
   start(): void;
-
   stop(): void;
 }

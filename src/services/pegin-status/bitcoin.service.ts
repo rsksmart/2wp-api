@@ -17,6 +17,7 @@ export class BitcoinService {
     return new Promise<BitcoinTx>((resolve, reject) => {
       this.txV2Service
         .txV2Provider(txId)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .then((tx: any) => {
 
           const responseTx = new BitcoinTx();

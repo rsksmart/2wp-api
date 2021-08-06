@@ -70,15 +70,28 @@ export class RskChainSyncService {
   }
 
   public start(): Promise<void> {
-    const p = Promise.resolve();
-    if (!this.started) {
-      p.then(() => this.syncStorageService.start());
-      p.then(() => {
-        this.started = true;
-        this.logger.trace('Service started');
-      });
-    }
-    return p;
+    return new Promise<void>((resolve, reject) => {
+      if (!this.started) {
+        this.syncStorageService.start()
+          .then(() => {
+            this.started = true;
+            this.logger.trace('Service started');
+            resolve();
+          })
+          .catch(reject);
+      } else {
+        resolve();
+      }
+    });
+    // const p = Promise.resolve();
+    // if (!this.started) {
+    //   p.then(() => this.syncStorageService.start());
+    //   p.then(() => {
+    //     this.started = true;
+    //     this.logger.trace('Service started');
+    //   });
+    // }
+    // return p;
   }
 
   public stop(): Promise<void> {
