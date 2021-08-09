@@ -28,14 +28,16 @@ export class PeginStatusService {
     @inject(ServicesBindings.BITCOIN_SERVICE)
     bitcoinService: BitcoinService,
     @inject(ServicesBindings.PEGIN_STATUS_DATA_SERVICE)
-    rskDataService: GenericDataService<PeginStatusDataModel>
+    rskDataService: GenericDataService<PeginStatusDataModel>,
+    @inject(ServicesBindings.BRIDGE_SERVICE)
+    bridgeService: BridgeService,
   ) {
     this.bitcoinService = bitcoinService;
-    this.bridgeService = new BridgeService();
+    this.bridgeService = bridgeService;
     this.rskNodeService = new RskNodeService();
     this.logger = getLogger('peginStatusService');
     this.rskDataService = rskDataService;
-    this.status = Status.NOT_IN_BTC_YET;
+    this.status;
   }
 
   public getPeginSatusInfo(btcTxId: string): Promise<PeginStatus> {
@@ -43,7 +45,11 @@ export class PeginStatusService {
     return this.getBtcInfo(btcTxId)
       .then((btcStatus) => {
         const peginStatusInfo = new PeginStatus(btcStatus);
-        if (this.status == Status.ERROR_BELOW_MIN || this.status == Status.ERROR_NOT_A_PEGIN) {
+        if (
+          this.status === Status.ERROR_BELOW_MIN
+          || this.status === Status.ERROR_NOT_A_PEGIN
+          || this.status === Status.NOT_IN_BTC_YET
+        ) {
           peginStatusInfo.status = this.status;
           return peginStatusInfo;
         }
@@ -92,6 +98,10 @@ export class PeginStatusService {
     return this.bitcoinService.getTx(btcTxId)
       .then(async (btcTx: BitcoinTx) => {
         const btcStatus = new BtcPeginStatus(btcTxId);
+        if (!btcTx) {
+          this.status = Status.NOT_IN_BTC_YET;
+          return btcStatus;
+        }
         //TODO: Ask federation to the database.
         if (!this.canBeAPeginSender(btcTx)) {
           const errorMessage = `Is not a pegin. Tx sent from address: ${btcTx.vin[0].addresses}`;
@@ -112,6 +122,7 @@ export class PeginStatusService {
               btcTxId,
               btcTx.vout
             ));
+
             btcStatus.btcWTxId = ensure0x(calculateBtcTxHash(btcTx.hex))
             btcStatus.fees = btcTx.fees ? this.fromSatoshiToBtc(btcTx.fees) : 0;
             btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
@@ -235,11 +246,14 @@ export class PeginStatusService {
   }
 
   private canBeAPeginSender(btcTx: BitcoinTx): boolean {
-    const network = process.env.NETWORK ? process.env.NETWORK : 'testnet';
-    if (peginAddressVerifier.canPegIn(peginAddressVerifier.getAddressInformation(btcTx.vin[0].addresses[0]))) {
-      return true;
-    } else if (this.getxDestinationRskAddress(btcTx).length > 0) {
-      return true;
+    try {
+      if (peginAddressVerifier.canPegIn(peginAddressVerifier.getAddressInformation(btcTx.vin[0].addresses[0]))) {
+        return true;
+      } else if (this.getxDestinationRskAddress(btcTx).length > 0) {
+        return true;
+      }
+    } catch {
+      return false;
     }
     return false;
   }
