@@ -15,12 +15,11 @@ describe('Pegin Status Controller', () => {
   });
 
   it('invokes GET /get-pegin-status with a txId', async () => {
-    const response = await client
+    await client
       .get('/get-pegin-status')
       .send({
         txId: 'btcTxId',
       })
-      .expect(200);
-    console.log(response.text);
+      .expect(404);
   });
 });

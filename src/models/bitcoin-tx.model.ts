@@ -2,10 +2,8 @@ import {Model, model, property} from '@loopback/repository';
 import {Vin} from './vin.model';
 import {Vout} from './vout.model';
 
-
 @model({settings: {strict: false}})
 export class BitcoinTx extends Model {
-
   @property({
     type: 'string',
   })

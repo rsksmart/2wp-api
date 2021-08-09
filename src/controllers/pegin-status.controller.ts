@@ -11,7 +11,7 @@ export class PeginStatusController {
 
   constructor(
     @inject(ServicesBindings.PEGIN_STATUS_SERVICE)
-    protected peginStatusService: PeginStatusService
+    protected peginStatusService: PeginStatusService,
   ) {
     this.logger = getLogger('peginStatusController');
   }
@@ -34,9 +34,8 @@ export class PeginStatusController {
     try {
       return this.peginStatusService.getPeginSatusInfo(txId);
     } catch (e) {
-      this.logger.error(`Unexpected error: [${e}]`)
+      this.logger.error(`Unexpected error: [${e}]`);
       return Promise.resolve(new PeginStatusError(txId));
-    };
+    }
   }
 }
-

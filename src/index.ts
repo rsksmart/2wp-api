@@ -9,8 +9,8 @@ export * from './application';
 enum APP_MODE {
   API,
   DAEMON,
-  ALL
-};
+  ALL,
+}
 
 const searchAppMode = (): APP_MODE => {
   const arg = process.argv.find(a => a.startsWith('--appmode='));

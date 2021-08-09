@@ -1,14 +1,9 @@
-
 export class RskBlock {
   readonly height: number;
   readonly hash: string;
   readonly parentHash: string;
 
-  constructor(
-    height: number,
-    hash: string,
-    parentHash: string
-  ) {
+  constructor(height: number, hash: string, parentHash: string) {
     this.height = height;
     this.hash = hash;
     this.parentHash = parentHash;
@@ -19,10 +14,6 @@ export class RskBlock {
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public static fromWeb3Block(data: any): RskBlock {
-    return new RskBlock(
-      data.number,
-      data.hash,
-      data.parentHash
-    );
+    return new RskBlock(data.number, data.hash, data.parentHash);
   }
 }

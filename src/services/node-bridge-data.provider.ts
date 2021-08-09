@@ -16,7 +16,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
   filters: Array<BridgeDataFilterModel>;
   constructor(
     @inject(ServicesBindings.RSK_NODE_SERVICE)
-    rskNodeService: RskNodeService
+    rskNodeService: RskNodeService,
   ) {
     this.rskNodeService = rskNodeService;
     this.filters = [];
@@ -32,7 +32,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
     data.block = new RskBlock(
       lastBlock.number,
       lastBlock.hash,
-      lastBlock.parentHash
+      lastBlock.parentHash,
     );
     for (const transaction of lastBlock.transactions) {
       // TODO: determine why using the precompiled abis reference is not working
@@ -40,9 +40,14 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
         continue;
       }
 
-      this.logger.trace(`Found a bridge tx ${transaction.hash} with signature ${transaction.input.substring(0, 10)}`);
+      this.logger.trace(
+        `Found a bridge tx ${
+          transaction.hash
+        } with signature ${transaction.input.substring(0, 10)}`,
+      );
 
-      if (this.filters.length === 0 ||
+      if (
+        this.filters.length === 0 ||
         this.filters.some(f => f.isMethodCall(transaction.input))
       ) {
         this.logger.debug(`Tx ${transaction.hash} matches filters`);
@@ -53,7 +58,9 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
         tx.createdOn = new Date(lastBlock.timestamp * 1000);
         tx.hash = transaction.hash;
         tx.data = transaction.input;
-        const txReceipt = await this.rskNodeService.getTransactionReceipt(tx.hash);
+        const txReceipt = await this.rskNodeService.getTransactionReceipt(
+          tx.hash,
+        );
         tx.logs = <Array<Log>>txReceipt.logs;
         data.data.push(tx);
       }
@@ -66,5 +73,4 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
   configure(filters: Array<BridgeDataFilterModel>): void {
     this.filters = filters || [];
   }
-
 }

@@ -6,7 +6,9 @@ export class BridgeDataFilterModel {
   }
 
   isMethodCall(callData: string) {
-    return callData.startsWith(this.abiEncodedSignature) ||
-      callData.startsWith('0x' + this.abiEncodedSignature);
+    return (
+      callData.startsWith(this.abiEncodedSignature) ||
+      callData.startsWith('0x' + this.abiEncodedSignature)
+    );
   }
 }

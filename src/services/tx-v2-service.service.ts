@@ -19,7 +19,7 @@ export class TxV2ServiceProvider implements Provider<TxV2Service> {
     // txV2Provider must match the name property in the datasource json file
     @inject(DatasourcesBindings.TX_V2_PROVIDER)
     protected dataSource: TxV2ProviderDataSource = new TxV2ProviderDataSource(),
-  ) { }
+  ) {}
 
   value(): Promise<TxV2Service> {
     return getService(this.dataSource);

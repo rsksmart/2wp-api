@@ -1,2 +1,5 @@
 dist
 *.json
+/SessionDB
+/rsk-database/db
+.scannerwork

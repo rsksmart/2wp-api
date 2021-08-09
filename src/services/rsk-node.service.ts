@@ -5,9 +5,11 @@ export class RskNodeService {
   constructor() {
     this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getBlock(block: string | number, withTransactions = true): Promise<any> {
     return this.web3.eth.getBlock(block, withTransactions);
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getTransactionReceipt(txHash: string): Promise<any> {
     return this.web3.eth.getTransactionReceipt(txHash);
   }

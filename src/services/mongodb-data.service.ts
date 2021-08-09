@@ -7,14 +7,16 @@ import {SearchableModel} from '../models/rsk/searchable-model';
 import {getMetricLogger} from '../utils/metric-logger';
 import {GenericDataService} from './generic-data-service';
 
-export abstract class MongoDbDataService<Type extends SearchableModel, T> implements GenericDataService<Type> {
+export abstract class MongoDbDataService<Type extends SearchableModel, T>
+  implements GenericDataService<Type>
+{
   mongoDbUri: string;
   logger: Logger;
   db: mongoose.Mongoose;
   mongoDbDataSource: MongoDbDataSource;
   constructor(
     @inject(DatasourcesBindings.MONGO_DB_DATASOURCE)
-    mongoDbDataSource: MongoDbDataSource
+    mongoDbDataSource: MongoDbDataSource,
   ) {
     this.mongoDbDataSource = mongoDbDataSource;
     this.logger = getLogger(this.getLoggerName());
@@ -32,13 +34,15 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
     return new Promise<Type>((resolve, reject) => {
       if (!this.db) {
         this.start()
-          .then(() => this.getConnector()
-            .findOne(this.getByIdFilter(id))
-            .exec()
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .then((result: any) => resolve(<Type>result)))
+          .then(() =>
+            this.getConnector()
+              .findOne(this.getByIdFilter(id))
+              .exec()
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .then((result: any) => resolve(<Type>result)),
+          )
           .catch(reject);
-      }else {
+      } else {
         this.getConnector()
           .findOne(this.getByIdFilter(id))
           .exec()
@@ -56,8 +60,8 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
         .find(this.getManyFilter(query))
         .exec()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .then(result => resolve(result.map((r: any) => (<Type>r))))
-        .catch(reject)
+        .then(result => resolve(result.map((r: any) => <Type>r)))
+        .catch(reject);
     });
   }
 
@@ -81,7 +85,10 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
             .findOneAndUpdate(filter, <any>data, {upsert: true}, (err: any) => {
               metricLogger();
               if (err) {
-                this.logger.debug('There was an error trying to save data', err);
+                this.logger.debug(
+                  'There was an error trying to save data',
+                  err,
+                );
                 reject(err);
               } else {
                 resolve(true);
@@ -100,16 +107,14 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
   }
 
   start(): Promise<void> {
-    return this.mongoDbDataSource.getConnection()
-      .then((connection) => {
-        this.db = connection;
-        this.logger.debug('Service started')
-      });
+    return this.mongoDbDataSource.getConnection().then(connection => {
+      this.db = connection;
+      this.logger.debug('Service started');
+    });
   }
 
   stop(): Promise<void> {
     this.logger.debug('Service stopped');
     return Promise.resolve();
   }
-
 }

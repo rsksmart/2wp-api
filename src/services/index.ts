@@ -6,4 +6,3 @@ export * from './pegin-status/pegin-status.service';
 export * from './tx-service.service';
 export * from './tx-v2-service.service';
 export * from './utxo-provider.service';
-

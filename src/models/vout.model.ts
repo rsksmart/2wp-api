@@ -65,7 +65,6 @@ export class Vout extends Model {
   })
   type?: string;
 
-
   // Define well-known properties here
 
   // Indexer property to allow additional data

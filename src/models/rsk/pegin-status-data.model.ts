@@ -3,7 +3,7 @@ import {SearchableModel} from './searchable-model';
 export enum PeginStatus {
   LOCKED = 'LOCKED',
   REJECTED_NO_REFUND = 'REJECTED_NO_REFUND',
-  REJECTED_REFUND = 'REJECTED_REFUND'
+  REJECTED_REFUND = 'REJECTED_REFUND',
 }
 
 export class PeginStatusDataModel implements SearchableModel {

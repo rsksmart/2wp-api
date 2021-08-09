@@ -74,11 +74,14 @@ export class BridgeService {
     return new Promise<number>((resolve, reject) => {
       Promise.all([this.getLockingCapAmount(), this.getRbtcInCirculation()])
         .then(([lockingCap, rbtcInCirculation]) => {
-          const rbtcInCirculationToSatoshis = Math.round(rbtcInCirculation / 1e10);
+          const rbtcInCirculationToSatoshis = Math.round(
+            rbtcInCirculation / 1e10,
+          );
           let availability = lockingCap - rbtcInCirculationToSatoshis;
-          availability = availability > 0 ? availability : 0
+          availability = availability > 0 ? availability : 0;
           const maxAllowed = process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI
-            ? Number(process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI): Infinity;
+            ? Number(process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI)
+            : Infinity;
           resolve(Math.min(availability, maxAllowed));
         })
         .catch(reject);

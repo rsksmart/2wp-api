@@ -1,6 +1,10 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
-import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from '../dependency-injection-bindings';
+import {
+  ConstantsBindings,
+  DatasourcesBindings,
+  ServicesBindings,
+} from '../dependency-injection-bindings';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
 import {RskBlock} from '../models/rsk/rsk-block.model';
 import {getMetricLogger} from '../utils/metric-logger';
@@ -32,7 +36,7 @@ export class DaemonService implements IdaemonService {
     @inject(ConstantsBindings.SYNC_INTERVAL_TIME)
     syncIntervalTime: string | undefined,
     @inject(ServicesBindings.REGISTER_BTC_TRANSACTION_DATA_PARSER)
-    registerBtcTransactionDataParser: RegisterBtcTransactionDataParser
+    registerBtcTransactionDataParser: RegisterBtcTransactionDataParser,
   ) {
     this.dataProvider = dataProvider;
     this.peginStatusStorageService = peginStatusStorageService;
@@ -53,11 +57,15 @@ export class DaemonService implements IdaemonService {
         this.logger.debug(`Got tx ${tx.hash}`);
         const peginStatus = this.registerBtcTransactionDataParser.parse(tx);
         if (!peginStatus) {
-          this.logger.debug('Transaction is not a registerBtcTransaction or has not registered the peg-in');
+          this.logger.debug(
+            'Transaction is not a registerBtcTransaction or has not registered the peg-in',
+          );
           continue;
         }
         try {
-          const found = await this.peginStatusStorageService.getById(peginStatus.btcTxId);
+          const found = await this.peginStatusStorageService.getById(
+            peginStatus.btcTxId,
+          );
           if (found) {
             this.logger.debug(`${tx.hash} already registered`);
           } else {
@@ -97,7 +105,9 @@ export class DaemonService implements IdaemonService {
       if (this.lastSyncLog >= 5) {
         this.lastSyncLog = 0;
         const bestBlock = await this.syncService.getSyncStatus();
-        this.logger.debug(`Sync status => Best block is ${bestBlock.rskBlockHeight}[${bestBlock.rskBlockHash}]`);
+        this.logger.debug(
+          `Sync status => Best block is ${bestBlock.rskBlockHeight}[${bestBlock.rskBlockHash}]`,
+        );
       }
       await this.syncService.sync();
     } catch (error) {
@@ -124,8 +134,8 @@ export class DaemonService implements IdaemonService {
 
     await this.syncService.start();
     this.syncService.subscribe({
-      blockAdded: (block) => this.handleNewBestBlock(block),
-      blockDeleted: (block) => this.handleDeleteBlock(block)
+      blockAdded: block => this.handleNewBestBlock(block),
+      blockDeleted: block => this.handleDeleteBlock(block),
     });
 
     this.configureDataFilters();
@@ -141,13 +151,12 @@ export class DaemonService implements IdaemonService {
     if (this.started) {
       this.started = false;
       this.logger.trace('Stopping');
-      clearInterval(this.dataFetchInterval);
-      await this.peginStatusStorageService.stop()
+      clearTimeout(this.dataFetchInterval);
+      await this.peginStatusStorageService.stop();
       await this.syncService.stop();
       this.logger.debug('Stopped');
     }
   }
-
 }
 
 export interface IdaemonService {

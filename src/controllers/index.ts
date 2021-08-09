@@ -5,4 +5,3 @@ export * from './pegin-status.controller';
 export * from './pegin-tx.controller';
 export * from './tx-fee.controller';
 export * from './tx.controller';
-

@@ -19,7 +19,6 @@ export class BitcoinService {
         .txV2Provider(txId)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .then((tx: any) => {
-
           const responseTx = new BitcoinTx();
           responseTx.txid = tx[0].txid;
           responseTx.version = tx[0].version;

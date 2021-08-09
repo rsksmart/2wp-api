@@ -24,39 +24,50 @@ const getPeginTransaction = (logs: Array<Log> = []) => {
   return getRandomTransaction(BridgeAddress, input, logs);
 };
 
-const getRandomTransaction = (to: string = getRandomAddress(), input: string = ensure0x(''), logs: Array<Log> = []) => {
+const getRandomTransaction = (
+  to: string = getRandomAddress(),
+  input: string = ensure0x(''),
+  logs: Array<Log> = [],
+) => {
   return {
     hash: getRandomHash(),
     input: input,
     from: getRandomAddress(),
     to: to,
-    logs: logs
+    logs: logs,
   };
 };
-
-const getBlockWithNoBridgeData = (txCount = 1, height = 1, parentHash: string = getRandomHash()) => {
-  const txs = []
+const getBlockWithNoBridgeData = (
+  txCount = 1,
+  height = 1,
+  parentHash: string = getRandomHash(),
+) => {
+  const txs = [];
   for (let i = 0; i < txCount; i++) {
     txs.push(getRandomTransaction());
   }
   return getBlockWithTheseTransactions(txs, height, parentHash);
 };
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const getBlockWithTheseTransactions = (transactions: Array<any>, height = 1, parentHash: string = getRandomHash()) => {
+
+const getBlockWithTheseTransactions = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  transactions: Array<any>,
+  height = 1,
+  parentHash: string = getRandomHash(),
+) => {
   return {
     hash: getRandomHash(),
     number: height,
     transactions: transactions,
-    parentHash: parentHash
+    parentHash: parentHash,
   };
-}
+};
 
 describe('Service: NodeBridgeDataProvider', () => {
-
   it('ignores blocks with no bridge data', async () => {
     const height = 1;
     const rskNodeService = getRskNodeService();
-    rskNodeService.getBlock.resolves(getBlockWithNoBridgeData(1, height))
+    rskNodeService.getBlock.resolves(getBlockWithNoBridgeData(1, height));
 
     const thisService = new NodeBridgeDataProvider(rskNodeService);
     const result = await thisService.getData(height);
@@ -72,9 +83,18 @@ describe('Service: NodeBridgeDataProvider', () => {
     const peginTx = getPeginTransaction();
 
     const rskNodeService = getRskNodeService();
-    rskNodeService.getBlock.resolves(getBlockWithTheseTransactions([firstTx, updateCollectionsTx, peginTx], height));
-    rskNodeService.getTransactionReceipt.withArgs(updateCollectionsTx.hash).resolves(updateCollectionsTx);
-    rskNodeService.getTransactionReceipt.withArgs(peginTx.hash).resolves(peginTx);
+    rskNodeService.getBlock.resolves(
+      getBlockWithTheseTransactions(
+        [firstTx, updateCollectionsTx, peginTx],
+        height,
+      ),
+    );
+    rskNodeService.getTransactionReceipt
+      .withArgs(updateCollectionsTx.hash)
+      .resolves(updateCollectionsTx);
+    rskNodeService.getTransactionReceipt
+      .withArgs(peginTx.hash)
+      .resolves(peginTx);
 
     const thisService = new NodeBridgeDataProvider(rskNodeService);
     const result = await thisService.getData(height);
@@ -92,9 +112,18 @@ describe('Service: NodeBridgeDataProvider', () => {
     const peginTx = getPeginTransaction();
 
     const rskNodeService = getRskNodeService();
-    rskNodeService.getBlock.resolves(getBlockWithTheseTransactions([firstTx, updateCollectionsTx, peginTx], height));
-    rskNodeService.getTransactionReceipt.withArgs(updateCollectionsTx.hash).resolves(updateCollectionsTx);
-    rskNodeService.getTransactionReceipt.withArgs(peginTx.hash).resolves(peginTx);
+    rskNodeService.getBlock.resolves(
+      getBlockWithTheseTransactions(
+        [firstTx, updateCollectionsTx, peginTx],
+        height,
+      ),
+    );
+    rskNodeService.getTransactionReceipt
+      .withArgs(updateCollectionsTx.hash)
+      .resolves(updateCollectionsTx);
+    rskNodeService.getTransactionReceipt
+      .withArgs(peginTx.hash)
+      .resolves(peginTx);
 
     const thisService = new NodeBridgeDataProvider(rskNodeService);
     thisService.configure([new BridgeDataFilterModel(PeginSignature)]);
@@ -104,5 +133,4 @@ describe('Service: NodeBridgeDataProvider', () => {
     expect(result.data).to.have.length(1); // Only includes pegin Bridge tx
     expect(result.data[0].hash).to.be.equal(peginTx.hash);
   });
-
 });

@@ -9,7 +9,7 @@ export class MongoDbDataSource {
   logger: Logger;
   constructor(
     @inject(ConstantsBindings.MONGO_DB_URI)
-    mongoDbUri: string
+    mongoDbUri: string,
   ) {
     this.mongoDbUri = mongoDbUri;
 
@@ -29,25 +29,27 @@ export class MongoDbDataSource {
   }
 
   connect(): Promise<void> {
-    return connectToMongo(this.mongoDbUri, {useUnifiedTopology: true})
-      .then(
-        (connection: Mongoose) => {
-          this.mongoose = connection;
-          this.logger.trace('Connected to mongodb');
-        },
-        err => {
-          this.logger.error('There was an error connecting to mongodb', err);
-          throw err;
-        }
-      );
+    return connectToMongo(this.mongoDbUri, {useUnifiedTopology: true}).then(
+      (connection: Mongoose) => {
+        this.mongoose = connection;
+        this.logger.trace('Connected to mongodb');
+      },
+      err => {
+        this.logger.error('There was an error connecting to mongodb', err);
+        throw err;
+      },
+    );
   }
 
   disconnect(): Promise<void> {
-
     return new Promise<void>((resolve, reject) => {
-      if (this.mongoose &&
-        this.mongoose.STATES[this.mongoose.connection.readyState] !== this.mongoose.STATES.disconnected.toString()) {
-        this.mongoose.disconnect()
+      if (
+        this.mongoose &&
+        this.mongoose.STATES[this.mongoose.connection.readyState] !==
+          this.mongoose.STATES.disconnected.toString()
+      ) {
+        this.mongoose
+          .disconnect()
           .then(() => {
             this.logger.trace('Disconnected from mongodb');
             resolve();

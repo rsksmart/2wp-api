@@ -2,7 +2,6 @@ import {Model, model, property} from '@loopback/repository';
 
 @model({settings: {strict: false}})
 export class Vin extends Model {
-
   @property({
     type: 'string',
   })

@@ -10,7 +10,7 @@ export class BtcPeginStatus extends Model {
 
   @property({
     type: 'date',
-    defaultFn: 'now'
+    defaultFn: 'now',
   })
   creationDate: Date;
 
@@ -136,7 +136,7 @@ export enum Status {
   REJECTED_REFUND = 'REJECTED_REFUND',
   ERROR_NOT_A_PEGIN = 'ERROR_NOT_A_PEGIN',
   ERROR_BELOW_MIN = 'ERROR_BELOW_MIN',
-  ERROR_UNEXPECTED = 'ERROR_UNEXPECTED'
+  ERROR_UNEXPECTED = 'ERROR_UNEXPECTED',
 }
 
 export type PeginStatusWithRelations = PeginStatus;

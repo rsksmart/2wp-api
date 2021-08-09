@@ -6,26 +6,33 @@ import {SyncStatusDataService} from './sync-status-data.service';
 /*
 - THESE MODEL INTERFACES AND CLASSES ARE REQUIRED FOR MONGO BUT WE DON'T WANT THEM EXPOSED OUT OF THIS LAYER
 */
-interface SyncStatusMongoModel extends mongoose.Document, SyncStatusModel {
-}
+interface SyncStatusMongoModel extends mongoose.Document, SyncStatusModel {}
 
 const SyncStatusSchema = new mongoose.Schema({
   rskBlockHeight: {type: Number, required: true, unique: true},
   rskBlockHash: {type: String, required: true, unique: true},
-  rskBlockParentHash: {type: String, required: true, unique: true}
+  rskBlockParentHash: {type: String, required: true, unique: true},
 });
 
-const SyncStatusConnector = mongoose.model<SyncStatusMongoModel>("SyncStatus", SyncStatusSchema);
+const SyncStatusConnector = mongoose.model<SyncStatusMongoModel>(
+  'SyncStatus',
+  SyncStatusSchema,
+);
 
-export class SyncStatusMongoService extends MongoDbDataService<SyncStatusModel, SyncStatusMongoModel> implements SyncStatusDataService {
+export class SyncStatusMongoService
+  extends MongoDbDataService<SyncStatusModel, SyncStatusMongoModel>
+  implements SyncStatusDataService
+{
   protected getConnector(): mongoose.Model<SyncStatusMongoModel, {}, {}> {
     return SyncStatusConnector;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected getByIdFilter(id: any) {
     return {rskBlockHash: id};
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected getManyFilter(filter?: any) {
     return filter;
   }
@@ -40,7 +47,7 @@ export class SyncStatusMongoService extends MongoDbDataService<SyncStatusModel, 
       .sort({rskBlockHeight: -1}) // sort them by height descending
       .limit(1) // get the first one
       .exec()
-      .then(result => <SyncStatusModel>(result[0]))
+      .then(result => <SyncStatusModel>result[0])
       .catch(() => undefined);
   }
 }

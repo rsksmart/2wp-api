@@ -31,12 +31,15 @@ const mockSyncStatusDataService = () => {
       throw new Error('Method not implemented.');
     }
     start(): Promise<void> {
-      throw new Error('Method not implemented.');
+      console.log('starting...');
+      return Promise.resolve();
+      // throw new Error('Method not implemented.');
     }
     stop(): Promise<void> {
-      throw new Error('Method not implemented.');
+      console.log('stopping...');
+      return Promise.resolve();
+      // throw new Error('Method not implemented.');
     }
-
   }
 
   const mock = sinon.createStubInstance(MockedSyncStatusDataService);
@@ -46,11 +49,15 @@ const mockSyncStatusDataService = () => {
 const getInitialBlock = () => new RskBlock(0, '0xba5e', '0x');
 
 describe('Service: RskChainSyncService', () => {
-
   it('starts and stops', async () => {
     const mockedSyncStatusDataService = mockSyncStatusDataService();
 
-    const thisService = new RskChainSyncService(mockedSyncStatusDataService, getRskNodeService(), getInitialBlock(), 1);
+    const thisService = new RskChainSyncService(
+      mockedSyncStatusDataService,
+      getRskNodeService(),
+      getInitialBlock(),
+      1,
+    );
     await thisService.start();
     await thisService.stop();
 
@@ -63,11 +70,16 @@ describe('Service: RskChainSyncService', () => {
 
     const bestSyncedBlock = new SyncStatusModel();
     bestSyncedBlock.rskBlockHeight = 666;
-    bestSyncedBlock.rskBlockHash = "0xbe57";
-    bestSyncedBlock.rskBlockParentHash = "0xdad1";
+    bestSyncedBlock.rskBlockHash = '0xbe57';
+    bestSyncedBlock.rskBlockParentHash = '0xdad1';
     mockedSyncStatusDataService.getBestBlock.resolves(bestSyncedBlock);
 
-    const thisService = new RskChainSyncService(mockedSyncStatusDataService, getRskNodeService(), getInitialBlock(), 1);
+    const thisService = new RskChainSyncService(
+      mockedSyncStatusDataService,
+      getRskNodeService(),
+      getInitialBlock(),
+      1,
+    );
     const bestBlock = await thisService.getSyncStatus();
     expect(bestBlock).to.be.equal(bestSyncedBlock);
     // If RskChainSyncService start is not manually called it will be called once when the status is requested
@@ -79,7 +91,12 @@ describe('Service: RskChainSyncService', () => {
     const mockedSyncStatusDataService = mockSyncStatusDataService();
     mockedSyncStatusDataService.getBestBlock.resolves(undefined);
 
-    const thisService = new RskChainSyncService(mockedSyncStatusDataService, getRskNodeService(), initialBlock, 1);
+    const thisService = new RskChainSyncService(
+      mockedSyncStatusDataService,
+      getRskNodeService(),
+      initialBlock,
+      1,
+    );
     await thisService.start();
     const bestBlock = await thisService.getSyncStatus();
     expect(bestBlock.rskBlockHash).to.be.equal(initialBlock.hash);
@@ -87,11 +104,16 @@ describe('Service: RskChainSyncService', () => {
 
   it('allows subscribe and unsubscribe from events', async () => {
     const subscriber = {
-      blockDeleted: (block: RskBlock): void => { },
-      blockAdded: (block: RskBlock): void => { }
+      blockDeleted: (block: RskBlock): void => {},
+      blockAdded: (block: RskBlock): void => {},
     };
 
-    const thisService = new RskChainSyncService(mockSyncStatusDataService(), getRskNodeService(), getInitialBlock(), 1);
+    const thisService = new RskChainSyncService(
+      mockSyncStatusDataService(),
+      getRskNodeService(),
+      getInitialBlock(),
+      1,
+    );
     await thisService.start();
     thisService.subscribe(subscriber);
     thisService.unsubscribe(subscriber);
@@ -104,18 +126,18 @@ describe('Service: RskChainSyncService', () => {
     // Expected: sync should receive block # 2 only with no reorganization
     const firstBlock = new SyncStatusModel();
     firstBlock.rskBlockHeight = 1;
-    firstBlock.rskBlockHash = "0x0001";
+    firstBlock.rskBlockHash = '0x0001';
     firstBlock.rskBlockParentHash = '0x';
 
     const secondBlock = {
       hash: '0x0002',
       parentHash: firstBlock.rskBlockHash,
-      number: firstBlock.rskBlockHeight + 1
+      number: firstBlock.rskBlockHeight + 1,
     };
     const bestBlock = {
       hash: '0x0003',
       parentHash: secondBlock.hash,
-      number: secondBlock.number + 1
+      number: secondBlock.number + 1,
     };
 
     const mockedSyncStatusDataService = mockSyncStatusDataService();
@@ -126,11 +148,16 @@ describe('Service: RskChainSyncService', () => {
     mockedRskNodeService.getBlock.withArgs(2).resolves(secondBlock);
 
     const subscriber = sinon.spy({
-      blockDeleted: (): void => { },
-      blockAdded: (): void => { }
+      blockDeleted: (): void => {},
+      blockAdded: (): void => {},
     });
 
-    const thisService = new RskChainSyncService(mockedSyncStatusDataService, mockedRskNodeService, getInitialBlock(), 0);
+    const thisService = new RskChainSyncService(
+      mockedSyncStatusDataService,
+      mockedRskNodeService,
+      getInitialBlock(),
+      0,
+    );
     await thisService.start();
     thisService.subscribe(subscriber);
     await thisService.sync();
@@ -164,27 +191,29 @@ describe('Service: RskChainSyncService', () => {
     const firstBlockFromRsk = {
       hash: firstBlock.rskBlockHash,
       parentHash: firstBlock.rskBlockParentHash,
-      number: firstBlock.rskBlockHeight
+      number: firstBlock.rskBlockHeight,
     };
     const secondBlockFromRsk = {
       hash: '0x0002',
       parentHash: firstBlockFromRsk.hash,
-      number: firstBlockFromRsk.number + 1
+      number: firstBlockFromRsk.number + 1,
     };
     const thirdBlockFromRsk = {
       hash: '0x0003',
       parentHash: secondBlockFromRsk.hash,
-      number: secondBlockFromRsk.number + 1
+      number: secondBlockFromRsk.number + 1,
     };
     const bestBlock = {
       hash: '0x0004',
       parentHash: thirdBlockFromRsk.hash,
-      number: thirdBlockFromRsk.number + 1
+      number: thirdBlockFromRsk.number + 1,
     };
 
     const mockedSyncStatusDataService = mockSyncStatusDataService();
     mockedSyncStatusDataService.getBestBlock.resolves(secondBlockFromSync);
-    mockedSyncStatusDataService.getById.withArgs(firstBlock.rskBlockHash).resolves(firstBlock);
+    mockedSyncStatusDataService.getById
+      .withArgs(firstBlock.rskBlockHash)
+      .resolves(firstBlock);
 
     const mockedRskNodeService = getRskNodeService();
     mockedRskNodeService.getBlock.withArgs('latest').resolves(bestBlock);
@@ -193,11 +222,16 @@ describe('Service: RskChainSyncService', () => {
     mockedRskNodeService.getBlock.withArgs(3).resolves(thirdBlockFromRsk);
 
     const subscriber = sinon.spy({
-      blockDeleted: (): void => { },
-      blockAdded: (): void => { }
+      blockDeleted: (): void => {},
+      blockAdded: (): void => {},
     });
 
-    const thisService = new RskChainSyncService(mockedSyncStatusDataService, mockedRskNodeService, getInitialBlock(), 0);
+    const thisService = new RskChainSyncService(
+      mockedSyncStatusDataService,
+      mockedRskNodeService,
+      getInitialBlock(),
+      0,
+    );
     await thisService.start();
     thisService.subscribe(subscriber);
     await thisService.sync();
@@ -222,13 +256,13 @@ describe('Service: RskChainSyncService', () => {
     // Expected: sync should not add new blocks
     const firstBlock = new SyncStatusModel();
     firstBlock.rskBlockHeight = 1;
-    firstBlock.rskBlockHash = "0x0001";
+    firstBlock.rskBlockHash = '0x0001';
     firstBlock.rskBlockParentHash = '0x';
 
     const bestBlock = {
       hash: '0x0002',
       parentHash: firstBlock.rskBlockHash,
-      number: firstBlock.rskBlockHeight + 1
+      number: firstBlock.rskBlockHeight + 1,
     };
 
     const mockedSyncStatusDataService = mockSyncStatusDataService();
@@ -238,11 +272,16 @@ describe('Service: RskChainSyncService', () => {
     mockedRskNodeService.getBlock.withArgs('latest').resolves(bestBlock);
 
     const subscriber = sinon.spy({
-      blockDeleted: (): void => { },
-      blockAdded: (): void => { }
+      blockDeleted: (): void => {},
+      blockAdded: (): void => {},
     });
 
-    const thisService = new RskChainSyncService(mockedSyncStatusDataService, mockedRskNodeService, getInitialBlock(), 1);
+    const thisService = new RskChainSyncService(
+      mockedSyncStatusDataService,
+      mockedRskNodeService,
+      getInitialBlock(),
+      1,
+    );
     await thisService.start();
     thisService.subscribe(subscriber);
     await thisService.sync();
@@ -257,5 +296,4 @@ describe('Service: RskChainSyncService', () => {
     sinon.assert.notCalled(subscriber.blockAdded);
     sinon.assert.notCalled(subscriber.blockDeleted);
   });
-
 });
