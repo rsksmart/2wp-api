@@ -1,10 +1,10 @@
 import {Log} from './log.model';
 
 export class RskTransaction {
-  hash: Buffer;
-  blockHash: Buffer;
+  hash: string;
+  blockHash: string;
   blockHeight: number;
-  data: Buffer;
+  data: string;
   logs: Array<Log>;
   createdOn: Date;
 

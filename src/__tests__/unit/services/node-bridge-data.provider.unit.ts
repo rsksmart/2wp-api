@@ -34,12 +34,6 @@ const getRandomTransaction = (to: string = getRandomAddress(), input: string = e
   };
 };
 
-const getBlockWithPeginData = () => { };
-
-const getBlockWithUpdateCollectionsData = () => { };
-
-const getBlockWithMixedBridgeData = () => { };
-
 const getBlockWithNoBridgeData = (txCount: number = 1, height: number = 1, parentHash: string = getRandomHash()) => {
   let txs = []
   for (let i = 0; i < txCount; i++) {
