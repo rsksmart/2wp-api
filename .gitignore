@@ -70,3 +70,4 @@ data/*
 SessionDB/data/redis-data
 sonar-project.properties
 .scannerwork
+rsk-database
