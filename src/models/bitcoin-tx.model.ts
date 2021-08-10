@@ -64,9 +64,9 @@ export class BitcoinTx extends Model {
   valueIn?: string;
 
   @property({
-    type: 'string',
+    type: 'number',
   })
-  fees?: string;
+  fees?: number;
 
   @property({
     type: 'string',
