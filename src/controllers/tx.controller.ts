@@ -1,7 +1,3 @@
-// Uncomment these imports to begin using these cool features!
-
-// import {inject} from '@loopback/core';
-
 import {inject} from '@loopback/core';
 import {TxService} from '../services';
 import {get, getModelSchemaRef} from '@loopback/rest';

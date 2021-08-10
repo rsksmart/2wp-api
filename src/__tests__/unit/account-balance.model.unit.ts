@@ -4,6 +4,7 @@ import {
   getLegacyAddressList,
   getNativeSegwitAddressList,
   getSewitAddressList,
+  getWrongDefaulutAddressList,
 } from '../helper';
 import * as constants from '../../constants';
 
@@ -22,6 +23,11 @@ describe('Account Balance Model ', () => {
     getSewitAddressList().forEach(walletAddress => {
       expect(AccountBalance.getAccountType(walletAddress.address)).to.eql(
         constants.BITCOIN_SEGWIT_ADDRESS,
+      );
+    });
+    getWrongDefaulutAddressList().forEach(walletAddress => {
+      expect(AccountBalance.getAccountType(walletAddress.address)).to.eql(
+        constants.BITCOIN_MULTISIGNATURE_ADDRESS,
       );
     });
   });

@@ -22,14 +22,4 @@ describe('Broadcast Controller', () => {
       })
       .expect(400);
   });
-
-  it('invokes POST /broadcast with txStatus', async () => {
-    const broadRes = await client
-      .post('/broadcast')
-      .send({
-        data: 'value on hex',
-      })
-      .expect(400);
-    console.log(broadRes.body);
-  });
 });
