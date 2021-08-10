@@ -107,6 +107,8 @@ export class PeginStatusService {
             btcTxId,
             btcTx.vout
           ));
+
+          btcStatus.fees = btcTx.fees ? this.fromSatoshiToBtc(btcTx.fees) : 0;
           btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
           btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;
           btcStatus.federationAddress = federationAddress;

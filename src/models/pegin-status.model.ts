@@ -25,6 +25,11 @@ export class BtcPeginStatus extends Model {
   amountTransferred: number;
 
   @property({
+    type: 'number',
+  })
+  fees: number;
+
+  @property({
     type: 'string',
   })
   refundAddress: string;
