@@ -69,6 +69,22 @@ export function getNativeSegwitAddressList(): WalletAddress[] {
   return addressList as WalletAddress[];
 }
 
+export function getWrongDefaulutAddressList(): WalletAddress[] {
+  const addressList = [
+    {
+      path: [2147483732, 2147483649, 2147483648, 0, 0],
+      serializedPath: "m/84'/1'/0'/0/0",
+      address: 'pb1qtanvhhl8ve32tcdxkrsamyy6vq5p62ctdv89l0',
+    },
+    {
+      path: [2147483732, 2147483649, 2147483648, 1, 0],
+      serializedPath: "m/84'/1'/0'/1/0",
+      address: 'pb1qfuk3j0l4qn4uzstc47uwk68kedmjwuucl7avqr',
+    },
+  ];
+  return addressList as WalletAddress[];
+}
+
 export function getUtxoList(): Utxo[] {
   const utxoList = [
     {
