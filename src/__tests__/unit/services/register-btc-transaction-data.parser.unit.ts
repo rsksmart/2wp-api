@@ -57,32 +57,32 @@ const getFakeRegisterBtcTransactionData = () => {
 describe('Service: RegisterBtcTransactionDataParser', () => {
 
   it('parses a transaction with no logs as null', async () => {
-    let tx = new RskTransaction();
+    const tx = new RskTransaction();
     const thisService = new RegisterBtcTransactionDataParser();
-    let result = await thisService.parse(tx);
+    const result = await thisService.parse(tx);
 
     expect(result).to.be.null;
   });
 
   it('parses a transaction with a random log as null', async () => {
-    let tx = new RskTransaction();
+    const tx = new RskTransaction();
     tx.logs.push(new Log());
     const thisService = new RegisterBtcTransactionDataParser();
-    let result = await thisService.parse(tx);
+    const result = await thisService.parse(tx);
 
     expect(result).to.be.null;
   });
 
   it('parses a transaction with a PEGIN_BTC log properly', async () => {
-    let recipient = getRandomAddress();
+    const recipient = getRandomAddress();
 
-    let tx = new RskTransaction();
+    const tx = new RskTransaction();
     tx.data = REGISTER_BTC_TRANSACTION_SIGNATURE + getFakeRegisterBtcTransactionData();
-    let log = new Log();
+    const log = new Log();
     log.topics = [PEGIN_BTC_SIGNATURE, recipient];
     tx.logs.push(log);
     const thisService = new RegisterBtcTransactionDataParser();
-    let result = await thisService.parse(tx);
+    const result = await thisService.parse(tx);
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
@@ -93,13 +93,13 @@ describe('Service: RegisterBtcTransactionDataParser', () => {
   });
 
   it('parses a transaction with a LOCK_BTC log properly', async () => {
-    let tx = new RskTransaction();
+    const tx = new RskTransaction();
     tx.data = REGISTER_BTC_TRANSACTION_SIGNATURE + getFakeRegisterBtcTransactionData();
-    let log = new Log();
+    const log = new Log();
     log.topics = [LOCK_BTC_SIGNATURE];
     tx.logs.push(log);
     const thisService = new RegisterBtcTransactionDataParser();
-    let result = await thisService.parse(tx);
+    const result = await thisService.parse(tx);
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
@@ -110,25 +110,25 @@ describe('Service: RegisterBtcTransactionDataParser', () => {
   });
 
   it('parses a transaction with just a REJECTED_PEGIN log as null (should never happen :))', async () => {
-    let tx = new RskTransaction();
+    const tx = new RskTransaction();
     tx.data = REGISTER_BTC_TRANSACTION_SIGNATURE + getFakeRegisterBtcTransactionData();
-    let log = new Log();
+    const log = new Log();
     log.topics = [REJECTED_PEGIN_SIGNATURE];
     tx.logs.push(log);
     const thisService = new RegisterBtcTransactionDataParser();
-    let result = await thisService.parse(tx);
+    const result = await thisService.parse(tx);
 
     expect(result).to.be.null;
   });
 
   it('parses a transaction with REJECTED_PEGIN and RELEASE_REQUESTED logs as a rejected pegin with refund', async () => {
-    let tx = new RskTransaction();
+    const tx = new RskTransaction();
     tx.data = REGISTER_BTC_TRANSACTION_SIGNATURE + getFakeRegisterBtcTransactionData();
-    let log = new Log();
+    const log = new Log();
     log.topics = [REJECTED_PEGIN_SIGNATURE, RELEASE_REQUESTED_SIGNATURE];
     tx.logs.push(log);
     const thisService = new RegisterBtcTransactionDataParser();
-    let result = await thisService.parse(tx);
+    const result = await thisService.parse(tx);
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
@@ -139,13 +139,13 @@ describe('Service: RegisterBtcTransactionDataParser', () => {
   });
 
   it('parses a transaction with REJECTED_PEGIN and UNREFUNDABLE_PEGIN logs as a rejected pegin with no refund', async () => {
-    let tx = new RskTransaction();
+    const tx = new RskTransaction();
     tx.data = REGISTER_BTC_TRANSACTION_SIGNATURE + getFakeRegisterBtcTransactionData();
-    let log = new Log();
+    const log = new Log();
     log.topics = [REJECTED_PEGIN_SIGNATURE, UNREFUNDABLE_PEGIN_SIGNATURE];
     tx.logs.push(log);
     const thisService = new RegisterBtcTransactionDataParser();
-    let result = await thisService.parse(tx);
+    const result = await thisService.parse(tx);
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {

@@ -140,7 +140,7 @@ export class DaemonService implements iDaemonService {
     if (this.started) {
       this.started = false;
       this.logger.trace('Stopping');
-      clearInterval(this.dataFetchInterval);
+      clearTimeout(this.dataFetchInterval);
       await this.peginStatusStorageService.stop()
       await this.syncService.stop();
       this.logger.debug('Stopped');

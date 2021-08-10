@@ -1,7 +1,7 @@
 import {sinon, expect} from '@loopback/testlab';
 
 import {TxController} from '../../controllers';
-import {Tx as ITx, TxService} from '../../services';
+import {TxService} from '../../services';
 import {Tx} from '../../models';
 
 describe('tx controller', () => {
@@ -18,37 +18,26 @@ describe('tx controller', () => {
     txService = {txProvider: sinon.stub()};
     txProvider = txService.txProvider as sinon.SinonStub;
     txController = new TxController(txService);
-
-    const dummyTx: ITx = {
-      txid: dummyTxId,
-      version: 0,
-      vin: [],
-      vout: [],
-      blockhash: 'blockhash',
-      blockheight: 0,
-      confirmations: 0,
-      time: 0,
-      blocktime: 0,
-      valueOut: 'valueOut',
-      valueIn: 'valueIn',
-      fees: 'fees',
-      hex: 'hex',
-    };
-
+    const dummyTx = [
+      dummyTxId,
+      0,
+      [],
+      [],
+      'blockhash',
+      0,
+      0,
+      0,
+      0,
+      'valueOut',
+      'valueIn',
+      'fees',
+      'hex',
+    ];
     txProvider.withArgs(dummyTxId).resolves(dummyTx);
   }
 
   it('should return tx', async () => {
-    // const dummyTxController = new TxController({
-    //   txProvider: function (txId: string): Promise<ITx> {
-    //     return Promise.resolve(dummyTx);
-    //   }
-    // });
-
-    // console.log('dummyTxController', dummyTxController);
-    // console.log('dummyTxController.getTx', dummyTxController.getTx);
-
-    // const txSent: Tx = await txController.getTx(dummyTxId);
-    // expect(txSent.txid).to.eql(dummyTxId);
+    const txSent: Tx = await txController.getTx(dummyTxId);
+    expect(txSent.txid).to.eql(dummyTxId);
   });
 });

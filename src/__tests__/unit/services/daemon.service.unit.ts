@@ -26,14 +26,14 @@ describe('Service: DaemonService', () => {
   })
 
   it('starts and stops', async () => {
-    let mockedRskBridgeDataProvider = <RskBridgeDataProvider>{};
+    const mockedRskBridgeDataProvider = <RskBridgeDataProvider>{};
     mockedRskBridgeDataProvider.configure = sinon.stub();
-    let mockedPeginStatusDataService = <PeginStatusDataService>{};
+    const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    let mockedRskSyncChainService =
+    const mockedRskSyncChainService =
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;;
-    let daemonService = new DaemonService(
+    const daemonService = new DaemonService(
       mockedRskBridgeDataProvider,
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
@@ -54,14 +54,14 @@ describe('Service: DaemonService', () => {
   });
 
   it('sync starts when service is started', async () => {
-    let mockedRskBridgeDataProvider = <RskBridgeDataProvider>{};
+    const mockedRskBridgeDataProvider = <RskBridgeDataProvider>{};
     mockedRskBridgeDataProvider.configure = sinon.stub();
-    let mockedPeginStatusDataService = <PeginStatusDataService>{};
+    const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    let mockedRskSyncChainService =
+    const mockedRskSyncChainService =
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;;
-    let daemonService = new DaemonService(
+    const daemonService = new DaemonService(
       mockedRskBridgeDataProvider,
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
@@ -82,16 +82,16 @@ describe('Service: DaemonService', () => {
   });
 
   it('configures registerBtcTransaction filter', async () => {
-    let mockedRskBridgeDataProvider = sinon.spy(<RskBridgeDataProvider>{
+    const mockedRskBridgeDataProvider = sinon.spy(<RskBridgeDataProvider>{
       configure: () => { },
       getData: (): Promise<BridgeData> => Promise.resolve(new BridgeData())
     });
-    let mockedPeginStatusDataService = <PeginStatusDataService>{};
+    const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    let mockedRskSyncChainService =
+    const mockedRskSyncChainService =
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;;
-    let daemonService = new DaemonService(
+    const daemonService = new DaemonService(
       mockedRskBridgeDataProvider,
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
@@ -105,28 +105,28 @@ describe('Service: DaemonService', () => {
   });
 
   it('saves new pegins in storage', async () => {
-    let mockedRskBridgeDataProvider = sinon.createStubInstance(NodeBridgeDataProvider);
-    let mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService);
-    let mockedRskSyncChainService =
+    const mockedRskBridgeDataProvider = sinon.createStubInstance(NodeBridgeDataProvider);
+    const mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService);
+    const mockedRskSyncChainService =
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
-    let mockedRegisterBtcTransactionDataParser =
+    const mockedRegisterBtcTransactionDataParser =
       sinon.createStubInstance(RegisterBtcTransactionDataParser) as SinonStubbedInstance<RegisterBtcTransactionDataParser> & RegisterBtcTransactionDataParser;
 
-    let addedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
-    let peginTx = new RskTransaction();
+    const addedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
+    const peginTx = new RskTransaction();
     peginTx.hash = getRandomHash();
 
-    let bridgeData = new BridgeData();
+    const bridgeData = new BridgeData();
     bridgeData.block = addedBlock;
     bridgeData.data.push(peginTx);
     mockedRskBridgeDataProvider.getData.resolves(bridgeData);
 
-    let peginStatusModel = new PeginStatusDataModel();
+    const peginStatusModel = new PeginStatusDataModel();
     peginStatusModel.btcTxId = peginTx.hash;
     peginStatusModel.status = PeginStatus.LOCKED;
     mockedRegisterBtcTransactionDataParser.parse.returns(peginStatusModel);
 
-    let daemonService = new DaemonService(
+    const daemonService = new DaemonService(
       mockedRskBridgeDataProvider,
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
@@ -138,7 +138,7 @@ describe('Service: DaemonService', () => {
     await daemonService.start();
 
     sinon.assert.calledOnce(mockedRskSyncChainService.subscribe);
-    let subscriber = <RskChainSyncSubscriber>mockedRskSyncChainService.subscribe.getCall(0).firstArg;
+    const subscriber = <RskChainSyncSubscriber>mockedRskSyncChainService.subscribe.getCall(0).firstArg;
 
     // Fake the addition of a block
     await subscriber.blockAdded(addedBlock);
@@ -161,28 +161,28 @@ describe('Service: DaemonService', () => {
   });
 
   it('ignores transactions that are not pegins', async () => {
-    let mockedRskBridgeDataProvider = sinon.createStubInstance(NodeBridgeDataProvider);
-    let mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService);
-    let mockedRskSyncChainService =
+    const mockedRskBridgeDataProvider = sinon.createStubInstance(NodeBridgeDataProvider);
+    const mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService);
+    const mockedRskSyncChainService =
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
-    let mockedRegisterBtcTransactionDataParser =
+    const mockedRegisterBtcTransactionDataParser =
       sinon.createStubInstance(RegisterBtcTransactionDataParser) as SinonStubbedInstance<RegisterBtcTransactionDataParser> & RegisterBtcTransactionDataParser;
 
-    let addedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
-    let peginTx = new RskTransaction();
+    const addedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
+    const peginTx = new RskTransaction();
     peginTx.hash = getRandomHash();
 
-    let bridgeData = new BridgeData();
+    const bridgeData = new BridgeData();
     bridgeData.block = addedBlock;
     bridgeData.data.push(peginTx);
     mockedRskBridgeDataProvider.getData.resolves(bridgeData);
 
-    let peginStatusModel = new PeginStatusDataModel();
+    const peginStatusModel = new PeginStatusDataModel();
     peginStatusModel.btcTxId = peginTx.hash;
     peginStatusModel.status = PeginStatus.LOCKED;
     mockedRegisterBtcTransactionDataParser.parse.returns(null);
 
-    let daemonService = new DaemonService(
+    const daemonService = new DaemonService(
       mockedRskBridgeDataProvider,
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
@@ -194,7 +194,7 @@ describe('Service: DaemonService', () => {
     await daemonService.start();
 
     sinon.assert.calledOnce(mockedRskSyncChainService.subscribe);
-    let subscriber = <RskChainSyncSubscriber>mockedRskSyncChainService.subscribe.getCall(0).firstArg;
+    const subscriber = <RskChainSyncSubscriber>mockedRskSyncChainService.subscribe.getCall(0).firstArg;
 
     // Fake the addition of a block
     await subscriber.blockAdded(addedBlock);
@@ -204,16 +204,16 @@ describe('Service: DaemonService', () => {
   });
 
   it('deletes pegins for forked blocks from storage', async () => {
-    let mockedRskBridgeDataProvider = sinon.createStubInstance(NodeBridgeDataProvider);
-    let mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService);
-    let mockedRskSyncChainService =
+    const mockedRskBridgeDataProvider = sinon.createStubInstance(NodeBridgeDataProvider);
+    const mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService);
+    const mockedRskSyncChainService =
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
-    let mockedRegisterBtcTransactionDataParser =
+    const mockedRegisterBtcTransactionDataParser =
       sinon.createStubInstance(RegisterBtcTransactionDataParser) as SinonStubbedInstance<RegisterBtcTransactionDataParser> & RegisterBtcTransactionDataParser;
 
-    let deletedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
+    const deletedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
 
-    let daemonService = new DaemonService(
+    const daemonService = new DaemonService(
       mockedRskBridgeDataProvider,
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
@@ -225,7 +225,7 @@ describe('Service: DaemonService', () => {
     await daemonService.start();
 
     sinon.assert.calledOnce(mockedRskSyncChainService.subscribe);
-    let subscriber = <RskChainSyncSubscriber>mockedRskSyncChainService.subscribe.getCall(0).firstArg;
+    const subscriber = <RskChainSyncSubscriber>mockedRskSyncChainService.subscribe.getCall(0).firstArg;
 
     // Fake the deletion of a block
     await subscriber.blockDeleted(deletedBlock);
