@@ -11,7 +11,6 @@ import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {Vout} from '../../models/vout.model';
 import {BtcAddressUtils} from '../../utils/btc-utils';
 import {ensure0x} from '../../utils/hex-utils';
-import {RskAddressUtils} from '../../utils/rsk-address-utils';
 import {GenericDataService} from '../generic-data-service';
 import {RskNodeService} from '../rsk-node.service';
 
@@ -175,13 +174,12 @@ export class PeginStatusService {
   private getxDestinationRskAddress(btcTx: BitcoinTx): string {
     let returnValue = '';
     let foundOpReturn = false;
-    const utility = new RskAddressUtils();
 
     for (let i = 0; btcTx.vout && i < btcTx.vout.length && !foundOpReturn; i++) {
       const voutData = btcTx.vout[i].hex!;
 
       if (this.hasOpReturn(btcTx.txId, voutData)) {
-        returnValue = utility.getRskAddressFromOpReturn(voutData.substring(14, 54));
+        returnValue = ensure0x(voutData.substring(14, 54));
         this.logger.debug(`Destination RSK Address found: ${returnValue}`);
         foundOpReturn = true;
       }
