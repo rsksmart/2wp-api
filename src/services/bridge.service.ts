@@ -2,9 +2,6 @@ import BridgeABI from '@rsksmart/rsk-precompiled-abis/abis/bridge.json';
 import Web3 from 'web3';
 import {Contract} from 'web3-eth-contract';
 import {AbiItem} from 'web3-utils';
-import {config} from 'dotenv';
-
-config();
 
 export class BridgeService {
   private bridgeContract: Contract;
@@ -77,11 +74,12 @@ export class BridgeService {
     return new Promise<number>((resolve, reject) => {
       Promise.all([this.getLockingCapAmount(), this.getRbtcInCirculation()])
         .then(([lockingCap, rbtcInCirculation]) => {
-          const rbtcInCirculationToSatoshis = rbtcInCirculation / 1e10;
+          const rbtcInCirculationToSatoshis = Math.round(rbtcInCirculation / 1e10);
           let availability = lockingCap - rbtcInCirculationToSatoshis;
-          availability = availability > 0 ? Math.round(availability) : 0
-          resolve(process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI
-            ? Number(process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI): availability);
+          availability = availability > 0 ? availability : 0
+          const maxAllowed = process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI
+            ? Number(process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI): Infinity;
+          resolve(Math.min(availability, maxAllowed));
         })
         .catch(reject);
     });
