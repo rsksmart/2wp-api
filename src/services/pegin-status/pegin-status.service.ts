@@ -1,5 +1,8 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import peginAddressVerifier from 'pegin-address-verificator';
 import {BitcoinService, BridgeService} from '..';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status} from '../../models';
@@ -11,6 +14,7 @@ import {ensure0x} from '../../utils/hex-utils';
 import {RskAddressUtils} from '../../utils/rsk-address-utils';
 import {GenericDataService} from '../generic-data-service';
 import {RskNodeService} from '../rsk-node.service';
+
 
 export class PeginStatusService {
   private logger: Logger;
@@ -93,27 +97,33 @@ export class PeginStatusService {
       .then(async (btcTx: BitcoinTx) => {
         const btcStatus = new BtcPeginStatus(btcTxId);
         //TODO: Ask federation to the database.
-        const federationAddress = await this.bridgeService.getFederationAddress();
-        if (!this.isSentToFederationAddress(federationAddress, btcTx.vout)) {
-          //TODO: Comparing with the last federation. Need to include to comparing federation during the creation of the tx
-          const errorMessage = `Is not a pegin. Tx is not sending to Powpeg Address: ${federationAddress}`;
+        if (!this.canBeAPeginSender(btcTx)) {
+          const errorMessage = `Is not a pegin. Tx sent from address: ${btcTx.vin[0].addresses}`;
           this.logger.debug(errorMessage);
           this.status = Status.ERROR_NOT_A_PEGIN;
         } else {
-          const time = btcTx.time ?? btcTx.blocktime;
-          btcStatus.creationDate = new Date(time * 1000); // We get Timestamp in seconds
-          btcStatus.amountTransferred = this.fromSatoshiToBtc(this.getTxSentAmountByAddress(
-            federationAddress,
-            btcTxId,
-            btcTx.vout
-          ));
+          const federationAddress = await this.bridgeService.getFederationAddress();
+          if (!this.isSentToFederationAddress(federationAddress, btcTx.vout)) {
+            //TODO: Comparing with the last federation. Need to include to comparing federation during the creation of the tx
+            const errorMessage = `Is not a pegin. Tx is not sending to Powpeg Address: ${federationAddress}`;
+            this.logger.debug(errorMessage);
+            this.status = Status.ERROR_NOT_A_PEGIN;
+          } else {
+            const time = btcTx.time ?? btcTx.blocktime;
+            btcStatus.creationDate = new Date(time * 1000); // We get Timestamp in seconds
+            btcStatus.amountTransferred = this.fromSatoshiToBtc(this.getTxSentAmountByAddress(
+              federationAddress,
+              btcTxId,
+              btcTx.vout
+            ));
 
-          btcStatus.fees = btcTx.fees ? this.fromSatoshiToBtc(btcTx.fees) : 0;
-          btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
-          btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;
-          btcStatus.federationAddress = federationAddress;
-          btcStatus.refundAddress = this.getTxRefundAddress(btcTx);
-          this.destinationAddress = this.getxDestinationRskAddress(btcTx);
+            btcStatus.fees = btcTx.fees ? this.fromSatoshiToBtc(btcTx.fees) : 0;
+            btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
+            btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;
+            btcStatus.federationAddress = federationAddress;
+            btcStatus.refundAddress = this.getTxRefundAddress(btcTx);
+            this.destinationAddress = this.getxDestinationRskAddress(btcTx);
+          }
         }
         return btcStatus;
       })
@@ -227,6 +237,16 @@ export class PeginStatusService {
       }
     }
     return (false);
+  }
+
+  private canBeAPeginSender(btcTx: BitcoinTx): boolean {
+    const network = process.env.NETWORK ? process.env.NETWORK : 'testnet';
+    if (peginAddressVerifier.canPegIn(peginAddressVerifier.getAddressInformation(btcTx.vin[0].addresses[0]))) {
+      return true;
+    } else if (this.getxDestinationRskAddress(btcTx).length > 0) {
+      return true;
+    }
+    return false;
   }
 
 }

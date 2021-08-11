@@ -1,3 +1,4 @@
+import {ensure0x} from './hex-utils';
 
 export class RskAddressUtils {
 
@@ -5,7 +6,7 @@ export class RskAddressUtils {
   }
 
   public getRskAddressFromOpReturn(data: string): string {
-    return Buffer.from(`${data}`, 'hex').toString('hex');
+    return ensure0x(Buffer.from(`${data}`, 'hex').toString('hex'));
   }
 
 }
