@@ -30,12 +30,14 @@ export class DaemonService implements iDaemonService {
     @inject(ServicesBindings.RSK_CHAIN_SYNC_SERVICE)
     syncService: RskChainSyncService,
     @inject(ConstantsBindings.SYNC_INTERVAL_TIME)
-    syncIntervalTime: string | undefined
+    syncIntervalTime: string | undefined,
+    @inject(ServicesBindings.REGISTER_BTC_TRANSACTION_DATA_PARSER)
+    registerBtcTransactionDataParser: RegisterBtcTransactionDataParser
   ) {
     this.dataProvider = dataProvider;
     this.peginStatusStorageService = peginStatusStorageService;
     this.syncService = syncService;
-    this.registerBtcTransactionDataParser = new RegisterBtcTransactionDataParser();
+    this.registerBtcTransactionDataParser = registerBtcTransactionDataParser;
 
     this.started = false;
     this.logger = getLogger('daemon-service');
