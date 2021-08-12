@@ -1,6 +1,8 @@
 import {randomBytes} from 'crypto';
 import {PeginConfiguration, TxInput, Utxo, WalletAddress} from '../models';
 import {ensure0x} from '../utils/hex-utils';
+import {FeeLevel, PeginStatusService, UtxoProvider} from '../services';
+import {sinon} from '@loopback/testlab/dist/sinon';
 
 export function getRandomHash(): string {
   return ensure0x(randomBytes(32).toString('hex'));
@@ -152,4 +154,30 @@ export function getMockInputs(): TxInput[] {
     },
   ];
   return txInputs as TxInput[];
+}
+
+export function getMockUtxoProviderService(): {
+  utxoProviderService: UtxoProvider;
+  utxoProvider: sinon.SinonStub;
+} {
+  const utxoProviderService: UtxoProvider = {utxoProvider: sinon.stub()};
+  const utxoProvider: sinon.SinonStub =
+    utxoProviderService.utxoProvider as sinon.SinonStub;
+  return {
+    utxoProviderService,
+    utxoProvider,
+  };
+}
+
+export function getMockFeeLevelService(): {
+  feeLevelService: FeeLevel;
+  feeProvider: sinon.SinonStub;
+} {
+  const feeLevelService: FeeLevel = {feeProvider: sinon.stub()};
+  const feeProvider: sinon.SinonStub =
+    feeLevelService.feeProvider as sinon.SinonStub;
+  return {
+    feeLevelService,
+    feeProvider
+  };
 }
