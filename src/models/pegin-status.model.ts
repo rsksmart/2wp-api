@@ -44,6 +44,11 @@ export class BtcPeginStatus extends Model {
   })
   requiredConfirmation: number;
 
+  @property({
+    type: 'string',
+  })
+  btcWTxId: string;
+
   constructor(btcTxId: string) {
     super();
     this.txId = btcTxId;
