@@ -9,7 +9,7 @@ import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status} from '../../models'
 import {BitcoinTx} from '../../models/bitcoin-tx.model';
 import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {Vout} from '../../models/vout.model';
-import {BtcAddressUtils} from '../../utils/btc-utils';
+import {BtcAddressUtils, calculateBtcTxHash} from '../../utils/btc-utils';
 import {ensure0x} from '../../utils/hex-utils';
 import {GenericDataService} from '../generic-data-service';
 import {RskNodeService} from '../rsk-node.service';
@@ -51,7 +51,7 @@ export class PeginStatusService {
           return peginStatusInfo;
         }
         if (btcStatus.requiredConfirmation <= btcStatus.confirmations) {
-          return this.getRskInfo(btcTxId)
+          return this.getRskInfo(btcStatus.btcWTxId)
             .then((rskStatus) => {
               peginStatusInfo.setRskPeginStatus(rskStatus);
               this.logger.debug(`Tx: ${btcTxId} includes rsk info. RskAddress: ${rskStatus.recipientAddress} Pegin status: ${peginStatusInfo.status}`);
@@ -115,7 +115,7 @@ export class PeginStatusService {
               btcTxId,
               btcTx.vout
             ));
-
+            btcStatus.btcWTxId = ensure0x(calculateBtcTxHash(btcTx.hex))
             btcStatus.fees = btcTx.fees ? this.fromSatoshiToBtc(btcTx.fees) : 0;
             btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
             btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;
