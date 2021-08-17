@@ -22,7 +22,7 @@ export class DependencyInjectionHandler {
   private static configureConstants(app: Application): void {
     app
       .bind(ConstantsBindings.MONGO_DB_URI)
-      .to(process.env.RSK_DB_CONNECTION_STRING,);
+      .to(process.env.RSK_DB_CONNECTION_STRING);
 
     app
       .bind(ConstantsBindings.INITIAL_BLOCK)
