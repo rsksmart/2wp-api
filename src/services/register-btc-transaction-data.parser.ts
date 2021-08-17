@@ -75,7 +75,7 @@ export class RegisterBtcTransactionDataParser {
     }
     const peginBtcLog = this.getPeginBtcLogIfExists(transaction.logs);
     if (peginBtcLog) {
-      status.rskRecipient = ensure0x(peginBtcLog.topics[1]);
+      status.rskRecipient = ensure0x(peginBtcLog.topics[1].slice(- 40));
       status.status = RskPeginStatusEnum.LOCKED;
       return status;
     }
