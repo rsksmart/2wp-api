@@ -22,7 +22,7 @@ export class DependencyInjectionHandler {
   private static configureConstants(app: Application): void {
     app
       .bind(ConstantsBindings.MONGO_DB_URI)
-      .to(`mongodb://${process.env.RSK_DB_USER}:${process.env.RSK_DB_PASS}@${process.env.RSK_DB_URL}:${process.env.RSK_DB_PORT}/${process.env.RSK_DB_NAME}`);
+      .to(process.env.RSK_DB_CONNECTION_STRING);
 
     app
       .bind(ConstantsBindings.INITIAL_BLOCK)
