@@ -22,7 +22,7 @@ export interface TxService {
   // this is where you define the Node.js methods that will be
   // mapped to REST/SOAP/gRPC operations as stated in the datasource
   // json file.
-  txProvider(txId: string): Promise<Tx>;
+  txProvider(txId: string): Promise<Tx[]>;
 }
 
 export class TxServiceProvider implements Provider<TxService> {
