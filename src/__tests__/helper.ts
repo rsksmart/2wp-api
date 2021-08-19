@@ -112,7 +112,7 @@ export function getMockInputs(): TxInput[] {
       prev_hash: 'tx_id',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       prev_index: 2,
-      amount: '0.00002',
+      amount: 2000,
     },
     {
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -122,7 +122,7 @@ export function getMockInputs(): TxInput[] {
       prev_hash: 'tx_id2',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       prev_index: 2,
-      amount: '0.00002',
+      amount: 2000,
     },
     {
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -132,7 +132,7 @@ export function getMockInputs(): TxInput[] {
       prev_hash: 'tx_id3',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       prev_index: 2,
-      amount: '0.00002',
+      amount: 2000,
     },
   ];
   return txInputs as TxInput[];

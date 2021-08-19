@@ -97,7 +97,7 @@ export class TxFeeController {
     const inputs: TxInput[] = [];
     let remainingSatoshis = amountInSatoshis;
     utxoList.sort((a, b) => b.satoshis - a.satoshis);
-    utxoList.forEach(utxo => {
+    utxoList.forEach((utxo) => {
       if (remainingSatoshis > 0) {
         inputs.push(
           new TxInput({
@@ -108,7 +108,8 @@ export class TxFeeController {
             prev_hash: utxo.txid,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             prev_index: utxo.vout,
-            amount: (+utxo.amount * 1e8).toFixed(0),
+            // amount: (+utxo.amount * 1e8).toFixed(0),
+            amount: +utxo.satoshis,
           }),
         );
         remainingSatoshis -= utxo.satoshis;
