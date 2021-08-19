@@ -12,8 +12,8 @@ export class MongoDbDataSource {
     mongoDbUri: string
   ) {
     this.mongoDbUri = mongoDbUri;
-
     this.logger = getLogger('MongoDb');
+    this.logger.trace(`URI: ${this.mongoDbUri}`);
   }
 
   getConnection(): Promise<Mongoose> {
