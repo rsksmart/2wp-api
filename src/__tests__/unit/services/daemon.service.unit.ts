@@ -12,6 +12,7 @@ import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data
 import {RegisterBtcTransactionDataParser} from '../../../services/register-btc-transaction-data.parser';
 import {RskBridgeDataProvider} from '../../../services/rsk-bridge-data.provider';
 import {RskChainSyncService, RskChainSyncSubscriber} from '../../../services/rsk-chain-sync.service';
+import {BRIDGE_METHODS, getBridgeSignature} from '../../../utils/bridge-utils';
 import {getRandomHash} from '../../helper';
 
 describe('Service: DaemonService', () => {
@@ -101,7 +102,10 @@ describe('Service: DaemonService', () => {
 
     await daemonService.start();
 
-    sinon.assert.calledOnceWithMatch(mockedRskBridgeDataProvider.configure, [new BridgeDataFilterModel('43dc0656')]);
+    sinon.assert.calledOnceWithMatch(
+      mockedRskBridgeDataProvider.configure,
+      [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))]
+    );
   });
 
   it('saves new pegins in storage', async () => {

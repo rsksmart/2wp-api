@@ -1,13 +1,12 @@
 import {expect, sinon} from '@loopback/testlab';
+import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import {BridgeDataFilterModel} from '../../../models/bridge-data-filter.model';
 import {Log} from '../../../models/rsk/log.model';
 import {NodeBridgeDataProvider} from '../../../services/node-bridge-data.provider';
 import {RskNodeService} from '../../../services/rsk-node.service';
+import {BRIDGE_METHODS, getBridgeSignature} from '../../../utils/bridge-utils';
 import {ensure0x} from '../../../utils/hex-utils';
 import {getRandomAddress, getRandomHash} from '../../helper';
-
-const BridgeAddress = '0x0000000000000000000000000000000001000006';
-const PeginSignature = '0x43dc0656';
 
 const getRskNodeService = () => {
   const mockedRskNodeService = sinon.createStubInstance(RskNodeService);
@@ -15,13 +14,13 @@ const getRskNodeService = () => {
 };
 
 const getUpdateCollectionsTransaction = () => {
-  return getRandomTransaction(BridgeAddress, '0x0c5a9990');
+  return getRandomTransaction(bridge.address, getBridgeSignature(BRIDGE_METHODS.UPDATE_COLLECTIONS));
 };
 
 const getPeginTransaction = (logs: Array<Log> = []) => {
-  let input = PeginSignature; // method signature
+  let input = getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION); // method signature
   input += 'b1ab1a'; // fake data
-  return getRandomTransaction(BridgeAddress, input, logs);
+  return getRandomTransaction(bridge.address, input, logs);
 };
 
 const getRandomTransaction = (to: string = getRandomAddress(), input: string = ensure0x(''), logs: Array<Log> = []) => {
@@ -97,7 +96,7 @@ describe('Service: NodeBridgeDataProvider', () => {
     rskNodeService.getTransactionReceipt.withArgs(peginTx.hash).resolves(peginTx);
 
     const thisService = new NodeBridgeDataProvider(rskNodeService);
-    thisService.configure([new BridgeDataFilterModel(PeginSignature)]);
+    thisService.configure([new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))]);
     let result = await thisService.getData(height);
 
     expect(result.block.height).to.be.equal(height);

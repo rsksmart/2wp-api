@@ -11,7 +11,7 @@ export class PeginConfigurationController {
     public peginConfigurationRepository: PeginConfigurationRepository,
     @repository(SessionRepository)
     public sessionRepository: SessionRepository,
-  ) {}
+  ) { }
 
   @get('/pegin-configuration', {
     responses: {
@@ -39,10 +39,7 @@ export class PeginConfigurationController {
       process.env.TTL_SESSIONDB_EXPIRE_MILLISECONDS ?? 10800;
     await this.sessionRepository.set(session._id, new Session(session));
     await this.sessionRepository.expire(session._id, +ttlSessionDBExpire);
-    const bridgeService = new BridgeService(
-      process.env.BRIDGE_ADDRESS ??
-        '0x0000000000000000000000000000000001000006',
-    );
+    const bridgeService = new BridgeService();
     return new Promise<PeginConfiguration>((resolve, reject) => {
       Promise.all([
         bridgeService.getMinPeginValue(),
