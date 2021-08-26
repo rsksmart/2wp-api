@@ -3,6 +3,7 @@ import {getLogger, Logger} from 'log4js';
 import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from '../dependency-injection-bindings';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
 import {RskBlock} from '../models/rsk/rsk-block.model';
+import {BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
 import {getMetricLogger} from '../utils/metric-logger';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {RegisterBtcTransactionDataParser} from './register-btc-transaction-data.parser';
@@ -109,8 +110,7 @@ export class DaemonService implements iDaemonService {
   private configureDataFilters(): void {
     const dataFilters = [];
     // registerBtcTransaction data filter
-    // TODO: THIS SHOULD USE THE PRECOMPILED ABIS
-    dataFilters.push(new BridgeDataFilterModel('43dc0656'));
+    dataFilters.push(new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION)));
     this.dataProvider.configure(dataFilters);
   }
 

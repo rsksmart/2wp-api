@@ -1,21 +1,14 @@
-import BridgeABI from '@rsksmart/rsk-precompiled-abis/abis/bridge.json';
+import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import Web3 from 'web3';
 import {Contract} from 'web3-eth-contract';
-import {AbiItem} from 'web3-utils';
 
 export class BridgeService {
   private bridgeContract: Contract;
   private web3: Web3;
-  private bridgeAddress: string;
   private TOTAL_RBTC_STOCK = 21000000;
-  constructor(contractAddress: string) {
+  constructor() {
     this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
-    this.bridgeAddress = contractAddress;
-    const bridge = BridgeABI as AbiItem[];
-    this.bridgeContract = new this.web3.eth.Contract(
-      bridge,
-      this.bridgeAddress,
-    );
+    this.bridgeContract = bridge.build(this.web3)
   }
 
   public getFederationAddress(): Promise<string> {
@@ -56,7 +49,7 @@ export class BridgeService {
   public getRbtcInCirculation(): Promise<number> {
     return new Promise<number>((resolve, reject) => {
       this.web3.eth
-        .getBalance(this.bridgeAddress)
+        .getBalance(bridge.address)
         .then((balance: string) => {
           const amount =
             Number(
@@ -78,7 +71,7 @@ export class BridgeService {
           let availability = lockingCap - rbtcInCirculationToSatoshis;
           availability = availability > 0 ? availability : 0
           const maxAllowed = process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI
-            ? Number(process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI): Infinity;
+            ? Number(process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI) : Infinity;
           resolve(Math.min(availability, maxAllowed));
         })
         .catch(reject);

@@ -31,10 +31,7 @@ export class PeginStatusService {
     rskDataService: GenericDataService<PeginStatusDataModel>
   ) {
     this.bitcoinService = bitcoinService;
-    this.bridgeService = new BridgeService(
-      process.env.BRIDGE_ADDRESS ??
-      '0x0000000000000000000000000000000001000006',
-    );
+    this.bridgeService = new BridgeService();
     this.rskNodeService = new RskNodeService();
     this.logger = getLogger('peginStatusService');
     this.rskDataService = rskDataService;

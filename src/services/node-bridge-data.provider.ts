@@ -1,4 +1,5 @@
 import {inject} from '@loopback/core';
+import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import {getLogger, Logger} from 'log4js';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
@@ -35,8 +36,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
       lastBlock.parentHash
     );
     for (const transaction of lastBlock.transactions) {
-      // TODO: determine why using the precompiled abis reference is not working
-      if (transaction.to !== '0x0000000000000000000000000000000001000006') {
+      if (transaction.to !== bridge.address) {
         continue;
       }
 

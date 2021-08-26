@@ -2,8 +2,7 @@ import {expect} from '@loopback/testlab';
 import {BridgeService} from '../../services';
 
 describe('Service: Bridge', () => {
-  const bridgeAddress = '0x0000000000000000000000000000000001000006';
-  const bridgeService = new BridgeService(bridgeAddress);
+  const bridgeService = new BridgeService();
 
   it('should return a valid BTC segwit or legacy federation address ', async () => {
     const legacyRegex = new RegExp('^[mn][1-9A-HJ-NP-Za-km-z]{26,35}');
