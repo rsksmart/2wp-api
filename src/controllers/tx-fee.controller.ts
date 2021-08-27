@@ -108,7 +108,6 @@ export class TxFeeController {
             prev_hash: utxo.txid,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             prev_index: utxo.vout,
-            // amount: (+utxo.amount * 1e8).toFixed(0),
             amount: +utxo.satoshis,
           }),
         );
