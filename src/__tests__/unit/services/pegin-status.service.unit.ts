@@ -55,7 +55,11 @@ const getPeginStatusServiceWithMockedEnvironment = (
 ): PeginStatusService => {
   const mockedBitcoinService =
     sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
-  mockedBitcoinService.getTx.resolves(btcTransaction);
+  if (btcTransaction) {
+    mockedBitcoinService.getTx.resolves(btcTransaction);
+  } else {
+    mockedBitcoinService.getTx.rejects();
+  }
 
   const mockedBridgeService =
     sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
@@ -78,16 +82,17 @@ describe('function: getPeginSatusInfo', () => {
     sinon.restore();
   });
 
-  it('getPeginSatusInfo txId does not exists', async () => {
+  it('getPeginSatusInfo txId has an unexpected error', async () => {
     const btcTxId = 'txId1';
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(undefined, 5);
+
     const result = await thisService.getPeginSatusInfo(btcTxId);
 
     expect(result.btc.txId).to.be.equal(btcTxId);
     expect(result.btc.confirmations).to.be.empty;
     expect(result.rsk).to.be.empty;
-    expect(result.status).to.be.equal(Status.NOT_IN_BTC_YET);
+    expect(result.status).to.be.equal(Status.ERROR_UNEXPECTED);
   })
 
   it('getPeginSatusInfo invalid sender address', async () => {

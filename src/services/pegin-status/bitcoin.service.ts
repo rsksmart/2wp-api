@@ -18,7 +18,6 @@ export class BitcoinService {
       this.txV2Service
         .txV2Provider(txId)
         .then((tx: any) => {
-
           const responseTx = new BitcoinTx();
           responseTx.txid = tx[0].txid;
           responseTx.version = tx[0].version;
@@ -35,8 +34,9 @@ export class BitcoinService {
           responseTx.hex = tx[0].hex;
           resolve(responseTx);
         })
-
-        .catch(reject);
+        .catch(() => {
+          reject(`Error getting tx ${txId}`);
+        });
     });
   }
 }
