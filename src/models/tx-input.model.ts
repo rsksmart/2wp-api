@@ -42,9 +42,9 @@ export class TxInput extends Model {
   sequence?: number;
 
   @property({
-    type: 'string',
+    type: 'number',
   })
-  amount?: string;
+  amount: number;
 
   constructor(data?: Partial<TxInput>) {
     super(data);
