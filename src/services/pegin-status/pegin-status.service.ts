@@ -7,13 +7,13 @@ import {BitcoinService, BridgeService} from '..';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status} from '../../models';
 import {BitcoinTx} from '../../models/bitcoin-tx.model';
+import {PeginStatusError} from '../../models/pegin-status-error.model';
 import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {Vout} from '../../models/vout.model';
 import {BtcAddressUtils, calculateBtcTxHash} from '../../utils/btc-utils';
 import {ensure0x} from '../../utils/hex-utils';
 import {GenericDataService} from '../generic-data-service';
 import {RskNodeService} from '../rsk-node.service';
-
 
 export class PeginStatusService {
   private logger: Logger;
@@ -45,11 +45,7 @@ export class PeginStatusService {
     return this.getBtcInfo(btcTxId)
       .then((btcStatus) => {
         const peginStatusInfo = new PeginStatus(btcStatus);
-        if (
-          this.status === Status.ERROR_BELOW_MIN
-          || this.status === Status.ERROR_NOT_A_PEGIN
-          || this.status === Status.NOT_IN_BTC_YET
-        ) {
+        if (this.isStatusAnError()) {
           peginStatusInfo.status = this.status;
           return peginStatusInfo;
         }
@@ -74,6 +70,10 @@ export class PeginStatusService {
           peginStatusInfo.setRskPeginStatus(peginRskInfo);
           return peginStatusInfo;
         }
+      })
+      .catch(() => {
+        this.logger.debug(`TxId:${btcTxId} Unexpected error trying to obtain information`);
+        return new PeginStatusError(btcTxId);
       })
   };
 
@@ -258,4 +258,11 @@ export class PeginStatusService {
     return false;
   }
 
+  private isStatusAnError(): boolean {
+    return (
+      this.status === Status.ERROR_BELOW_MIN
+      || this.status === Status.ERROR_NOT_A_PEGIN
+      || this.status === Status.NOT_IN_BTC_YET
+      || this.status === Status.ERROR_UNEXPECTED);
+  }
 }
