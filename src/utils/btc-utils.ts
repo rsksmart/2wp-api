@@ -1,13 +1,10 @@
 import base58 from 'bs58';
-import {sha256} from 'js-sha256';
 import {getLogger, Logger} from 'log4js';
 import {remove0x} from './hex-utils';
+import {doubleSha256} from './sha256-utils';
 
 export const calculateBtcTxHash = (transaction: string) => {
-  let buffer = Buffer.from(remove0x(transaction), 'hex');
-  let hash = sha256(buffer);
-  buffer = Buffer.from(hash, 'hex');
-  hash = sha256(buffer);
+  let hash = doubleSha256(remove0x(transaction));
   const bufferedHash = Buffer.from(hash, 'hex');
   bufferedHash.reverse();
   return bufferedHash.toString('hex');
@@ -27,6 +24,7 @@ export class BtcAddressUtils {
     try {
       addressRefundType = Number(addressRefundInfo.substring(0, 2));
       addressRefundData = addressRefundInfo.substring(2, 42);
+
 
       if (addressRefundType == 1) { //P2PKH_ADDRESS_TYPE
         address = this.getAddress(addressRefundData, 'P2PKH');
@@ -60,7 +58,7 @@ export class BtcAddressUtils {
     return '';
   }
 
-  private getAddress(data: string, typeAddress: string): string { //TODO: To test with Ed's data
+  private getAddress(data: string, typeAddress: string): string {
     if (data.length != 40) {
       this.logger.warn("Wrong size for script getting BTC refund address");
       return '';
@@ -69,10 +67,9 @@ export class BtcAddressUtils {
     try {
       const network = process.env.NETWORK ?? 'tesnet';
       const prefix = this.getNetPrefix(network, typeAddress);
-
-      data = `${prefix}${data}`;
-      const checksum = sha256(sha256(data)).slice(0, 8);
-      return base58.encode(Buffer.from(`${data}${checksum}`, 'hex'))
+      const dataToReview = `${prefix}${data}`;
+      const checksum = doubleSha256(dataToReview).substr(0, 8);
+      return base58.encode(Buffer.from(`${dataToReview}${checksum}`, 'hex'))
     }
     catch (error) {
       this.logger.warn("Error getting BTC refund address");
