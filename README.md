@@ -3,7 +3,6 @@
 This is the API component for 2-Way-Peg solution.
 ## Development Mode
 Include a .env file with the required environment variables listed in `.env.test` file (you can copy that file).
-If you are running the API for testing purposes set the variable `LOCAL_TEST=1` with the required `TEST_FEDERATION_ADDRESS`, remove the variable from file or set to `0` in other cases.
 ### Install dependencies
 
 ```sh
