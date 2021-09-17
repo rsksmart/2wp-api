@@ -126,9 +126,6 @@ export class PeginStatus extends Model {
         this.status = Status.CONFIRMED;
         break;
       }
-      default: {
-        this.status = Status.NOT_IN_RSK_YET;
-      }
     }
   }
 }
