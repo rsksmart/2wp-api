@@ -52,21 +52,24 @@ export class PeginStatusService {
         if (btcStatus.requiredConfirmation <= btcStatus.confirmations) {
           return this.getRskInfo(btcStatus.btcWTxId)
             .then((rskStatus) => {
-              peginStatusInfo.setRskPeginStatus(rskStatus);
-              this.logger.debug(`Tx: ${btcTxId} includes rsk info. RskAddress: ${rskStatus.recipientAddress} Pegin status: ${peginStatusInfo.status}`);
-              return peginStatusInfo;
-            })
-            .finally(() => {
-              if (peginStatusInfo.status == Status.NOT_IN_RSK_YET) {
-                this.logger.debug(`Tx: ${btcTxId} not in database. Pegin status: ${peginStatusInfo.status}`);
-                peginStatusInfo.rsk.recipientAddress = this.destinationAddress;
+              if (rskStatus.status !== undefined) {
+                peginStatusInfo.setRskPeginStatus(rskStatus);
+                this.logger.debug(`Tx: ${btcTxId} includes rsk info. RskAddress: ${rskStatus.recipientAddress} Pegin status: ${peginStatusInfo.status}`);
+                return peginStatusInfo;
+              } else {
+                const peginRskInfo = new RskPeginStatus();
+                peginRskInfo.recipientAddress = this.destinationAddress;
+                peginStatusInfo.status = Status.NOT_IN_RSK_YET;
+                this.logger.debug(`Tx: ${btcTxId} not in RSK yet. Pegin status: ${peginStatusInfo.status}`);
+                peginStatusInfo.setRskPeginStatus(peginRskInfo);
                 return peginStatusInfo;
               }
             })
         } else {
-          this.logger.debug(`Tx: ${btcTxId} not in database. Pegin status: ${peginStatusInfo.status}`);
           const peginRskInfo = new RskPeginStatus();
           peginRskInfo.recipientAddress = this.destinationAddress;
+          peginStatusInfo.status = Status.WAITING_CONFIRMATIONS;
+          this.logger.debug(`Tx: ${btcTxId} waiting confirmations. Pegin status: ${peginStatusInfo.status}`);
           peginStatusInfo.setRskPeginStatus(peginRskInfo);
           return peginStatusInfo;
         }
@@ -139,7 +142,7 @@ export class PeginStatusService {
   private getRskInfo(btcTxId: string): Promise<RskPeginStatus> {
     const rskStatus = new RskPeginStatus();
     return this.rskDataService.getById(ensure0x(btcTxId)).then(async (rskData) => {
-      if (rskData) {
+      if (rskData !== undefined) {
         const bestHeight = await this.rskNodeService.getBlockNumber();
         rskStatus.confirmations = bestHeight - rskData.rskBlockHeight;
         rskStatus.recipientAddress = rskData.rskRecipient;
