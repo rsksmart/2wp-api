@@ -175,9 +175,8 @@ describe('function: getPeginSatusInfo', () => {
       200
     );
 
-    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, undefined);
+    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5);
     const result = await thisService.getPeginSatusInfo(btcTxId);
-
     expect(result.btc.txId).equal(btcTxId);
     expect(result.btc.amountTransferred).to.be.equal(0.01);
     expect(result.btc.federationAddress).to.be.equal(federationAddress);
@@ -211,7 +210,7 @@ describe('function: getPeginSatusInfo', () => {
       200
     );
 
-    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 200, undefined);
+    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 200);
     const result = await thisService.getPeginSatusInfo(btcTxId);
 
     expect(result.btc.txId).equal(btcTxId);
