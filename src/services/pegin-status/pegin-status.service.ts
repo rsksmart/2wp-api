@@ -142,7 +142,7 @@ export class PeginStatusService {
   private getRskInfo(btcTxId: string): Promise<RskPeginStatus> {
     const rskStatus = new RskPeginStatus();
     return this.rskDataService.getById(ensure0x(btcTxId)).then(async (rskData) => {
-      if (rskData !== undefined) {
+      if (!!rskData) {
         const bestHeight = await this.rskNodeService.getBlockNumber();
         rskStatus.confirmations = bestHeight - rskData.rskBlockHeight;
         rskStatus.recipientAddress = rskData.rskRecipient;
@@ -189,7 +189,7 @@ export class PeginStatusService {
     for (let i = 0; btcTx.vout && i < btcTx.vout.length && !foundOpReturn; i++) {
       const voutData = btcTx.vout[i].hex!;
 
-      if (this.hasOpReturn(btcTx.txId, voutData)) {
+      if (this.hasOpReturn(btcTx.txid, voutData)) {
         returnValue = ensure0x(voutData.substring(14, 54));
         this.logger.debug(`Destination RSK Address found: ${returnValue}`);
         foundOpReturn = true;
@@ -208,7 +208,7 @@ export class PeginStatusService {
 
     for (let i = 0; btcTx.vout && i < btcTx.vout.length && !foundOpReturn; i++) {
       const voutData = btcTx.vout[i].hex!;
-      if (this.hasRefundOpReturn(btcTx.txId, voutData)) {
+      if (this.hasRefundOpReturn(btcTx.txid, voutData)) {
         returnValue = utility.getRefundAddress(voutData.substring(54, 96));
         this.logger.debug(`RefundAddress found: ${returnValue}`);
         foundOpReturn = true;
