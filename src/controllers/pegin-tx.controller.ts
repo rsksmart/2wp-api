@@ -7,6 +7,7 @@ import peginAddressVerifier from 'pegin-address-verificator';
 import {CreatePeginTxData, NormalizedTx, TxInput, TxOutput} from '../models';
 import {SessionRepository} from '../repositories';
 import {BridgeService} from '../services';
+import SatoshiBig from '../utils/SatoshiBig';
 
 config();
 
@@ -126,11 +127,13 @@ export class PeginTxController {
     fee: number,
   ): TxOutput {
     let capacity = 0;
+    const amountToTransferPlusFee = new SatoshiBig(amountToTransferInSatoshi, 'satoshi')
+      .plus(new SatoshiBig(fee, 'satoshi'));
     inputs.forEach(input => {
       capacity += input.amount ? +input.amount : 0;
     });
     return new TxOutput({
-      amount: (capacity - (amountToTransferInSatoshi + fee)).toFixed(0),
+      amount: new SatoshiBig(capacity, 'satoshi').minus(amountToTransferPlusFee).toSatoshiString(),
       address: changeAddress,
     });
   }

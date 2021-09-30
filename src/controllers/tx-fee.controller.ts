@@ -5,6 +5,7 @@ import {config} from 'dotenv';
 import {FeeAmountData, FeeRequestData, TxInput, Utxo} from '../models';
 import {SessionRepository} from '../repositories';
 import {FeeLevel} from '../services';
+import SatoshiBig from '../utils/SatoshiBig';
 
 config();
 
@@ -60,23 +61,21 @@ export class TxFeeController {
               accountUtxoList,
               (+fastAmount / 1000) * txBytes + feeRequestData.amount,
             );
+            const totalBytes: SatoshiBig = new SatoshiBig((inputs.length * +inputSize + txBytes).toString(), 'satoshi');
             fees.fast = Number(
-              (
-                (inputs.length * +inputSize + txBytes) *
-                ((+fastAmount / 1000) * 1e8)
-              ).toFixed(0),
+              totalBytes
+                .mul(new SatoshiBig(fastAmount, 'btc').div(1000))
+                .toSatoshiString()
             );
             fees.average = Number(
-              (
-                (inputs.length * +inputSize + txBytes) *
-                ((+averageAmount / 1000) * 1e8)
-              ).toFixed(0),
+              totalBytes
+                .mul(new SatoshiBig(averageAmount, 'btc').div(1000))
+                .toSatoshiString()
             );
             fees.slow = Number(
-              (
-                (inputs.length * +inputSize + txBytes) *
-                ((+lowAmount / 1000) * 1e8)
-              ).toFixed(0),
+              totalBytes
+                .mul(new SatoshiBig(lowAmount, 'btc').div(1000))
+                .toSatoshiString()
             );
             return Promise.all([
               fees,
