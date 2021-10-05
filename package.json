@@ -71,7 +71,7 @@
     "loopback-connector-rest": "^3.7.0",
     "mongoose": "^5.13.2",
     "pegin-address-verificator": "https://git@github.com/rsksmart/pegin-address-verifier#840ee617889d9e103efbd2626f84c382db379dba",
-    "pegin-cap-evaluator": "https://github.com/rsksmart/pegin-cap-evaluator#c5fc572ebb80e231e75c0b8970bb08a9bcb2681b",
+    "pegin-cap-evaluator": "https://git@github.com/rsksmart/pegin-cap-evaluator#c5fc572ebb80e231e75c0b8970bb08a9bcb2681b",
     "tslib": "^2.0.0",
     "web3": "^1.5.2",
     "web3-eth-contract": "^1.3.4",
