@@ -204,7 +204,7 @@ describe('Service: RskChainSyncService', () => {
 
     // Storage is called
     sinon.assert.calledTwice(mockedSyncStatusDataService.set);
-    sinon.assert.calledOnce(mockedSyncStatusDataService.delete);
+    sinon.assert.calledOnceWithMatch(mockedSyncStatusDataService.delete, secondBlockFromSync.rskBlockHash);
 
     // subscribers get called
     sinon.assert.calledTwice(subscriber.blockAdded);

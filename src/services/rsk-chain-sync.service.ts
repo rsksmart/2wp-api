@@ -40,7 +40,8 @@ export class RskChainSyncService {
   }
 
   private async deleteOldBlock(block: SyncStatusModel): Promise<void> {
-    await this.syncStorageService.delete(block);
+    this.logger.trace(`[deleteOldBlock] going to delete block ${block.rskBlockHeight} (${block.rskBlockHash})`);
+    await this.syncStorageService.delete(block.rskBlockHash);
 
     const deletedBlock = new RskBlock(
       block.rskBlockHeight,
@@ -51,9 +52,11 @@ export class RskChainSyncService {
   }
 
   private async addNewBlocks(blocksToAdd: Array<RskBlock>): Promise<void> {
+    this.logger.trace(`[addNewBlocks] going to add ${blocksToAdd.length} blocks`);
     while (blocksToAdd.length > 0) {
       const blockToAdd = <RskBlock>(blocksToAdd.pop());
 
+      this.logger.trace(`[addNewBlocks] going to add block ${blockToAdd.height} (${blockToAdd.hash})`);
       await this.syncStorageService.set(this.blockToSyncStatusDataModel(blockToAdd));
 
       this.subscribers.forEach(s => s.blockAdded(blockToAdd));
@@ -122,6 +125,8 @@ export class RskChainSyncService {
     if (rskBestBlock.height - this.minDepthForSync <= dbBestBlock.rskBlockHeight + 1) {
       return;
     }
+
+    this.logger.debug(`[sync] Found block(s) to sync!`);
 
     let nextBlock = RskBlock.fromWeb3Block(await this.rskNodeService.getBlock(dbBestBlock.rskBlockHeight + 1, false));
     const blocksToAdd: Array<RskBlock> = [];
