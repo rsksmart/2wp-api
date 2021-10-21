@@ -41,7 +41,7 @@ export class RskChainSyncService {
 
   private async deleteOldBlock(block: SyncStatusModel): Promise<void> {
     this.logger.trace(`[deleteOldBlock] going to delete block ${block.rskBlockHeight} (${block.rskBlockHash})`);
-    await this.syncStorageService.delete(block);
+    await this.syncStorageService.delete(block.rskBlockHash);
 
     const deletedBlock = new RskBlock(
       block.rskBlockHeight,
