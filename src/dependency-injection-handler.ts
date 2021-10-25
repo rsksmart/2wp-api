@@ -11,6 +11,7 @@ import {RegisterBtcTransactionDataParser} from './services/register-btc-transact
 import {RskChainSyncService} from './services/rsk-chain-sync.service';
 import {RskNodeService} from './services/rsk-node.service';
 import {SyncStatusMongoService} from './services/sync-status-mongo.service';
+import {UnusedAddressService} from './services/unused-address.service';
 
 export class DependencyInjectionHandler {
   public static configureDependencies(app: Application): void {
@@ -104,5 +105,9 @@ export class DependencyInjectionHandler {
       .toClass(BridgeService)
       .inScope(BindingScope.SINGLETON);
 
+    app
+      .bind(ServicesBindings.UNUSED_ADDRESS_SERVICE)
+      .toClass(UnusedAddressService)
+      .inScope(BindingScope.SINGLETON);
   }
 }

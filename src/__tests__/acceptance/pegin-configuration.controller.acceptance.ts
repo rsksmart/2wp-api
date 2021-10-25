@@ -24,7 +24,7 @@ describe('Pegin configuration Controller', () => {
     expect(peginConf.maxValue > peginConf.minValue).to.be.true();
     expect(
       legacyRegex.test(peginConf.federationAddress) ||
-        segwitRegex.test(peginConf.federationAddress),
+      segwitRegex.test(peginConf.federationAddress),
     ).to.be.true();
     expect(peginConf.btcConfirmations).to.be.Number();
   });
