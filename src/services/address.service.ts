@@ -15,11 +15,9 @@ export interface AddressService {
 
 export class AddressServiceProvider implements Provider<AddressService> {
   constructor(
-    // txV2Provider must match the name property in the datasource json file
-    // @inject(DatasourcesBindings.TX_V2_PROVIDER)
+    // addressProvider must match the name property in the datasource json file
     @inject('datasources.addressProvider')
 
-    // protected dataSource: TxV2ProviderDataSource = new TxV2ProviderDataSource(),
     protected dataSource: AddressProviderDataSource = new AddressProviderDataSource(),
   ) { }
 

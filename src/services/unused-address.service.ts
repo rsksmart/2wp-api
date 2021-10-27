@@ -20,7 +20,7 @@ export class UnusedAddressService {
 
   public isUnusedAddresses(addresses: string[]): Promise<boolean> {
     return new Promise<boolean>(async (resolve, reject) => {
-      let isUnused: boolean | void = true;
+      let isUnused: boolean = true;
       for (let index = 0; index < addresses.length && isUnused; index += 1) {
         this.logger.debug(`Asking use for address ${addresses[index]}`);
         let addressReturned: BitcoinAddress = await this.bitcoinService.getAddressInfo(addresses[index]);

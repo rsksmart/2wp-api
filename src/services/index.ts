@@ -1,5 +1,5 @@
 
-export * from './address-service.service';
+export * from './address.service';
 export * from './bridge.service';
 export * from './broadcast.service';
 export * from './fee-level.service';

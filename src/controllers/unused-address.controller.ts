@@ -1,5 +1,3 @@
-// Uncomment these imports to begin using these cool features!
-
 import {inject} from '@loopback/core';
 import {getModelSchemaRef, post, requestBody} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
@@ -20,7 +18,7 @@ export class UnusedAddressController {
   @post('/unusedAddreses', {
     responses: {
       '200': {
-        description: 'an address information',
+        description: 'verify unused addresses',
         content: {
           'application/json': {
             schema: getModelSchemaRef(Boolean, {includeRelations: true}),
