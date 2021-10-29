@@ -56,13 +56,7 @@ export class BalanceController {
         )
         .then(addressBalances => {
           return Promise.all([
-            this.sessionRepository.set(
-              getBalance.sessionId,
-              new Session({
-                balance: 0,
-                addressList: addressBalances,
-              }),
-            ),
+            this.sessionRepository.addUxos(getBalance.sessionId, addressBalances),
             addressBalances,
           ]);
         })

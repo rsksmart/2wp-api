@@ -1,7 +1,7 @@
 import {inject} from '@loopback/core';
 import {DefaultKeyValueRepository} from '@loopback/repository';
 import {RedisDataSource} from '../datasources';
-import {AccountBalance, FeeAmountData, Session, TxInput, Utxo} from '../models';
+import {AccountBalance, AddressBalance, FeeAmountData, Session, TxInput, Utxo} from '../models';
 import * as constants from '../constants';
 
 export class SessionRepository extends DefaultKeyValueRepository<Session> {
@@ -46,10 +46,23 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
     fees: FeeAmountData,
   ): Promise<void> {
     return this.get(sessionId).then(sessionObject => {
-      sessionObject.inputs = inputs;
+      sessionObject.inputs = sessionObject.inputs ? [...sessionObject.inputs, ...inputs] : inputs;
       sessionObject.fees = fees;
       return this.set(sessionId, sessionObject);
     });
+  }
+
+  addUxos(sessionId: string, addressBalances: AddressBalance[]): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.get(sessionId)
+        .then((sessionObject) => {
+          sessionObject.addressList = sessionObject.addressList ?
+            [...sessionObject.addressList, ...addressBalances] : addressBalances;
+          return this.set(sessionId, sessionObject)
+        })
+        .then(resolve)
+        .catch(reject);
+    })
   }
 
   getFeeLevel(sessionId: string, feeLevel: string): Promise<number> {
