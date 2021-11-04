@@ -14,12 +14,6 @@ export class Session extends Entity {
   _id: string;
 
   @property({
-    type: 'number',
-    required: true,
-  })
-  balance: number;
-
-  @property({
     type: 'array',
     itemType: 'object',
     required: false,

@@ -4,7 +4,7 @@ import {remove0x} from './hex-utils';
 import {doubleSha256} from './sha256-utils';
 
 export const calculateBtcTxHash = (transaction: string) => {
-  let hash = doubleSha256(remove0x(transaction));
+  const hash = doubleSha256(remove0x(transaction));
   const bufferedHash = Buffer.from(hash, 'hex');
   bufferedHash.reverse();
   return bufferedHash.toString('hex');

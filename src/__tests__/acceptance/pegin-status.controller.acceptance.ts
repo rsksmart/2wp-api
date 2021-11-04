@@ -15,12 +15,9 @@ describe('Pegin Status Controller', () => {
   });
 
   it('invokes GET /get-pegin-status with a txId', async () => {
-    const response = await client
-      .get('/get-pegin-status')
-      .send({
-        txId: 'btcTxId',
-      })
+    const txId = '73be84f8b6fe2875d5988614aad7ba9c976e37c64a9af2099633a25f119f41f4';
+    return client
+      .get(`/pegin-status?txId=${txId}`)
       .expect(200);
-    console.log(response.text);
   });
 });
