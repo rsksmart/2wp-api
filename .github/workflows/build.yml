@@ -15,6 +15,10 @@ jobs:
           node-version: '14'
           cache: 'npm'
 
+      - name: Generate .env file
+        run: |
+          cp .env.test .env
+
       - name: Build & test project
         run: |
           npm ci
