@@ -33,15 +33,15 @@ const getRandomTransaction = (to: string = getRandomAddress(), input: string = e
   };
 };
 
-const getBlockWithNoBridgeData = (txCount: number = 1, height: number = 1, parentHash: string = getRandomHash()) => {
-  let txs = []
+const getBlockWithNoBridgeData = (txCount = 1, height = 1, parentHash: string = getRandomHash()) => {
+  const txs = []
   for (let i = 0; i < txCount; i++) {
     txs.push(getRandomTransaction());
   }
   return getBlockWithTheseTransactions(txs, height, parentHash);
 };
 
-const getBlockWithTheseTransactions = (transactions: Array<any>, height: number = 1, parentHash: string = getRandomHash()) => {
+const getBlockWithTheseTransactions = (transactions: Array<any>, height = 1, parentHash: string = getRandomHash()) => {
   return {
     hash: getRandomHash(),
     number: height,
@@ -53,30 +53,30 @@ const getBlockWithTheseTransactions = (transactions: Array<any>, height: number 
 describe('Service: NodeBridgeDataProvider', () => {
 
   it('ignores blocks with no bridge data', async () => {
-    let height = 1;
-    let rskNodeService = getRskNodeService();
+    const height = 1;
+    const rskNodeService = getRskNodeService();
     rskNodeService.getBlock.resolves(getBlockWithNoBridgeData(1, height))
 
     const thisService = new NodeBridgeDataProvider(rskNodeService);
-    let result = await thisService.getData(height);
+    const result = await thisService.getData(height);
 
     expect(result.block.height).to.be.equal(height);
     expect(result.data).to.be.empty;
   });
 
   it('includes transactions to the bridge, with no filters', async () => {
-    let height = 1;
-    let firstTx = getRandomTransaction();
-    let updateCollectionsTx = getUpdateCollectionsTransaction();
-    let peginTx = getPeginTransaction();
+    const height = 1;
+    const firstTx = getRandomTransaction();
+    const updateCollectionsTx = getUpdateCollectionsTransaction();
+    const peginTx = getPeginTransaction();
 
-    let rskNodeService = getRskNodeService();
+    const rskNodeService = getRskNodeService();
     rskNodeService.getBlock.resolves(getBlockWithTheseTransactions([firstTx, updateCollectionsTx, peginTx], height));
     rskNodeService.getTransactionReceipt.withArgs(updateCollectionsTx.hash).resolves(updateCollectionsTx);
     rskNodeService.getTransactionReceipt.withArgs(peginTx.hash).resolves(peginTx);
 
     const thisService = new NodeBridgeDataProvider(rskNodeService);
-    let result = await thisService.getData(height);
+    const result = await thisService.getData(height);
 
     expect(result.block.height).to.be.equal(height);
     expect(result.data).to.have.length(2); // Only includes Bridge txs
@@ -85,19 +85,19 @@ describe('Service: NodeBridgeDataProvider', () => {
   });
 
   it('includes transactions to the bridge, with pegin filter', async () => {
-    let height = 1;
-    let firstTx = getRandomTransaction();
-    let updateCollectionsTx = getUpdateCollectionsTransaction();
-    let peginTx = getPeginTransaction();
+    const height = 1;
+    const firstTx = getRandomTransaction();
+    const updateCollectionsTx = getUpdateCollectionsTransaction();
+    const peginTx = getPeginTransaction();
 
-    let rskNodeService = getRskNodeService();
+    const rskNodeService = getRskNodeService();
     rskNodeService.getBlock.resolves(getBlockWithTheseTransactions([firstTx, updateCollectionsTx, peginTx], height));
     rskNodeService.getTransactionReceipt.withArgs(updateCollectionsTx.hash).resolves(updateCollectionsTx);
     rskNodeService.getTransactionReceipt.withArgs(peginTx.hash).resolves(peginTx);
 
     const thisService = new NodeBridgeDataProvider(rskNodeService);
     thisService.configure([new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))]);
-    let result = await thisService.getData(height);
+    const result = await thisService.getData(height);
 
     expect(result.block.height).to.be.equal(height);
     expect(result.data).to.have.length(1); // Only includes pegin Bridge tx

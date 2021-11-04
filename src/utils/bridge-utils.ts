@@ -18,7 +18,7 @@ export enum BRIDGE_EVENTS {
 };
 
 export function getBridgeSignature(methodOrEvent: BRIDGE_METHODS | BRIDGE_EVENTS): string {
-  let method = bridgeInstance._jsonInterface.find((m: any) => m.name === methodOrEvent);
+  const method = bridgeInstance._jsonInterface.find((m: any) => m.name === methodOrEvent);
   if (!method) {
     throw new Error(methodOrEvent + " does not exist in Bridge abi");
   }
@@ -26,7 +26,7 @@ export function getBridgeSignature(methodOrEvent: BRIDGE_METHODS | BRIDGE_EVENTS
 }
 
 export function getBridgeMethodABI(method: BRIDGE_METHODS): any {
-  let abi = bridge.abi.find((m: any) => m.name === method);
+  const abi = bridge.abi.find((m: any) => m.name === method);
   if (!abi) {
     throw new Error(method + " does not exist in Bridge abi");
   }
@@ -34,7 +34,7 @@ export function getBridgeMethodABI(method: BRIDGE_METHODS): any {
 }
 
 export function encodeBridgeMethodParameters(method: BRIDGE_METHODS, args: Array<any>): any {
-  let abi = getBridgeMethodABI(method);
+  const abi = getBridgeMethodABI(method);
 
   return web3.eth.abi.encodeParameters(
     abi.inputs,
@@ -43,7 +43,7 @@ export function encodeBridgeMethodParameters(method: BRIDGE_METHODS, args: Array
 }
 
 export function decodeBridgeMethodParameters(method: BRIDGE_METHODS, data: string): any {
-  let abi = getBridgeMethodABI(method);
+  const abi = getBridgeMethodABI(method);
 
   return web3.eth.abi.decodeParameters(abi.inputs, data);
 }

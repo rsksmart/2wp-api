@@ -142,7 +142,7 @@ export class PeginStatusService {
   private getRskInfo(btcTxId: string): Promise<RskPeginStatus> {
     const rskStatus = new RskPeginStatus();
     return this.rskDataService.getById(ensure0x(btcTxId)).then(async (rskData) => {
-      if (!!rskData) {
+      if (rskData) {
         const bestHeight = await this.rskNodeService.getBlockNumber();
         rskStatus.confirmations = bestHeight - rskData.rskBlockHeight;
         rskStatus.recipientAddress = rskData.rskRecipient;

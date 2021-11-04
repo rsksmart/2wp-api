@@ -7,7 +7,6 @@ import {
   AccountBalance,
   AddressBalance,
   GetBalance,
-  Session,
   Utxo,
 } from '../models';
 import {repository} from '@loopback/repository';
