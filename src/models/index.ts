@@ -1,5 +1,6 @@
 export * from './account-balance.model';
 export * from './address-balance.model';
+export * from './address-list.model';
 export * from './broadcast-request.model';
 export * from './broadcast-response.model';
 export * from './create-pegin-tx-data.model';

@@ -1,16 +1,14 @@
-// Uncomment these imports to begin using these cool features!
-
 import {inject} from '@loopback/core';
-import {UtxoProvider} from '../services';
-import {post, getModelSchemaRef, requestBody} from '@loopback/rest';
+import {repository} from '@loopback/repository';
+import {getModelSchemaRef, post, requestBody} from '@loopback/rest';
 import {
   AccountBalance,
   AddressBalance,
   GetBalance,
-  Utxo,
+  Utxo
 } from '../models';
-import {repository} from '@loopback/repository';
 import {SessionRepository} from '../repositories';
+import {UtxoProvider} from '../services';
 
 export class BalanceController {
   constructor(
@@ -18,7 +16,7 @@ export class BalanceController {
     protected utxoProviderService: UtxoProvider,
     @repository(SessionRepository)
     public sessionRepository: SessionRepository,
-  ) {}
+  ) { }
 
   @post('/balance', {
     responses: {

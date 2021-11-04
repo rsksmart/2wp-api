@@ -1,16 +1,22 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
-import {TxV2Service} from '../';
+import {AddressService, TxV2Service} from '../';
+import {ServicesBindings} from '../../dependency-injection-bindings';
+import {BitcoinAddress} from '../../models/bitcoin-address.model';
 import {BitcoinTx} from '../../models/bitcoin-tx.model';
 
 export class BitcoinService {
   logger: Logger;
+  addressService: AddressService;
 
   constructor(
     @inject('services.TxV2Service')
     protected txV2Service: TxV2Service,
+    @inject(ServicesBindings.ADDRESS_SERVICE)
+    addressService: AddressService,
   ) {
     this.logger = getLogger('bitcoin-service');
+    this.addressService = addressService;
   }
 
   getTx(txId: string): Promise<BitcoinTx> {
@@ -39,4 +45,31 @@ export class BitcoinService {
         });
     });
   }
+
+  getAddressInfo(address: string): Promise<BitcoinAddress> {
+    return new Promise<BitcoinAddress>((resolve, reject) => {
+      this.addressService.addressProvider(address)
+        .then((tx: any) => {
+          const responseAddress = new BitcoinAddress();
+          responseAddress.address = tx[0].address;
+          responseAddress.balance = tx[0].balance;
+          responseAddress.page = tx[0].page;
+          responseAddress.totalPages = tx[0].totalPages;
+          responseAddress.itemsOnPage = tx[0].itemsOnPage;
+          responseAddress.totalReceived = tx[0].totalReceived;
+          responseAddress.totalSent = tx[0].totalSent;
+          responseAddress.unconfirmedBalance = tx[0].unconfirmedBalance;
+          responseAddress.unconfirmedTxs = tx[0].unconfirmedTxs;
+          responseAddress.txs = tx[0].txs;
+          if (responseAddress.txs > 0) {
+            responseAddress.txids = tx[0].txids;
+          }
+          resolve(responseAddress);
+        })
+        .catch(() => {
+          reject(`Error getting tx ${address}`);
+        });
+    });
+  }
+
 }

@@ -21,5 +21,7 @@ export const ServicesBindings = {
   RSK_CHAIN_SYNC_SERVICE: 'services.RskChainSyncService',
   REGISTER_BTC_TRANSACTION_DATA_PARSER: 'services.RegisterBtcTransactionDataParser',
   DAEMON_SERVICE: 'services.DaemonService',
-  BRIDGE_SERVICE: 'services.BridgeService'
+  BRIDGE_SERVICE: 'services.BridgeService',
+  ADDRESS_SERVICE: 'services.AddressService',
+  UNUSED_ADDRESS_SERVICE: 'services.UnusedAddressService'
 };
