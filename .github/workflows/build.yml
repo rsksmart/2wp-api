@@ -1,7 +1,6 @@
 name: 2wp-api build
 
-on:
-  push:
+on: [push, pull_request]
 
 jobs:
   checkout-and-build:
@@ -16,7 +15,11 @@ jobs:
           node-version: '14'
           cache: 'npm'
 
-      - name: Build project
+      - name: Generate .env file
+        run: |
+          cp .env.test .env
+
+      - name: Build & test project
         run: |
           npm ci
-          npm run build
+          npm run unit-test
