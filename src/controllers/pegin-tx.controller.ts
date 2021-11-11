@@ -132,6 +132,9 @@ export class PeginTxController {
     inputs.forEach(input => {
       capacity += input.amount ? +input.amount : 0;
     });
+    if (changeAddress === '') {
+      changeAddress = inputs[0].address;
+    }
     return new TxOutput({
       amount: new SatoshiBig(capacity, 'satoshi').minus(amountToTransferPlusFee).toSatoshiString(),
       address: changeAddress,
