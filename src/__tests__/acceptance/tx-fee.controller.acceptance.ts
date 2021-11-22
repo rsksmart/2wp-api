@@ -60,7 +60,7 @@ describe('Tx Fee Controller', () => {
       .send({
         sessionId: peginConf.body.sessionId,
         amount: 600,
-        accountType: constants.BITCOIN_SEGWIT_ADDRESS,
+        accountType: constants.BITCOIN_LEGACY_ADDRESS,
       })
       .expect(200);
     expect(typeof txFee.body.slow).to.eql('number');

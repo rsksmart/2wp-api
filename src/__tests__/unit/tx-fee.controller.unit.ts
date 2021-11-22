@@ -78,8 +78,7 @@ describe('tx Fee controller', () => {
   it('should store a optimal input list given based on fastFee amount', async () => {
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
       .resolves(utxos);
-    const fees = await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 96620, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
-    console.log(fees);
+    await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 96620, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
     expect(setInputs.calledOnceWith(sessionId, [
       new TxInput({
         address: 'address',
@@ -100,8 +99,7 @@ describe('tx Fee controller', () => {
   it('should add inputs to the optimal input list if the computed value with fee is not enough', async () => {
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
       .resolves(utxos);
-    const fees = await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 96621, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
-    console.log(fees);
+    await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 96621, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
     expect(setInputs.calledOnceWith(sessionId, [
       new TxInput({
         address: 'address',
