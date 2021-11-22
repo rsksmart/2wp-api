@@ -65,7 +65,7 @@ export class TxFeeController {
               +new SatoshiBig(fastAmount, 'btc').div(1000)
                 .mul(new SatoshiBig(inputSize, 'satoshi')).toSatoshiString(),
             );
-            if (inputs.length === 0) reject(new Error('There is no utxos stored'));
+            if (inputs.length === 0) reject(new Error('There are no utxos stored'));
             const totalBytes: SatoshiBig = new SatoshiBig((inputs.length * +inputSize + txBytes).toString(), 'satoshi');
             fees.fast = Number(
               totalBytes
