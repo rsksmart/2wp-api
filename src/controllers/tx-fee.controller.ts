@@ -59,8 +59,13 @@ export class TxFeeController {
           ([accountUtxoList, [fastAmount], [averageAmount], [lowAmount]]) => {
             inputs = this.selectOptimalInputs(
               accountUtxoList,
-              (+fastAmount / 1000) * txBytes + feeRequestData.amount,
+              +feeRequestData.amount,
+              +new SatoshiBig(fastAmount, 'btc').div(1000)
+                .mul(new SatoshiBig(txBytes, 'satoshi')).toSatoshiString(),
+              +new SatoshiBig(fastAmount, 'btc').div(1000)
+                .mul(new SatoshiBig(inputSize, 'satoshi')).toSatoshiString(),
             );
+            if (inputs.length === 0) reject(new Error('There is no utxos stored'));
             const totalBytes: SatoshiBig = new SatoshiBig((inputs.length * +inputSize + txBytes).toString(), 'satoshi');
             fees.fast = Number(
               totalBytes
@@ -92,9 +97,9 @@ export class TxFeeController {
     });
   }
 
-  selectOptimalInputs(utxoList: Utxo[], amountInSatoshis: number): TxInput[] {
+  selectOptimalInputs(utxoList: Utxo[], amountInSatoshis: number, baseFee: number, feePerInput: number): TxInput[] {
     const inputs: TxInput[] = [];
-    let remainingSatoshis = amountInSatoshis;
+    let remainingSatoshis = amountInSatoshis + baseFee;
     utxoList.sort((a, b) => b.satoshis - a.satoshis);
     utxoList.forEach((utxo) => {
       if (remainingSatoshis > 0) {
@@ -110,7 +115,7 @@ export class TxFeeController {
             amount: +utxo.satoshis,
           }),
         );
-        remainingSatoshis -= utxo.satoshis;
+        remainingSatoshis = remainingSatoshis - utxo.satoshis + feePerInput;
       }
     });
     return inputs;
