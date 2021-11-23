@@ -57,6 +57,7 @@ export class TxFeeController {
       ])
         .then(
           ([accountUtxoList, [fastAmount], [averageAmount], [lowAmount]]) => {
+            if (accountUtxoList.length === 0) reject(new Error('There are no utxos stored for this account type'));
             inputs = this.selectOptimalInputs(
               accountUtxoList,
               +feeRequestData.amount,
@@ -65,7 +66,7 @@ export class TxFeeController {
               +new SatoshiBig(fastAmount, 'btc').div(1000)
                 .mul(new SatoshiBig(inputSize, 'satoshi')).toSatoshiString(),
             );
-            if (inputs.length === 0) reject(new Error('There are no utxos stored'));
+            if (inputs.length === 0) reject(new Error('The required amount is not satisfied with the current utxo List'));
             const totalBytes: SatoshiBig = new SatoshiBig((inputs.length * +inputSize + txBytes).toString(), 'satoshi');
             fees.fast = Number(
               totalBytes
@@ -118,6 +119,6 @@ export class TxFeeController {
         remainingSatoshis = remainingSatoshis - utxo.satoshis + feePerInput;
       }
     });
-    return inputs;
+    return remainingSatoshis <= 0 ? inputs : [];
   }
 }
