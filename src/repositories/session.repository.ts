@@ -1,10 +1,14 @@
 import {inject} from '@loopback/core';
 import {DefaultKeyValueRepository} from '@loopback/repository';
 import {RedisDataSource} from '../datasources';
-import {AccountBalance, AddressBalance, FeeAmountData, Session, TxInput, Utxo} from '../models';
+import {AddressBalance, FeeAmountData, Session, TxInput, Utxo} from '../models';
 import * as constants from '../constants';
+import {BtcAddressUtils} from '../utils/btc-utils';
 
 export class SessionRepository extends DefaultKeyValueRepository<Session> {
+
+  btcAddressUtils: BtcAddressUtils = new BtcAddressUtils();
+
   constructor(@inject('datasources.Redis') dataSource: RedisDataSource) {
     super(Session, dataSource);
   }
@@ -16,8 +20,7 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
         .then(({addressList}) => {
           addressList?.forEach(({address, utxoList}) => {
             if (
-              utxoList &&
-              AccountBalance.getAccountType(address) === accountType
+              utxoList && this.btcAddressUtils.validateAddress(address).addressType === accountType
             )
               finalUtxoList = finalUtxoList.concat(
                 utxoList.map(utxo => Object.assign({address}, utxo)),

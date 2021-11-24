@@ -1,7 +1,15 @@
 import {expect} from '@loopback/testlab';
 import {BtcAddressUtils, calculateBtcTxHash} from '../../../utils/btc-utils';
+import {
+  getLegacyAddressList,
+  getNativeSegwitAddressList,
+  getSewitAddressList,
+} from '../../helper';
+import * as constants from '../../../constants';
 
 describe('function: getPeginSatusInfo', () => {
+  const btcAddressUtils = new BtcAddressUtils();
+
   it('getRefundAddress P2SH valid', async () => {
     const utility = new BtcAddressUtils();
     const result = utility.getRefundAddress('02379ad9b7ba73bdc1e29e286e014d4e2e1f6884e3');
@@ -17,20 +25,20 @@ describe('function: getPeginSatusInfo', () => {
   it('getRefundAddress P2SH invalid', async () => {
     const utility = new BtcAddressUtils();
     const result = utility.getRefundAddress('02ccc198c15d8344509a85a8f4226636');
-    expect(result).to.be.empty;
+    expect(result).to.be.empty();
   });
 
   it('getRefundAddress P2PKH invalid', async () => {
 
     const utility = new BtcAddressUtils();
     const result = utility.getRefundAddress('01379ad9b7ba73bdc1d4e2e1f6884e3');
-    expect(result).to.be.empty;
+    expect(result).to.be.empty();
   });
 
   it('getRefundAddress type invalid', async () => {
     const utility = new BtcAddressUtils();
     const result = utility.getRefundAddress('05379ad9b7ba73bdc1e29e286e014d4e2e1f6884e3');
-    expect(result).to.be.empty;
+    expect(result).to.be.empty();
   });
 
   it('calculateBtcTxHash calculate tx hash with segwit ', async () => {
@@ -41,6 +49,27 @@ describe('function: getPeginSatusInfo', () => {
   it('calculateBtcTxHash calculate tx hash without segwit ', async () => {
     const result = calculateBtcTxHash('0100000001c5c559fb5b35d31a8ae075c0b756e41a55281bb84658aaaf7f736f6f812f01e3020000006b483045022100f9de3d30ac040ee1d1541d54d335afd70862bfc8e701297e28fbcd4e3925b342022063562b1ae303069ad471cffeb7b488752e3ab564191a715a14a2f5623705c8f1012102968f0a643d7857c2a70c4a6f5b2d4ebcfdaecbb1fb7b9ac36cf41eee40b1379fffffffff030000000000000000306a2e52534b5401224d0b72bab9342f898c633ef187abff8a96c0fa014a74c48b9e3a5644adb734ab536cab6ae28e85ce84a107000000000017a91457f76bf3ab818811c740929ac7a5e3ef8c7a34b98739a01800000000001976a914c7432845bef39a02855fdda2e20e00586765060988ac00000000');
     expect(result).to.be.equal('1722f68a17b151894cb62b7b2971e62e16412feb57ca714d231d686d1a661f96');
+  });
+
+  it('Validate the account type given an address', () => {
+    getLegacyAddressList().forEach((walletAddress) => {
+      const {addressType} = btcAddressUtils.validateAddress(walletAddress.address);
+      expect(addressType).to.eql(
+        constants.BITCOIN_LEGACY_ADDRESS,
+      );
+    });
+    getNativeSegwitAddressList().forEach((walletAddress) => {
+      const {addressType} = btcAddressUtils.validateAddress(walletAddress.address);
+      expect(addressType).to.eql(
+        constants.BITCOIN_NATIVE_SEGWIT_ADDRESS,
+      );
+    });
+    getSewitAddressList().forEach((walletAddress) => {
+      const {addressType} = btcAddressUtils.validateAddress(walletAddress.address);
+      expect(addressType).to.eql(
+        constants.BITCOIN_SEGWIT_ADDRESS,
+      );
+    });
   });
 
 });

@@ -2,6 +2,10 @@ import base58 from 'bs58';
 import {getLogger, Logger} from 'log4js';
 import {remove0x} from './hex-utils';
 import {doubleSha256} from './sha256-utils';
+import * as constants from '../constants';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import peginAddressVerifier from 'pegin-address-verificator';
 
 export const calculateBtcTxHash = (transaction: string) => {
   const hash = doubleSha256(remove0x(transaction));
@@ -9,6 +13,8 @@ export const calculateBtcTxHash = (transaction: string) => {
   bufferedHash.reverse();
   return bufferedHash.toString('hex');
 };
+
+export type AddressType = 'BITCOIN_LEGACY_ADDRESS' | 'BITCOIN_SEGWIT_ADDRESS' | 'BITCOIN_NATIVE_SEGWIT_ADDRESS' | 'BITCOIN_MULTISIGNATURE_ADDRESS';
 
 export class BtcAddressUtils {
   private logger: Logger;
@@ -75,5 +81,28 @@ export class BtcAddressUtils {
       this.logger.warn("Error getting BTC refund address");
     }
     return '';
+  }
+
+  public validateAddress(address: string): {valid: boolean; addressType: AddressType} {
+    const network = process.env.NETWORK ?? constants.NETWORK_TESTNET;
+    const addressInfo = peginAddressVerifier.getAddressInformation(address)
+    let addressType: AddressType = constants.BITCOIN_MULTISIGNATURE_ADDRESS;
+    const valid = addressInfo ? addressInfo.network === network : false;
+    if (valid) {
+      switch (addressInfo.type) {
+        case 'p2pkh':
+          addressType = constants.BITCOIN_LEGACY_ADDRESS;
+          break;
+        case 'p2sh':
+          addressType = constants.BITCOIN_SEGWIT_ADDRESS;
+          break;
+        case 'bech32':
+          addressType = constants.BITCOIN_NATIVE_SEGWIT_ADDRESS;
+          break;
+        default:
+          addressType = constants.BITCOIN_MULTISIGNATURE_ADDRESS;
+      }
+    }
+    return { valid, addressType};
   }
 }

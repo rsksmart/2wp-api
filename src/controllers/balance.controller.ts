@@ -5,12 +5,14 @@ import {
   AccountBalance,
   AddressBalance,
   GetBalance,
-  Utxo
+  Utxo, WalletAddress,
 } from '../models';
 import {SessionRepository} from '../repositories';
 import {UtxoProvider} from '../services';
+import {BtcAddressUtils} from '../utils/btc-utils';
 
 export class BalanceController {
+  btcAddressUtils: BtcAddressUtils = new BtcAddressUtils();
   constructor(
     @inject('services.UtxoProvider')
     protected utxoProviderService: UtxoProvider,
@@ -35,18 +37,21 @@ export class BalanceController {
     getBalance: GetBalance,
   ): Promise<AccountBalance> {
     return new Promise<AccountBalance>((resolve, reject) => {
-      const eventualUtxos = getBalance.addressList.map(walletAddress =>
+      const {areAllValid, classifiedList} = this.checkAndClassifyAddressList(getBalance.addressList);
+      if (!areAllValid) reject(new Error('Invalid address list provided, please check'));
+      const eventualUtxos = classifiedList.map((walletAddress) =>
         Promise.all([
-          walletAddress.address,
+          walletAddress,
           this.utxoProviderService.utxoProvider(walletAddress.address),
         ]),
       );
       Promise.all(eventualUtxos)
-        .then(addressUtxos =>
+        .then((addressUtxos) =>
           addressUtxos.map(
-            ([address, utxoList]) =>
+            ([walletAddress, utxoList]) =>
               new AddressBalance({
-                address,
+                address: walletAddress.address,
+                addressType: walletAddress.addressType,
                 utxoList: utxoList.map(uxto => new Utxo(uxto)),
               }),
           ),
@@ -68,5 +73,17 @@ export class BalanceController {
         })
         .catch(reject);
     });
+  }
+
+  private checkAndClassifyAddressList(addressList: WalletAddress[])
+    :{ areAllValid: boolean; classifiedList: WalletAddress[]} {
+    let areAllValid = true;
+    const classifiedList = addressList;
+    for (const walletAddress of addressList) {
+      const { valid, addressType } = this.btcAddressUtils.validateAddress(walletAddress.address);
+      areAllValid = areAllValid && valid;
+      if (valid) walletAddress.addressType = addressType;
+    }
+    return {areAllValid, classifiedList};
   }
 }
