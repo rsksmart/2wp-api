@@ -49,7 +49,7 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
     fees: FeeAmountData,
   ): Promise<void> {
     return this.get(sessionId).then(sessionObject => {
-      sessionObject.inputs = sessionObject.inputs ? [...sessionObject.inputs, ...inputs] : inputs;
+      sessionObject.inputs = inputs;
       sessionObject.fees = fees;
       return this.set(sessionId, sessionObject);
     });
