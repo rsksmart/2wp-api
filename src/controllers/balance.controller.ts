@@ -79,11 +79,11 @@ export class BalanceController {
     :{ areAllValid: boolean; classifiedList: WalletAddress[]} {
     let areAllValid = true;
     const classifiedList = addressList;
-    addressList.forEach((walletAddress) => {
+    for (const walletAddress of addressList) {
       const { valid, addressType } = this.btcAddressUtils.validateAddress(walletAddress.address);
       areAllValid = areAllValid && valid;
       if (valid) walletAddress.addressType = addressType;
-    });
+    }
     return {areAllValid, classifiedList};
   }
 }
