@@ -88,7 +88,7 @@ describe('tx Fee controller', () => {
   it('should store a optimal input list given based on fastFee amount', async () => {
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
       .resolves(utxos1);
-    await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 96620, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
+    await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 97410, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
     expect(setInputs.calledOnceWith(sessionId, [
       new TxInput({
         address: 'address',
@@ -101,15 +101,15 @@ describe('tx Fee controller', () => {
         amount: 100000,
       }),
     ], new FeeAmountData({
-      slow: 338,
-      average: 1690,
-      fast: 3380,
+      slow: 259,
+      average: 1295,
+      fast: 2590,
     }))).to.be.true();
   });
   it('should add inputs to the optimal input list if the computed value with fee is not enough', async () => {
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
       .resolves(utxos1);
-    await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 96621, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
+    await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 97411, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
     expect(setInputs.calledOnceWith(sessionId, [
       new TxInput({
         address: 'address',
@@ -132,15 +132,15 @@ describe('tx Fee controller', () => {
         amount: 100000,
       }),
     ], new FeeAmountData({
-      slow: 518,
-      average: 2590,
-      fast: 5180,
+      slow: 406,
+      average: 2030,
+      fast: 4060,
     }))).to.be.true();
   });
   it('should reject the call if the required amount is not satisfied with the utxo sum',   () => {
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
       .resolves(utxos2);
-    return expect(txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 96621, accountType: constants.BITCOIN_LEGACY_ADDRESS})))
+    return expect(txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 97411, accountType: constants.BITCOIN_LEGACY_ADDRESS})))
       .to.be.rejectedWith('The required amount is not satisfied with the current utxo List');
   });
   it('Should reject the call if there are no utxos stored for that ', () => {

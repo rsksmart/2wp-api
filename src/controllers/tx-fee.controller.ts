@@ -44,8 +44,9 @@ export class TxFeeController {
         average: 0,
         fast: 0,
       });
-      const inputSize = process.env.INPUT_SIZE ?? 180;
-      const txBytes = 3 * 34 + 10 + 46;
+      const inputSize = 32 + 5 + 106 + 4;
+      const outputsSize = 3 * 34;
+      const txBytes = outputsSize + 10 ;
       Promise.all([
         this.sessionRepository.findAccountUtxos(
           feeRequestData.sessionId,
