@@ -99,12 +99,12 @@ export class TxFeeController {
     });
   }
 
-  selectOptimalInputs(utxoList: Utxo[], amountInSatoshis: number, baseFee: number, feePerInput: number): TxInput[] {
+  selectOptimalInputs(utxoList: Utxo[], amountToSendInSatoshis: number, baseFee: number, feePerInput: number): TxInput[] {
     const inputs: TxInput[] = [];
     let remainingSatoshisToBePaid = amountToSendInSatoshis + baseFee;
     utxoList.sort((a, b) => b.satoshis - a.satoshis);
     utxoList.forEach((utxo) => {
-      if (remainingSatoshis > 0) {
+      if (remainingSatoshisToBePaid > 0) {
         inputs.push(
           new TxInput({
             address: utxo.address,
@@ -120,6 +120,6 @@ export class TxFeeController {
         remainingSatoshisToBePaid = remainingSatoshisToBePaid + feePerInput - utxo.satoshis;
       }
     });
-    return remainingSatoshis <= 0 ? inputs : [];
+    return remainingSatoshisToBePaid <= 0 ? inputs : [];
   }
 }
