@@ -44,8 +44,9 @@ export class TxFeeController {
         average: 0,
         fast: 0,
       });
-      const inputSize = process.env.INPUT_SIZE ?? 180;
-      const txBytes = 3 * 34 + 10 + 46;
+      const inputSize = 32 + 5 + 106 + 4;
+      const outputsSize = 3 * 34;
+      const txBytes = outputsSize + 10 ;
       Promise.all([
         this.sessionRepository.findAccountUtxos(
           feeRequestData.sessionId,
@@ -57,10 +58,16 @@ export class TxFeeController {
       ])
         .then(
           ([accountUtxoList, [fastAmount], [averageAmount], [lowAmount]]) => {
+            if (accountUtxoList.length === 0) reject(new Error('There are no utxos stored for this account type'));
             inputs = this.selectOptimalInputs(
               accountUtxoList,
-              (+fastAmount / 1000) * txBytes + feeRequestData.amount,
+              +feeRequestData.amount,
+              +new SatoshiBig(fastAmount, 'btc').div(1000)
+                .mul(new SatoshiBig(txBytes, 'satoshi')).toSatoshiString(),
+              +new SatoshiBig(fastAmount, 'btc').div(1000)
+                .mul(new SatoshiBig(inputSize, 'satoshi')).toSatoshiString(),
             );
+            if (inputs.length === 0) reject(new Error('The required amount is not satisfied with the current utxo List'));
             const totalBytes: SatoshiBig = new SatoshiBig((inputs.length * +inputSize + txBytes).toString(), 'satoshi');
             fees.fast = Number(
               totalBytes
@@ -92,12 +99,12 @@ export class TxFeeController {
     });
   }
 
-  selectOptimalInputs(utxoList: Utxo[], amountInSatoshis: number): TxInput[] {
+  selectOptimalInputs(utxoList: Utxo[], amountToSendInSatoshis: number, baseFee: number, feePerInput: number): TxInput[] {
     const inputs: TxInput[] = [];
-    let remainingSatoshis = amountInSatoshis;
+    let remainingSatoshisToBePaid = amountToSendInSatoshis + baseFee;
     utxoList.sort((a, b) => b.satoshis - a.satoshis);
     utxoList.forEach((utxo) => {
-      if (remainingSatoshis > 0) {
+      if (remainingSatoshisToBePaid > 0) {
         inputs.push(
           new TxInput({
             address: utxo.address,
@@ -110,9 +117,9 @@ export class TxFeeController {
             amount: +utxo.satoshis,
           }),
         );
-        remainingSatoshis -= utxo.satoshis;
+        remainingSatoshisToBePaid = remainingSatoshisToBePaid + feePerInput - utxo.satoshis;
       }
     });
-    return inputs;
+    return remainingSatoshisToBePaid <= 0 ? inputs : [];
   }
 }
