@@ -9,6 +9,7 @@ import {config} from 'dotenv';
 import {sinon} from '@loopback/testlab/dist/sinon';
 import {FeeAmountData, FeeRequestData, TxInput} from '../../models';
 import * as constants from '../../constants';
+import SatoshiBig from '../../utils/SatoshiBig';
 
 config();
 
@@ -20,6 +21,12 @@ describe('tx Fee controller', () => {
   let sessionRepository: StubbedInstanceWithSinonAccessor<SessionRepository>;
   let txFeeController: TxFeeController;
   const sessionId = 'sessionId';
+  const inputSize = 32 + 5 + 106 + 4;
+  const outputsSize = 3 * 34;
+  const txBytes = outputsSize + 10 ;
+  const fastAmount = new SatoshiBig('0.0001', 'btc');
+  const averageAmount = new SatoshiBig('0.00005', 'btc');
+  const lowAmount = new SatoshiBig('0.00001', 'btc');
   beforeEach(resetRepositories);
 
   const utxos1 = [
@@ -81,9 +88,9 @@ describe('tx Fee controller', () => {
     const fast = process.env.FAST_MINING_BLOCK ?? 1;
     const average = process.env.AVERAGE_MINING_BLOCK ?? 6;
     const low = process.env.LOW_MINING_BLOCK ?? 12;
-    feeProvider.withArgs(+fast).resolves(['0.0001']);
-    feeProvider.withArgs(+average).resolves(['0.00005']);
-    feeProvider.withArgs(+low).resolves(['0.00001']);
+    feeProvider.withArgs(+fast).resolves([fastAmount.toBTCString()]);
+    feeProvider.withArgs(+average).resolves([averageAmount.toBTCString()]);
+    feeProvider.withArgs(+low).resolves([lowAmount.toBTCString()]);
   }
   it('should store a optimal input list given based on fastFee amount', async () => {
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
@@ -104,6 +111,7 @@ describe('tx Fee controller', () => {
       slow: 259,
       average: 1295,
       fast: 2590,
+      wereInputsStored: true,
     }))).to.be.true();
   });
   it('should add inputs to the optimal input list if the computed value with fee is not enough', async () => {
@@ -135,13 +143,32 @@ describe('tx Fee controller', () => {
       slow: 406,
       average: 2030,
       fast: 4060,
+      wereInputsStored: true,
     }))).to.be.true();
   });
-  it('should reject the call if the required amount is not satisfied with the utxo sum',   () => {
+  it('should return the fee of the required amount even if there are no enough balance, and should be the max fee given all utxos', async () => {
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
-      .resolves(utxos2);
-    return expect(txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 97411, accountType: constants.BITCOIN_LEGACY_ADDRESS})))
-      .to.be.rejectedWith('The required amount is not satisfied with the current utxo List');
+      .resolves(utxos1);
+    const amount = 393001;
+    const fees = await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
+    const totalBytes: SatoshiBig = new SatoshiBig((utxos1.length * +inputSize + txBytes).toString(), 'satoshi');
+    expect(setInputs.notCalled).to.be.true();
+    expect(fees).to.be.eql(new FeeAmountData({
+      slow: Number(
+        totalBytes
+          .mul(lowAmount.div(1000))
+          .toSatoshiString()
+      ),
+      average: Number(
+        totalBytes
+          .mul(averageAmount.div(1000))
+          .toSatoshiString()
+      ),
+      fast: Number(totalBytes
+        .mul(fastAmount.div(1000))
+        .toSatoshiString()),
+      wereInputsStored: false,
+    }));
   });
   it('Should reject the call if there are no utxos stored for that ', () => {
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)

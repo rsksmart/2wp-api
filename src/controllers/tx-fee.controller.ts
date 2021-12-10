@@ -44,11 +44,11 @@ export class TxFeeController {
       const fast = process.env.FAST_MINING_BLOCK ?? 1;
       const average = process.env.AVERAGE_MINING_BLOCK ?? 6;
       const low = process.env.LOW_MINING_BLOCK ?? 12;
-      let inputs: TxInput[] = [];
       const fees: FeeAmountData = new FeeAmountData({
         slow: 0,
         average: 0,
         fast: 0,
+        wereInputsStored: false,
       });
       const inputSize = 32 + 5 + 106 + 4;
       const outputsSize = 3 * 34;
@@ -65,7 +65,7 @@ export class TxFeeController {
         .then(
           ([accountUtxoList, [fastAmount], [averageAmount], [lowAmount]]) => {
             if (accountUtxoList.length === 0) reject(new Error('There are no utxos stored for this account type'));
-            inputs = this.selectOptimalInputs(
+            const {selectedInputs, enoughBalance} = this.selectOptimalInputs(
               accountUtxoList,
               +feeRequestData.amount,
               +new SatoshiBig(fastAmount, 'btc').div(1000)
@@ -73,8 +73,8 @@ export class TxFeeController {
               +new SatoshiBig(fastAmount, 'btc').div(1000)
                 .mul(new SatoshiBig(inputSize, 'satoshi')).toSatoshiString(),
             );
-            if (inputs.length === 0) reject(new Error('The required amount is not satisfied with the current utxo List'));
-            const totalBytes: SatoshiBig = new SatoshiBig((inputs.length * +inputSize + txBytes).toString(), 'satoshi');
+            if (selectedInputs.length === 0) reject(new Error('The required amount is not satisfied with the current utxo List'));
+            const totalBytes: SatoshiBig = new SatoshiBig((selectedInputs.length * +inputSize + txBytes).toString(), 'satoshi');
             fees.fast = Number(
               totalBytes
                 .mul(new SatoshiBig(fastAmount, 'btc').div(1000))
@@ -90,13 +90,14 @@ export class TxFeeController {
                 .mul(new SatoshiBig(lowAmount, 'btc').div(1000))
                 .toSatoshiString()
             );
+            fees.wereInputsStored = enoughBalance;
             return Promise.all([
               fees,
-              this.sessionRepository.setInputs(
+              enoughBalance ? this.sessionRepository.setInputs(
                 feeRequestData.sessionId,
-                inputs,
+                selectedInputs,
                 fees,
-              ),
+              ): null,
             ]);
           },
         )
@@ -111,7 +112,8 @@ export class TxFeeController {
     });
   }
 
-  selectOptimalInputs(utxoList: Utxo[], amountToSendInSatoshis: number, baseFee: number, feePerInput: number): TxInput[] {
+  selectOptimalInputs(utxoList: Utxo[], amountToSendInSatoshis: number, baseFee: number, feePerInput: number):
+    { selectedInputs:TxInput[]; enoughBalance: boolean} {
     const inputs: TxInput[] = [];
     let remainingSatoshisToBePaid = amountToSendInSatoshis + baseFee;
     utxoList.sort((a, b) => b.satoshis - a.satoshis);
@@ -132,6 +134,9 @@ export class TxFeeController {
         remainingSatoshisToBePaid = remainingSatoshisToBePaid + feePerInput - utxo.satoshis;
       }
     });
-    return remainingSatoshisToBePaid <= 0 ? inputs : [];
+    return {
+      selectedInputs: inputs,
+      enoughBalance: remainingSatoshisToBePaid <= 0
+    };
   }
 }
