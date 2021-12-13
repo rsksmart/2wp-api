@@ -28,11 +28,18 @@ export class TxController {
     },
   })
   getTx(txId: string): Promise<Tx> {
+    this.logger.debug(`[getTx] started with txId: ${txId}`);
     return new Promise<Tx>((resolve, reject) => {
       this.txService
         .txProvider(txId)
-        .then(([tx] ) => resolve(new Tx(tx)))
-        .catch(reject);
+        .then(([tx]) => {
+          this.logger.trace(`[getTx] found tx!`);
+          return resolve(new Tx(tx));
+        })
+        .catch((reason) => {
+          this.logger.warn(`[getTx] got an error ${reason}`);
+          return reject(reason);
+        });
     });
   }
 }

@@ -2,6 +2,7 @@ import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
 import {config} from 'dotenv';
+import {getLogger, Logger} from 'log4js';
 import {FeeAmountData, FeeRequestData, TxInput, Utxo} from '../models';
 import {SessionRepository} from '../repositories';
 import {FeeLevel} from '../services';
@@ -10,12 +11,16 @@ import SatoshiBig from '../utils/SatoshiBig';
 config();
 
 export class TxFeeController {
+  logger: Logger;
+
   constructor(
     @repository(SessionRepository)
     public sessionRepository: SessionRepository,
     @inject('services.FeeLevel')
     protected feeLevelProviderService: FeeLevel,
-  ) {}
+  ) {
+    this.logger = getLogger('tx-fee-controller');
+  }
 
   @post('/tx-fee')
   @response(200, {
@@ -34,6 +39,7 @@ export class TxFeeController {
     })
     feeRequestData: FeeRequestData,
   ): Promise<FeeAmountData> {
+    this.logger.debug(`[getTxFee] started with session: ${feeRequestData.sessionId}`);
     return new Promise<FeeAmountData>((resolve, reject) => {
       const fast = process.env.FAST_MINING_BLOCK ?? 1;
       const average = process.env.AVERAGE_MINING_BLOCK ?? 6;
@@ -46,7 +52,7 @@ export class TxFeeController {
       });
       const inputSize = 32 + 5 + 106 + 4;
       const outputsSize = 3 * 34;
-      const txBytes = outputsSize + 10 ;
+      const txBytes = outputsSize + 10;
       Promise.all([
         this.sessionRepository.findAccountUtxos(
           feeRequestData.sessionId,
@@ -94,8 +100,14 @@ export class TxFeeController {
             ]);
           },
         )
-        .then(([feeObj]) => resolve(feeObj))
-        .catch(reject);
+        .then(([feeObj]) => {
+          this.logger.trace(`[getTxFee] Finished fee calculation!`);
+          return resolve(feeObj);
+        })
+        .catch((reason) => {
+          this.logger.warn(`[getTx] There was an error: ${reason}`);
+          return reject(reason);
+        });
     });
   }
 
