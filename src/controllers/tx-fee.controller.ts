@@ -64,6 +64,7 @@ export class TxFeeController {
       ])
         .then(
           ([accountUtxoList, [fastAmount], [averageAmount], [lowAmount]]) => {
+            this.logger.trace(`[getTxFee] got fees: fast: ${fastAmount}. average: ${averageAmount}, low: ${lowAmount}`);
             if (accountUtxoList.length === 0) reject(new Error('There are no utxos stored for this account type'));
             const {selectedInputs, enoughBalance} = this.selectOptimalInputs(
               accountUtxoList,
@@ -91,13 +92,15 @@ export class TxFeeController {
                 .toSatoshiString()
             );
             fees.wereInputsStored = enoughBalance;
+            this.logger.trace(`[getTxFee] Calculated fees for the peg-in. fast: ${fees.fast}. average: ${fees.average}. slow: ${fees.slow}`);
+            this.logger.trace(`[getTxFee] ${enoughBalance ? '' : 'not'} enough balance to pay fees.`);
             return Promise.all([
               fees,
               enoughBalance ? this.sessionRepository.setInputs(
                 feeRequestData.sessionId,
                 selectedInputs,
                 fees,
-              ): null,
+              ) : null,
             ]);
           },
         )
@@ -112,8 +115,7 @@ export class TxFeeController {
     });
   }
 
-  selectOptimalInputs(utxoList: Utxo[], amountToSendInSatoshis: number, baseFee: number, feePerInput: number):
-    { selectedInputs:TxInput[]; enoughBalance: boolean} {
+  selectOptimalInputs(utxoList: Utxo[], amountToSendInSatoshis: number, baseFee: number, feePerInput: number): {selectedInputs: TxInput[]; enoughBalance: boolean} {
     const inputs: TxInput[] = [];
     let remainingSatoshisToBePaid = amountToSendInSatoshis + baseFee;
     utxoList.sort((a, b) => b.satoshis - a.satoshis);
