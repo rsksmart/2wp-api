@@ -1,6 +1,7 @@
 import {repository} from '@loopback/repository';
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
 import {config} from 'dotenv';
+import {getLogger, Logger} from 'log4js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
@@ -12,10 +13,14 @@ import SatoshiBig from '../utils/SatoshiBig';
 config();
 
 export class PeginTxController {
+  logger: Logger;
+
   constructor(
     @repository(SessionRepository)
     public sessionRepository: SessionRepository,
-  ) { }
+  ) {
+    this.logger = getLogger('tx-fee-controller');
+  }
 
   @post('/pegin-tx')
   @response(201, {
@@ -34,6 +39,7 @@ export class PeginTxController {
     })
     createPeginTxData: CreatePeginTxData,
   ): Promise<NormalizedTx> {
+    this.logger.debug(`[create] started with session: ${createPeginTxData.sessionId}`);
     return new Promise<NormalizedTx>((resolve, reject) => {
       const outputs: TxOutput[] = [];
       const network = process.env.NETWORK ?? 'testnet';
@@ -77,6 +83,7 @@ export class PeginTxController {
               fee,
             ),
           );
+          this.logger.trace('[create] Created pegin successfully!');
           resolve(
             new NormalizedTx({
               inputs,
@@ -84,7 +91,10 @@ export class PeginTxController {
             }),
           );
         })
-        .catch(reject);
+        .catch((reason) => {
+          this.logger.warn(`[create] There was an error: ${reason}`);
+          return reject(reason);
+        });
     });
   }
 
