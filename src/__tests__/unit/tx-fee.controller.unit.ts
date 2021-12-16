@@ -10,6 +10,7 @@ import {sinon} from '@loopback/testlab/dist/sinon';
 import {FeeAmountData, FeeRequestData, TxInput} from '../../models';
 import * as constants from '../../constants';
 import SatoshiBig from '../../utils/SatoshiBig';
+import Big from 'big.js';
 
 config();
 
@@ -108,7 +109,7 @@ describe('tx Fee controller', () => {
         amount: 100000,
       }),
     ], new FeeAmountData({
-      slow: 259,
+      slow: 280,
       average: 1295,
       fast: 2590,
       wereInputsStored: true,
@@ -151,22 +152,22 @@ describe('tx Fee controller', () => {
       .resolves(utxos1);
     const amount = 393001;
     const fees = await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
-    const totalBytes: SatoshiBig = new SatoshiBig((utxos1.length * +inputSize + txBytes).toString(), 'satoshi');
+    const totalBytes: Big = new Big((utxos1.length * +inputSize + txBytes).toString());
     expect(setInputs.notCalled).to.be.true();
     expect(fees).to.be.eql(new FeeAmountData({
       slow: Number(
         totalBytes
           .mul(lowAmount.div(1000))
-          .toSatoshiString()
+          .toString()
       ),
       average: Number(
         totalBytes
           .mul(averageAmount.div(1000))
-          .toSatoshiString()
+          .toString()
       ),
       fast: Number(totalBytes
         .mul(fastAmount.div(1000))
-        .toSatoshiString()),
+        .toString()),
       wereInputsStored: false,
     }));
   });
@@ -175,5 +176,33 @@ describe('tx Fee controller', () => {
       .resolves([]);
     return expect(txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 100, accountType: constants.BITCOIN_LEGACY_ADDRESS})))
       .to.be.rejectedWith('There are no utxos stored for this account type');
-  })
+  });
+  it(`should ensure the fee amount are at least ${constants.BITCOIN_MIN_SATOSHI_FEE} satoshis `, async () => {
+    findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
+      .resolves(utxos1);
+    const amount = 80000;
+    const fees = await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
+    expect(fees.fast).to.be.greaterThanOrEqual(constants.BITCOIN_MIN_SATOSHI_FEE);
+    expect(fees.average).to.be.greaterThanOrEqual(constants.BITCOIN_MIN_SATOSHI_FEE);
+    expect(fees.slow).to.be.greaterThanOrEqual(constants.BITCOIN_MIN_SATOSHI_FEE);
+  });
+  it(`should ensure the fee amount are ${constants.BITCOIN_MAX_SATOSHI_FEE} satoshis at the most`, async () => {
+    const utxo = {
+      address: 'address',
+      txid: 'txId1',
+      vout: 0,
+      amount: '0.000001',
+      satoshis: 1000,
+      height: 12055,
+      confirmations: 3500,
+    };
+    const largeUtxos = Array.from(Array(19200).keys()).map(() => utxo);
+    findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
+      .resolves(largeUtxos);
+    const amount = 18000000;
+    const fees = await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
+    expect(fees.fast).to.be.belowOrEqual(constants.BITCOIN_MAX_SATOSHI_FEE);
+    expect(fees.average).to.be.belowOrEqual(constants.BITCOIN_MAX_SATOSHI_FEE);
+    expect(fees.slow).to.be.belowOrEqual(constants.BITCOIN_MAX_SATOSHI_FEE);
+  });
 });
