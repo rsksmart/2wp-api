@@ -36,7 +36,7 @@ export class PeginConfigurationController {
       balance: 0,
     };
     const ttlSessionDBExpire =
-      process.env.TTL_SESSIONDB_EXPIRE_MILLISECONDS ?? 10800;
+      process.env.TTL_SESSIONDB_EXPIRE_MILLISECONDS ?? 3600000;
     await this.sessionRepository.set(session._id, new Session(session));
     await this.sessionRepository.expire(session._id, +ttlSessionDBExpire);
     const bridgeService = new BridgeService();

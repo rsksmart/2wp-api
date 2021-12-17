@@ -54,7 +54,7 @@ describe('Session Repository', () => {
       accountType: constants.BITCOIN_LEGACY_ADDRESS,
     });
     const feeAmount = await controller.getTxFee(request);
-    expect(feeAmount.slow).to.eql(259);
+    expect(feeAmount.slow).to.eql(280);
     expect(feeAmount.average).to.eql(518);
     expect(feeAmount.fast).to.eql(777);
   });

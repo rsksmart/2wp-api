@@ -20,6 +20,12 @@ export class FeeAmountData extends Model {
   })
   fast: number;
 
+  @property({
+    type: 'boolean',
+    required: true,
+  })
+  wereInputsStored: boolean;
+
   constructor(data?: Partial<FeeAmountData>) {
     super(data);
   }
