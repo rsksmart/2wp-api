@@ -55,7 +55,7 @@ describe('Session Repository', () => {
     });
     const feeAmount = await controller.getTxFee(request);
     expect(feeAmount.slow).to.eql(280);
-    expect(feeAmount.average).to.eql(518);
-    expect(feeAmount.fast).to.eql(777);
+    expect(feeAmount.average).to.eql(542);
+    expect(feeAmount.fast).to.eql(813);
   });
 });
