@@ -23,7 +23,7 @@ describe('tx Fee controller', () => {
   let txFeeController: TxFeeController;
   const sessionId = 'sessionId';
   const inputSize = 32 + 5 + 106 + 4;
-  const outputsSize = 3 * 34;
+  const outputsSize = 3 * 38;
   const txBytes = outputsSize + 10 ;
   const fastAmount = new SatoshiBig('0.0001', 'btc');
   const averageAmount = new SatoshiBig('0.00005', 'btc');
@@ -96,7 +96,8 @@ describe('tx Fee controller', () => {
   it('should store a optimal input list given based on fastFee amount', async () => {
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
       .resolves(utxos1);
-    await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 97410, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
+    await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 97410, accountType: constants.BITCOIN_LEGACY_ADDRESS}));
+    const totalBytes: Big = new Big((2* +inputSize + txBytes).toString());
     expect(setInputs.calledOnceWith(sessionId, [
       new TxInput({
         address: 'address',
@@ -107,18 +108,26 @@ describe('tx Fee controller', () => {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_index: 0,
         amount: 100000,
+      },),
+      new TxInput({
+        address: 'address',
+        address_n: [0],
+        prev_hash: 'txId2',
+        prev_index: 0,
+        amount: 100000,
       }),
     ], new FeeAmountData({
-      slow: 280,
-      average: 1295,
-      fast: 2590,
+      slow: totalBytes.mul(lowAmount.div(1000)).toNumber(),
+      average: totalBytes.mul(averageAmount.div(1000)).toNumber(),
+      fast: totalBytes.mul(fastAmount.div(1000)).toNumber(),
       wereInputsStored: true,
     }))).to.be.true();
   });
   it('should add inputs to the optimal input list if the computed value with fee is not enough', async () => {
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
       .resolves(utxos1);
-    await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 97411, accountType: constants.BITCOIN_LEGACY_ADDRESS}))
+    await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 97411, accountType: constants.BITCOIN_LEGACY_ADDRESS}));
+    const totalBytes: Big = new Big((2* +inputSize + txBytes).toString());
     expect(setInputs.calledOnceWith(sessionId, [
       new TxInput({
         address: 'address',
@@ -140,10 +149,10 @@ describe('tx Fee controller', () => {
         prev_index: 0,
         amount: 100000,
       }),
-    ], new FeeAmountData({
-      slow: 406,
-      average: 2030,
-      fast: 4060,
+    ],  new FeeAmountData({
+      slow: totalBytes.mul(lowAmount.div(1000)).toNumber(),
+      average: totalBytes.mul(averageAmount.div(1000)).toNumber(),
+      fast: totalBytes.mul(fastAmount.div(1000)).toNumber(),
       wereInputsStored: true,
     }))).to.be.true();
   });

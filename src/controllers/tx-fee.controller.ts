@@ -53,7 +53,7 @@ export class TxFeeController {
         wereInputsStored: false,
       });
       const inputSize = 32 + 5 + 106 + 4;
-      const outputsSize = 3 * 34;
+      const outputsSize = 3 * 38;
       const txBytes = outputsSize + 10;
       Promise.all([
         this.sessionRepository.findAccountUtxos(
