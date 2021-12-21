@@ -74,12 +74,18 @@ export class TxFeeController {
         .then(
           ([accountUtxoList, [fastAmount], [averageAmount], [lowAmount]]) => {
             this.logger.trace(`[getTxFee] got fees: fast: ${fastAmount}. average: ${averageAmount}, low: ${lowAmount}`);
+            // const satoshiPerByte = {
+            //   fast: new SatoshiBig(fastAmount, 'btc').div(1000),
+            //   average: new SatoshiBig(averageAmount, 'btc').div(1000),
+            //   slow: new SatoshiBig(lowAmount, 'btc').div(1000),
+            // };
+            // TODO: THIS IS JUST A TEST!!!
             const satoshiPerByte = {
-              fast: new SatoshiBig(fastAmount, 'btc').div(1000),
-              average: new SatoshiBig(averageAmount, 'btc').div(1000),
-              slow: new SatoshiBig(lowAmount, 'btc').div(1000),
+              fast: new SatoshiBig(100, 'satoshi'),
+              average: new SatoshiBig(100, 'satoshi'),
+              slow: new SatoshiBig(100, 'satoshi'),
             };
-            this.logger.trace(`[getTxFee] Fee per byte Sat/byte:  Fast - ${satoshiPerByte.fast}. Average - ${satoshiPerByte.average}. Slow - ${satoshiPerByte.slow}`);
+            this.logger.trace(`[getTxFee] Fee per byte Sat/byte:  Fast - ${satoshiPerByte.fast.toSatoshiString()} s/b. Average - ${satoshiPerByte.average.toSatoshiString()} s/b. Slow - ${satoshiPerByte.slow.toSatoshiString()} s/b.`);
             if (accountUtxoList.length === 0) reject(new Error('There are no utxos stored for this account type'));
             const {selectedInputs, enoughBalance} = this.selectOptimalInputs(
               accountUtxoList,
@@ -155,6 +161,7 @@ export class TxFeeController {
     checkedFees.slow = Math.min(Math.max(fees.slow, constants.BITCOIN_MIN_SATOSHI_FEE), constants.BITCOIN_MAX_SATOSHI_FEE);
     checkedFees.average = Math.min(Math.max(fees.average, constants.BITCOIN_MIN_SATOSHI_FEE), constants.BITCOIN_MAX_SATOSHI_FEE);
     checkedFees.fast = Math.min(Math.max(fees.fast, constants.BITCOIN_MIN_SATOSHI_FEE), constants.BITCOIN_MAX_SATOSHI_FEE);
+
     return checkedFees;
   }
 }
