@@ -7,6 +7,7 @@ import {FeeAmountData, FeeRequestData, TxInput, Utxo} from '../models';
 import {SessionRepository} from '../repositories';
 import {FeeLevel} from '../services';
 import SatoshiBig from '../utils/SatoshiBig';
+import Big from 'big.js';
 import * as constants from '../constants';
 
 config();
@@ -66,32 +67,25 @@ export class TxFeeController {
         .then(
           ([accountUtxoList, [fastAmount], [averageAmount], [lowAmount]]) => {
             this.logger.trace(`[getTxFee] got fees: fast: ${fastAmount}. average: ${averageAmount}, low: ${lowAmount}`);
+            const satoshiPerByte = {
+              fast: new SatoshiBig(fastAmount, 'btc').div(1000),
+              average: new SatoshiBig(averageAmount, 'btc').div(1000),
+              slow: new SatoshiBig(lowAmount, 'btc').div(1000),
+            };
+            this.logger.trace(`[getTxFee] Fee per byte Sat/byte:  Fast - ${satoshiPerByte.fast}. Average - ${satoshiPerByte.average}. Slow - ${satoshiPerByte.slow}`);
             if (accountUtxoList.length === 0) reject(new Error('There are no utxos stored for this account type'));
             const {selectedInputs, enoughBalance} = this.selectOptimalInputs(
               accountUtxoList,
               +feeRequestData.amount,
-              +new SatoshiBig(fastAmount, 'btc').div(1000)
-                .mul(new SatoshiBig(txBytes, 'satoshi')).toSatoshiString(),
-              +new SatoshiBig(fastAmount, 'btc').div(1000)
-                .mul(new SatoshiBig(inputSize, 'satoshi')).toSatoshiString(),
+              satoshiPerByte.fast.mul(new Big(txBytes)).toNumber(),
+              satoshiPerByte.fast.mul(new Big(inputSize)).toNumber(),
             );
             if (selectedInputs.length === 0) reject(new Error('The required amount is not satisfied with the current utxo List'));
             const totalBytes: SatoshiBig = new SatoshiBig((selectedInputs.length * +inputSize + txBytes).toString(), 'satoshi');
-            fees.fast = Number(
-              totalBytes
-                .mul(new SatoshiBig(fastAmount, 'btc').div(1000))
-                .toSatoshiString()
-            );
-            fees.average = Number(
-              totalBytes
-                .mul(new SatoshiBig(averageAmount, 'btc').div(1000))
-                .toSatoshiString()
-            );
-            fees.slow = Number(
-              totalBytes
-                .mul(new SatoshiBig(lowAmount, 'btc').div(1000))
-                .toSatoshiString()
-            );
+            this.logger.trace(`[getTxFee] Total Bytes: ${totalBytes}`);
+            fees.fast = totalBytes.mul(satoshiPerByte.fast).toNumber();
+            fees.average = totalBytes.mul(satoshiPerByte.average).toNumber();
+            fees.slow = totalBytes.mul(satoshiPerByte.slow).toNumber();
             fees = TxFeeController.checkFeeBoundaries(fees);
             fees.wereInputsStored = enoughBalance;
             this.logger.trace(`[getTxFee] Calculated fees for the peg-in. fast: ${fees.fast}. average: ${fees.average}. slow: ${fees.slow}`);
