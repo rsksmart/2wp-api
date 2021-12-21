@@ -21,6 +21,13 @@ export class WalletAddress extends Model {
   })
   path: number[];
 
+  @property({
+    type: 'string',
+    generated: false,
+    required: false,
+  })
+  addressType?: string;
+
   constructor(data?: Partial<WalletAddress>) {
     super(data);
   }

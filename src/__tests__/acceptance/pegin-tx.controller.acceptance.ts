@@ -176,7 +176,7 @@ describe('Pegin Tx Controller', () => {
       .send({
         sessionId: peginConf.body.sessionId,
         amount: 200,
-        accountType: constants.BITCOIN_SLOW_FEE_LEVEL,
+        accountType: constants.BITCOIN_NATIVE_SEGWIT_ADDRESS,
       })
       .expect(200);
     const peginTxData = {

@@ -12,6 +12,13 @@ export class AddressBalance extends Model {
   address: string;
 
   @property({
+    type: 'string',
+    generated: false,
+    required: true,
+  })
+  addressType: string;
+
+  @property({
     type: 'array',
     itemType: 'object',
     default: [],
