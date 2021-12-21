@@ -1,14 +1,14 @@
 import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
+import Big from 'big.js';
 import {config} from 'dotenv';
 import {getLogger, Logger} from 'log4js';
+import * as constants from '../constants';
 import {FeeAmountData, FeeRequestData, TxInput, Utxo} from '../models';
 import {SessionRepository} from '../repositories';
 import {FeeLevel} from '../services';
 import SatoshiBig from '../utils/SatoshiBig';
-import Big from 'big.js';
-import * as constants from '../constants';
 
 config();
 
@@ -52,9 +52,16 @@ export class TxFeeController {
         fast: 0,
         wereInputsStored: false,
       });
-      const inputSize = 32 + 5 + 106 + 4;
-      const outputsSize = 3 * 38;
-      const txBytes = outputsSize + 10;
+      const txHeaderSize = 13;
+      const inputSize = 32 + 4 + 71 + 34 + 4;
+      /**
+       * taken from: https://en.bitcoin.it/wiki/Transaction#General_format_of_a_Bitcoin_transaction_.28inside_a_block.29
+       * Tx header: 10 (generic header) + inputs count (is a varint, it will be usually 1 byte, with 2 bytes we should be covered) + 1 byte (outputs count)
+       * inputs: 32 (prev tx hash) + 4 (prev tx output index) + ~70 (signature, 71 to be sure) + 34 (public key) + 4 (sequence nbr)
+       * outputs: 8 (value) + 24 (output script)
+       */
+      const outputsSize = 3 * (8 + 24);
+      const txBytes = txHeaderSize + outputsSize;
       Promise.all([
         this.sessionRepository.findAccountUtxos(
           feeRequestData.sessionId,
@@ -82,7 +89,7 @@ export class TxFeeController {
             );
             if (selectedInputs.length === 0) reject(new Error('The required amount is not satisfied with the current utxo List'));
             const totalBytes: SatoshiBig = new SatoshiBig((selectedInputs.length * +inputSize + txBytes).toString(), 'satoshi');
-            this.logger.trace(`[getTxFee] Total Bytes: ${totalBytes}`);
+            this.logger.trace(`[getTxFee] Total Bytes: ${totalBytes} (inputs: ${selectedInputs.length})`);
             fees.fast = totalBytes.mul(satoshiPerByte.fast).toNumber();
             fees.average = totalBytes.mul(satoshiPerByte.average).toNumber();
             fees.slow = totalBytes.mul(satoshiPerByte.slow).toNumber();
