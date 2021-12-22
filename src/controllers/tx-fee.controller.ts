@@ -74,17 +74,11 @@ export class TxFeeController {
         .then(
           ([accountUtxoList, [fastAmount], [averageAmount], [lowAmount]]) => {
             this.logger.trace(`[getTxFee] got fees: fast: ${fastAmount}. average: ${averageAmount}, low: ${lowAmount}`);
-            // const satoshiPerByte = {
-            //   fast: new SatoshiBig(fastAmount, 'btc').div(1000),
-            //   average: new SatoshiBig(averageAmount, 'btc').div(1000),
-            //   slow: new SatoshiBig(lowAmount, 'btc').div(1000),
-            // };
-            // TODO: THIS IS JUST A TEST!!!
-            const satoshiPerByte = {
-              fast: new SatoshiBig(100, 'satoshi'),
-              average: new SatoshiBig(100, 'satoshi'),
-              slow: new SatoshiBig(100, 'satoshi'),
-            };
+            const satoshiPerByte: FeePerKb = TxFeeController.getCheckedFeePerKb({
+              fast: new SatoshiBig(fastAmount, 'btc').div(1000),
+              average: new SatoshiBig(averageAmount, 'btc').div(1000),
+              slow: new SatoshiBig(lowAmount, 'btc').div(1000),
+            });
             this.logger.trace(`[getTxFee] Fee per byte Sat/byte:  Fast - ${satoshiPerByte.fast.toSatoshiString()} s/b. Average - ${satoshiPerByte.average.toSatoshiString()} s/b. Slow - ${satoshiPerByte.slow.toSatoshiString()} s/b.`);
             if (accountUtxoList.length === 0) reject(new Error('There are no utxos stored for this account type'));
             const {selectedInputs, enoughBalance} = this.selectOptimalInputs(
@@ -164,4 +158,20 @@ export class TxFeeController {
 
     return checkedFees;
   }
+
+  private static getCheckedFeePerKb(feeFromService: FeePerKb): FeePerKb {
+    const minFastFee = new SatoshiBig(process.env.FEE_PER_KB_FAST_MIN ?? 100, 'satoshi');
+    const minAverageFee = new SatoshiBig(process.env.FEE_PER_KB_AVERAGE_MIN ?? 100, 'satoshi');
+    const minSlowFee = new SatoshiBig(process.env.FEE_PER_KB_SLOW_MIN ?? 100, 'satoshi');
+    return {
+      fast: feeFromService.fast.gt(minFastFee) ? feeFromService.fast : minFastFee,
+      average: feeFromService.average.gt(minAverageFee) ? feeFromService.average : minAverageFee,
+      slow: feeFromService.slow.gt(minSlowFee) ? feeFromService.slow : minSlowFee,
+    };
+  }
+}
+interface FeePerKb {
+  fast: SatoshiBig;
+  average: SatoshiBig;
+  slow: SatoshiBig;
 }
