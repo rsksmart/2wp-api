@@ -21,13 +21,17 @@ describe('tx Fee controller', () => {
   let setInputs : sinon.SinonStub;
   let sessionRepository: StubbedInstanceWithSinonAccessor<SessionRepository>;
   let txFeeController: TxFeeController;
+  const fast = process.env.FAST_MINING_BLOCK ?? 1;
+  const average = process.env.AVERAGE_MINING_BLOCK ?? 6;
+  const low = process.env.LOW_MINING_BLOCK ?? 12;
   const sessionId = 'sessionId';
-  const inputSize = 32 + 5 + 106 + 4;
-  const outputsSize = 3 * 38;
-  const txBytes = outputsSize + 10 ;
-  const fastAmount = new SatoshiBig('0.0001', 'btc');
-  const averageAmount = new SatoshiBig('0.00005', 'btc');
-  const lowAmount = new SatoshiBig('0.00001', 'btc');
+  const inputSize = 32 + 4 + 71 + 34 + 4;
+  const outputsSize = 3 * (8 + 24);
+  const txHeaderSize = 13;
+  const txBytes = txHeaderSize + outputsSize;
+  const fastAmount = new SatoshiBig('0.0015', 'btc');
+  const averageAmount = new SatoshiBig('0.0013', 'btc');
+  const lowAmount = new SatoshiBig('0.0011', 'btc');
   beforeEach(resetRepositories);
 
   const utxos1 = [
@@ -86,9 +90,6 @@ describe('tx Fee controller', () => {
     setInputs = sessionRepository.setInputs as sinon.SinonStub;
     findAccountUtxos = sessionRepository.findAccountUtxos as sinon.SinonStub;
     txFeeController = new TxFeeController(sessionRepository, feeLevelProvider)
-    const fast = process.env.FAST_MINING_BLOCK ?? 1;
-    const average = process.env.AVERAGE_MINING_BLOCK ?? 6;
-    const low = process.env.LOW_MINING_BLOCK ?? 12;
     feeProvider.withArgs(+fast).resolves([fastAmount.toBTCString()]);
     feeProvider.withArgs(+average).resolves([averageAmount.toBTCString()]);
     feeProvider.withArgs(+low).resolves([lowAmount.toBTCString()]);
@@ -214,4 +215,43 @@ describe('tx Fee controller', () => {
     expect(fees.average).to.be.belowOrEqual(constants.BITCOIN_MAX_SATOSHI_FEE);
     expect(fees.slow).to.be.belowOrEqual(constants.BITCOIN_MAX_SATOSHI_FEE);
   });
+  it('should ensure the mininum Fee Calculated were based on the environment varibles given', async () => {
+    const minFastFee = new SatoshiBig(process.env.FEE_PER_KB_FAST_MIN ?? 100, 'satoshi');
+    const minAverageFee = new SatoshiBig(process.env.FEE_PER_KB_AVERAGE_MIN ?? 100, 'satoshi');
+    const minSlowFee = new SatoshiBig(process.env.FEE_PER_KB_SLOW_MIN ?? 100, 'satoshi');
+    feeProvider.withArgs(+fast).resolves(['0.0001']);
+    feeProvider.withArgs(+average).resolves(['0.00005']);
+    feeProvider.withArgs(+low).resolves(['0.00001']);
+    findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
+      .resolves(utxos1);
+    await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 97411, accountType: constants.BITCOIN_LEGACY_ADDRESS}));
+    const totalBytes: Big = new Big((2* +inputSize + txBytes).toString());
+    expect(setInputs.calledOnceWith(sessionId, [
+      new TxInput({
+        address: 'address',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        address_n: [0],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        prev_hash: 'txId1',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        prev_index: 0,
+        amount: 100000,
+      }),
+      new TxInput({
+        address: 'address',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        address_n: [0],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        prev_hash: 'txId2',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        prev_index: 0,
+        amount: 100000,
+      }),
+    ],  new FeeAmountData({
+      slow: totalBytes.mul(minSlowFee).toNumber(),
+      average: totalBytes.mul(minAverageFee).toNumber(),
+      fast: totalBytes.mul(minFastFee).toNumber(),
+      wereInputsStored: true,
+    }))).to.be.true();
+  })
 });
