@@ -160,9 +160,12 @@ export class TxFeeController {
   }
 
   private static getCheckedFeePerKb(feeFromService: FeePerKb): FeePerKb {
-    const minFastFee = new SatoshiBig(process.env.FEE_PER_KB_FAST_MIN ?? 100, 'satoshi');
-    const minAverageFee = new SatoshiBig(process.env.FEE_PER_KB_AVERAGE_MIN ?? 100, 'satoshi');
-    const minSlowFee = new SatoshiBig(process.env.FEE_PER_KB_SLOW_MIN ?? 100, 'satoshi');
+    if (!(process.env.FEE_PER_KB_FAST_MIN &&
+      process.env.FEE_PER_KB_AVERAGE_MIN &&
+      process.env.FEE_PER_KB_SLOW_MIN)) throw new Error('Min fee per byte is not set');
+    const minFastFee = new SatoshiBig(process.env.FEE_PER_KB_FAST_MIN, 'satoshi');
+    const minAverageFee = new SatoshiBig(process.env.FEE_PER_KB_AVERAGE_MIN, 'satoshi');
+    const minSlowFee = new SatoshiBig(process.env.FEE_PER_KB_SLOW_MIN, 'satoshi');
     return {
       fast: feeFromService.fast.gt(minFastFee) ? feeFromService.fast : minFastFee,
       average: feeFromService.average.gt(minAverageFee) ? feeFromService.average : minAverageFee,
