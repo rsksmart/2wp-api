@@ -77,3 +77,7 @@ npm test
 ```
 
 [![LoopBack](https://github.com/strongloop/loopback-next/raw/master/docs/site/imgs/branding/Powered-by-LoopBack-Badge-(blue)-@2x.png)](http://loopback.io/)
+
+## Report Security Vulnerabilities
+
+To report a vulnerability, please use the [vulnerability reporting guideline](./SECURITY.md) for details on how to do it.
