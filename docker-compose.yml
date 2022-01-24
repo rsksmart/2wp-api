@@ -1,0 +1,22 @@
+version: "3.2"
+services:
+
+  sessionDB:
+    image: "redis:alpine"
+    command: redis-server --requirepass 2wp-api-password
+    ports:
+      - "6379:6379"
+    volumes:
+      - $PWD/SessionDB/data/redis-data:/var/lib/redis
+      - $PWD/SessionDB/data/redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_REPLICATION_MODE=master
+  api:
+    build: .
+    container_name: api-2wp-loopback
+    ports:
+    - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - sessionDB

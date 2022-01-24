@@ -1,0 +1,25 @@
+name: 2wp-api build
+
+on: [push, pull_request]
+
+jobs:
+  checkout-and-build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          cache: 'npm'
+
+      - name: Generate .env file
+        run: |
+          cp .env.test .env
+
+      - name: Build & test project
+        run: |
+          npm ci
+          npm run unit-test
