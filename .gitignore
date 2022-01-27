@@ -65,7 +65,7 @@ typings/
 # Cache used by TypeScript's incremental build
 *.tsbuildinfo
 
-.idea/
+.idea
 # local storage
 data/*
 # sessionDB local
