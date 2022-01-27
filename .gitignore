@@ -75,3 +75,5 @@ sonar-project.properties
 
 # rsk db data
 rsk-database/db
+#VsCode
+.vscode
