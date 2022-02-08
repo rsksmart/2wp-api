@@ -66,7 +66,7 @@ export class PeginConfigurationController {
           resolve(peginConf);
         })
         .catch((e) => {
-          this.logger.warn(`[get] Got an error. ${e}`);
+          this.logger.warn(`[get] Got an error: ${e}`);
           reject(e);
         });
     });

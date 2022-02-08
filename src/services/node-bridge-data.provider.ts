@@ -28,6 +28,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
     const data: BridgeData = new BridgeData();
     const lastBlock = await this.rskNodeService.getBlock(startingBlock);
     if (lastBlock == null) {
+      this.logger.warn(`[getData] Block ${startingBlock} doesn't exist`);
       throw new Error(`Block ${startingBlock} doesn't exist`);
     }
     data.block = new RskBlock(

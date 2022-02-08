@@ -1,3 +1,4 @@
+import {getLogger, Logger} from 'log4js';
 import {Log} from '../models/rsk/log.model';
 import {PeginStatus as RskPeginStatusEnum, PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
 import {RskTransaction} from '../models/rsk/rsk-transaction.model';
@@ -6,7 +7,10 @@ import {calculateBtcTxHash} from '../utils/btc-utils';
 import {ensure0x} from '../utils/hex-utils';
 
 export class RegisterBtcTransactionDataParser {
-
+  logger: Logger;
+  constructor() {
+    this.logger = getLogger('registerBtcTransactionDataParser');
+  }
   private getThisLogIfFound(logSignature: string, logs: Array<Log>): Log | null {
     for (const log of logs) {
       if (log.topics) {
@@ -34,6 +38,7 @@ export class RegisterBtcTransactionDataParser {
   }
 
   private getPeginStatus(transaction: RskTransaction): PeginStatusDataModel | undefined {
+    this.logger.debug(`[getPeginStatus] Started with transaction ${transaction}`);
     const status = new PeginStatusDataModel();
     if (this.hasThisLog(getBridgeSignature(BRIDGE_EVENTS.LOCK_BTC), transaction.logs)) {
       // TODO: recipient cannot be determined with the log, it requires parsing the first input's sender
@@ -66,7 +71,7 @@ export class RegisterBtcTransactionDataParser {
 
   parse(transaction: RskTransaction): PeginStatusDataModel | null {
     if (!transaction || !transaction.logs || !transaction.logs.length) {
-      // This transaction doesn't have the data required to be parsed
+      this.logger.warn(`[parse] This transaction doesn't have the data required to be parsed`);
       return null;
     }
     const result = this.getPeginStatus(transaction);
