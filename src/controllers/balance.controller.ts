@@ -1,11 +1,12 @@
 import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {getModelSchemaRef, post, requestBody} from '@loopback/rest';
+import {getLogger, Logger} from 'log4js';
 import {
   AccountBalance,
   AddressBalance,
   GetBalance,
-  Utxo, WalletAddress,
+  Utxo, WalletAddress
 } from '../models';
 import {SessionRepository} from '../repositories';
 import {UtxoProvider} from '../services';
@@ -13,12 +14,15 @@ import {BtcAddressUtils} from '../utils/btc-utils';
 
 export class BalanceController {
   btcAddressUtils: BtcAddressUtils = new BtcAddressUtils();
+  logger: Logger;
   constructor(
     @inject('services.UtxoProvider')
     protected utxoProviderService: UtxoProvider,
     @repository(SessionRepository)
     public sessionRepository: SessionRepository,
-  ) { }
+  ) {
+    this.logger = getLogger('balance-controller');
+  }
 
   @post('/balance', {
     responses: {
@@ -36,6 +40,7 @@ export class BalanceController {
     @requestBody({schema: getModelSchemaRef(GetBalance)})
     getBalance: GetBalance,
   ): Promise<AccountBalance> {
+    this.logger.debug(`[getBalance] Started with getBalance ${getBalance}`);
     return new Promise<AccountBalance>((resolve, reject) => {
       const {areAllValid, classifiedList} = this.checkAndClassifyAddressList(getBalance.addressList);
       if (!areAllValid) reject(new Error('Invalid address list provided, please check'));
@@ -69,9 +74,13 @@ export class BalanceController {
             legacy: 0,
           });
           accBalance.calculateWalletBalance(addressBalances);
+          this.logger.trace(`[getBalance] accBalance ${accBalance}`);
           resolve(accBalance);
         })
-        .catch(reject);
+        .catch(reason => {
+          this.logger.warn(`[getBalance] Something went wrong. error: `, reason);
+          reject(reason);
+        });
     });
   }
 
