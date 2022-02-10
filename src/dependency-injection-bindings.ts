@@ -4,6 +4,7 @@ export const ConstantsBindings = {
   MONGO_DB_PASSWORD: 'constants.mongoDbPassword',
   MONGO_DB_HOST: 'constants.mongoDbHost',
   MONGO_DB_PORT: 'constants.mongoDbPort',
+  MONGO_DB_DATABASE: 'constants.mongoDbDatabase',
   MONGO_DB_AUTH_SOURCE: 'constants.mongoDbAuthSource',
   INITIAL_BLOCK: 'constants.initialBlock',
   MIN_DEPTH_FOR_SYNC: 'constants.minDepthForSync',

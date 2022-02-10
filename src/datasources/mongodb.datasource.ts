@@ -16,11 +16,14 @@ export class MongoDbDataSource {
       mongoDbHost: string,
     @inject(ConstantsBindings.MONGO_DB_PORT)
       mongoDbPort: string,
+    @inject(ConstantsBindings.MONGO_DB_DATABASE)
+      mongoDbDatabase: string,
     @inject(ConstantsBindings.MONGO_DB_AUTH_SOURCE)
       mongoDbAuthSource: string
   ) {
-    this.mongoDbUri = `mongodb://${encodeURIComponent(mongoDbUser)}:${encodeURIComponent(mongoDbPassword)}@${mongoDbHost}:${mongoDbPort}/${mongoDbAuthSource}`;
+    this.mongoDbUri = `mongodb://${encodeURIComponent(mongoDbUser)}:${encodeURIComponent(mongoDbPassword)}@${mongoDbHost}:${mongoDbPort}/${mongoDbDatabase}?authSource=${mongoDbAuthSource}`;
     this.logger = getLogger('MongoDb');
+    this.logger.trace(this.mongoDbUri);
   }
 
   getConnection(): Promise<Mongoose> {
