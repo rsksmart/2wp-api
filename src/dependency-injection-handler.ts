@@ -35,7 +35,7 @@ export class DependencyInjectionHandler {
       .to(process.env.RSK_DB_CONNECTION_PORT);
     app
       .bind(ConstantsBindings.MONGO_DB_DATABASE)
-      .to(process.env.RSK_DB_CONNECTION_DATABSE);
+      .to(process.env.RSK_DB_CONNECTION_DATABASE);
     app
       .bind(ConstantsBindings.MONGO_DB_AUTH_SOURCE)
       .to(process.env.RSK_DB_CONNECTION_AUTH_SOURCE);
