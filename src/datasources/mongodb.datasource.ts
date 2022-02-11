@@ -8,12 +8,22 @@ export class MongoDbDataSource {
   mongoose: Mongoose;
   logger: Logger;
   constructor(
-    @inject(ConstantsBindings.MONGO_DB_URI)
-    mongoDbUri: string
+    @inject(ConstantsBindings.MONGO_DB_USER)
+      mongoDbUser: string,
+    @inject(ConstantsBindings.MONGO_DB_PASSWORD)
+      mongoDbPassword: string,
+    @inject(ConstantsBindings.MONGO_DB_HOST)
+      mongoDbHost: string,
+    @inject(ConstantsBindings.MONGO_DB_PORT)
+      mongoDbPort: string,
+    @inject(ConstantsBindings.MONGO_DB_DATABASE)
+      mongoDbDatabase: string,
+    @inject(ConstantsBindings.MONGO_DB_AUTH_SOURCE)
+      mongoDbAuthSource: string
   ) {
-    this.mongoDbUri = mongoDbUri;
+    this.mongoDbUri = `mongodb://${encodeURIComponent(mongoDbUser)}:${encodeURIComponent(mongoDbPassword)}@${mongoDbHost}:${mongoDbPort}/${mongoDbDatabase}?authSource=${mongoDbAuthSource}`;
     this.logger = getLogger('MongoDb');
-    this.logger.trace(`URI: ${this.mongoDbUri}`);
+    this.logger.trace(this.mongoDbUri);
   }
 
   getConnection(): Promise<Mongoose> {
