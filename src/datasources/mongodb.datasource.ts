@@ -23,7 +23,6 @@ export class MongoDbDataSource {
   ) {
     this.mongoDbUri = `mongodb://${encodeURIComponent(mongoDbUser)}:${encodeURIComponent(mongoDbPassword)}@${mongoDbHost}:${mongoDbPort}/${mongoDbDatabase}?authSource=${mongoDbAuthSource}`;
     this.logger = getLogger('MongoDb');
-    this.logger.trace(this.mongoDbUri);
   }
 
   getConnection(): Promise<Mongoose> {
