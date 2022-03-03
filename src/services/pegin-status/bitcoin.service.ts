@@ -40,7 +40,8 @@ export class BitcoinService {
           responseTx.hex = tx[0].hex;
           resolve(responseTx);
         })
-        .catch(() => {
+        .catch(reason => {
+          this.logger.warn(`[getTx] Got an error: ${reason}`);
           reject(`Error getting tx ${txId}`);
         });
     });
