@@ -7,6 +7,7 @@ import {RskNodeService} from '../../../services/rsk-node.service';
 import {BRIDGE_METHODS, getBridgeSignature} from '../../../utils/bridge-utils';
 import {ensure0x} from '../../../utils/hex-utils';
 import {getRandomAddress, getRandomHash} from '../../helper';
+import { BlockTransactionObject } from 'web3-eth';
 
 const getRskNodeService = () => {
   const mockedRskNodeService = sinon.createStubInstance(RskNodeService);
@@ -55,7 +56,7 @@ describe('Service: NodeBridgeDataProvider', () => {
   it('ignores blocks with no bridge data', async () => {
     const height = 1;
     const rskNodeService = getRskNodeService();
-    rskNodeService.getBlock.resolves(getBlockWithNoBridgeData(1, height))
+    rskNodeService.getBlock.resolves(<BlockTransactionObject>getBlockWithNoBridgeData(1, height))
 
     const thisService = new NodeBridgeDataProvider(rskNodeService);
     const result = await thisService.getData(height);
@@ -71,7 +72,7 @@ describe('Service: NodeBridgeDataProvider', () => {
     const peginTx = getPeginTransaction();
 
     const rskNodeService = getRskNodeService();
-    rskNodeService.getBlock.resolves(getBlockWithTheseTransactions([firstTx, updateCollectionsTx, peginTx], height));
+    rskNodeService.getBlock.resolves(<BlockTransactionObject>getBlockWithTheseTransactions([firstTx, updateCollectionsTx, peginTx], height));
     rskNodeService.getTransactionReceipt.withArgs(updateCollectionsTx.hash).resolves(updateCollectionsTx);
     rskNodeService.getTransactionReceipt.withArgs(peginTx.hash).resolves(peginTx);
 
@@ -91,7 +92,7 @@ describe('Service: NodeBridgeDataProvider', () => {
     const peginTx = getPeginTransaction();
 
     const rskNodeService = getRskNodeService();
-    rskNodeService.getBlock.resolves(getBlockWithTheseTransactions([firstTx, updateCollectionsTx, peginTx], height));
+    rskNodeService.getBlock.resolves(<BlockTransactionObject>getBlockWithTheseTransactions([firstTx, updateCollectionsTx, peginTx], height));
     rskNodeService.getTransactionReceipt.withArgs(updateCollectionsTx.hash).resolves(updateCollectionsTx);
     rskNodeService.getTransactionReceipt.withArgs(peginTx.hash).resolves(peginTx);
 

@@ -10,6 +10,7 @@ import {RskTransaction} from '../models/rsk/rsk-transaction.model';
 import {getMetricLogger} from '../utils/metric-logger';
 import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 import {RskNodeService} from './rsk-node.service';
+import { BlockTransactionObject } from 'web3-eth';
 
 export class NodeBridgeDataProvider implements RskBridgeDataProvider {
   rskNodeService: RskNodeService;
@@ -26,7 +27,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
   async getData(startingBlock: string | number): Promise<BridgeData> {
     const metricLogger = getMetricLogger(this.logger, 'getData');
     const data: BridgeData = new BridgeData();
-    const lastBlock = await this.rskNodeService.getBlock(startingBlock);
+    const lastBlock: BlockTransactionObject = await this.rskNodeService.getBlock(startingBlock);
     if (lastBlock == null) {
       this.logger.warn(`[getData] Block ${startingBlock} doesn't exist`);
       throw new Error(`Block ${startingBlock} doesn't exist`);
@@ -51,7 +52,7 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider {
         const tx = new RskTransaction();
         tx.blockHeight = lastBlock.number;
         tx.blockHash = lastBlock.hash;
-        tx.createdOn = new Date(lastBlock.timestamp * 1000);
+        tx.createdOn = new Date(Number(lastBlock.timestamp) * 1000);
         tx.hash = transaction.hash;
         tx.data = transaction.input;
         const txReceipt = await this.rskNodeService.getTransactionReceipt(tx.hash);
