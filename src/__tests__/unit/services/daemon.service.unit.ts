@@ -9,7 +9,7 @@ import {DaemonService} from '../../../services/daemon.service';
 import {NodeBridgeDataProvider} from '../../../services/node-bridge-data.provider';
 import {PeginStatusDataService} from '../../../services/pegin-status-data-services/pegin-status-data.service';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
-import {RegisterBtcTransactionDataParser} from '../../../services/register-btc-transaction-data.parser';
+import {PeginDataProcessor} from '../../../services/pegin-data.processor';
 import {RskBridgeDataProvider} from '../../../services/rsk-bridge-data.provider';
 import {RskChainSyncService, RskChainSyncSubscriber} from '../../../services/rsk-chain-sync.service';
 import {BRIDGE_METHODS, getBridgeSignature} from '../../../utils/bridge-utils';
@@ -39,7 +39,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new RegisterBtcTransactionDataParser()
+      new PeginDataProcessor()
     );
 
     await daemonService.start();
@@ -67,7 +67,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new RegisterBtcTransactionDataParser()
+      new PeginDataProcessor()
     );
 
     clock.tick(1);
@@ -97,7 +97,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new RegisterBtcTransactionDataParser()
+      new PeginDataProcessor()
     );
 
     await daemonService.start();
@@ -113,8 +113,8 @@ describe('Service: DaemonService', () => {
     const mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService);
     const mockedRskSyncChainService =
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
-    const mockedRegisterBtcTransactionDataParser =
-      sinon.createStubInstance(RegisterBtcTransactionDataParser) as SinonStubbedInstance<RegisterBtcTransactionDataParser> & RegisterBtcTransactionDataParser;
+    const mockedPeginDataProcessor =
+      sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<PeginDataProcessor> & PeginDataProcessor;
 
     const addedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
     const peginTx = new RskTransaction();
@@ -128,14 +128,14 @@ describe('Service: DaemonService', () => {
     const peginStatusModel = new PeginStatusDataModel();
     peginStatusModel.btcTxId = peginTx.hash;
     peginStatusModel.status = PeginStatus.LOCKED;
-    mockedRegisterBtcTransactionDataParser.parse.returns(peginStatusModel);
+    mockedPeginDataProcessor.parse.returns(peginStatusModel);
 
     const daemonService = new DaemonService(
       mockedRskBridgeDataProvider,
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      mockedRegisterBtcTransactionDataParser
+      mockedPeginDataProcessor
     );
 
     // Daemon should have subscribed to mockedRskSyncChainService events
@@ -169,8 +169,8 @@ describe('Service: DaemonService', () => {
     const mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService);
     const mockedRskSyncChainService =
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
-    const mockedRegisterBtcTransactionDataParser =
-      sinon.createStubInstance(RegisterBtcTransactionDataParser) as SinonStubbedInstance<RegisterBtcTransactionDataParser> & RegisterBtcTransactionDataParser;
+    const mockedPeginDataProcessor =
+      sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<PeginDataProcessor> & PeginDataProcessor;
 
     const addedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
     const peginTx = new RskTransaction();
@@ -184,14 +184,14 @@ describe('Service: DaemonService', () => {
     const peginStatusModel = new PeginStatusDataModel();
     peginStatusModel.btcTxId = peginTx.hash;
     peginStatusModel.status = PeginStatus.LOCKED;
-    mockedRegisterBtcTransactionDataParser.parse.returns(null);
+    mockedPeginDataProcessor.parse.returns(null);
 
     const daemonService = new DaemonService(
       mockedRskBridgeDataProvider,
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      mockedRegisterBtcTransactionDataParser
+      mockedPeginDataProcessor
     );
 
     // Daemon should have subscribed to mockedRskSyncChainService events
@@ -212,8 +212,8 @@ describe('Service: DaemonService', () => {
     const mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService);
     const mockedRskSyncChainService =
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
-    const mockedRegisterBtcTransactionDataParser =
-      sinon.createStubInstance(RegisterBtcTransactionDataParser) as SinonStubbedInstance<RegisterBtcTransactionDataParser> & RegisterBtcTransactionDataParser;
+    const mockedPeginDataProcessor =
+      sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<PeginDataProcessor> & PeginDataProcessor;
 
     const deletedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
 
@@ -222,7 +222,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      mockedRegisterBtcTransactionDataParser
+      mockedPeginDataProcessor
     );
 
     // Daemon should have subscribed to mockedRskSyncChainService events

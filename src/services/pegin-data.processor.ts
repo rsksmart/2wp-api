@@ -6,10 +6,10 @@ import {BRIDGE_EVENTS, BRIDGE_METHODS, decodeBridgeMethodParameters, getBridgeSi
 import {calculateBtcTxHash} from '../utils/btc-utils';
 import {ensure0x} from '../utils/hex-utils';
 
-export class RegisterBtcTransactionDataParser {
+export class PeginDataProcessor {
   logger: Logger;
   constructor() {
-    this.logger = getLogger('registerBtcTransactionDataParser');
+    this.logger = getLogger('peginDataProcessor');
   }
   private getThisLogIfFound(logSignature: string, logs: Array<Log>): Log | null {
     for (const log of logs) {
