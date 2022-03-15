@@ -4,6 +4,7 @@ import {BitcoinService} from '.';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {BitcoinAddress} from '../models/bitcoin-address.model';
 import SatoshiBig from '../utils/SatoshiBig';
+import {AddressUsedStatus, UnusedAddressResponse} from '../models';
 
 
 export class UnusedAddressService {
@@ -18,24 +19,30 @@ export class UnusedAddressService {
     this.logger = getLogger('unused-address');
   }
 
-  public isUnusedAddresses(addresses: string[]): Promise<boolean> {
+  public isUnusedAddresses(addresses: string[]): Promise<UnusedAddressResponse> {
     this.logger.debug("[isUnusedAddresses] starting to analyse addresses");
-    return new Promise<boolean>(async (resolve, reject) => {
-      try {
-        let isUnused: boolean = true;
-        for (let index = 0; index < addresses.length && isUnused; index += 1) {
-          this.logger.trace(`[isUnusedAddresses] Analysing ${addresses[index]}`);
-          let addressReturned: BitcoinAddress = await this.bitcoinService.getAddressInfo(addresses[index]);
-          const totalReceived: SatoshiBig = new SatoshiBig(addressReturned.totalReceived, 'satoshi');
-          const totalSent: SatoshiBig = new SatoshiBig(addressReturned.totalSent, 'satoshi');
-          isUnused = totalReceived.eq(0) && totalSent.eq(0);
-          this.logger.trace(`[isUnusedAddresses] ${addresses[index]} is ${isUnused ? 'unused' : 'used'}`);
-        }
-        resolve(isUnused === true);
-      } catch (e: unknown) {
-        this.logger.debug(`[isUnusedAddresses] Failed. ${e}`);
-        reject(e);
-      }
+    return new Promise<UnusedAddressResponse>( (resolve, reject) => {
+      const response: UnusedAddressResponse =  new UnusedAddressResponse({ data: [] });
+      const addressInfoPromises = addresses
+        .map((address) => this.bitcoinService.getAddressInfo(address));
+      Promise.all(addressInfoPromises)
+        .then((bitcoinAddressList: BitcoinAddress[]) => {
+          bitcoinAddressList.forEach((bitcoinAddress: BitcoinAddress, index: number) => {
+            const totalReceived: SatoshiBig = new SatoshiBig(bitcoinAddress.totalReceived, 'satoshi');
+            const totalSent: SatoshiBig = new SatoshiBig(bitcoinAddress.totalSent, 'satoshi');
+            const unused = totalReceived.eq(0) && totalSent.eq(0);
+            response.data.push( new AddressUsedStatus({
+              address: bitcoinAddress.address,
+              unused,
+            }));
+            this.logger.trace(`[isUnusedAddresses] ${addresses[index]} is ${unused ? 'unused' : 'used'}`);
+          });
+          resolve(response);
+        })
+        .catch((e: unknown) => {
+          this.logger.debug(`[isUnusedAddresses] Failed. ${e}`);
+          reject(e);
+        });
     });
   }
 }
