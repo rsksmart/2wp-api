@@ -7,7 +7,7 @@ import {BitcoinService, BridgeService, PeginStatusService} from './services';
 import {DaemonService} from './services/daemon.service';
 import {NodeBridgeDataProvider} from './services/node-bridge-data.provider';
 import {PeginStatusMongoDbDataService} from './services/pegin-status-data-services/pegin-status-mongo.service';
-import {RegisterBtcTransactionDataParser} from './services/register-btc-transaction-data.parser';
+import {PeginDataProcessor} from './services/pegin-data.processor';
 import {RskChainSyncService} from './services/rsk-chain-sync.service';
 import {RskNodeService} from './services/rsk-node.service';
 import {SyncStatusMongoService} from './services/sync-status-mongo.service';
@@ -107,7 +107,7 @@ export class DependencyInjectionHandler {
 
     app
       .bind(ServicesBindings.REGISTER_BTC_TRANSACTION_DATA_PARSER)
-      .toClass(RegisterBtcTransactionDataParser)
+      .toClass(PeginDataProcessor)
       .inScope(BindingScope.SINGLETON);
 
     app

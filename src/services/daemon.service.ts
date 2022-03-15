@@ -6,7 +6,7 @@ import {RskBlock} from '../models/rsk/rsk-block.model';
 import {BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
 import {getMetricLogger} from '../utils/metric-logger';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
-import {RegisterBtcTransactionDataParser} from './register-btc-transaction-data.parser';
+import {PeginDataProcessor} from './pegin-data.processor';
 import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 import {RskChainSyncService} from './rsk-chain-sync.service';
 
@@ -14,7 +14,7 @@ export class DaemonService implements iDaemonService {
   dataProvider: RskBridgeDataProvider;
   peginStatusStorageService: PeginStatusDataService;
   syncService: RskChainSyncService;
-  registerBtcTransactionDataParser: RegisterBtcTransactionDataParser;
+  peginDataProcessor: PeginDataProcessor;
 
   dataFetchInterval: NodeJS.Timer;
   started: boolean;
@@ -33,12 +33,12 @@ export class DaemonService implements iDaemonService {
     @inject(ConstantsBindings.SYNC_INTERVAL_TIME)
     syncIntervalTime: string | undefined,
     @inject(ServicesBindings.REGISTER_BTC_TRANSACTION_DATA_PARSER)
-    registerBtcTransactionDataParser: RegisterBtcTransactionDataParser
+    peginDataProcessor: PeginDataProcessor
   ) {
     this.dataProvider = dataProvider;
     this.peginStatusStorageService = peginStatusStorageService;
     this.syncService = syncService;
-    this.registerBtcTransactionDataParser = registerBtcTransactionDataParser;
+    this.peginDataProcessor = peginDataProcessor;
 
     this.started = false;
     this.logger = getLogger('daemon-service');
@@ -52,7 +52,7 @@ export class DaemonService implements iDaemonService {
       const response = await this.dataProvider.getData(block.height);
       for (const tx of response.data) {
         this.logger.debug(`Got tx ${tx.hash}`);
-        const peginStatus = this.registerBtcTransactionDataParser.parse(tx);
+        const peginStatus = this.peginDataProcessor.parse(tx);
         if (!peginStatus) {
           this.logger.debug('Transaction is not a registerBtcTransaction or has not registered the peg-in');
           continue;
