@@ -4,6 +4,7 @@ import {SyncStatusModel} from '../../../models/rsk/sync-status.model';
 import {RskChainSyncService} from '../../../services/rsk-chain-sync.service';
 import {RskNodeService} from '../../../services/rsk-node.service';
 import {SyncStatusDataService} from '../../../services/sync-status-data.service';
+import { BlockTransactionObject } from 'web3-eth';
 
 const getRskNodeService = () => {
   const mockedRskNodeService = sinon.createStubInstance(RskNodeService);
@@ -119,8 +120,8 @@ describe('Service: RskChainSyncService', () => {
     mockedSyncStatusDataService.getBestBlock.resolves(firstBlock);
 
     const mockedRskNodeService = getRskNodeService();
-    mockedRskNodeService.getBlock.withArgs('latest').resolves(bestBlock);
-    mockedRskNodeService.getBlock.withArgs(2).resolves(secondBlock);
+    mockedRskNodeService.getBlock.withArgs('latest').resolves(<BlockTransactionObject>bestBlock);
+    mockedRskNodeService.getBlock.withArgs(2).resolves(<BlockTransactionObject>secondBlock);
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
@@ -184,10 +185,10 @@ describe('Service: RskChainSyncService', () => {
     mockedSyncStatusDataService.getById.withArgs(firstBlock.rskBlockHash).resolves(firstBlock);
 
     const mockedRskNodeService = getRskNodeService();
-    mockedRskNodeService.getBlock.withArgs('latest').resolves(bestBlock);
-    mockedRskNodeService.getBlock.withArgs(1).resolves(secondBlockFromRsk);
-    mockedRskNodeService.getBlock.withArgs(2).resolves(secondBlockFromRsk);
-    mockedRskNodeService.getBlock.withArgs(3).resolves(thirdBlockFromRsk);
+    mockedRskNodeService.getBlock.withArgs('latest').resolves(<BlockTransactionObject>bestBlock);
+    mockedRskNodeService.getBlock.withArgs(1).resolves(<BlockTransactionObject>secondBlockFromRsk);
+    mockedRskNodeService.getBlock.withArgs(2).resolves(<BlockTransactionObject>secondBlockFromRsk);
+    mockedRskNodeService.getBlock.withArgs(3).resolves(<BlockTransactionObject>thirdBlockFromRsk);
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
@@ -232,7 +233,7 @@ describe('Service: RskChainSyncService', () => {
     mockedSyncStatusDataService.getBestBlock.resolves(firstBlock);
 
     const mockedRskNodeService = getRskNodeService();
-    mockedRskNodeService.getBlock.withArgs('latest').resolves(bestBlock);
+    mockedRskNodeService.getBlock.withArgs('latest').resolves(<BlockTransactionObject>bestBlock);
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
