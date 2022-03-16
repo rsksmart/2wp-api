@@ -39,7 +39,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor()
+      new PeginDataProcessor(mockedPeginStatusDataService)
     );
 
     await daemonService.start();
@@ -67,7 +67,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor()
+      new PeginDataProcessor(mockedPeginStatusDataService)
     );
 
     clock.tick(1);
@@ -97,7 +97,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor()
+      new PeginDataProcessor(mockedPeginStatusDataService)
     );
 
     await daemonService.start();
