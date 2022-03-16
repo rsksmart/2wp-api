@@ -281,7 +281,7 @@ describe('Service: RskChainSyncService', () => {
     // sync forked    => [1 => 2 => 3a => 4a => 5a => 6a => 7a => 8a]
     // Expected 1: sync should detect that main chain is shorter than the synced forked chain and remove
     // the extra blocks (from 8a back to 4a, inclusive, given by the formula
-    // dbBestBlockHeight - rskBestBlockHeight + MIN_DEPTH_FOR_SYNC + 2) to leave it in a state that the rest of the logic
+    // dbBestBlockHeight - rskBestBlockHeight + MIN_DEPTH_FOR_SYNC + 1) to leave it in a state that the rest of the logic
     // would take care of: main [1 => 2 => 3 => 4 => 5 => 6], sync forked [1 => 2 => 3a].
     // At this point, the main chain is longer than the sync forked chain, and the rest of the logic will manage that.
     // Expected 2: sync should detect fork at height 3, deletes 3a, and stores 3 and 4.
@@ -348,6 +348,7 @@ describe('Service: RskChainSyncService', () => {
     mockedRskNodeService.getBlock.withArgs(2).resolves(blockFromRsk2);
     mockedRskNodeService.getBlock.withArgs(3).resolves(blockFromRsk3);
     mockedRskNodeService.getBlock.withArgs(4).resolves(blockFromRsk4);
+    mockedRskNodeService.getBlock.withArgs(5).resolves(blockFromRsk5);
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
@@ -372,20 +373,21 @@ describe('Service: RskChainSyncService', () => {
     sinon.assert.neverCalledWithMatch(mockedSyncStatusDataService.getById, blockFromSync1.rskBlockHash);
     sinon.assert.neverCalledWithMatch(mockedSyncStatusDataService.getById, blockFromSync8.rskBlockHash);
 
-    // RSK is contacted with these blocks (3 and 4)
-    sinon.assert.calledThrice(mockedRskNodeService.getBlock);
+    // RSK is contacted with these blocks (latest and 3 to 5)
+    sinon.assert.callCount(mockedRskNodeService.getBlock, 4);
     sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 'latest', false);
-    sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 4, false);
     sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 3, false);
+    sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 4, false);
+    sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 5, false);
 
-    // RSK should not be contacted with these blocks (5 and 6)
-    sinon.assert.neverCalledWithMatch(mockedRskNodeService.getBlock, 5, false);
+    // RSK should not be contacted with this block (6)
     sinon.assert.neverCalledWithMatch(mockedRskNodeService.getBlock, 6, false);
 
-    // Storage is called to save the new blocks (3 and 4).
-    sinon.assert.calledTwice(mockedSyncStatusDataService.set);
+    // Storage is called to save the new blocks (3 to 5).
+    sinon.assert.callCount(mockedSyncStatusDataService.set, 3);
     sinon.assert.calledWithMatch(mockedSyncStatusDataService.set, new SyncStatusModel(blockFromRsk3.hash, blockFromRsk3.number, blockFromRsk3.parentHash));
     sinon.assert.calledWithMatch(mockedSyncStatusDataService.set, new SyncStatusModel(blockFromRsk4.hash, blockFromRsk4.number, blockFromRsk4.parentHash));
+    sinon.assert.calledWithMatch(mockedSyncStatusDataService.set, new SyncStatusModel(blockFromRsk5.hash, blockFromRsk5.number, blockFromRsk5.parentHash));
 
     // Asserts all forked blocks are deleted (from forked 8 to forked 3)
     sinon.assert.callCount(mockedSyncStatusDataService.delete, 6);
@@ -401,7 +403,7 @@ describe('Service: RskChainSyncService', () => {
     sinon.assert.neverCalledWithMatch(mockedSyncStatusDataService.delete, blockFromSync2.rskBlockHash);
 
     // subscribers get called
-    sinon.assert.calledTwice(subscriber.blockAdded);
+    sinon.assert.calledThrice(subscriber.blockAdded);
     sinon.assert.callCount(subscriber.blockDeleted, 6);
 
   });

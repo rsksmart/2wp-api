@@ -116,10 +116,10 @@ export class RskChainSyncService {
     let dbBestBlock = await this.getSyncStatus();
     const rskBestBlock = RskBlock.fromWeb3Block(await this.rskNodeService.getBlock('latest', false));
     // In case the db is synced with a forked chain and that forked chain is longer than the main chain,
-    // remove all extra forked blocks from the db.
+    // remove all extra forked blocks from the db + 1 as an offset so the following logic handles it appropriately.
     if(rskBestBlock.height < dbBestBlock.rskBlockHeight) {
       this.logger.debug(`[sync] Main chain is shorter than synced chain. Main chain height: ${rskBestBlock.height}, synced height: ${dbBestBlock.rskBlockHeight}`);
-      let countOfBlocksToRemove = dbBestBlock.rskBlockHeight - rskBestBlock.height + this.minDepthForSync + 2;
+      let countOfBlocksToRemove = dbBestBlock.rskBlockHeight - rskBestBlock.height + this.minDepthForSync + 1;
       while(countOfBlocksToRemove !== 0) {
         await this.deleteOldBlock(dbBestBlock);
         dbBestBlock = await this.syncStorageService.getById(dbBestBlock.rskBlockParentHash);
@@ -128,7 +128,7 @@ export class RskChainSyncService {
     }
 
     // Only sync blocks that are buried in the configured depth
-    if (rskBestBlock.height - this.minDepthForSync <= dbBestBlock.rskBlockHeight + 1) {
+    if(dbBestBlock.rskBlockHeight >= rskBestBlock.height - this.minDepthForSync) {
       return;
     }
 
@@ -140,7 +140,7 @@ export class RskChainSyncService {
     // Stack to insert new block on db (new Best block)
     blocksToAdd.push(nextBlock);
 
-    while (dbBestBlock.rskBlockHash != nextBlock.parentHash) {
+    while (dbBestBlock.rskBlockHash !== nextBlock.parentHash) {
       // Delete forked block
       await this.deleteOldBlock(dbBestBlock);
       // Go back until finding the split point
