@@ -4,7 +4,7 @@ import {SyncStatusModel} from '../../../models/rsk/sync-status.model';
 import {RskChainSyncService} from '../../../services/rsk-chain-sync.service';
 import {RskNodeService} from '../../../services/rsk-node.service';
 import {SyncStatusDataService} from '../../../services/sync-status-data.service';
-import { BlockTransactionObject } from 'web3-eth';
+import { BlockTransactionObject, Transaction } from 'web3-eth';
 
 const getRskNodeService = () => {
   const mockedRskNodeService = sinon.createStubInstance(RskNodeService);
@@ -105,15 +105,19 @@ describe('Service: RskChainSyncService', () => {
     firstBlock.rskBlockHash = "0x0001";
     firstBlock.rskBlockParentHash = '0x';
 
+    const transactions: Transaction[] = [];
+
     const secondBlock = {
       hash: '0x0002',
       parentHash: firstBlock.rskBlockHash,
-      number: firstBlock.rskBlockHeight + 1
+      number: firstBlock.rskBlockHeight + 1,
+      transactions
     };
     const bestBlock = {
       hash: '0x0003',
       parentHash: secondBlock.hash,
-      number: secondBlock.number + 1
+      number: secondBlock.number + 1,
+      transactions
     };
 
     const mockedSyncStatusDataService = mockSyncStatusDataService();
@@ -159,25 +163,31 @@ describe('Service: RskChainSyncService', () => {
     secondBlockFromSync.rskBlockHash = '0x0002a';
     secondBlockFromSync.rskBlockParentHash = firstBlock.rskBlockHash;
 
+    const transactions: Transaction[] = [];
+
     const firstBlockFromRsk = {
       hash: firstBlock.rskBlockHash,
       parentHash: firstBlock.rskBlockParentHash,
-      number: firstBlock.rskBlockHeight
+      number: firstBlock.rskBlockHeight,
+      transactions
     };
     const secondBlockFromRsk = {
       hash: '0x0002',
       parentHash: firstBlockFromRsk.hash,
-      number: firstBlockFromRsk.number + 1
+      number: firstBlockFromRsk.number + 1,
+      transactions
     };
     const thirdBlockFromRsk = {
       hash: '0x0003',
       parentHash: secondBlockFromRsk.hash,
-      number: secondBlockFromRsk.number + 1
+      number: secondBlockFromRsk.number + 1,
+      transactions
     };
     const bestBlock = {
       hash: '0x0004',
       parentHash: thirdBlockFromRsk.hash,
-      number: thirdBlockFromRsk.number + 1
+      number: thirdBlockFromRsk.number + 1,
+      transactions
     };
 
     const mockedSyncStatusDataService = mockSyncStatusDataService();

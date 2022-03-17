@@ -128,7 +128,7 @@ export class RskChainSyncService {
 
     this.logger.debug(`[sync] Found block(s) to sync!`);
 
-    let nextBlock = RskBlock.fromWeb3Block(await this.rskNodeService.getBlock(dbBestBlock.rskBlockHeight + 1, false));
+    let nextBlock = RskBlock.fromWeb3BlockWithTransactions(await this.rskNodeService.getBlock(dbBestBlock.rskBlockHeight + 1));
     const blocksToAdd: Array<RskBlock> = [];
 
     // Stack to insert new block on db (new Best block)
@@ -139,7 +139,7 @@ export class RskChainSyncService {
       await this.deleteOldBlock(dbBestBlock);
       // Go back until finding the split point
       dbBestBlock = await this.syncStorageService.getById(dbBestBlock.rskBlockParentHash);
-      nextBlock = RskBlock.fromWeb3Block(await this.rskNodeService.getBlock(nextBlock.height - 1, false));
+      nextBlock = RskBlock.fromWeb3BlockWithTransactions(await this.rskNodeService.getBlock(nextBlock.height - 1));
       // Include this block in the stack as well (new Reorganized block)
       blocksToAdd.push(nextBlock);
     }
