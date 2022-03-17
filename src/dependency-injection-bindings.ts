@@ -24,7 +24,7 @@ export const ServicesBindings = {
   PEGIN_STATUS_SERVICE: 'services.PeginStatusService',
   SYNC_STATUS_DATA_SERVICE: 'services.SyncStatusDataService',
   RSK_CHAIN_SYNC_SERVICE: 'services.RskChainSyncService',
-  REGISTER_BTC_TRANSACTION_DATA_PARSER: 'services.RegisterBtcTransactionDataParser',
+  REGISTER_BTC_TRANSACTION_DATA_PARSER: 'services.PeginDataProcessor',
   DAEMON_SERVICE: 'services.DaemonService',
   BRIDGE_SERVICE: 'services.BridgeService',
   ADDRESS_SERVICE: 'services.AddressService',

@@ -2,7 +2,7 @@ import {expect} from '@loopback/testlab';
 import {Log} from '../../../models/rsk/log.model';
 import {PeginStatus, PeginStatusDataModel} from '../../../models/rsk/pegin-status-data.model';
 import {RskTransaction} from '../../../models/rsk/rsk-transaction.model';
-import {RegisterBtcTransactionDataParser} from '../../../services/register-btc-transaction-data.parser';
+import {PeginDataProcessor} from '../../../services/pegin-data.processor';
 import {BRIDGE_EVENTS, BRIDGE_METHODS, encodeBridgeMethodParameters, getBridgeSignature} from '../../../utils/bridge-utils';
 import {ensure0x, remove0x} from '../../../utils/hex-utils';
 import {getRandomAddress} from '../../helper';
@@ -17,11 +17,11 @@ const getFakeRegisterBtcTransactionData = () => {
   ));
 };
 
-describe('Service: RegisterBtcTransactionDataParser', () => {
+describe('Service: PeginDataProcessor', () => {
 
   it('parses a transaction with no logs as null', () => {
     const tx = new RskTransaction();
-    const thisService = new RegisterBtcTransactionDataParser();
+    const thisService = new PeginDataProcessor();
     const result = thisService.parse(tx);
 
     expect(result).to.be.null;
@@ -30,7 +30,7 @@ describe('Service: RegisterBtcTransactionDataParser', () => {
   it('parses a transaction with a random log as null', () => {
     const tx = new RskTransaction();
     tx.logs.push(new Log());
-    const thisService = new RegisterBtcTransactionDataParser();
+    const thisService = new PeginDataProcessor();
     const result = thisService.parse(tx);
 
     expect(result).to.be.null;
@@ -44,7 +44,7 @@ describe('Service: RegisterBtcTransactionDataParser', () => {
     const log = new Log();
     log.topics = [getBridgeSignature(BRIDGE_EVENTS.PEGIN_BTC), recipient];
     tx.logs.push(log);
-    const thisService = new RegisterBtcTransactionDataParser();
+    const thisService = new PeginDataProcessor();
     const result = thisService.parse(tx);
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
@@ -61,7 +61,7 @@ describe('Service: RegisterBtcTransactionDataParser', () => {
     const log = new Log();
     log.topics = [getBridgeSignature(BRIDGE_EVENTS.LOCK_BTC)];
     tx.logs.push(log);
-    const thisService = new RegisterBtcTransactionDataParser();
+    const thisService = new PeginDataProcessor();
     const result = thisService.parse(tx);
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
@@ -78,7 +78,7 @@ describe('Service: RegisterBtcTransactionDataParser', () => {
     const log = new Log();
     log.topics = [getBridgeSignature(BRIDGE_EVENTS.REJECTED_PEGIN)];
     tx.logs.push(log);
-    const thisService = new RegisterBtcTransactionDataParser();
+    const thisService = new PeginDataProcessor();
     const result = thisService.parse(tx);
 
     expect(result).to.be.null;
@@ -90,7 +90,7 @@ describe('Service: RegisterBtcTransactionDataParser', () => {
     const log = new Log();
     log.topics = [getBridgeSignature(BRIDGE_EVENTS.REJECTED_PEGIN), getBridgeSignature(BRIDGE_EVENTS.RELEASE_REQUESTED)];
     tx.logs.push(log);
-    const thisService = new RegisterBtcTransactionDataParser();
+    const thisService = new PeginDataProcessor();
     const result = thisService.parse(tx);
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
@@ -107,7 +107,7 @@ describe('Service: RegisterBtcTransactionDataParser', () => {
     const log = new Log();
     log.topics = [getBridgeSignature(BRIDGE_EVENTS.REJECTED_PEGIN), getBridgeSignature(BRIDGE_EVENTS.UNREFUNDABLE_PEGIN)];
     tx.logs.push(log);
-    const thisService = new RegisterBtcTransactionDataParser();
+    const thisService = new PeginDataProcessor();
     const result = thisService.parse(tx);
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
