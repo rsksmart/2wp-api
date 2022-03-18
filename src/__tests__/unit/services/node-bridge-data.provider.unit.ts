@@ -3,12 +3,12 @@ import {SinonStubbedInstance} from 'sinon';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import {BridgeDataFilterModel} from '../../../models/bridge-data-filter.model';
 import {Log} from '../../../models/rsk/log.model';
-import {NodeBridgeDataProvider, FilteredBridgeTransactionProcessor} from '../../../services/node-bridge-data.provider';
+import {NodeBridgeDataProvider} from '../../../services/node-bridge-data.provider';
+import FilteredBridgeTransactionProcessor from '../../../services/filtered-bridge-transaction-processor';
 import {RskNodeService} from '../../../services/rsk-node.service';
 import {BRIDGE_METHODS, getBridgeSignature} from '../../../utils/bridge-utils';
 import {ensure0x} from '../../../utils/hex-utils';
 import {getRandomAddress, getRandomHash} from '../../helper';
-import { BlockTransactionObject } from 'web3-eth';
 import { PeginDataProcessor } from '../../../services/pegin-data.processor';
 import { RskBlock } from '../../../models/rsk/rsk-block.model';
 import { RskTransaction } from '../../../models/rsk/rsk-transaction.model';
@@ -57,58 +57,6 @@ const getBlockWithTheseTransactions = (transactions: Array<any>, height = 1, par
 }
 
 describe('Service: NodeBridgeDataProvider', () => {
-
-  it('ignores blocks with no bridge data', async () => {
-    const height = 1;
-    const rskNodeService = getRskNodeService();
-    rskNodeService.getBlock.resolves(<BlockTransactionObject>getBlockWithNoBridgeData(1, height))
-
-    const thisService = new NodeBridgeDataProvider(rskNodeService);
-    const result = await thisService.getData(height);
-
-    expect(result.block.height).to.be.equal(height);
-    expect(result.data).to.be.empty;
-  });
-
-  it('includes transactions to the bridge, with no filters', async () => {
-    const height = 1;
-    const firstTx = getRandomTransaction();
-    const updateCollectionsTx = getUpdateCollectionsTransaction();
-    const peginTx = getPeginTransaction();
-
-    const rskNodeService = getRskNodeService();
-    rskNodeService.getBlock.resolves(<BlockTransactionObject>getBlockWithTheseTransactions([firstTx, updateCollectionsTx, peginTx], height));
-    rskNodeService.getTransactionReceipt.withArgs(updateCollectionsTx.hash).resolves(updateCollectionsTx);
-    rskNodeService.getTransactionReceipt.withArgs(peginTx.hash).resolves(peginTx);
-
-    const thisService = new NodeBridgeDataProvider(rskNodeService);
-    const result = await thisService.getData(height);
-
-    expect(result.block.height).to.be.equal(height);
-    expect(result.data).to.have.length(2); // Only includes Bridge txs
-    expect(result.data[0].hash).to.be.equal(updateCollectionsTx.hash);
-    expect(result.data[1].hash).to.be.equal(peginTx.hash);
-  });
-
-  it('includes transactions to the bridge, with pegin filter', async () => {
-    const height = 1;
-    const firstTx = getRandomTransaction();
-    const updateCollectionsTx = getUpdateCollectionsTransaction();
-    const peginTx = getPeginTransaction();
-
-    const rskNodeService = getRskNodeService();
-    rskNodeService.getBlock.resolves(<BlockTransactionObject>getBlockWithTheseTransactions([firstTx, updateCollectionsTx, peginTx], height));
-    rskNodeService.getTransactionReceipt.withArgs(updateCollectionsTx.hash).resolves(updateCollectionsTx);
-    rskNodeService.getTransactionReceipt.withArgs(peginTx.hash).resolves(peginTx);
-
-    const thisService = new NodeBridgeDataProvider(rskNodeService);
-    thisService.configure([new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))]);
-    const result = await thisService.getData(height);
-
-    expect(result.block.height).to.be.equal(height);
-    expect(result.data).to.have.length(1); // Only includes pegin Bridge tx
-    expect(result.data[0].hash).to.be.equal(peginTx.hash);
-  });
 
   it('adds and removes subscribers', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};

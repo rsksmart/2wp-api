@@ -6,7 +6,7 @@ import {RskTransaction} from '../models/rsk/rsk-transaction.model';
 import {BRIDGE_EVENTS, BRIDGE_METHODS, decodeBridgeMethodParameters, getBridgeSignature} from '../utils/bridge-utils';
 import {calculateBtcTxHash} from '../utils/btc-utils';
 import {ensure0x} from '../utils/hex-utils';
-import {FilteredBridgeTransactionProcessor} from '../services/node-bridge-data.provider';
+import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-transaction-processor';
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {ServicesBindings} from '../dependency-injection-bindings';
@@ -20,19 +20,24 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   async process(rskTransaction: RskTransaction): Promise<void> {
+    console.log("PeginDataProcessor::process rskTransaction: ", rskTransaction)
     this.logger.debug(`[process] Got tx ${rskTransaction.hash}`);
     const peginStatus = this.parse(rskTransaction);
+    console.log("PeginDataProcessorvprocess peginStatus: ", peginStatus)
     if (!peginStatus) {
       this.logger.debug('[process] Transaction is not a registerBtcTransaction or has not registered the peg-in');
       return;
     }
     try {
       const found = await this.peginStatusStorageService.getById(peginStatus.btcTxId);
+      console.log("PeginDataProcessor::process found: ", found)
       if (found) {
-        this.logger.debug(`[process] ${rskTransaction.hash} already registered`);
-      } else {
-        await this.peginStatusStorageService.set(peginStatus);
+        return this.logger.debug(`[process] ${rskTransaction.hash} already registered`);
       }
+
+      console.log("PeginDataProcessor::process saving peginStatus: ")
+      await this.peginStatusStorageService.set(peginStatus);
+      
     } catch (e) {
       this.logger.warn('[process] There was a problem with the storage', e);
     }

@@ -1,29 +1,14 @@
 import {inject} from '@loopback/core';
-import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import {getLogger, Logger} from 'log4js';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
-import {BridgeData} from '../models/rsk/bridge-data.model';
 import {Log} from '../models/rsk/log.model';
 import {RskBlock} from '../models/rsk/rsk-block.model';
-import {RskTransaction} from '../models/rsk/rsk-transaction.model';
-import {getMetricLogger} from '../utils/metric-logger';
-import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 import {RskNodeService} from './rsk-node.service';
-import { BlockTransactionObject } from 'web3-eth';
+import FilteredBridgeTransactionProcessor from './filtered-bridge-transaction-processor';
+import RskBlockProcessorPublisher from './rsk-block-processor-publisher';
 
-export interface FilteredBridgeTransactionProcessor {
-  process(transaction: RskTransaction): void;
-  getFilters(): BridgeDataFilterModel[];
-}
-export interface RskBlockProcessorPublisher {
-  addSubscriber(dataProcessorSubscriber: FilteredBridgeTransactionProcessor): void;
-  removeSubscriber(dataProcessorSubscriber: FilteredBridgeTransactionProcessor): void;
-  getSubscribers(): FilteredBridgeTransactionProcessor[];
-  process(rskBlock: RskBlock): void;
-}
-
-export class NodeBridgeDataProvider implements RskBridgeDataProvider, RskBlockProcessorPublisher {
+export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
   rskNodeService: RskNodeService;
   logger: Logger;
   filters: Array<BridgeDataFilterModel>;
@@ -38,29 +23,20 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider, RskBlockPr
     this.subscribers = [];
   }
 
-  addSubscriber(dataProcessorSubscriber: FilteredBridgeTransactionProcessor): void {
-    const foundSubscriber = this.subscribers.find(dps => dps === dataProcessorSubscriber);
-    if(!foundSubscriber) {
-      this.subscribers.push(dataProcessorSubscriber);
-    }
-  }
-
-  removeSubscriber(dataProcessorSubscriber: FilteredBridgeTransactionProcessor): void {
-    const foundSubscriberIndex = this.subscribers.findIndex(dps => dps === dataProcessorSubscriber);
-    if(foundSubscriberIndex !== -1) {
-      this.subscribers.splice(foundSubscriberIndex, 1);
-    }
-  }
-
   async process(rskBlock: RskBlock): Promise<void> {
+    console.log("NodeBridgeDataProvider::process rskBlock: ", rskBlock)
     this.logger.debug(`[process] Processing rskBlock ${rskBlock.hash}`);
     for(const transaction of rskBlock.transactions) {
+      console.log("NodeBridgeDataProvider::process for transaction: ", transaction)
       for(const subscriber of this.subscribers) {
+        console.log("NodeBridgeDataProvider::process for subscriber: ", subscriber)
         const filters = await subscriber.getFilters();
+        console.log("NodeBridgeDataProvider::process for filters: ", filters)
         if (filters.length === 0 || filters.some(f => f.isMethodCall(transaction.data))) {
           this.logger.debug(`[process] Tx ${transaction.hash} matches filters`);
           const txReceipt = await this.rskNodeService.getTransactionReceipt(transaction.hash);
           const logs = <Array<Log>>txReceipt.logs;
+          console.log("NodeBridgeDataProvider::process for logs.length: ", logs.length)
           transaction.logs.push(...logs);
           subscriber.process(transaction);
         }
@@ -68,53 +44,24 @@ export class NodeBridgeDataProvider implements RskBridgeDataProvider, RskBlockPr
     }
   }
 
+  addSubscriber(dataProcessorSubscriber: FilteredBridgeTransactionProcessor): void {
+    console.log("adding subscriber: ", dataProcessorSubscriber)
+    const foundSubscriber = this.subscribers.find(dps => dps === dataProcessorSubscriber);
+    if(!foundSubscriber) {
+      this.subscribers.push(dataProcessorSubscriber);
+    }
+  }
+
+  removeSubscriber(dataProcessorSubscriber: FilteredBridgeTransactionProcessor): void {
+    console.log("removing subscriber: ", dataProcessorSubscriber)
+    const foundSubscriberIndex = this.subscribers.findIndex(dps => dps === dataProcessorSubscriber);
+    if(foundSubscriberIndex !== -1) {
+      this.subscribers.splice(foundSubscriberIndex, 1);
+    }
+  }
+
   getSubscribers(): FilteredBridgeTransactionProcessor[] {
     return this.subscribers;
-  }
-
-  async getData(startingBlock: string | number): Promise<BridgeData> {
-    const metricLogger = getMetricLogger(this.logger, 'getData');
-    const data: BridgeData = new BridgeData();
-    const lastBlock: BlockTransactionObject = await this.rskNodeService.getBlock(startingBlock);
-    if (lastBlock == null) {
-      this.logger.warn(`[getData] Block ${startingBlock} doesn't exist`);
-      throw new Error(`Block ${startingBlock} doesn't exist`);
-    }
-    data.block = new RskBlock(
-      lastBlock.number,
-      lastBlock.hash,
-      lastBlock.parentHash
-    );
-    for (const transaction of lastBlock.transactions) {
-      if (transaction.to !== bridge.address) {
-        continue;
-      }
-
-      this.logger.trace(`Found a bridge tx ${transaction.hash} with signature ${transaction.input.substring(0, 10)}`);
-
-      if (this.filters.length == 0 ||
-        this.filters.some(f => f.isMethodCall(transaction.input))
-      ) {
-        this.logger.debug(`Tx ${transaction.hash} matches filters`);
-
-        const tx = new RskTransaction();
-        tx.blockHeight = lastBlock.number;
-        tx.blockHash = lastBlock.hash;
-        tx.createdOn = new Date(Number(lastBlock.timestamp) * 1000);
-        tx.hash = transaction.hash;
-        tx.data = transaction.input;
-        const txReceipt = await this.rskNodeService.getTransactionReceipt(tx.hash);
-        tx.logs = <Array<Log>>txReceipt.logs;
-        data.data.push(tx);
-      }
-    }
-
-    metricLogger();
-    return Promise.resolve(data);
-  }
-
-  configure(filters: Array<BridgeDataFilterModel>): void {
-    this.filters = filters || [];
   }
 
 }

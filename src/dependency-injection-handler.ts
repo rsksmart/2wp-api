@@ -68,10 +68,6 @@ export class DependencyInjectionHandler {
       .toClass(TxV2ProviderDataSource)
       .inScope(BindingScope.SINGLETON);
 
-    app
-      .bind(DatasourcesBindings.RSK_BRIDGE_DATA_PROVIDER)
-      .toClass(NodeBridgeDataProvider)
-      .inScope(BindingScope.SINGLETON);
   }
 
   private static configureServices(app: Application): void {
@@ -106,7 +102,7 @@ export class DependencyInjectionHandler {
       .inScope(BindingScope.SINGLETON);
 
     app
-      .bind(ServicesBindings.REGISTER_BTC_TRANSACTION_DATA_PARSER)
+      .bind(ServicesBindings.PEGIN_DATA_PROCESSOR)
       .toClass(PeginDataProcessor)
       .inScope(BindingScope.SINGLETON);
 
@@ -124,5 +120,11 @@ export class DependencyInjectionHandler {
       .bind(ServicesBindings.UNUSED_ADDRESS_SERVICE)
       .toClass(UnusedAddressService)
       .inScope(BindingScope.SINGLETON);
+
+      app
+      .bind(ServicesBindings.RSK_BLOCK_PROCESSOR_PUBLISHER)
+      .toClass(NodeBridgeDataProvider)
+      .inScope(BindingScope.SINGLETON);
+
   }
 }
