@@ -76,3 +76,5 @@ sonar-project.properties
 
 # rsk db data
 rsk-database/db
+
+.DS_Store
