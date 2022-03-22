@@ -34,7 +34,6 @@ const mockSyncStatusDataService = () => {
     stop(): Promise<void> {
       throw new Error('Method not implemented.');
     }
-
   }
 
   const mock = sinon.createStubInstance(MockedSyncStatusDataService);

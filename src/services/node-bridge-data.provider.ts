@@ -24,28 +24,23 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
   }
 
   async process(rskBlock: RskBlock): Promise<void> {
-    console.log("NodeBridgeDataProvider::process rskBlock: ", rskBlock)
     this.logger.debug(`[process] Processing rskBlock ${rskBlock.hash}`);
     for(const transaction of rskBlock.transactions) {
-      console.log("NodeBridgeDataProvider::process for transaction: ", transaction)
       for(const subscriber of this.subscribers) {
-        console.log("NodeBridgeDataProvider::process for subscriber: ", subscriber)
         const filters = await subscriber.getFilters();
-        console.log("NodeBridgeDataProvider::process for filters: ", filters)
         if (filters.length === 0 || filters.some(f => f.isMethodCall(transaction.data))) {
           this.logger.debug(`[process] Tx ${transaction.hash} matches filters`);
           const txReceipt = await this.rskNodeService.getTransactionReceipt(transaction.hash);
           const logs = <Array<Log>>txReceipt.logs;
-          console.log("NodeBridgeDataProvider::process for logs.length: ", logs.length)
           transaction.logs.push(...logs);
-          subscriber.process(transaction);
+          this.logger.debug(`[process] Informing subscriber...`);
+          await subscriber.process(transaction);
         }
       }
     }
   }
 
   addSubscriber(dataProcessorSubscriber: FilteredBridgeTransactionProcessor): void {
-    console.log("adding subscriber: ", dataProcessorSubscriber)
     const foundSubscriber = this.subscribers.find(dps => dps === dataProcessorSubscriber);
     if(!foundSubscriber) {
       this.subscribers.push(dataProcessorSubscriber);
@@ -53,7 +48,6 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
   }
 
   removeSubscriber(dataProcessorSubscriber: FilteredBridgeTransactionProcessor): void {
-    console.log("removing subscriber: ", dataProcessorSubscriber)
     const foundSubscriberIndex = this.subscribers.findIndex(dps => dps === dataProcessorSubscriber);
     if(foundSubscriberIndex !== -1) {
       this.subscribers.splice(foundSubscriberIndex, 1);

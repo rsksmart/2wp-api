@@ -43,7 +43,6 @@ export class DaemonService implements iDaemonService {
   }
 
   private async handleNewBestBlock(rskBlock: RskBlock): Promise<void> {
-    console.log("DaemonService::handleNewBestBlock rskBlock: ", rskBlock)
     try {
       await this.rskBlockProcessorPublisher.process(rskBlock);
     } catch (e) {

@@ -22,12 +22,13 @@ describe('Service: DaemonService', () => {
   })
 
   it('starts and stops', async () => {
-    const mockedRskBlockProcessorPublisher = <RskBlockProcessorPublisher>{};
+    const mockedRskBlockProcessorPublisher =
+      sinon.createStubInstance(NodeBridgeDataProvider) as SinonStubbedInstance<RskBlockProcessorPublisher>;
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
     const mockedRskSyncChainService =
-      sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;;
+      sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
     const daemonService = new DaemonService(
       mockedRskBlockProcessorPublisher,
       mockedPeginStatusDataService,
@@ -42,6 +43,7 @@ describe('Service: DaemonService', () => {
     expect(daemonService.started).to.be.true;
 
     sinon.assert.calledOnce(mockedRskSyncChainService.start);
+    sinon.assert.calledOnce(mockedRskBlockProcessorPublisher.addSubscriber);
 
     await daemonService.stop();
 
@@ -49,12 +51,13 @@ describe('Service: DaemonService', () => {
   });
 
   it('sync starts when service is started', async () => {
-    const mockedRskBlockProcessorPublisher = <RskBlockProcessorPublisher>{};
+    const mockedRskBlockProcessorPublisher =
+      sinon.createStubInstance(NodeBridgeDataProvider) as SinonStubbedInstance<RskBlockProcessorPublisher>;
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
     const mockedRskSyncChainService =
-      sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;;
+      sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
     const daemonService = new DaemonService(
       mockedRskBlockProcessorPublisher,
       mockedPeginStatusDataService,
@@ -70,7 +73,7 @@ describe('Service: DaemonService', () => {
     await daemonService.start();
 
     clock.tick(1);
-
+    sinon.assert.calledOnce(mockedRskBlockProcessorPublisher.addSubscriber);
     expect(mockedRskSyncChainService.sync.called).to.be.true;
 
   });
