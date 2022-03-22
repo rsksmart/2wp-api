@@ -5,4 +5,3 @@ export default interface FilteredBridgeTransactionProcessor {
     process(transaction: RskTransaction): Promise<void>;
     getFilters(): BridgeDataFilterModel[];
 }
-  
