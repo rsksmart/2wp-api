@@ -21,28 +21,28 @@ export class UnusedAddressService {
 
   public isUnusedAddresses(addresses: string[]): Promise<UnusedAddressResponse> {
     this.logger.debug("[isUnusedAddresses] starting to analyse addresses");
-    return new Promise<UnusedAddressResponse>( (resolve, reject) => {
-      const response: UnusedAddressResponse =  new UnusedAddressResponse({ data: [] });
-      const addressInfoPromises = addresses
-        .map((address) => this.bitcoinService.getAddressInfo(address));
-      Promise.all(addressInfoPromises)
-        .then((bitcoinAddressList: BitcoinAddress[]) => {
-          bitcoinAddressList.forEach((bitcoinAddress: BitcoinAddress, index: number) => {
-            const totalReceived: SatoshiBig = new SatoshiBig(bitcoinAddress.totalReceived, 'satoshi');
-            const totalSent: SatoshiBig = new SatoshiBig(bitcoinAddress.totalSent, 'satoshi');
-            const unused = totalReceived.eq(0) && totalSent.eq(0);
-            response.data.push( new AddressUsedStatus({
-              address: bitcoinAddress.address,
-              unused,
-            }));
-            this.logger.trace(`[isUnusedAddresses] ${addresses[index]} is ${unused ? 'unused' : 'used'}`);
+    const response: UnusedAddressResponse =  new UnusedAddressResponse({ data: [] });
+    const addressInfoPromises = [];
+    for (address of addresses) {
+       addressInfoPromises.push(this.bitcoinService.getAddressInfo(address)));
+    }
+    return Promise.all(addressInfoPromises)
+    .then((bitcoinAddressList: BitcoinAddress[]) => {
+       for (bitcoinAddress of bitcoinAddressList) {
+          const totalReceived: SatoshiBig = new SatoshiBig(bitcoinAddress.totalReceived, 'satoshi');
+          const totalSent: SatoshiBig = new SatoshiBig(bitcoinAddress.totalSent, 'satoshi');
+          const unused = totalReceived.eq(0) && totalSent.eq(0);
+          response.data.push( new AddressUsedStatus({
+             address: bitcoinAddress.address,
+             unused,
           });
-          resolve(response);
-        })
-        .catch((e: unknown) => {
-          this.logger.debug(`[isUnusedAddresses] Failed. ${e}`);
-          reject(e);
-        });
+          this.logger.trace(`[isUnusedAddresses] ${bitcoinAddress} is ${unused ? 'unused' : 'used'}`);
+       }
+    )
+    .catch((e: unknown) => {
+       this.logger.debug(`[isUnusedAddresses] Failed. ${e}`);
+       throw e;
+     });
     });
   }
 }
