@@ -297,41 +297,49 @@ describe('Service: RskChainSyncService', () => {
     const blockFromSync7 = new SyncStatusModel('0x0007a', 7, blockFromSync6.rskBlockHash); // forked
     const blockFromSync8 = new SyncStatusModel('0x0008a', 8, blockFromSync7.rskBlockHash); // forked
 
+    const transactions: Transaction[] = [];
+
     // Mocked blocks from rsk
     const blockFromRsk1 = {
       hash: blockFromSync1.rskBlockHash,
       parentHash: blockFromSync1.rskBlockParentHash,
-      number: blockFromSync1.rskBlockHeight
+      number: blockFromSync1.rskBlockHeight,
+      transactions
     };
 
     const blockFromRsk2 = {
       hash: '0x0002',
       parentHash: blockFromRsk1.hash,
-      number: blockFromRsk1.number + 1
+      number: blockFromRsk1.number + 1,
+      transactions
     };
 
     const blockFromRsk3 = {
       hash: '0x0003',
       parentHash: blockFromRsk2.hash,
-      number: blockFromRsk2.number + 1
+      number: blockFromRsk2.number + 1,
+      transactions
     };
 
     const blockFromRsk4 = {
       hash: '0x0004',
       parentHash: blockFromRsk3.hash,
-      number: blockFromRsk3.number + 1
+      number: blockFromRsk3.number + 1,
+      transactions
     };
 
     const blockFromRsk5 = {
       hash: '0x0005',
       parentHash: blockFromRsk4.hash,
-      number: blockFromRsk4.number + 1
+      number: blockFromRsk4.number + 1,
+      transactions
     };
 
     const bestBlockFromRsk = {
       hash: '0x0006',
       parentHash: blockFromRsk5.hash,
-      number: blockFromRsk5.number + 1
+      number: blockFromRsk5.number + 1,
+      transactions
     };
 
     const mockedSyncStatusDataService = mockSyncStatusDataService();
@@ -344,11 +352,11 @@ describe('Service: RskChainSyncService', () => {
     mockedSyncStatusDataService.getById.withArgs(blockFromSync2.rskBlockHash).resolves(blockFromSync2);
 
     const mockedRskNodeService = getRskNodeService();
-    mockedRskNodeService.getBlock.withArgs('latest').resolves(bestBlockFromRsk);
-    mockedRskNodeService.getBlock.withArgs(2).resolves(blockFromRsk2);
-    mockedRskNodeService.getBlock.withArgs(3).resolves(blockFromRsk3);
-    mockedRskNodeService.getBlock.withArgs(4).resolves(blockFromRsk4);
-    mockedRskNodeService.getBlock.withArgs(5).resolves(blockFromRsk5);
+    mockedRskNodeService.getBlock.withArgs('latest').resolves(<BlockTransactionObject>bestBlockFromRsk);
+    mockedRskNodeService.getBlock.withArgs(2).resolves(<BlockTransactionObject>blockFromRsk2);
+    mockedRskNodeService.getBlock.withArgs(3).resolves(<BlockTransactionObject>blockFromRsk3);
+    mockedRskNodeService.getBlock.withArgs(4).resolves(<BlockTransactionObject>blockFromRsk4);
+    mockedRskNodeService.getBlock.withArgs(5).resolves(<BlockTransactionObject>blockFromRsk5);
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
@@ -376,12 +384,12 @@ describe('Service: RskChainSyncService', () => {
     // RSK is contacted with these blocks (latest and 3 to 5)
     sinon.assert.callCount(mockedRskNodeService.getBlock, 4);
     sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 'latest', false);
-    sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 3, false);
-    sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 4, false);
-    sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 5, false);
+    sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 3);
+    sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 4);
+    sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 5);
 
     // RSK should not be contacted with this block (6)
-    sinon.assert.neverCalledWithMatch(mockedRskNodeService.getBlock, 6, false);
+    sinon.assert.neverCalledWithMatch(mockedRskNodeService.getBlock, 6);
 
     // Storage is called to save the new blocks (3 to 5).
     sinon.assert.callCount(mockedSyncStatusDataService.set, 3);
