@@ -16,8 +16,3 @@ export class UnusedAddressResponse extends Model {
   }
 }
 
-export interface UnusedAddressResponseRelations {
-  // describe navigational properties here
-}
-
-export type UnusedAddressResponseWithRelations = UnusedAddressResponse & UnusedAddressResponseRelations;

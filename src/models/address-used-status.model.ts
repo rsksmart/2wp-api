@@ -20,8 +20,3 @@ export class AddressUsedStatus extends Model {
   }
 }
 
-export interface AddressUsedStatusRelations {
-  // describe navigational properties here
-}
-
-export type AddressUsedStatusWithRelations = AddressUsedStatus & AddressUsedStatusRelations;
