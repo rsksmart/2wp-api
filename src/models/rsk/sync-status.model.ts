@@ -1,9 +1,16 @@
 import {SearchableModel} from './searchable-model';
 
 export class SyncStatusModel implements SearchableModel {
-  rskBlockHeight: number;
+
   rskBlockHash: string;
+  rskBlockHeight: number;
   rskBlockParentHash: string;
+
+  constructor(rskBlockHash: string, rskBlockHeight: number, rskBlockParentHash: string) {
+    this.rskBlockHash = rskBlockHash;
+    this.rskBlockHeight = rskBlockHeight;
+    this.rskBlockParentHash = rskBlockParentHash;
+  }
 
   getId(): any {
     return this.rskBlockHash;
@@ -16,4 +23,5 @@ export class SyncStatusModel implements SearchableModel {
   toString(): string {
     return `{hash:${this.rskBlockHash}, parentHash:${this.rskBlockParentHash}, height:${this.rskBlockHeight}}`;
   }
+
 }
