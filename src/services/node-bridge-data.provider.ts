@@ -26,13 +26,16 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
   async process(rskBlock: RskBlock): Promise<void> {
     this.logger.debug(`[process] Processing rskBlock ${rskBlock.hash}`);
     for(const transaction of rskBlock.transactions) {
+      let txReceipt = null;
       for(const subscriber of this.subscribers) {
         const filters = await subscriber.getFilters();
         if (filters.length === 0 || filters.some(f => f.isMethodCall(transaction.data))) {
           this.logger.debug(`[process] Tx ${transaction.hash} matches filters`);
-          const txReceipt = await this.rskNodeService.getTransactionReceipt(transaction.hash);
-          const logs = <Array<Log>>txReceipt.logs;
-          transaction.logs.push(...logs);
+          if(!txReceipt) {
+            txReceipt = await this.rskNodeService.getTransactionReceipt(transaction.hash);
+            const logs = <Array<Log>>txReceipt.logs;
+            transaction.logs.push(...logs);
+          }
           this.logger.debug(`[process] Informing subscriber...`);
           await subscriber.process(transaction);
         }

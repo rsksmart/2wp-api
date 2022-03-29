@@ -31,9 +31,8 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
       if (found) {
         return this.logger.debug(`[process] ${rskTransaction.hash} already registered`);
       }
-
       await this.peginStatusStorageService.set(peginStatus);
-      
+      this.logger.trace(`[process] ${rskTransaction.hash} registered`);
     } catch (e) {
       this.logger.warn('[process] There was a problem with the storage', e);
     }
