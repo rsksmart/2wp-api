@@ -67,7 +67,7 @@ export class PeginTxController {
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           const inputsAmount = inputs.reduce((acc, curr) => ({amount: acc.amount + curr.amount}));
-          if (inputsAmount.amount - (createPeginTxData.amountToTransferInSatoshi + fee) <= 0) reject(new Error('The stored input list is has not enough amount'));
+          if (inputsAmount.amount - (createPeginTxData.amountToTransferInSatoshi + fee) < 0) reject(new Error('The stored input list is has not enough amount'));
           outputs.push(
             this.getRSKOutput(
               createPeginTxData.recipient,
@@ -80,14 +80,15 @@ export class PeginTxController {
               federationAddress,
             ),
           );
-          outputs.push(
-            this.getChangeOutput(
-              inputs,
-              createPeginTxData.changeAddress,
-              createPeginTxData.amountToTransferInSatoshi,
-              fee,
-            ),
-          );
+          const changeOutput: TxOutput = this.getChangeOutput(
+            inputs,
+            createPeginTxData.changeAddress,
+            createPeginTxData.amountToTransferInSatoshi,
+            fee,
+            );
+          if (Number(changeOutput.amount) > 0) {
+            outputs.push(changeOutput);
+          }
           this.logger.trace('[create] Created pegin successfully!');
           resolve(
             new NormalizedTx({
