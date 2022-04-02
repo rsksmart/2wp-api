@@ -136,7 +136,8 @@ describe('Service: NodeBridgeDataProvider', () => {
       data,
       logs: [],
       createdOn: new Date(),
-      blockHeight: 1
+      blockHeight: 1,
+      to: bridge.address
     };
 
     const txReceipt = {
@@ -193,7 +194,8 @@ describe('Service: NodeBridgeDataProvider', () => {
       data: noBridgeData,
       logs: [],
       createdOn: new Date(),
-      blockHeight: 1
+      blockHeight: 1,
+      to: bridge.address
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
@@ -234,7 +236,8 @@ describe('Service: NodeBridgeDataProvider', () => {
       data,
       logs: [],
       createdOn: new Date(),
-      blockHeight: 1
+      blockHeight: 1,
+      to: bridge.address
     };
 
     const txReceipt = {
@@ -271,6 +274,46 @@ describe('Service: NodeBridgeDataProvider', () => {
 
     sinon.assert.calledOnceWithExactly(mockedPeginDataProcessorSubscriber1.process, transaction);
     sinon.assert.calledOnce(rskNodeService.getTransactionReceipt);
+
+  });
+
+
+  it('does not process transaction if it it\'s not a bridge transaction', async () => {
+
+    const rskNodeService = getRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
+    const mockedPeginDataProcessorSubscriber = sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
+
+    // Adds one subscribers
+    thisService.addSubscriber(mockedPeginDataProcessorSubscriber);
+
+    const data = getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION) + '00001';
+    const blockHash = '0x00002';
+    const transactionHash = '0x0001';
+
+    const transaction: RskTransaction = {
+      blockHash,
+      hash: transactionHash,
+      data,
+      logs: [],
+      createdOn: new Date(),
+      blockHeight: 1,
+      to: '0x123'
+    };
+
+    const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
+    mockedPeginDataProcessorSubscriber.getFilters.resolves(mockedFilters);
+
+    const rskBlock: RskBlock = {
+      height: 1,
+      hash: blockHash,
+      parentHash: '0x00001',
+      transactions: [transaction]
+    };
+
+    await thisService.process(rskBlock);
+
+    sinon.assert.neverCalledWith(mockedPeginDataProcessorSubscriber.process);
 
   });
 
