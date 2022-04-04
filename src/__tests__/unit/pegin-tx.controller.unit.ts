@@ -122,7 +122,7 @@ describe('Pegin Tx controller', () => {
       feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
     });
     return expect(peginTxController.create(request))
-      .to.be.rejectedWith(`The stored input list is has not enough amount`);
+      .to.be.rejectedWith(`The stored input list has not enough amount`);
   });
   it('should create a transaction without change output if it spends all balance', () => {
     getAccountInputs.withArgs(sessionId).resolves(inputs);

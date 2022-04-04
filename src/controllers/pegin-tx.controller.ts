@@ -68,7 +68,7 @@ export class PeginTxController {
           // @ts-ignore
           const inputsAmount = inputs.reduce((acc, curr) => ({amount: acc.amount + curr.amount}));
           if (inputsAmount.amount - (createPeginTxData.amountToTransferInSatoshi + fee) < 0) {
-            return reject(new Error('The stored input list is has not enough amount'));
+            return reject(new Error('The stored input list has not enough amount'));
           }
           outputs.push(
             this.getRSKOutput(
