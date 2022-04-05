@@ -31,6 +31,7 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
       if (transaction.to !== bridge.address) {
         continue;
       }
+      this.logger.trace(`Found a bridge tx ${transaction.hash} with signature ${transaction.data.substring(0, 10)}`);
       for(const subscriber of this.subscribers) {
         const filters = await subscriber.getFilters();
         if (filters.length === 0 || filters.some(f => f.isMethodCall(transaction.data))) {
