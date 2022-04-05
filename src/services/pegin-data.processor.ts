@@ -1,3 +1,4 @@
+import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {Log} from '../models/rsk/log.model';
 import {PeginStatus as RskPeginStatusEnum, PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
@@ -5,12 +6,42 @@ import {RskTransaction} from '../models/rsk/rsk-transaction.model';
 import {BRIDGE_EVENTS, BRIDGE_METHODS, decodeBridgeMethodParameters, getBridgeSignature} from '../utils/bridge-utils';
 import {calculateBtcTxHash} from '../utils/btc-utils';
 import {ensure0x} from '../utils/hex-utils';
-
-export class PeginDataProcessor {
+import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-transaction-processor';
+import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
+import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
+import {ServicesBindings} from '../dependency-injection-bindings';
+export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
+  peginStatusStorageService: PeginStatusDataService;
   logger: Logger;
-  constructor() {
+  constructor(@inject(ServicesBindings.PEGIN_STATUS_DATA_SERVICE)
+  peginStatusStorageService: PeginStatusDataService,) {
     this.logger = getLogger('peginDataProcessor');
+    this.peginStatusStorageService = peginStatusStorageService;
   }
+
+  async process(rskTransaction: RskTransaction): Promise<void> {
+    this.logger.debug(`[process] Got tx ${rskTransaction.hash}`);
+    const peginStatus = this.parse(rskTransaction);
+    if (!peginStatus) {
+      this.logger.debug('[process] Transaction is not a registerBtcTransaction or has not registered the peg-in');
+      return;
+    }
+    try {
+      const found = await this.peginStatusStorageService.getById(peginStatus.btcTxId);
+      if (found) {
+        return this.logger.debug(`[process] ${rskTransaction.hash} already registered`);
+      }
+      await this.peginStatusStorageService.set(peginStatus);
+      this.logger.trace(`[process] ${rskTransaction.hash} registered`);
+    } catch (e) {
+      this.logger.warn('[process] There was a problem with the storage', e);
+    }
+  }
+
+  getFilters(): BridgeDataFilterModel[] {
+    return [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
+  }
+
   private getThisLogIfFound(logSignature: string, logs: Array<Log>): Log | null {
     for (const log of logs) {
       if (log.topics) {

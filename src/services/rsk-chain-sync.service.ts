@@ -136,7 +136,6 @@ export class RskChainSyncService {
 
     let nextBlock = RskBlock.fromWeb3BlockWithTransactions(await this.rskNodeService.getBlock(dbBestBlock.rskBlockHeight + 1));
     const blocksToAdd: Array<RskBlock> = [];
-
     // Stack to insert new block on db (new Best block)
     blocksToAdd.push(nextBlock);
 

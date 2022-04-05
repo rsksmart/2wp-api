@@ -8,6 +8,7 @@ export class RskTransaction {
   data: string;
   logs: Array<Log>;
   createdOn: Date;
+  to: string | null;
 
   constructor() {
     this.logs = [];
@@ -20,6 +21,7 @@ export class RskTransaction {
     tx.createdOn = new Date(Number(web3Block.timestamp) * 1000);
     tx.hash = web3Tx.hash;
     tx.data = web3Tx.input;
+    tx.to = web3Tx.to;
     return tx;
   }
 

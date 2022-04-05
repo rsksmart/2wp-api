@@ -1,20 +1,18 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
-import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from '../dependency-injection-bindings';
-import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
+import {ConstantsBindings, ServicesBindings} from '../dependency-injection-bindings';
 import {RskBlock} from '../models/rsk/rsk-block.model';
-import {BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
 import {getMetricLogger} from '../utils/metric-logger';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {PeginDataProcessor} from './pegin-data.processor';
-import {RskBridgeDataProvider} from './rsk-bridge-data.provider';
 import {RskChainSyncService} from './rsk-chain-sync.service';
+import RskBlockProcessorPublisher from './rsk-block-processor-publisher';
 
 export class DaemonService implements iDaemonService {
-  dataProvider: RskBridgeDataProvider;
   peginStatusStorageService: PeginStatusDataService;
   syncService: RskChainSyncService;
   peginDataProcessor: PeginDataProcessor;
+  rskBlockProcessorPublisher: RskBlockProcessorPublisher
 
   dataFetchInterval: NodeJS.Timer;
   started: boolean;
@@ -24,50 +22,29 @@ export class DaemonService implements iDaemonService {
   lastSyncLog = 0;
 
   constructor(
-    @inject(DatasourcesBindings.RSK_BRIDGE_DATA_PROVIDER)
-    dataProvider: RskBridgeDataProvider,
+    @inject(ServicesBindings.RSK_BLOCK_PROCESSOR_PUBLISHER)
+    rskBlockProcessorPublisher: RskBlockProcessorPublisher,
     @inject(ServicesBindings.PEGIN_STATUS_DATA_SERVICE)
     peginStatusStorageService: PeginStatusDataService,
     @inject(ServicesBindings.RSK_CHAIN_SYNC_SERVICE)
     syncService: RskChainSyncService,
     @inject(ConstantsBindings.SYNC_INTERVAL_TIME)
     syncIntervalTime: string | undefined,
-    @inject(ServicesBindings.REGISTER_BTC_TRANSACTION_DATA_PARSER)
+    @inject(ServicesBindings.PEGIN_DATA_PROCESSOR)
     peginDataProcessor: PeginDataProcessor
   ) {
-    this.dataProvider = dataProvider;
     this.peginStatusStorageService = peginStatusStorageService;
     this.syncService = syncService;
     this.peginDataProcessor = peginDataProcessor;
-
+    this.rskBlockProcessorPublisher = rskBlockProcessorPublisher;
     this.started = false;
     this.logger = getLogger('daemon-service');
-
     this.intervalTime = parseInt(syncIntervalTime || '2000');
   }
 
-  private async handleNewBestBlock(block: RskBlock): Promise<void> {
-    // TODO: refactor data fetching to avoid getting the block again
+  private async handleNewBestBlock(rskBlock: RskBlock): Promise<void> {
     try {
-      const response = await this.dataProvider.getData(block.height);
-      for (const tx of response.data) {
-        this.logger.debug(`Got tx ${tx.hash}`);
-        const peginStatus = this.peginDataProcessor.parse(tx);
-        if (!peginStatus) {
-          this.logger.debug('Transaction is not a registerBtcTransaction or has not registered the peg-in');
-          continue;
-        }
-        try {
-          const found = await this.peginStatusStorageService.getById(peginStatus.btcTxId);
-          if (found) {
-            this.logger.debug(`${tx.hash} already registered`);
-          } else {
-            await this.peginStatusStorageService.set(peginStatus);
-          }
-        } catch (e) {
-          this.logger.warn('There was a problem with the storage', e);
-        }
-      }
+      await this.rskBlockProcessorPublisher.process(rskBlock);
     } catch (e) {
       this.logger.warn('There was a problem handling the new block', e);
     }
@@ -107,13 +84,6 @@ export class DaemonService implements iDaemonService {
     this.startTimer();
   }
 
-  private configureDataFilters(): void {
-    const dataFilters = [];
-    // registerBtcTransaction data filter
-    dataFilters.push(new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION)));
-    this.dataProvider.configure(dataFilters);
-  }
-
   public async start(): Promise<void> {
     if (this.started) {
       return;
@@ -127,7 +97,7 @@ export class DaemonService implements iDaemonService {
       blockDeleted: (block) => this.handleDeleteBlock(block)
     });
 
-    this.configureDataFilters();
+    this.rskBlockProcessorPublisher.addSubscriber(this.peginDataProcessor);
 
     this.logger.debug('Started');
     this.started = true;
@@ -143,6 +113,7 @@ export class DaemonService implements iDaemonService {
       clearInterval(this.dataFetchInterval);
       await this.peginStatusStorageService.stop()
       await this.syncService.stop();
+      this.rskBlockProcessorPublisher.removeSubscriber(this.peginDataProcessor);
       this.logger.debug('Stopped');
     }
   }
