@@ -122,6 +122,35 @@ describe('Pegin Tx controller', () => {
       feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
     });
     return expect(peginTxController.create(request))
-      .to.be.rejectedWith(`The stored input list is has not enough amount`);
+      .to.be.rejectedWith(`The stored input list has not enough amount`);
+  });
+  it('should create a transaction without change output if it spends all balance', () => {
+    getAccountInputs.withArgs(sessionId).resolves(inputs);
+    getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(500);
+    const request = new CreatePeginTxData({
+      amountToTransferInSatoshi: 29500,
+      refundAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
+      changeAddress: 'changeAddress',
+      recipient: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
+      sessionId,
+      feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
+    });
+    return Promise.all([peginTxController.create(request), new BridgeService().getFederationAddress()])
+      .then(([normalizedTx, federationAddress]) => expect(normalizedTx).to.be.eql(new NormalizedTx({
+        inputs,
+        outputs: [
+          new TxOutput({
+            amount: '0',
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            script_type: 'PAYTOOPRETURN',
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            op_return_data: '52534b54010x90F8bf6A479f320ead074411a4B0e7944Ea8c9C102ce552812b37e64d8f66f919d0e4222d4244ebe3a',
+          }),
+          new TxOutput({
+            amount: '29500',
+            address: federationAddress.toString(),
+          }),
+        ]
+      })));
   });
 });
