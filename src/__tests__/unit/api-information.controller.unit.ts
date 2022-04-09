@@ -9,8 +9,9 @@ import { ApiInformationController } from '../../controllers/api-information.cont
         it('retrieves the API Information', async() => {
             const controller = new ApiInformationController();
             const apiInfo    = controller.getApiInformation();
+            const version = process.env.npm_package_version;
             
-            expect(apiInfo).to.containEql({version: '1.0.1'});
+            expect(apiInfo).to.containEql({version: version});
         });
     });
 
