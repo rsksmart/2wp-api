@@ -6,7 +6,8 @@ const bridgeInstance = bridge.build(web3);
 
 export enum BRIDGE_METHODS {
   REGISTER_BTC_TRANSACTION = 'registerBtcTransaction',
-  UPDATE_COLLECTIONS = 'updateCollections'
+  UPDATE_COLLECTIONS = 'updateCollections',
+  RELEASE_BTC = 'releaseBtc',
 };
 
 export enum BRIDGE_EVENTS {
@@ -14,7 +15,12 @@ export enum BRIDGE_EVENTS {
   PEGIN_BTC = 'pegin_btc',
   REJECTED_PEGIN = 'rejected_pegin',
   RELEASE_REQUESTED = 'release_requested',
-  UNREFUNDABLE_PEGIN = 'unrefundable_pegin'
+  UNREFUNDABLE_PEGIN = 'unrefundable_pegin',
+  RELEASE_BTC = 'release_btc',
+  RELEASE_REQUEST_RECEIVED = 'release_request_received',
+  RELEASE_REQUEST_REJECTED = 'release_request_rejected',
+  ADD_SIGNATURE = 'add_signature',
+  BATCH_PEGOUT_CREATED = 'batch_pegout_created'
 };
 
 export function getBridgeSignature(methodOrEvent: BRIDGE_METHODS | BRIDGE_EVENTS): string {
