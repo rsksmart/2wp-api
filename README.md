@@ -1,8 +1,43 @@
 # 2wp-api
 
 This is the API component for 2-Way-Peg solution.
+
+The solution will be a web interface, which integrates with a **Rest API (this application)**, which in turn communicates with internal services such as the blockchain node and databases. In addition, a daemon/worker will be created that will be responsible for obtaining data from the blockchain and changing the status of the transaction.
+
+
 ## Development Mode
+
 Include a .env file with the required environment variables listed in `.env.test` file (you can copy that file).
+
+### Simple flow
+```mermaid
+sequenceDiagram
+Front-end ->> Back-end: getInformation
+Back-end-->>BLOCKCHAIN_NODE: getBalance
+Back-end-->>BLOCKCHAIN_NODE: addTx
+Back-end-->>Data-base: addTx
+```
+#### Interactions
+```mermaid
+graph LR
+A[Front-end] -- Rest --> B{API}
+B --> E((BLOCKCHAIN_NODE))
+
+B --> D((Data-base))
+C{Daemon} --> D
+C --> E
+```
+
+### Check npm and node versions
+```sh
+npm -version
+6.14.16
+```
+
+```sh
+node -v
+v14.19.1
+```
 ### Install dependencies
 
 ```sh
