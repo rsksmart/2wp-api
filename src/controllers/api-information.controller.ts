@@ -23,7 +23,14 @@ export class ApiInformationController {
     },
   })
   getApiInformation():ApiInformation {
-    const version = process.env.npm_package_version;
+    let version = process.env.npm_package_version;
+
+    if(!version) {
+      const packageJson = require('../../package.json');
+      console.log(packageJson.version);
+      version = packageJson.version;
+    }
+
     this.logger.debug(`[getApiInformation] current version : ${version}`);
     const apiInfo = new ApiInformation();
     apiInfo.version = version;
