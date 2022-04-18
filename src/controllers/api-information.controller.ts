@@ -27,7 +27,6 @@ export class ApiInformationController {
 
     if(!version) {
       const packageJson = require('../../package.json');
-      console.log(packageJson.version);
       version = packageJson.version;
     }
 
