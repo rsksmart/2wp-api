@@ -7,26 +7,9 @@ The solution will be a web interface, which integrates with a **Rest API (this a
 
 ## Development Mode
 
+The **2wp-api** application will run on **3000 port**.
+
 Include a .env file with the required environment variables listed in `.env.test` file (you can copy that file).
-
-### Simple flow
-```mermaid
-sequenceDiagram
-Front-end ->> Back-end: getInformation
-Back-end-->>BLOCKCHAIN_NODE: getBalance
-Back-end-->>BLOCKCHAIN_NODE: addTx
-Back-end-->>Data-base: addTx
-```
-#### Interactions
-```mermaid
-graph LR
-A[Front-end] -- Rest --> B{API}
-B --> E((BLOCKCHAIN_NODE))
-
-B --> D((Data-base))
-C{Daemon} --> D
-C --> E
-```
 
 ### Check npm and node versions
 ```sh
@@ -64,7 +47,7 @@ docker-compose up -d
 
 For some reason passing `--env-file` argument to docker-compose doesn't seem to be working fine. That's why we need to copy the `.env` file here too.
 
-## Run the application
+## Using npm to run the application
 If you want to start the API alongside the daemon run:
 ```sh
 npm start
@@ -81,7 +64,6 @@ If you prefer to execute just the daemon run:
 ```sh
 npm run start-daemon
 ```
-
 
 ## Fix code style and formatting issues
 
@@ -108,7 +90,7 @@ docker-compose up
 ## Tests
 
 ```sh
-npm test
+npm run test
 ```
 
 [![LoopBack](https://github.com/strongloop/loopback-next/raw/master/docs/site/imgs/branding/Powered-by-LoopBack-Badge-(blue)-@2x.png)](http://loopback.io/)
