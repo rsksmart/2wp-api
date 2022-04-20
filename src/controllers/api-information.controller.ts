@@ -1,6 +1,7 @@
 import {get, getModelSchemaRef} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
 import {ApiInformation} from '../models';
+const packageJson = require('../../package.json');
 
 export class ApiInformationController {
   logger: Logger;
@@ -23,7 +24,7 @@ export class ApiInformationController {
     },
   })
   getApiInformation():ApiInformation {
-    const version = process.env.npm_package_version;
+    const version = packageJson.version;
     this.logger.debug(`[getApiInformation] current version : ${version}`);
     const apiInfo = new ApiInformation();
     apiInfo.version = version;
