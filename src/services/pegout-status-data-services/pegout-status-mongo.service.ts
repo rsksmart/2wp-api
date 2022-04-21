@@ -17,7 +17,7 @@ const PegoutStatusSchema = new mongoose.Schema({
   valueInWeisSentToTheBridge: {type: Number, required: true},
   valueInSatoshisToBeReceived: {type: Number, required: true},
   feeInSatoshisToBePaid: {type: Number, required: true},
-  btcRawTransaction: {type: String, required: true, unique: true},
+  btcRawTransaction: {type: String, required: true},
   status: {type: String, required: true, enum: Object.values(PegoutStatus)},
   createdOn: {type: Date, required: true},
   rskBlockHeight: {type: Number, required: true},
