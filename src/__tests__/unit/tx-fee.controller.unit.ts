@@ -253,5 +253,11 @@ describe('tx Fee controller', () => {
       fast: totalBytes.mul(minFastFee).toNumber(),
       wereInputsStored: true,
     }))).to.be.true();
-  })
+  });
+  it('Should ensure the change output has a higher value than dust environment variable ', () => {
+    const dustValue = process.env.DUST_VALUE ?? 1000;
+    const burnDustValue = process.env.BURN_DUST_VALUE ?? 10000;
+    console.log(`dust: ${dustValue} - Burn Dust: ${burnDustValue}`);
+  });
+  it('Should remove the change output if its value are below the dust')
 });
