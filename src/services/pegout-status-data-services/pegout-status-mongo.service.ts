@@ -20,8 +20,7 @@ const PegoutStatusSchema = new mongoose.Schema({
   btcRawTransaction: {type: String, required: true},
   status: {type: String, required: true, enum: Object.values(PegoutStatus)},
   createdOn: {type: Date, required: true},
-  rskBlockHeight: {type: Number, required: true},
-  lastUpdatedOn: {type: Date, required: true}
+  rskBlockHeight: {type: Number, required: true}
 });
 
 const PegoutStatusConnector = mongoose.model<PegoutStatusMongoModel>("PegoutStatus", PegoutStatusSchema);
@@ -47,4 +46,20 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
       .exec()
       .then(() => true);
   }
+
+  public getManyByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDataModel[]> {
+    return this.getConnector()
+    .find({originatingRskTxHash})
+    .exec();
+  }
+
+  public getLastByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDataModel | null> {
+    return this.getConnector()
+    .find({originatingRskTxHash})
+    .sort({createdOn: -1})
+    .limit(1)
+    .exec()
+    .then((pegoutStatuses: PegoutStatusDataModel[]) => pegoutStatuses[0] || null);
+  }
+
 }
