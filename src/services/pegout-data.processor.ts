@@ -1,6 +1,6 @@
 import {getLogger, Logger} from 'log4js';
 import {RskTransaction} from '../models/rsk/rsk-transaction.model';
-import {BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
+import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
 import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-transaction-processor';
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import { PegoutStatusDataService } from './pegout-status-data-services/pegout-status-data.service';
@@ -20,7 +20,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   getFilters(): BridgeDataFilterModel[] {
     return [
       new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.UPDATE_COLLECTIONS)),
-      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.RELEASE_BTC)),
+      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_EVENTS.RELEASE_BTC)),
       BridgeDataFilterModel.EMPTY_DATA_FILTER
     ];
   }
