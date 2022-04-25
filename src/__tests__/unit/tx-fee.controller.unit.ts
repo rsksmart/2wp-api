@@ -26,9 +26,9 @@ describe('tx Fee controller', () => {
   const low = process.env.LOW_MINING_BLOCK ?? 12;
   const sessionId = 'sessionId';
   const inputSize = 32 + 4 + 71 + 34 + 4;
-  const outputsSize = 3 * (8 + 24);
+  const outputSize = 8 + 24;
   const txHeaderSize = 13;
-  const txBytes = txHeaderSize + outputsSize;
+  const txBytes = txHeaderSize + (3 * outputSize);
   const fastAmount = new SatoshiBig('0.0015', 'btc');
   const averageAmount = new SatoshiBig('0.0013', 'btc');
   const lowAmount = new SatoshiBig('0.0011', 'btc');
@@ -112,8 +112,11 @@ describe('tx Fee controller', () => {
       },),
       new TxInput({
         address: 'address',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         address_n: [0],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_hash: 'txId2',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_index: 0,
         amount: 100000,
       }),
@@ -254,10 +257,47 @@ describe('tx Fee controller', () => {
       wereInputsStored: true,
     }))).to.be.true();
   });
-  it('Should ensure the change output has a higher value than dust environment variable ', () => {
+  it('Should ensure the change output has a higher value than dust environment variable ', async () => {
     const dustValue = process.env.DUST_VALUE ?? 1000;
-    const burnDustValue = process.env.BURN_DUST_VALUE ?? 10000;
-    console.log(`dust: ${dustValue} - Burn Dust: ${burnDustValue}`);
+    const minFastFee = new SatoshiBig(process.env.FEE_PER_KB_FAST_MIN ?? 100, 'satoshi');
+    const minAverageFee = new SatoshiBig(process.env.FEE_PER_KB_AVERAGE_MIN ?? 100, 'satoshi');
+    const minSlowFee = new SatoshiBig(process.env.FEE_PER_KB_SLOW_MIN ?? 100, 'satoshi');
+    feeProvider.withArgs(+fast).resolves(['0.0001']);
+    feeProvider.withArgs(+average).resolves(['0.00005']);
+    feeProvider.withArgs(+low).resolves(['0.00001']);
+    findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
+        .resolves(utxos1);
+    const amount = 97000;
+    await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount, accountType: constants.BITCOIN_LEGACY_ADDRESS}));
+    const totalBytes: Big = new Big((2* +inputSize + (3 * outputSize) + txHeaderSize).toString());
+    const changeAmount = 200000 - amount - totalBytes.mul(minFastFee).toNumber();
+    expect(setInputs.calledOnceWith(sessionId, [
+      new TxInput({
+        address: 'address',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        address_n: [0],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        prev_hash: 'txId1',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        prev_index: 0,
+        amount: 100000,
+      }),
+      new TxInput({
+        address: 'address',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        address_n: [0],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        prev_hash: 'txId2',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        prev_index: 0,
+        amount: 100000,
+      }),
+    ],  new FeeAmountData({
+      slow: totalBytes.mul(minSlowFee).toNumber(),
+      average: totalBytes.mul(minAverageFee).toNumber(),
+      fast: totalBytes.mul(minFastFee).toNumber(),
+      wereInputsStored: true,
+    }))).to.be.true();
+    expect(changeAmount >= dustValue).to.be.true();
   });
-  it('Should remove the change output if its value are below the dust')
 });
