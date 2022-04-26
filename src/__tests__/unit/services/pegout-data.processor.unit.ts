@@ -9,7 +9,7 @@ describe('Service: PegoutDataProcessor', () => {
     const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService);
     expect(thisService.getFilters()).to.be.Array;
     expect(thisService.getFilters()).to.not.be.empty;
-    expect(thisService.getFilters().length).to.equal(3);
+    expect(thisService.getFilters().length).to.equal(2);
   });
   
 });
