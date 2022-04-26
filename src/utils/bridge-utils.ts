@@ -6,8 +6,7 @@ const bridgeInstance = bridge.build(web3);
 
 export enum BRIDGE_METHODS {
   REGISTER_BTC_TRANSACTION = 'registerBtcTransaction',
-  UPDATE_COLLECTIONS = 'updateCollections',
-  RELEASE_BTC = 'releaseBtc',
+  UPDATE_COLLECTIONS = 'updateCollections'
 };
 
 export enum BRIDGE_EVENTS {
