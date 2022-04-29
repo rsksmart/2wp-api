@@ -8,6 +8,7 @@ import {RskNodeService} from './rsk-node.service';
 import FilteredBridgeTransactionProcessor from './filtered-bridge-transaction-processor';
 import RskBlockProcessorPublisher from './rsk-block-processor-publisher';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
+import {TransactionReceipt} from 'web3-eth';
 
 export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
   rskNodeService: RskNodeService;
@@ -27,7 +28,7 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
   async process(rskBlock: RskBlock): Promise<void> {
     this.logger.debug(`[process] Processing rskBlock ${rskBlock.hash}`);
     for(const transaction of rskBlock.transactions) {
-      let txReceipt = null;
+      let txReceipt: TransactionReceipt = <TransactionReceipt> <unknown> null;
       if (transaction.to !== bridge.address) {
         continue;
       }

@@ -62,6 +62,7 @@
     "@rsksmart/rsk-precompiled-abis": "^4.0.2-IRIS",
     "@types/mongoose": "^5.11.97",
     "big.js": "^6.1.1",
+    "bridge-transaction-parser": "https://github.com/rsksmart/bridge-transaction-parser",
     "dotenv": "^8.6.0",
     "jssha": "^3.2.0",
     "log4js": "^6.3.0",

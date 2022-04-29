@@ -28,5 +28,6 @@ export const ServicesBindings = {
   BRIDGE_SERVICE: 'services.BridgeService',
   ADDRESS_SERVICE: 'services.AddressService',
   UNUSED_ADDRESS_SERVICE: 'services.UnusedAddressService',
-  RSK_BLOCK_PROCESSOR_PUBLISHER: 'services.RskBlockProcessorPublisher'
+  RSK_BLOCK_PROCESSOR_PUBLISHER: 'services.RskBlockProcessorPublisher',
+  PEGOUT_STATUS_DATA_SERVICE: 'services.PegoutStatusDataService'
 };
