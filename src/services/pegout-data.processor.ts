@@ -46,7 +46,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private getPegoutStatus(transaction: RskTransaction): PegoutStatusDataModel | undefined {
     this.logger.debug(`[getPegOutStatus] Started with transaction ${transaction}`);
     const status = new PegoutStatusDataModel();
-    if (this.hasThisLog(getBridgeSignature(BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED), transaction.logs)) {
+    if (this.hasOnlyThisLog(getBridgeSignature(BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED), transaction.logs)) {
       status.status = PegoutStatus.RECEIVED;
       return status;
     }
@@ -71,6 +71,19 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   private hasThisLog(logSignature: string, logs: Array<Log>): boolean {
     return this.getThisLogIfFound(logSignature, logs) != null;
+  }
+
+  private hasOnlyThisLog(logSignature: string, logs: Array<Log>): boolean {
+    for (const log of logs) {
+      if (log.topics) {
+        for (const topic of log.topics) {
+          if (topic != logSignature) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
   }
 
   parse(transaction: RskTransaction): PegoutStatusDataModel | null {
