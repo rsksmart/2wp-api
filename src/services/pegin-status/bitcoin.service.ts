@@ -67,8 +67,8 @@ export class BitcoinService {
           }
           resolve(responseAddress);
         })
-        .catch(() => {
-          reject(`Error getting tx ${address}`);
+        .catch((e: Error) => {
+          reject(`Error getting tx ${address} ${e} `);
         });
     });
   }

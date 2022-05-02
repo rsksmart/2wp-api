@@ -26,6 +26,7 @@ export class UnusedAddressService {
     for (const address of addresses) {
        addressInfoPromises.push(this.bitcoinService.getAddressInfo(address));
     }
+    this.logger.debug("All addresses are searched");
     return Promise.all(addressInfoPromises)
     .then((bitcoinAddressList: BitcoinAddress[]) => {
       for (const bitcoinAddress of bitcoinAddressList) {
