@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import {PegoutStatus, PegoutStatusDataModel} from '../../models/rsk/pegout-status-data-model';
+import {PegoutStatus, PegoutStatusDataModel} from '../../models/rsk/pegout-status-data.model';
 import {MongoDbDataService} from '../mongodb-data.service';
 import {PegoutStatusDataService} from './pegout-status-data.service';
 
