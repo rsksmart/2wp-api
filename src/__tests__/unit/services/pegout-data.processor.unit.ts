@@ -8,6 +8,7 @@ import {ensure0x, remove0x} from '../../../utils/hex-utils';
 import { PegoutStatus, PegoutStatusDataModel } from '../../../models/rsk/pegout-status-data.model';
 import {PegoutStatusMongoDbDataService} from '../../../services/pegout-status-data-services/pegout-status-mongo.service';
 import sinon, {SinonStubbedInstance} from 'sinon';
+import { PegoutStatusService } from '../../../services/pegout-status/pegout-status-utils';
 
 const txHash = '0x604aaf3de25d0ab07c209b564cf1a4e7084e8750eaef23bf89966a1d2e7f19ad';
 
@@ -19,11 +20,22 @@ const getFakeTransactionData = () => {
   ));
 };
 
+const getStatusService = () => {
+  const mockedPegoutStatusService = sinon.createStubInstance(PegoutStatusService)  as SinonStubbedInstance<PegoutStatusService> & PegoutStatusService;
+  return mockedPegoutStatusService;
+};
+
+const getStatusDataService = () => {
+  const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
+  return mockedPegoutStatusDataService;
+}
+
 describe('Service: PegoutDataProcessor', () => {
 
   it('returns filters', () => {
     const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService);
+    const mockedPegoutStatusService = getStatusService();
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusService, mockedPegoutStatusDataService);
     const bridgeDataFilterModel = thisService.getFilters();
     // eslint-disable-next-line no-unused-expressions
     expect(bridgeDataFilterModel).to.be.Array;
@@ -33,11 +45,13 @@ describe('Service: PegoutDataProcessor', () => {
   });
 
   it('parses a transaction with no logs as null', () => {
-    const mockedPeginStatusDataService = <PegoutStatusDataService>{};
-    mockedPeginStatusDataService.start = sinon.stub();
-    mockedPeginStatusDataService.stop = sinon.stub();
+    const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
+    const mockedPegoutStatusService = getStatusService();
+    mockedPegoutStatusDataService.start = sinon.stub();
+    mockedPegoutStatusDataService.stop = sinon.stub();
+
     const tx = new RskTransaction();
-    const thisService = new PegoutDataProcessor(mockedPeginStatusDataService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusService, mockedPegoutStatusDataService);
     const result = thisService.parse(tx);
 
     // eslint-disable-next-line no-unused-expressions
@@ -45,9 +59,14 @@ describe('Service: PegoutDataProcessor', () => {
   });
 
   it('reject TX with RELEASE_REQUEST_REJECTED', () => {
-    const mockedPeginStatusDataService = <PegoutStatusDataService>{};
-    mockedPeginStatusDataService.start = sinon.stub();
-    mockedPeginStatusDataService.stop = sinon.stub();
+    const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
+    const mockedPegoutStatusService = getStatusService();
+    mockedPegoutStatusDataService.start = sinon.stub();
+    mockedPegoutStatusDataService.stop = sinon.stub();
+
+    const retorno = new PegoutStatusDataModel();
+    retorno.status = PegoutStatus.REJECTED;
+    mockedPegoutStatusService.searchStatus.onCall(0).returns(retorno);
 
     const tx = new RskTransaction();
     tx.hash = txHash;
@@ -55,7 +74,7 @@ describe('Service: PegoutDataProcessor', () => {
     const values = getBridgeSignature(BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
     log.topics = [values];
     tx.logs.push(log);
-    const thisService = new PegoutDataProcessor(mockedPeginStatusDataService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusService, mockedPegoutStatusDataService);
     const result = thisService.parse(tx);
 
     expect(result).to.be.instanceOf(PegoutStatusDataModel);
@@ -66,9 +85,14 @@ describe('Service: PegoutDataProcessor', () => {
   });
 
   it('receive TX with RELEASE_REQUEST_RECEIVED', () => {
-    const mockedPeginStatusDataService = <PegoutStatusDataService>{};
-    mockedPeginStatusDataService.start = sinon.stub();
-    mockedPeginStatusDataService.stop = sinon.stub();
+    const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
+    const mockedPegoutStatusService = getStatusService();
+    mockedPegoutStatusDataService.start = sinon.stub();
+    mockedPegoutStatusDataService.stop = sinon.stub();
+
+    const retorno = new PegoutStatusDataModel();
+    retorno.status = PegoutStatus.RECEIVED;
+    mockedPegoutStatusService.searchStatus.onCall(0).returns(retorno);
 
     const tx = new RskTransaction();
     tx.hash = txHash;
@@ -76,9 +100,9 @@ describe('Service: PegoutDataProcessor', () => {
     const values = getBridgeSignature(BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
     log.topics = [values];
     tx.logs.push(log);
-    const thisService = new PegoutDataProcessor(mockedPeginStatusDataService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusService, mockedPegoutStatusDataService);
     const result = thisService.parse(tx);
-
+    
     expect(result).to.be.instanceOf(PegoutStatusDataModel);
     if (result) {
       expect(result.status).to.be.equal(PegoutStatus.RECEIVED);
@@ -87,29 +111,39 @@ describe('Service: PegoutDataProcessor', () => {
   });
 
   it('processes pegout valid transaction', async () => {
-    const mockedPeginStatusDataService =
-      sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;;
+    const mockedPegoutStatusDataService = getStatusDataService();
+    const mockedPegoutStatusService = getStatusService();
+    mockedPegoutStatusService.searchStatus = sinon.stub();
+    const retorno = new PegoutStatusDataModel();
+    retorno.status = PegoutStatus.RECEIVED;
+    mockedPegoutStatusService.searchStatus.onCall(0).returns(retorno);
+
     const tx = new RskTransaction();
     tx.data = getBridgeSignature(BRIDGE_METHODS.UPDATE_COLLECTIONS);
     const log = new Log();
     log.topics = [getBridgeSignature(BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)];
     tx.logs.push(log);
-    const thisService = new PegoutDataProcessor(mockedPeginStatusDataService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusService, mockedPegoutStatusDataService);
     await thisService.process(tx);
-    sinon.assert.calledOnce(mockedPeginStatusDataService.set);
+    sinon.assert.calledOnce(mockedPegoutStatusDataService.set);
   });
 
   it('processes pegout rejected transaction', async () => {
-    const mockedPegoputStatusDataService =
-      sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;;
+    const mockedPegoutStatusDataService = getStatusDataService();
+    const mockedPegoutStatusService = getStatusService();
+    mockedPegoutStatusService.searchStatus = sinon.stub();
+    const retorno = new PegoutStatusDataModel();
+    retorno.status = PegoutStatus.REJECTED;
+    mockedPegoutStatusService.searchStatus.onCall(0).returns(retorno);
+
     const tx = new RskTransaction();
     tx.data = getBridgeSignature(BRIDGE_METHODS.UPDATE_COLLECTIONS);
     const log = new Log();
     log.topics = [getBridgeSignature(BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED)];
     tx.logs.push(log);
-    const thisService = new PegoutDataProcessor(mockedPegoputStatusDataService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusService, mockedPegoutStatusDataService);
     await thisService.process(tx);
-    sinon.assert.calledOnce(mockedPegoputStatusDataService.set);
+    sinon.assert.calledOnce(mockedPegoutStatusDataService.set);
   });
   
 });

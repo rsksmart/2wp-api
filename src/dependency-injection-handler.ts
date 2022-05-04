@@ -12,6 +12,8 @@ import {RskChainSyncService} from './services/rsk-chain-sync.service';
 import {RskNodeService} from './services/rsk-node.service';
 import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 import {UnusedAddressService} from './services/unused-address.service';
+import { PegoutDataProcessor } from './services/pegout-data.processor';
+import { PegoutStatusService } from './services/pegout-status/pegout-status-utils';
 
 export class DependencyInjectionHandler {
   public static configureDependencies(app: Application): void {
@@ -104,6 +106,16 @@ export class DependencyInjectionHandler {
     app
       .bind(ServicesBindings.PEGIN_DATA_PROCESSOR)
       .toClass(PeginDataProcessor)
+      .inScope(BindingScope.SINGLETON);
+
+    app
+      .bind(ServicesBindings.PEGOUT_DATA_PROCESSOR)
+      .toClass(PegoutDataProcessor)
+      .inScope(BindingScope.SINGLETON);
+
+    app
+      .bind(ServicesBindings.PEGOUT_STATUS_SERVICE)
+      .toClass(PegoutStatusService)
       .inScope(BindingScope.SINGLETON);
 
     app
