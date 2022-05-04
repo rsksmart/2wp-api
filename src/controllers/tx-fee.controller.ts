@@ -120,8 +120,7 @@ export class TxFeeController {
 
   selectOptimalInputs(utxoList: Utxo[], amountToSendInSatoshis: number, baseFee: number, feePerInput: number): {selectedInputs: TxInput[]; enoughBalance: boolean} {
     const inputs: TxInput[] = [];
-    const dustValue = Number(process.env.DUST_VALUE) ?? 10000;
-    let remainingSatoshisToBePaid = amountToSendInSatoshis + baseFee + dustValue;
+    let remainingSatoshisToBePaid = amountToSendInSatoshis + baseFee;
     utxoList.sort((a, b) => b.satoshis - a.satoshis);
     utxoList.forEach((utxo) => {
       if (remainingSatoshisToBePaid > 0) {
