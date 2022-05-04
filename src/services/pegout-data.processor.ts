@@ -6,22 +6,22 @@ import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-tran
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import { PegoutStatusDataService } from './pegout-status-data-services/pegout-status-data.service';
 import { PegoutStatusDataModel } from '../models/rsk/pegout-status-data.model';
-import { PegoutStatusService } from './pegout-status/pegout-status-utils';
+import { PegoutStatusRulesService } from './pegout-status/pegout-status-rules-services';
 import {ServicesBindings} from '../dependency-injection-bindings';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
-  pegoutStatusService: PegoutStatusService;
+  PegoutStatusRulesService: PegoutStatusRulesService;
   pegoutStatusDataService: PegoutStatusDataService;
   logger: Logger;
 
   constructor(
     @inject(ServicesBindings.PEGOUT_STATUS_SERVICE)
-    pegoutStatusService: PegoutStatusService,
+    PegoutStatusRulesService: PegoutStatusRulesService,
     pegoutStatusDataService: PegoutStatusDataService)
  {
     this.logger = getLogger('pegoutDataProcessor');
     this.pegoutStatusDataService = pegoutStatusDataService;
-    this.pegoutStatusService = pegoutStatusService;
+    this.PegoutStatusRulesService = PegoutStatusRulesService;
   }
   async process(rskTransaction: RskTransaction): Promise<void> {
     this.logger.debug(`[process] Got tx ${rskTransaction.hash}`);
@@ -55,7 +55,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       this.logger.warn(`[parse] This transaction doesn't have the data required to be parsed`);
       return null;
     }
-    const result = this.pegoutStatusService.searchStatus(transaction);
+    const result = this.PegoutStatusRulesService.searchStatus(transaction);
     if (!result) {
       return null;
     }

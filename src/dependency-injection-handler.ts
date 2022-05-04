@@ -13,7 +13,7 @@ import {RskNodeService} from './services/rsk-node.service';
 import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 import {UnusedAddressService} from './services/unused-address.service';
 import { PegoutDataProcessor } from './services/pegout-data.processor';
-import { PegoutStatusService } from './services/pegout-status/pegout-status-utils';
+import { PegoutStatusRulesService } from './services/pegout-status/pegout-status-rules-services';
 
 export class DependencyInjectionHandler {
   public static configureDependencies(app: Application): void {
@@ -115,7 +115,7 @@ export class DependencyInjectionHandler {
 
     app
       .bind(ServicesBindings.PEGOUT_STATUS_SERVICE)
-      .toClass(PegoutStatusService)
+      .toClass(PegoutStatusRulesService)
       .inScope(BindingScope.SINGLETON);
 
     app

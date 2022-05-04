@@ -4,15 +4,15 @@ import { RskTransaction } from '../../models/rsk/rsk-transaction.model';
 import { PegoutStatusDataModel, PegoutStatus } from '../../models/rsk/pegout-status-data.model';
 import { BRIDGE_EVENTS, getBridgeSignature } from '../../utils/bridge-utils';
 
-export class PegoutStatusService {
+export class PegoutStatusRulesService {
     private logger: Logger;
   
     constructor() {
-      this.logger = getLogger('PegoutStatusService');
+      this.logger = getLogger('PegoutStatusRulesService');
     }
 
     searchStatus(transaction: RskTransaction): PegoutStatusDataModel | undefined {
-        this.logger.debug(`[PegoutStatusService] Started with transaction ${transaction}`);
+        this.logger.debug(`[PegoutStatusRulesService] Started with transaction ${transaction}`);
         const status = new PegoutStatusDataModel();
         if (this.hasOnlyThisLog(getBridgeSignature(BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED), transaction.logs)) {
           status.status = PegoutStatus.RECEIVED;
