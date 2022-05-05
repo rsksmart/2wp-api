@@ -6,22 +6,22 @@ import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-tran
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import { PegoutStatusDataService } from './pegout-status-data-services/pegout-status-data.service';
 import { PegoutStatusDataModel } from '../models/rsk/pegout-status-data.model';
-import { PegoutStatusRulesService } from './pegout-status/pegout-status-rules-services';
+import { PegoutRulesService } from './pegout-status/pegout-rules-services';
 import {ServicesBindings} from '../dependency-injection-bindings';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
-  PegoutStatusRulesService: PegoutStatusRulesService;
+  PegoutRulesService: PegoutRulesService;
   pegoutStatusDataService: PegoutStatusDataService;
   logger: Logger;
 
   constructor(
     @inject(ServicesBindings.PEGOUT_STATUS_SERVICE)
-    PegoutStatusRulesService: PegoutStatusRulesService,
+    pegoutRulesService: PegoutRulesService,
     pegoutStatusDataService: PegoutStatusDataService)
  {
     this.logger = getLogger('pegoutDataProcessor');
     this.pegoutStatusDataService = pegoutStatusDataService;
-    this.PegoutStatusRulesService = PegoutStatusRulesService;
+    this.PegoutRulesService = pegoutRulesService;
   }
   async process(rskTransaction: RskTransaction): Promise<void> {
     this.logger.debug(`[process] Got tx ${rskTransaction.hash}`);
@@ -55,15 +55,14 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       this.logger.warn(`[parse] This transaction doesn't have the data required to be parsed`);
       return null;
     }
-    const result = this.PegoutStatusRulesService.searchStatus(transaction);
+    const result = this.PegoutRulesService.searchStatus(transaction);
     if (!result) {
       return null;
     }
     result.originatingRskTxHash = transaction.hash;
     result.rskBlockHeight = transaction.blockHeight;
     result.lastUpdatedOn = transaction.createdOn;
-    result.rskTxHash = transaction.hash; // this.getbtcTxId(transaction.data);
-
+    result.rskTxHash = transaction.hash;
     return result;
   }
 

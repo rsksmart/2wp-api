@@ -6,7 +6,7 @@ export enum PegoutStatus {
   CREATED = 'CREATED',
   WAITING_FOR_CONFIRMATION = 'WAITING_FOR_CONFIRMATION',
   WAITING_FOR_SIGNATURE = 'WAITING_FOR_SIGNATURE',
-  SIGNED = 'SIGNED'
+  SIGNED = 'SIGNED',
 }
 
 export class PegoutStatusDataModel implements SearchableModel {

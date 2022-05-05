@@ -4,7 +4,7 @@ import { RskTransaction } from '../../models/rsk/rsk-transaction.model';
 import { PegoutStatusDataModel, PegoutStatus } from '../../models/rsk/pegout-status-data.model';
 import { BRIDGE_EVENTS, getBridgeSignature } from '../../utils/bridge-utils';
 
-export class PegoutStatusRulesService {
+export class PegoutRulesService {
     private logger: Logger;
   
     constructor() {

@@ -7,12 +7,12 @@ import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../../../utils/
 import { PegoutStatus, PegoutStatusDataModel } from '../../../models/rsk/pegout-status-data.model';
 import {PegoutStatusMongoDbDataService} from '../../../services/pegout-status-data-services/pegout-status-mongo.service';
 import sinon, {SinonStubbedInstance} from 'sinon';
-import { PegoutStatusRulesService } from '../../../services/pegout-status/pegout-status-rules-services';
+import { PegoutRulesService } from '../../../services/pegout-status/pegout-rules-services';
 
 const txHash = '0x604aaf3de25d0ab07c209b564cf1a4e7084e8750eaef23bf89966a1d2e7f19ad';
 
 const getStatusService = () => {
-  const mockedPegoutStatusRulesService = sinon.createStubInstance(PegoutStatusRulesService)  as SinonStubbedInstance<PegoutStatusRulesService> & PegoutStatusRulesService;
+  const mockedPegoutStatusRulesService = sinon.createStubInstance(PegoutRulesService)  as SinonStubbedInstance<PegoutRulesService> & PegoutRulesService;
   return mockedPegoutStatusRulesService;
 };
 
