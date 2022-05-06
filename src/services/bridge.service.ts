@@ -2,6 +2,9 @@ import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import {getLogger, Logger} from 'log4js';
 import Web3 from 'web3';
 import {Contract} from 'web3-eth-contract';
+import bridgeTransactionParser, {Transaction} from 'bridge-transaction-parser';
+import * as constants from '../constants';
+
 export class BridgeService {
   private bridgeContract: Contract;
   private web3: Web3;
@@ -91,4 +94,10 @@ export class BridgeService {
         });
     });
   }
+
+  public async getBridgeTransactionByHash(txHash: string): Promise<Transaction> {
+    const network = process.env.NETWORK ?? constants.NETWORK_TESTNET;
+    return await bridgeTransactionParser.getBridgeTransactionByTxHash(this.web3, txHash, network);
+  }
+  
 }

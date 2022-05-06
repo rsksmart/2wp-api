@@ -1,6 +1,6 @@
 {
   "name": "2wp-api",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Two Way Peg API",
   "keywords": [
     "loopback-application",
@@ -62,9 +62,10 @@
     "@rsksmart/rsk-precompiled-abis": "^4.0.2-IRIS",
     "@types/mongoose": "^5.11.97",
     "big.js": "^6.1.1",
+    "bridge-transaction-parser": "https://github.com/rsksmart/bridge-transaction-parser#288831c921f4b151cb9cb6ebf60d0ceed448ce46",
     "dotenv": "^8.6.0",
     "jssha": "^3.2.0",
-    "log4js": "^6.3.0",
+    "log4js": "^6.4.6",
     "loopback-connector-kv-redis": "^3.0.3",
     "loopback-connector-mongodb": "^5.5.0",
     "loopback-connector-redis": "^3.0.0",
