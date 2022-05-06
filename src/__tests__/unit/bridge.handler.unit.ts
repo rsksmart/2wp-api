@@ -1,5 +1,8 @@
-import {expect} from '@loopback/testlab';
+import {expect, sinon} from '@loopback/testlab';
 import {BridgeService} from '../../services';
+import bridgeTransactionParser, {Transaction} from 'bridge-transaction-parser';
+
+const rskTxHash = '0xd2852f38fedf1915978715b8a0dc0670040ac4e9065989c810a5bf29c1e006fb';
 
 describe('Service: Bridge', () => {
   const bridgeService = new BridgeService();
@@ -18,4 +21,29 @@ describe('Service: Bridge', () => {
     const lockingCap = await bridgeService.getLockingCapAmount();
     expect(lockingCap).to.be.Number();
   });
+
+  it('returns bridge transaction by hash', async () => {
+    const bridgeTransaction: Transaction = {
+      txHash: rskTxHash,
+      blockNumber: 1,
+      method: {
+        name: 'registerBtcTransaction',
+        signature: '0x43dc0656',
+        arguments: new Map()
+      },
+      events: [
+        {
+          name: 'pegin_btc',
+          signature: '0x44cdc782a38244afd68336ab92a0b39f864d6c0b2a50fa1da58cafc93cd2ae5a',
+          arguments: new Map()
+        }
+      ]
+    };
+    const promise = new Promise<Transaction>((resolve) => resolve(bridgeTransaction));
+    sinon.stub(bridgeTransactionParser,  'getBridgeTransactionByTxHash').returns(promise);
+    const response = await bridgeService.getBridgeTransactionByHash('0x0001');
+    const expectedResponse = await promise;
+    expect(response).to.equal(expectedResponse);
+  });
+
 });

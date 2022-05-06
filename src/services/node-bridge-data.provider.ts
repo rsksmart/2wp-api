@@ -2,47 +2,55 @@ import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
-import {Log} from '../models/rsk/log.model';
 import {RskBlock} from '../models/rsk/rsk-block.model';
-import {RskNodeService} from './rsk-node.service';
 import FilteredBridgeTransactionProcessor from './filtered-bridge-transaction-processor';
 import RskBlockProcessorPublisher from './rsk-block-processor-publisher';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
+import {Transaction} from 'bridge-transaction-parser';
+import {BridgeService} from './bridge.service';
+
+export interface ExtendedBridgeTx extends Transaction {
+  blockHash: string;
+  createdOn: Date;
+  to: string | null;
+}
 
 export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
-  rskNodeService: RskNodeService;
   logger: Logger;
   filters: Array<BridgeDataFilterModel>;
   private subscribers: FilteredBridgeTransactionProcessor[];
+  bridgeService: BridgeService
+
   constructor(
-    @inject(ServicesBindings.RSK_NODE_SERVICE)
-    rskNodeService: RskNodeService
+    @inject(ServicesBindings.BRIDGE_SERVICE)
+    bridgeService: BridgeService
   ) {
-    this.rskNodeService = rskNodeService;
     this.filters = [];
     this.logger = getLogger('nodeBridgeDataProvider');
     this.subscribers = [];
+    this.bridgeService = bridgeService;
   }
 
   async process(rskBlock: RskBlock): Promise<void> {
     this.logger.debug(`[process] Processing rskBlock ${rskBlock.hash}`);
     for(const transaction of rskBlock.transactions) {
-      let txReceipt = null;
       if (transaction.to !== bridge.address) {
         continue;
       }
       this.logger.trace(`Found a bridge tx ${transaction.hash} with signature ${transaction.data.substring(0, 10)}`);
+      const bridgeTx = await this.bridgeService.getBridgeTransactionByHash(transaction.hash);
       for(const subscriber of this.subscribers) {
         const filters = await subscriber.getFilters();
         if (filters.length === 0 || filters.some(f => f.isMethodCall(transaction.data))) {
           this.logger.debug(`[process] Tx ${transaction.hash} matches filters`);
-          if(!txReceipt) {
-            txReceipt = await this.rskNodeService.getTransactionReceipt(transaction.hash);
-            const logs = <Array<Log>>txReceipt.logs;
-            transaction.logs.push(...logs);
-          }
+          const extendedBridgeTx: ExtendedBridgeTx = {
+            ...bridgeTx,
+            blockHash: transaction.blockHash,
+            createdOn: transaction.createdOn,
+            to: transaction.to,
+          };
           this.logger.debug(`[process] Informing subscriber...`);
-          await subscriber.process(transaction);
+          await subscriber.process(extendedBridgeTx);
         }
       }
     }

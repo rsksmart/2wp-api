@@ -1,35 +1,99 @@
 import {expect} from '@loopback/testlab';
-import {Log} from '../../../models/rsk/log.model';
 import {PeginStatus, PeginStatusDataModel} from '../../../models/rsk/pegin-status-data.model';
-import {RskTransaction} from '../../../models/rsk/rsk-transaction.model';
 import {PeginDataProcessor} from '../../../services/pegin-data.processor';
-import { PeginStatusDataService } from '../../../services/pegin-status-data-services/pegin-status-data.service';
-import {BRIDGE_EVENTS, BRIDGE_METHODS, encodeBridgeMethodParameters, getBridgeSignature} from '../../../utils/bridge-utils';
-import {ensure0x, remove0x} from '../../../utils/hex-utils';
-import {getRandomAddress} from '../../helper';
+import {PeginStatusDataService} from '../../../services/pegin-status-data-services/pegin-status-data.service';
 import sinon, {SinonStubbedInstance} from 'sinon';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
+import {ExtendedBridgeTx} from '../../../services/node-bridge-data.provider';
+import {BridgeEvent, Transaction} from 'bridge-transaction-parser';
+import {bridge} from '@rsksmart/rsk-precompiled-abis';
 
-const txHash = '0x604aaf3de25d0ab07c209b564cf1a4e7084e8750eaef23bf89966a1d2e7f19ad';
+const btcTxHash = '0x1f789f91cb5cb6f76b91f19adcc89233f3447d7228d8798c4e94ef09fd6d8950';
+const rskTxHash = '0xd2852f38fedf1915978715b8a0dc0670040ac4e9065989c810a5bf29c1e006fb';
+const blockHash = '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d660';
 
-const getFakeRegisterBtcTransactionData = () => {
-  const rawTx = ensure0x('0200000000010272c877b54c252ae3eaf4062ee80f8bc7d48e7d18269ecf319a0d7607def42e62000000004847304402202eb62bf7492cd45d8301ab6b4abfacd1a14d4bf74eb3c90aeb87f40b1d5be0ca022038ac9549765b7ad952c098e7b96dbc69cfc4ad0c5d4191e56fe618883a57057b01feffffffe679416ea007ea3515758bc5849dcabc423e840572074202d8cabbb532899e0f010000001716001468b4bdc83bda13fd1fe03a882508508f474fe3a8feffffff02438a1200000000001976a914a4cafae1627623d26e9bd72193beb863cd26b91088ac00e1f505000000001976a91499d7a8922b29bf765bc0ed4f208c29a1681d652988ac000247304402202c2dadda8ef412d58cbc30978257aee3c7e27add6d04e8d091b218a86e20263202204ebecb32500fe15075d9bc0ebc9709fd8df19fd560a695f9cabc7bf49874f1ff01210307d079a1a8d804c1f532104867114402a7b7eee84dfc01d73687e32c2677bb8474070000');
-  return remove0x(encodeBridgeMethodParameters(
-    BRIDGE_METHODS.REGISTER_BTC_TRANSACTION,
-    [rawTx, 1, ensure0x('')]
-  ));
+const getMockedRegisterBtcTransactionMethodArgs = () => {
+  const lockPeginBtcMethodArgs = new Map();
+  lockPeginBtcMethodArgs.set('tx', '0x0100000001');
+  lockPeginBtcMethodArgs.set('height', '2195587');
+  lockPeginBtcMethodArgs.set('pmt', '0x4100000008');
+  return lockPeginBtcMethodArgs;
+};
+
+const getMockedPeginBtcEvent = () => {
+  const peginBtcEventArgs = new Map();
+  peginBtcEventArgs.set('receiver', '0x2D623170Cb518434af6c02602334610f194818c1');
+  peginBtcEventArgs.set('btcTxHash', btcTxHash);
+  peginBtcEventArgs.set('amount', '504237');
+  peginBtcEventArgs.set('protocolVersion', '1');
+  const peginBtcEvent: BridgeEvent = {
+    name: 'pegin_btc',
+    signature: '0x44cdc782a38244afd68336ab92a0b39f864d6c0b2a50fa1da58cafc93cd2ae5a',
+    arguments: peginBtcEventArgs
+  };
+  return peginBtcEvent;
+};
+
+const getMockedLockBtcEvent = () => {
+  const lockBtcEventArgs = new Map();
+  lockBtcEventArgs.set('receiver', '0x2D623170Cb518434af6c02602334610f194818c1');
+  lockBtcEventArgs.set('btcTxHash', btcTxHash);
+  lockBtcEventArgs.set('senderBtcAddress', '0x413bfc1ab391bbedcfdbc45116c5a0a75e628fc4d7b955dfb99b0214d0f1be43');
+  lockBtcEventArgs.set('amount', '1000000');
+  const peginBtcEvent: BridgeEvent = {
+    name: 'lock_btc',
+    signature: '0xec2232bdbe54a92238ce7a6b45d53fb31f919496c6abe1554be1cc8eddb6600a',
+    arguments: lockBtcEventArgs
+  };
+  return peginBtcEvent;
+};
+
+const getMockedRejectedPeginEvent = () => {
+  const rejectedPeginEventArgs = new Map();
+  rejectedPeginEventArgs.set('btcTxHash', btcTxHash);
+  rejectedPeginEventArgs.set('reason', '3');
+  const peginBtcEvent: BridgeEvent = {
+    name: 'rejected_pegin',
+    signature: '0x708ce1ead20561c5894a93be3fee64b326b2ad6c198f8253e4bb56f1626053d6',
+    arguments: rejectedPeginEventArgs
+  };
+  return peginBtcEvent;
+};
+
+const getMockedReleaseRequestedEvent = () => {
+  const releaseRequestedventArgs = new Map();
+  releaseRequestedventArgs.set('rskTxHash', rskTxHash);
+  releaseRequestedventArgs.set('btcTxHash', btcTxHash);
+  releaseRequestedventArgs.set('amount', '1000');
+  const peginBtcEvent: BridgeEvent = {
+    name: 'release_requested',
+    signature: '0x7a7c29481528ac8c2b2e93aee658fddd4dc15304fa723a5c2b88514557bcc790',
+    arguments: releaseRequestedventArgs
+  };
+  return peginBtcEvent;
+};
+
+const getMockedUnrefundablePeginEvent = () => {
+  const lunrefundablePeginEventArgs = new Map();
+  lunrefundablePeginEventArgs.set('btcTxHash', btcTxHash);
+  lunrefundablePeginEventArgs.set('reason', '1');
+  const peginBtcEvent: BridgeEvent = {
+    name: 'unrefundable_pegin',
+    signature: '0x35be155c87e408cbbcb753dc12f95fc5a242a29460a3d7189e807e63d7c185a7',
+    arguments: lunrefundablePeginEventArgs
+  };
+  return peginBtcEvent;
 };
 
 describe('Service: PeginDataProcessor', () => {
 
-  it('parses a transaction with no logs as null', () => {
+  it('parses a transaction with no event logs as null', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const tx = new RskTransaction();
+    const extendedBridgeTx: ExtendedBridgeTx = <ExtendedBridgeTx> {};
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
-    const result = thisService.parse(tx);
-
+    const result = thisService.parse(extendedBridgeTx);
     expect(result).to.be.null;
   });
 
@@ -37,11 +101,9 @@ describe('Service: PeginDataProcessor', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const tx = new RskTransaction();
-    tx.logs.push(new Log());
+    const extendedBridgeTx: ExtendedBridgeTx = <ExtendedBridgeTx> <unknown> {events: [{name: 'random'}]};
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
-    const result = thisService.parse(tx);
-
+    const result = thisService.parse(extendedBridgeTx);
     expect(result).to.be.null;
   });
 
@@ -49,21 +111,36 @@ describe('Service: PeginDataProcessor', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const recipient = getRandomAddress();
 
-    const tx = new RskTransaction();
-    tx.data = getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION) + getFakeRegisterBtcTransactionData();
-    const log = new Log();
-    log.topics = [getBridgeSignature(BRIDGE_EVENTS.PEGIN_BTC), recipient];
-    tx.logs.push(log);
+    const bridgeTransaction: Transaction = {
+      txHash: rskTxHash,
+      blockNumber: 1,
+      method: {
+        name: 'registerBtcTransaction',
+        signature: '0x43dc0656',
+        arguments: getMockedRegisterBtcTransactionMethodArgs()
+      },
+      events: [getMockedPeginBtcEvent()]
+    };
+
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash,
+      txHash: bridgeTransaction.txHash,
+      createdOn: new Date(),
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
-    const result = thisService.parse(tx);
+    const result = thisService.parse(extendedBridgeTx);
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
-      expect(result.rskRecipient).to.be.equal(recipient);
+      expect(result.rskRecipient).to.be.equal(bridgeTransaction.events[0].arguments.get('receiver'));
       expect(result.status).to.be.equal(PeginStatus.LOCKED);
-      expect(result.btcTxId).to.be.equal(txHash);
+      expect(result.btcTxId).to.be.equal(btcTxHash);
     }
   });
 
@@ -71,19 +148,36 @@ describe('Service: PeginDataProcessor', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const tx = new RskTransaction();
-    tx.data = getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION) + getFakeRegisterBtcTransactionData();
-    const log = new Log();
-    log.topics = [getBridgeSignature(BRIDGE_EVENTS.LOCK_BTC)];
-    tx.logs.push(log);
+
+    const bridgeTransaction: Transaction = {
+      txHash: rskTxHash,
+      blockNumber: 1,
+      method: {
+        name: 'registerBtcTransaction',
+        signature: '0x43dc0656',
+        arguments: getMockedRegisterBtcTransactionMethodArgs()
+      },
+      events: [getMockedLockBtcEvent()]
+    };
+
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash,
+      txHash: bridgeTransaction.txHash,
+      createdOn: new Date(),
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
-    const result = thisService.parse(tx);
+    const result = thisService.parse(extendedBridgeTx);
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
-      expect(result.rskRecipient).to.be.null; // ATM the parsing of a LOCK_BTC can't set the recipient
+      expect(result.rskRecipient).to.be.equal(bridgeTransaction.events[0].arguments.get('receiver'));
       expect(result.status).to.be.equal(PeginStatus.LOCKED);
-      expect(result.btcTxId).to.be.equal(txHash);
+      expect(result.btcTxId).to.be.equal(btcTxHash);
     }
   });
 
@@ -91,54 +185,105 @@ describe('Service: PeginDataProcessor', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const tx = new RskTransaction();
-    tx.data = getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION) + getFakeRegisterBtcTransactionData();
-    const log = new Log();
-    log.topics = [getBridgeSignature(BRIDGE_EVENTS.REJECTED_PEGIN)];
-    tx.logs.push(log);
+
+    const bridgeTransaction: Transaction = {
+      txHash: rskTxHash,
+      blockNumber: 1,
+      method: {
+        name: 'registerBtcTransaction',
+        signature: '0x43dc0656',
+        arguments: getMockedRegisterBtcTransactionMethodArgs()
+      },
+      events: [getMockedRejectedPeginEvent()]
+    };
+
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash,
+      txHash: bridgeTransaction.txHash,
+      createdOn: new Date(),
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
-    const result = thisService.parse(tx);
+    const result = thisService.parse(extendedBridgeTx);
 
     expect(result).to.be.null;
   });
 
-  it('parses a transaction with REJECTED_PEGIN and RELEASE_REQUESTED logs as a rejected pegin with refund', () => {
+  it('parses a transaction with REJECTED_PEGIN and RELEASE_REQUESTED event logs as a rejected pegin with refund', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const tx = new RskTransaction();
-    tx.data = getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION) + getFakeRegisterBtcTransactionData();
-    const log = new Log();
-    log.topics = [getBridgeSignature(BRIDGE_EVENTS.REJECTED_PEGIN), getBridgeSignature(BRIDGE_EVENTS.RELEASE_REQUESTED)];
-    tx.logs.push(log);
+
+    const bridgeTransaction: Transaction = {
+      txHash: rskTxHash,
+      blockNumber: 1,
+      method: {
+        name: 'registerBtcTransaction',
+        signature: '0x43dc0656',
+        arguments: getMockedRegisterBtcTransactionMethodArgs()
+      },
+      events: [getMockedReleaseRequestedEvent(), getMockedRejectedPeginEvent()]
+    };
+
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash,
+      txHash: bridgeTransaction.txHash,
+      createdOn: new Date(),
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
-    const result = thisService.parse(tx);
+    const result = thisService.parse(extendedBridgeTx);
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
       expect(result.rskRecipient).to.be.null; // ATM the parsing of a REJECTED_PEGIN can't set the recipient
       expect(result.status).to.be.equal(PeginStatus.REJECTED_REFUND);
-      expect(result.btcTxId).to.be.equal(txHash);
+      expect(result.btcTxId).to.be.equal(btcTxHash);
     }
   });
 
-  it('parses a transaction with REJECTED_PEGIN and UNREFUNDABLE_PEGIN logs as a rejected pegin with no refund', () => {
+  it('parses a transaction with REJECTED_PEGIN and UNREFUNDABLE_PEGIN event logs as a rejected pegin with no refund', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const tx = new RskTransaction();
-    tx.data = getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION) + getFakeRegisterBtcTransactionData();
-    const log = new Log();
-    log.topics = [getBridgeSignature(BRIDGE_EVENTS.REJECTED_PEGIN), getBridgeSignature(BRIDGE_EVENTS.UNREFUNDABLE_PEGIN)];
-    tx.logs.push(log);
+
+    const bridgeTransaction: Transaction = {
+      txHash: rskTxHash,
+      blockNumber: 1,
+      method: {
+        name: 'registerBtcTransaction',
+        signature: '0x43dc0656',
+        arguments: getMockedRegisterBtcTransactionMethodArgs()
+      },
+      events: [getMockedRejectedPeginEvent(), getMockedUnrefundablePeginEvent()]
+    };
+
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash,
+      txHash: bridgeTransaction.txHash,
+      createdOn: new Date(),
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
-    const result = thisService.parse(tx);
+    const result = thisService.parse(extendedBridgeTx);
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
       expect(result.rskRecipient).to.be.null; // ATM the parsing of a REJECTED_PEGIN can't set the recipient
       expect(result.status).to.be.equal(PeginStatus.REJECTED_NO_REFUND);
-      expect(result.btcTxId).to.be.equal(txHash);
+      expect(result.btcTxId).to.be.equal(btcTxHash);
     }
   });
 
@@ -154,38 +299,92 @@ describe('Service: PeginDataProcessor', () => {
   it('processes pegin transaction', async () => {
     const mockedPeginStatusDataService =
       sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;;
-    const tx = new RskTransaction();
-    tx.data = getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION) + getFakeRegisterBtcTransactionData();
-    const log = new Log();
-    log.topics = [getBridgeSignature(BRIDGE_EVENTS.REJECTED_PEGIN), getBridgeSignature(BRIDGE_EVENTS.RELEASE_REQUESTED)];
-    tx.logs.push(log);
+    
+    const bridgeTransaction: Transaction = {
+      txHash: rskTxHash,
+      blockNumber: 1,
+      method: {
+        name: 'registerBtcTransaction',
+        signature: '0x43dc0656',
+        arguments: getMockedRegisterBtcTransactionMethodArgs()
+      },
+      events: [getMockedRejectedPeginEvent(), getMockedReleaseRequestedEvent()]
+    };
+  
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash,
+      txHash: bridgeTransaction.txHash,
+      createdOn: new Date(),
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+    
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
-    await thisService.process(tx);
+    await thisService.process(extendedBridgeTx);
     sinon.assert.calledOnce(mockedPeginStatusDataService.set);
   });
 
   it('ignores pegin transaction if found in db', async () => {
     const mockedPeginStatusDataService =
       sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;
-    const tx = new RskTransaction();
-    tx.data = getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION) + getFakeRegisterBtcTransactionData();
-    const log = new Log();
-    log.topics = [getBridgeSignature(BRIDGE_EVENTS.REJECTED_PEGIN), getBridgeSignature(BRIDGE_EVENTS.RELEASE_REQUESTED)];
-    tx.logs.push(log);
+
+    const bridgeTransaction: Transaction = {
+      txHash: rskTxHash,
+      blockNumber: 1,
+      method: {
+        name: 'registerBtcTransaction',
+        signature: '0x43dc0656',
+        arguments: getMockedRegisterBtcTransactionMethodArgs()
+      },
+      events: [getMockedRejectedPeginEvent(), getMockedReleaseRequestedEvent()]
+    };
+    
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash,
+      txHash: bridgeTransaction.txHash,
+      createdOn: new Date(),
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+
     const foundPegin: PeginStatusDataModel = <PeginStatusDataModel>{};
     mockedPeginStatusDataService.getById.resolves(foundPegin);
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
-    await thisService.process(tx);
+    await thisService.process(extendedBridgeTx);
     sinon.assert.neverCalledWith(mockedPeginStatusDataService.set);
   });
 
-  it('returns early if no peginStatus can be parsed from transaction because logs is empty', async () => {
+  it('returns early if no peginStatus can be parsed from transaction because event logs is empty', async () => {
     const mockedPeginStatusDataService =
       sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;
-    const tx = new RskTransaction();
-    tx.logs = [];
+
+    const bridgeTransaction: Transaction = {
+      txHash: rskTxHash,
+      blockNumber: 1,
+      method: {
+        name: 'registerBtcTransaction',
+        signature: '0x43dc0656',
+        arguments: getMockedRegisterBtcTransactionMethodArgs()
+      },
+      events: []
+    };
+    
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash,
+      txHash: bridgeTransaction.txHash,
+      createdOn: new Date(),
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
-    await thisService.process(tx);
+    await thisService.process(extendedBridgeTx);
     sinon.assert.neverCalledWith(mockedPeginStatusDataService.getById);
     sinon.assert.neverCalledWith(mockedPeginStatusDataService.set);
   });

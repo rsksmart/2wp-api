@@ -1,4 +1,3 @@
-import {Log} from './log.model';
 import { BlockTransactionObject, Transaction } from 'web3-eth';
 
 export class RskTransaction {
@@ -6,13 +5,8 @@ export class RskTransaction {
   blockHash: string;
   blockHeight: number;
   data: string;
-  logs: Array<Log>;
   createdOn: Date;
   to: string | null;
-
-  constructor() {
-    this.logs = [];
-  }
 
   public static fromWeb3Transaction(web3Block: BlockTransactionObject, web3Tx: Transaction): RskTransaction {
     const tx = new RskTransaction();
