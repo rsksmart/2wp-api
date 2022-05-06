@@ -1,9 +1,9 @@
 import {getLogger, Logger} from 'log4js';
-import {RskTransaction} from '../models/rsk/rsk-transaction.model';
 import {BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
 import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-transaction-processor';
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import { PegoutStatusDataService } from './pegout-status-data-services/pegout-status-data.service';
+import { ExtendedBridgeTx } from './node-bridge-data.provider';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   logger: Logger;
@@ -13,7 +13,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     this.logger = getLogger('pegoutDataProcessor');
     this.pegoutStatusDataService = pegoutStatusDataService;
   }
-  async process(rskTransaction: RskTransaction): Promise<void> {
+  async process(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
     this.logger.error('[process] Method not yet implemented');
     throw new Error('Method not yet implemented');
   }
