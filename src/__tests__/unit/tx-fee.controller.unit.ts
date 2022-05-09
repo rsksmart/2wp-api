@@ -258,7 +258,7 @@ describe('tx Fee controller', () => {
     }))).to.be.true();
   });
   it('Should ensure the change output has a higher value than dust environment variable ', async () => {
-    const dustValue = process.env.DUST_VALUE ?? 1000;
+    const dustValue = process.env.BURN_DUST_VALUE ?? 2000;
     const minFastFee = new SatoshiBig(process.env.FEE_PER_KB_FAST_MIN ?? 100, 'satoshi');
     const minAverageFee = new SatoshiBig(process.env.FEE_PER_KB_AVERAGE_MIN ?? 100, 'satoshi');
     const minSlowFee = new SatoshiBig(process.env.FEE_PER_KB_SLOW_MIN ?? 100, 'satoshi');
