@@ -52,14 +52,16 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
       const lockBtcLog = this.getLockBtcLogIfExists(extendedBridgeTx.events);
       if(lockBtcLog) {
         status.btcTxId = <string> lockBtcLog.arguments.get('btcTxHash');
-        status.rskRecipient = <string> lockBtcLog.arguments.get('receiver');
+        const rskReceiver = <string> lockBtcLog.arguments.get('receiver');
+        status.rskRecipient = rskReceiver.toLowerCase();
       }
       status.status = RskPeginStatusEnum.LOCKED;
       return status;
     }
     const peginBtcLog = this.getPeginBtcLogIfExists(extendedBridgeTx.events);
     if (peginBtcLog) {
-      status.rskRecipient = <string> peginBtcLog.arguments.get('receiver');
+      const rskReceiver = <string> peginBtcLog.arguments.get('receiver');
+      status.rskRecipient = rskReceiver.toLowerCase();
       status.btcTxId = <string> peginBtcLog.arguments.get('btcTxHash');
       status.status = RskPeginStatusEnum.LOCKED;
       return status;

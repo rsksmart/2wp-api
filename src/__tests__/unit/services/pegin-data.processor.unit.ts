@@ -138,7 +138,8 @@ describe('Service: PeginDataProcessor', () => {
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
-      expect(result.rskRecipient).to.be.equal(bridgeTransaction.events[0].arguments.get('receiver'));
+      const rskReceiver = <string> bridgeTransaction.events[0].arguments.get('receiver');
+      expect(result.rskRecipient).to.be.equal(rskReceiver.toLowerCase());
       expect(result.status).to.be.equal(PeginStatus.LOCKED);
       expect(result.btcTxId).to.be.equal(btcTxHash);
     }
@@ -175,7 +176,8 @@ describe('Service: PeginDataProcessor', () => {
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
-      expect(result.rskRecipient).to.be.equal(bridgeTransaction.events[0].arguments.get('receiver'));
+      const rskReceiver = <string> bridgeTransaction.events[0].arguments.get('receiver');
+      expect(result.rskRecipient).to.be.equal(rskReceiver.toLowerCase());
       expect(result.status).to.be.equal(PeginStatus.LOCKED);
       expect(result.btcTxId).to.be.equal(btcTxHash);
     }
