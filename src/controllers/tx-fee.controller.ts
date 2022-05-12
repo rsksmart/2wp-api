@@ -60,8 +60,8 @@ export class TxFeeController {
        * inputs: 32 (prev tx hash) + 4 (prev tx output index) + ~70 (signature, 71 to be sure) + 34 (public key) + 4 (sequence nbr)
        * outputs: 8 (value) + 24 (output script)
        */
-      const outputsSize = 3 * (8 + 24);
-      const txBytes = txHeaderSize + outputsSize;
+      const outputSize = 8 + 24;
+      const txBytes = txHeaderSize + (3 * outputSize);
       Promise.all([
         this.sessionRepository.findAccountUtxos(
           feeRequestData.sessionId,
