@@ -41,7 +41,7 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
             ...bridgeTx,
             blockHash: transaction.blockHash,
             createdOn: transaction.createdOn,
-            to: transaction.to,
+            to: <string> transaction.to,
           };
           this.logger.debug(`[process] Informing subscriber...`);
           await subscriber.process(extendedBridgeTx);
