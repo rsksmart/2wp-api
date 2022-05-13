@@ -14,13 +14,14 @@ export class PegoutStatusDataModel implements SearchableModel {
   rskTxHash: string;
   rskSenderAddress: string;
   btcRecipientAddress: string;
-  valueInWeisSentToTheBridge: number;
-  valueInSatoshisToBeReceived: number;
-  feeInSatoshisToBePaid: number;
+  valueInWeisSentToTheBridge: string;
+  valueInSatoshisToBeReceived: string;
+  feeInSatoshisToBePaid: string;
   status: PegoutStatus;
   btcRawTransaction: string;
   rskBlockHeight: number;
-  lastUpdatedOn: Date;
+  reason: string;
+  createdOn: Date;
   getId() {
     return this.rskTxHash;
   }
