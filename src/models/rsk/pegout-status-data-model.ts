@@ -22,6 +22,7 @@ export class PegoutStatusDataModel implements SearchableModel {
   rskBlockHeight: number;
   reason: string;
   createdOn: Date;
+  btcTxHash: string;
   getId() {
     return this.rskTxHash;
   }

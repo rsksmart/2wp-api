@@ -1,3 +1,4 @@
+import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
 import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-transaction-processor';
@@ -6,27 +7,36 @@ import { PegoutStatusDataService } from './pegout-status-data-services/pegout-st
 import ExtendedBridgeTx from './extended-bridge-tx';
 import { PegoutStatus, PegoutStatusDataModel } from '../models/rsk/pegout-status-data-model';
 import { BridgeEvent } from 'bridge-transaction-parser';
+import { ServicesBindings } from '../dependency-injection-bindings';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
   private pegoutStatusDataService: PegoutStatusDataService;
 
-  constructor(pegoutStatusDataService: PegoutStatusDataService) {
+  constructor(
+    @inject(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
+    pegoutStatusDataService: PegoutStatusDataService) {
     this.logger = getLogger('pegoutDataProcessor');
     this.pegoutStatusDataService = pegoutStatusDataService;
   }
   async process(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
-    
+    this.logger.debug(`[process] Got tx ${extendedBridgeTx.txHash}`);
+
     const events: BridgeEvent[] = extendedBridgeTx.events;
+
+    if(this.hasReleaseRequestedEvent(events)) {
+      this.logger.trace('[process] found a release_requested event. Processing...');
+      return await this.processReleaseRequestedStatus(extendedBridgeTx);
+    }
 
     if(this.hasReleaseRequestReceivedEvent(events)) {
       this.logger.trace('[process] found a release_request_received event. Processing...');
-      return this.processReleaseRequestReceivedStatus(extendedBridgeTx);
+      return await this.processReleaseRequestReceivedStatus(extendedBridgeTx);
     }
 
     if(this.hasReleaseRequestRejectedEvent(events)) {
       this.logger.trace('[process] found a release_request_rejected event. Processing...');
-      return this.processReleaseRequestRejectedStatus(extendedBridgeTx);
+      return await this.processReleaseRequestRejectedStatus(extendedBridgeTx);
     }
 
     this.logger.warn('[process] other statuses processing not yet implemented.');
@@ -49,7 +59,49 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
   }
 
-  private processReleaseRequestReceivedStatus(extendedBridgeTx: ExtendedBridgeTx): void {
+  hasReleaseRequestedEvent(events: BridgeEvent[]): boolean {
+    return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
+  }
+
+  private async processReleaseRequestedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
+    const events: BridgeEvent[] = extendedBridgeTx.events;
+    const releaseRequestedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
+    if(!releaseRequestedEvent) {
+      return;
+    }
+
+    const originatingRskTxHash = <string> releaseRequestedEvent.arguments.get('rskTxHash');
+    const btcTxHash = <string> releaseRequestedEvent.arguments.get('btcTxHash');
+
+    const foundPegoutStatus = await this.pegoutStatusDataService.getLastByOriginatingRskTxHash(originatingRskTxHash);
+
+    if(!foundPegoutStatus) {
+      return this.logger.warn(`[processReleaseRequestedStatus] could not find a pegout status record
+       in the db for this transaction '${extendedBridgeTx.txHash}' with 'release_requested' event.`);
+    }
+
+    const newPegoutStatus: PegoutStatusDataModel = new PegoutStatusDataModel();
+    
+    newPegoutStatus.btcRecipientAddress = foundPegoutStatus.btcRecipientAddress; 
+    newPegoutStatus.originatingRskTxHash = originatingRskTxHash;
+    newPegoutStatus.valueInWeisSentToTheBridge = foundPegoutStatus.valueInWeisSentToTheBridge;
+    newPegoutStatus.rskSenderAddress = foundPegoutStatus.rskSenderAddress;
+    newPegoutStatus.rskTxHash = extendedBridgeTx.txHash;
+    newPegoutStatus.rskBlockHeight = extendedBridgeTx.blockNumber;
+    newPegoutStatus.createdOn = extendedBridgeTx.createdOn;
+    newPegoutStatus.btcTxHash = btcTxHash;
+    newPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
+
+    try {
+      await this.pegoutStatusDataService.set(newPegoutStatus);
+      this.logger.trace(`[processReleaseRequestedStatus] pegout status for ${originatingRskTxHash} updated.`);
+    } catch(e) {
+      this.logger.warn('[processReleaseRequestedStatus] There was a problem with the storage', e);
+    }
+
+  }
+
+  private async processReleaseRequestReceivedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
 
     const events: BridgeEvent[] = extendedBridgeTx.events;
     const releaseRequestReceivedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
@@ -74,7 +126,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     status.status = PegoutStatus.RECEIVED;
 
     try {
-      this.pegoutStatusDataService.set(status);
+      await this.pegoutStatusDataService.set(status);
       this.logger.trace(`[processReleaseRequestReceivedStatus] ${extendedBridgeTx.txHash} registered`);
     } catch(e) {
       this.logger.warn('[processReleaseRequestReceivedStatus] There was a problem with the storage', e);
@@ -82,7 +134,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   }
 
-  private processReleaseRequestRejectedStatus(extendedBridgeTx: ExtendedBridgeTx): void {
+  private async processReleaseRequestRejectedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
 
     const events: BridgeEvent[] = extendedBridgeTx.events;
     const releaseRequestRejectedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
@@ -107,7 +159,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     status.status = PegoutStatus.REJECTED;
 
     try {
-      this.pegoutStatusDataService.set(status);
+      await this.pegoutStatusDataService.set(status);
       this.logger.trace(`[processReleaseRequestRejectedStatus] ${extendedBridgeTx.txHash} registered`);
     } catch(e) {
       this.logger.warn('[processReleaseRequestRejectedStatus] There was a problem with the storage', e);
