@@ -7,11 +7,13 @@ import {BitcoinService, BridgeService, PeginStatusService} from './services';
 import {DaemonService} from './services/daemon.service';
 import {NodeBridgeDataProvider} from './services/node-bridge-data.provider';
 import {PeginStatusMongoDbDataService} from './services/pegin-status-data-services/pegin-status-mongo.service';
+import {PegoutStatusMongoDbDataService} from './services/pegout-status-data-services/pegout-status-mongo.service';
 import {PeginDataProcessor} from './services/pegin-data.processor';
 import {RskChainSyncService} from './services/rsk-chain-sync.service';
 import {RskNodeService} from './services/rsk-node.service';
 import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 import {UnusedAddressService} from './services/unused-address.service';
+import { PegoutDataProcessor } from './services/pegout-data.processor';
 
 export class DependencyInjectionHandler {
   public static configureDependencies(app: Application): void {
@@ -86,6 +88,11 @@ export class DependencyInjectionHandler {
       .toClass(PeginStatusMongoDbDataService)
       .inScope(BindingScope.SINGLETON);
 
+      app
+      .bind(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
+      .toClass(PegoutStatusMongoDbDataService)
+      .inScope(BindingScope.SINGLETON);
+
     app
       .bind(ServicesBindings.PEGIN_STATUS_SERVICE)
       .toClass(PeginStatusService)
@@ -104,6 +111,11 @@ export class DependencyInjectionHandler {
     app
       .bind(ServicesBindings.PEGIN_DATA_PROCESSOR)
       .toClass(PeginDataProcessor)
+      .inScope(BindingScope.SINGLETON);
+
+      app
+      .bind(ServicesBindings.PEGOUT_DATA_PROCESSOR)
+      .toClass(PegoutDataProcessor)
       .inScope(BindingScope.SINGLETON);
 
     app
