@@ -6,7 +6,7 @@ import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-tran
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {ServicesBindings} from '../dependency-injection-bindings';
-import { ExtendedBridgeTx } from './node-bridge-data.provider';
+import ExtendedBridgeTx from './extended-bridge-tx';
 import {BridgeEvent} from 'bridge-transaction-parser';
 
 export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
