@@ -1,3 +1,4 @@
+import {getLogger, Logger} from 'log4js';
 import mongoose from 'mongoose';
 import {SyncStatusModel} from '../models/rsk/sync-status.model';
 import {MongoDbDataService} from './mongodb-data.service';
@@ -18,6 +19,8 @@ const SyncStatusSchema = new mongoose.Schema({
 const SyncStatusConnector = mongoose.model<SyncStatusMongoModel>("SyncStatus", SyncStatusSchema);
 
 export class SyncStatusMongoService extends MongoDbDataService<SyncStatusModel, SyncStatusMongoModel> implements SyncStatusDataService {
+  logger: Logger = getLogger('syncStatusMongoService');
+
   protected getConnector(): mongoose.Model<SyncStatusMongoModel, {}, {}> {
     return SyncStatusConnector;
   }
@@ -41,6 +44,9 @@ export class SyncStatusMongoService extends MongoDbDataService<SyncStatusModel, 
       .limit(1) // get the first one
       .exec()
       .then(result => <SyncStatusModel>(result[0]))
-      .catch(() => undefined);
+      .catch((reason) => {
+        this.logger.warn(`[getBestBlock] Got an error: ${reason}`);
+        return undefined;
+      });
   }
 }

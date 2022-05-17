@@ -29,12 +29,15 @@ export class PeginStatusController {
       },
     },
   })
-  getTx(txId: string): Promise<PeginStatus> {
+  async getTx(txId: string): Promise<PeginStatus> {
     //FIXME: filter request incorrect and return our errors and not loopback error
     try {
-      return this.peginStatusService.getPeginSatusInfo(txId);
+      this.logger.debug(`[getTx] Started with txId ${txId}`);
+      let result = await this.peginStatusService.getPeginSatusInfo(txId);
+      this.logger.debug(`[getTx] Found tx with status ${result.status}`);
+      return result;
     } catch (e) {
-      this.logger.error(`Unexpected error: [${e}]`)
+      this.logger.warn(`[getTx] Unexpected error: [${e}]`);
       return Promise.resolve(new PeginStatusError(txId));
     };
   }

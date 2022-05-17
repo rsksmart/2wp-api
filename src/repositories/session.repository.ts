@@ -1,16 +1,19 @@
 import {inject} from '@loopback/core';
 import {DefaultKeyValueRepository} from '@loopback/repository';
+import {getLogger, Logger} from 'log4js';
+import * as constants from '../constants';
 import {RedisDataSource} from '../datasources';
 import {AddressBalance, FeeAmountData, Session, TxInput, Utxo} from '../models';
-import * as constants from '../constants';
 import {BtcAddressUtils} from '../utils/btc-utils';
 
 export class SessionRepository extends DefaultKeyValueRepository<Session> {
 
+  logger: Logger;
   btcAddressUtils: BtcAddressUtils = new BtcAddressUtils();
 
   constructor(@inject('datasources.Redis') dataSource: RedisDataSource) {
     super(Session, dataSource);
+    this.logger = getLogger('sessionRepository');
   }
 
   findAccountUtxos(sessionId: string, accountType: string): Promise<Utxo[]> {
@@ -94,7 +97,10 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
             );
           }
         })
-        .catch(reject);
+        .catch(reason => {
+          this.logger.warn(`[getFeeLevel] Got an error: ${reason}`);
+          reject(reason);
+        });
     });
   }
 }
