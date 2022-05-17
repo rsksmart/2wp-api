@@ -2,7 +2,8 @@ import {expect, sinon} from '@loopback/testlab';
 import {SinonStubbedInstance} from 'sinon';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import {BridgeDataFilterModel} from '../../../models/bridge-data-filter.model';
-import {ExtendedBridgeTx, NodeBridgeDataProvider} from '../../../services/node-bridge-data.provider';
+import {NodeBridgeDataProvider} from '../../../services/node-bridge-data.provider';
+import ExtendedBridgeTx from '../../../services/extended-bridge-tx'
 import FilteredBridgeTransactionProcessor from '../../../services/filtered-bridge-transaction-processor';
 import {BRIDGE_METHODS, getBridgeSignature} from '../../../utils/bridge-utils';
 import { PeginDataProcessor } from '../../../services/pegin-data.processor';
