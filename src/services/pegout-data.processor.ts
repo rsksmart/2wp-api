@@ -8,16 +8,24 @@ import ExtendedBridgeTx from './extended-bridge-tx';
 import { PegoutStatus, PegoutStatusDataModel } from '../models/rsk/pegout-status-data-model';
 import { BridgeEvent } from 'bridge-transaction-parser';
 import { ServicesBindings } from '../dependency-injection-bindings';
+import * as bitcoin from 'bitcoinjs-lib';
+import {BridgeService} from './bridge.service';
+import * as constants from '../constants';
+import { remove0x } from '../utils/hex-utils';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
   private pegoutStatusDataService: PegoutStatusDataService;
+  private bridgeService: BridgeService;
 
   constructor(
     @inject(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
-    pegoutStatusDataService: PegoutStatusDataService) {
+    pegoutStatusDataService: PegoutStatusDataService,
+    @inject(ServicesBindings.BRIDGE_SERVICE)
+    bridgeService: BridgeService) {
     this.logger = getLogger('pegoutDataProcessor');
     this.pegoutStatusDataService = pegoutStatusDataService;
+    this.bridgeService = bridgeService;
   }
   async process(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
     this.logger.debug(`[process] Got tx ${extendedBridgeTx.txHash}`);
@@ -81,10 +89,10 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
     const newPegoutStatus: PegoutStatusDataModel = new PegoutStatusDataModel();
-    
+
     newPegoutStatus.btcRecipientAddress = foundPegoutStatus.btcRecipientAddress; 
     newPegoutStatus.originatingRskTxHash = originatingRskTxHash;
-    newPegoutStatus.valueInWeisSentToTheBridge = foundPegoutStatus.valueInWeisSentToTheBridge;
+    newPegoutStatus.valueRequestedInSatoshis = foundPegoutStatus.valueRequestedInSatoshis;
     newPegoutStatus.rskSenderAddress = foundPegoutStatus.rskSenderAddress;
     newPegoutStatus.rskTxHash = extendedBridgeTx.txHash;
     newPegoutStatus.rskBlockHeight = extendedBridgeTx.blockNumber;
@@ -92,12 +100,48 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     newPegoutStatus.btcTxHash = btcTxHash;
     newPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
 
+    await this.addValueInSatoshisToBeReceivedAndFee(newPegoutStatus);
+
     try {
       await this.pegoutStatusDataService.set(newPegoutStatus);
       this.logger.trace(`[processReleaseRequestedStatus] pegout status for ${originatingRskTxHash} updated.`);
     } catch(e) {
       this.logger.warn('[processReleaseRequestedStatus] There was a problem with the storage', e);
     }
+
+  }
+
+  private async addValueInSatoshisToBeReceivedAndFee(pegoutStatus: PegoutStatusDataModel): Promise<void> {
+    const rskTxHash = remove0x(pegoutStatus.originatingRskTxHash);
+    const bridgeState = await this.bridgeService.getBridgeState();
+
+    this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] searching for a pegout 
+      in the bridge state pegoutsWaitingForConfirmations with rskTxHash: ${rskTxHash}.`);
+
+    const pegout = bridgeState.pegoutsWaitingForConfirmations.find((pegout: any) => pegout.rskTxHash === rskTxHash);
+
+    if(!pegout) {
+      this.logger.debug('[addValueInSatoshisToBeReceivedAndFee] did not find then pegout in the bridge state pegoutsWaitingForConfirmations.');
+      return;
+    }
+
+    this.logger.debug('[addValueInSatoshisToBeReceivedAndFee] found a pegout in waiting for confirmations at block: ', pegout.pegoutCreationBlockNumber);
+
+    const parsedBtcTransaction = bitcoin.Transaction.fromHex(pegout.btcRawTx);
+    const output = parsedBtcTransaction.outs.find(out => {
+      const parsedBtcAddress = bitcoin.address.fromOutputScript(out.script, this.getBitcoinNetwork());
+      return parsedBtcAddress === pegoutStatus.btcRecipientAddress;
+    });
+
+    if(!output) {
+      this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] did not find 
+        an output containing the btcRecipientAddress ${pegoutStatus.btcRecipientAddress}.`);
+      return;
+    }
+    
+    pegoutStatus.valueInSatoshisToBeReceived = output.value;
+    pegoutStatus.feeInSatoshisToBePaid = pegoutStatus.valueRequestedInSatoshis - pegoutStatus.valueInSatoshisToBeReceived;
+    pegoutStatus.btcRawTransaction = pegout.btcRawTx;
 
   }
 
@@ -112,7 +156,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
     const rskSenderAddress = <string> releaseRequestReceivedEvent.arguments.get('sender');
     const btcDestinationAddress = <string> releaseRequestReceivedEvent.arguments.get('btcDestinationAddress');
-    const amount = <string> releaseRequestReceivedEvent.arguments.get('amount');
+    const amount = <number> releaseRequestReceivedEvent.arguments.get('amount');
 
     const status: PegoutStatusDataModel = new PegoutStatusDataModel();
 
@@ -122,7 +166,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     status.rskBlockHeight = extendedBridgeTx.blockNumber;
     status.rskSenderAddress = rskSenderAddress;
     status.btcRecipientAddress = btcDestinationAddress;
-    status.valueInWeisSentToTheBridge = amount;
+    status.valueRequestedInSatoshis = amount;
     status.status = PegoutStatus.RECEIVED;
 
     try {
@@ -144,7 +188,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
     const rskSenderAddress = <string> releaseRequestRejectedEvent.arguments.get('sender');
-    const amount = <string> releaseRequestRejectedEvent.arguments.get('amount');
+    const amount = <number> releaseRequestRejectedEvent.arguments.get('amount');
     const reason = <string> releaseRequestRejectedEvent.arguments.get('reason');
 
     const status: PegoutStatusDataModel = new PegoutStatusDataModel();
@@ -154,7 +198,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     status.rskTxHash = extendedBridgeTx.txHash;
     status.rskBlockHeight = extendedBridgeTx.blockNumber;
     status.rskSenderAddress = rskSenderAddress;
-    status.valueInWeisSentToTheBridge = amount;
+    status.valueRequestedInSatoshis = amount;
     status.reason = reason;
     status.status = PegoutStatus.REJECTED;
 
@@ -165,6 +209,14 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       this.logger.warn('[processReleaseRequestRejectedStatus] There was a problem with the storage', e);
     }
 
+  }
+
+  private getBitcoinNetwork() {
+    const envNetwork = process.env.NETWORK ?? constants.NETWORK_TESTNET;
+    if(envNetwork === constants.NETWORK_MAINNET) {
+      return bitcoin.networks.bitcoin; 
+    }
+    return bitcoin.networks.testnet;
   }
 
 }
