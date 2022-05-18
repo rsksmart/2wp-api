@@ -6,14 +6,8 @@ import {RskBlock} from '../models/rsk/rsk-block.model';
 import FilteredBridgeTransactionProcessor from './filtered-bridge-transaction-processor';
 import RskBlockProcessorPublisher from './rsk-block-processor-publisher';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
-import {Transaction} from 'bridge-transaction-parser';
 import {BridgeService} from './bridge.service';
-
-export interface ExtendedBridgeTx extends Transaction {
-  blockHash: string;
-  createdOn: Date;
-  to: string | null;
-}
+import ExtendedBridgeTx from './extended-bridge-tx';
 
 export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
   logger: Logger;

@@ -6,7 +6,7 @@ export class RskTransaction {
   blockHeight: number;
   data: string;
   createdOn: Date;
-  to: string | null;
+  to: string;
 
   public static fromWeb3Transaction(web3Block: BlockTransactionObject, web3Tx: Transaction): RskTransaction {
     const tx = new RskTransaction();
@@ -15,7 +15,7 @@ export class RskTransaction {
     tx.createdOn = new Date(Number(web3Block.timestamp) * 1000);
     tx.hash = web3Tx.hash;
     tx.data = web3Tx.input;
-    tx.to = web3Tx.to;
+    tx.to = <string> web3Tx.to;
     return tx;
   }
 

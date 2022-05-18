@@ -3,7 +3,7 @@ import {BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
 import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-transaction-processor';
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import { PegoutStatusDataService } from './pegout-status-data-services/pegout-status-data.service';
-import { ExtendedBridgeTx } from './node-bridge-data.provider';
+import ExtendedBridgeTx from './extended-bridge-tx';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   logger: Logger;

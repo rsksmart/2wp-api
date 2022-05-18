@@ -4,7 +4,7 @@ import {PeginDataProcessor} from '../../../services/pegin-data.processor';
 import {PeginStatusDataService} from '../../../services/pegin-status-data-services/pegin-status-data.service';
 import sinon, {SinonStubbedInstance} from 'sinon';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
-import {ExtendedBridgeTx} from '../../../services/node-bridge-data.provider';
+import ExtendedBridgeTx from '../../../services/extended-bridge-tx';
 import {BridgeEvent, Transaction} from 'bridge-transaction-parser';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
 
