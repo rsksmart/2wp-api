@@ -4,6 +4,7 @@ import Web3 from 'web3';
 import {Contract} from 'web3-eth-contract';
 import bridgeTransactionParser, {Transaction} from 'bridge-transaction-parser';
 import * as constants from '../constants';
+const bridgeState = require('bridge-state-data-parser');
 
 export class BridgeService {
   private bridgeContract: Contract;
@@ -98,6 +99,10 @@ export class BridgeService {
   public async getBridgeTransactionByHash(txHash: string): Promise<Transaction> {
     const network = process.env.NETWORK ?? constants.NETWORK_TESTNET;
     return await bridgeTransactionParser.getBridgeTransactionByTxHash(this.web3, txHash, network);
+  }
+
+  public async getBridgeState() {
+    return await bridgeState(this.web3);
   }
   
 }
