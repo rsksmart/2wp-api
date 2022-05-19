@@ -2,7 +2,10 @@ import {createStubInstance, expect, StubbedInstanceWithSinonAccessor} from '@loo
 import sinon from 'sinon';
 import {PegoutStatusService} from "../../../services";
 import {PegoutStatusMongoDbDataService} from "../../../services/pegout-status-data-services/pegout-status-mongo.service";
-import {PegoutStatus, PegoutStatusDataModel} from "../../../models/rsk/pegout-status-data-model";
+import {
+    PegoutStatus,
+    PegoutStatusAppDataModel,
+} from "../../../models/rsk/pegout-status-data-model";
 
 describe('Pegout Status Service:', () => {
     let pegoutStatusService: PegoutStatusService;
@@ -18,7 +21,7 @@ describe('Pegout Status Service:', () => {
             .withArgs('RskTestTxId')
             .resolves(null);
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
-        const expectedResponse = new PegoutStatusDataModel({
+        const expectedResponse = new PegoutStatusAppDataModel({
             status: PegoutStatus.NOT_FOUND,
         });
         expect(pegoutStatus).to.be.deepEqual(expectedResponse);
@@ -30,9 +33,9 @@ describe('Pegout Status Service:', () => {
                 rskTxHash: 'RskTestTxId',
                 rskSenderAddress: 'testSenderAddress',
                 btcRecipientAddress: 'testBtcRecipientAddress',
-                valueInWeisSentToTheBridge: 5000000000000000,
-                valueInSatoshisToBeReceived: 495000,
-                feeInSatoshisToBePaid: 5000,
+                valueInWeisSentToTheBridge: '5000000000000000',
+                valueInSatoshisToBeReceived: '495000',
+                feeInSatoshisToBePaid: '5000',
                 status: PegoutStatus.RECEIVED,
                 btcRawTransaction: 'testBtcRawTx',
                 originatingRskTxHash: 'RskTestTxId',
@@ -40,13 +43,13 @@ describe('Pegout Status Service:', () => {
                 lastUpdatedOn: Date.now(),
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
-        const expectedResponse = new PegoutStatusDataModel({
+        const expectedResponse = new PegoutStatusAppDataModel({
             rskTxHash: 'RskTestTxId',
             rskSenderAddress: 'testSenderAddress',
             btcRecipientAddress: 'testBtcRecipientAddress',
-            valueInWeisSentToTheBridge: 5000000000000000,
-            valueInSatoshisToBeReceived: 495000,
-            feeInSatoshisToBePaid: 5000,
+            valueInWeisSentToTheBridge: '5000000000000000',
+            valueInSatoshisToBeReceived: '495000',
+            feeInSatoshisToBePaid: '5000',
             status: PegoutStatus.RECEIVED,
             btcRawTransaction: 'testBtcRawTx',
         });
@@ -59,9 +62,9 @@ describe('Pegout Status Service:', () => {
                 rskTxHash: 'RskTestTxId',
                 rskSenderAddress: undefined,
                 btcRecipientAddress: undefined,
-                valueInWeisSentToTheBridge: 0,
-                valueInSatoshisToBeReceived: 0,
-                feeInSatoshisToBePaid: 0,
+                valueInWeisSentToTheBridge: '0',
+                valueInSatoshisToBeReceived: '0',
+                feeInSatoshisToBePaid: '0',
                 status: PegoutStatus.REJECTED,
                 btcRawTransaction: undefined,
                 originatingRskTxHash: 'RskTestTxId',
@@ -69,7 +72,7 @@ describe('Pegout Status Service:', () => {
                 lastUpdatedOn: undefined,
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
-        const expectedResponse = new PegoutStatusDataModel({
+        const expectedResponse = new PegoutStatusAppDataModel({
             status: PegoutStatus.REJECTED,
         });
         expect(pegoutStatus).to.be.deepEqual(expectedResponse);
@@ -81,9 +84,9 @@ describe('Pegout Status Service:', () => {
                 rskTxHash: 'RskTestTxId',
                 rskSenderAddress: 'testSenderAddress',
                 btcRecipientAddress: 'testBtcRecipientAddress',
-                valueInWeisSentToTheBridge: 5000000000000000,
-                valueInSatoshisToBeReceived: 495000,
-                feeInSatoshisToBePaid: 5000,
+                valueInWeisSentToTheBridge: '5000000000000000',
+                valueInSatoshisToBeReceived: '495000',
+                feeInSatoshisToBePaid: '5000',
                 status: PegoutStatus.WAITING_FOR_CONFIRMATION,
                 btcRawTransaction: 'testBtcRawTx',
                 originatingRskTxHash: 'RskTestTxId',
@@ -91,13 +94,13 @@ describe('Pegout Status Service:', () => {
                 lastUpdatedOn: Date.now(),
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
-        const expectedResponse = new PegoutStatusDataModel({
+        const expectedResponse = new PegoutStatusAppDataModel({
             rskTxHash: 'RskTestTxId',
             rskSenderAddress: 'testSenderAddress',
             btcRecipientAddress: 'testBtcRecipientAddress',
-            valueInWeisSentToTheBridge: 5000000000000000,
-            valueInSatoshisToBeReceived: 495000,
-            feeInSatoshisToBePaid: 5000,
+            valueInWeisSentToTheBridge: '5000000000000000',
+            valueInSatoshisToBeReceived: '495000',
+            feeInSatoshisToBePaid: '5000',
             status: PegoutStatus.WAITING_FOR_CONFIRMATION,
             btcRawTransaction: 'testBtcRawTx',
         });
@@ -110,9 +113,9 @@ describe('Pegout Status Service:', () => {
                 rskTxHash: 'RskTestTxId',
                 rskSenderAddress: 'testSenderAddress',
                 btcRecipientAddress: 'testBtcRecipientAddress',
-                valueInWeisSentToTheBridge: 5000000000000000,
-                valueInSatoshisToBeReceived: 495000,
-                feeInSatoshisToBePaid: 5000,
+                valueInWeisSentToTheBridge: '5000000000000000',
+                valueInSatoshisToBeReceived: '495000',
+                feeInSatoshisToBePaid: '5000',
                 status: PegoutStatus.WAITING_FOR_SIGNATURE,
                 btcRawTransaction: 'testBtcRawTx',
                 originatingRskTxHash: 'RskTestTxId',
@@ -120,13 +123,13 @@ describe('Pegout Status Service:', () => {
                 lastUpdatedOn: Date.now(),
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
-        const expectedResponse = new PegoutStatusDataModel({
+        const expectedResponse = new PegoutStatusAppDataModel({
             rskTxHash: 'RskTestTxId',
             rskSenderAddress: 'testSenderAddress',
             btcRecipientAddress: 'testBtcRecipientAddress',
-            valueInWeisSentToTheBridge: 5000000000000000,
-            valueInSatoshisToBeReceived: 495000,
-            feeInSatoshisToBePaid: 5000,
+            valueInWeisSentToTheBridge: '5000000000000000',
+            valueInSatoshisToBeReceived: '495000',
+            feeInSatoshisToBePaid: '5000',
             status: PegoutStatus.WAITING_FOR_SIGNATURE,
             btcRawTransaction: 'testBtcRawTx',
         });
@@ -139,9 +142,9 @@ describe('Pegout Status Service:', () => {
                 rskTxHash: 'RskTestTxId',
                 rskSenderAddress: 'testSenderAddress',
                 btcRecipientAddress: 'testBtcRecipientAddress',
-                valueInWeisSentToTheBridge: 5000000000000000,
-                valueInSatoshisToBeReceived: 495000,
-                feeInSatoshisToBePaid: 5000,
+                valueInWeisSentToTheBridge: '5000000000000000',
+                valueInSatoshisToBeReceived: '495000',
+                feeInSatoshisToBePaid: '5000',
                 status: PegoutStatus.SIGNED,
                 btcRawTransaction: 'testBtcRawTx',
                 originatingRskTxHash: 'RskTestTxId',
@@ -149,13 +152,13 @@ describe('Pegout Status Service:', () => {
                 lastUpdatedOn: Date.now(),
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
-        const expectedResponse = new PegoutStatusDataModel({
+        const expectedResponse = new PegoutStatusAppDataModel({
             rskTxHash: 'RskTestTxId',
             rskSenderAddress: 'testSenderAddress',
             btcRecipientAddress: 'testBtcRecipientAddress',
-            valueInWeisSentToTheBridge: 5000000000000000,
-            valueInSatoshisToBeReceived: 495000,
-            feeInSatoshisToBePaid: 5000,
+            valueInWeisSentToTheBridge: '5000000000000000',
+            valueInSatoshisToBeReceived: '495000',
+            feeInSatoshisToBePaid: '5000',
             status: PegoutStatus.SIGNED,
             btcRawTransaction: 'testBtcRawTx',
         });
