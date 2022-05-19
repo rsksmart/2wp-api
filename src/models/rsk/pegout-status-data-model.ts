@@ -19,10 +19,11 @@ export class PegoutStatusDataModel implements SearchableModel {
   feeInSatoshisToBePaid: number;
   status: PegoutStatus;
   btcRawTransaction: string;
-  rskBlockHeight: Number;
+  rskBlockHeight: number;
   reason: string;
   createdOn: Date;
   btcTxHash: string;
+  originatingRskBlockHeight: number;
   getId() {
     return this.rskTxHash;
   }
