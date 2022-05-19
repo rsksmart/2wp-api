@@ -59,15 +59,15 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     ];
   }
 
-  hasReleaseRequestReceivedEvent(events: BridgeEvent[]): boolean {
+  private hasReleaseRequestReceivedEvent(events: BridgeEvent[]): boolean {
     return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
   }
 
-  hasReleaseRequestRejectedEvent(events: BridgeEvent[]): boolean {
+  private hasReleaseRequestRejectedEvent(events: BridgeEvent[]): boolean {
     return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
   }
 
-  hasReleaseRequestedEvent(events: BridgeEvent[]): boolean {
+  private hasReleaseRequestedEvent(events: BridgeEvent[]): boolean {
     return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
   }
 
@@ -98,6 +98,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     newPegoutStatus.rskBlockHeight = extendedBridgeTx.blockNumber;
     newPegoutStatus.createdOn = extendedBridgeTx.createdOn;
     newPegoutStatus.btcTxHash = btcTxHash;
+    newPegoutStatus.originatingRskBlockHeight = foundPegoutStatus.rskBlockHeight;
     newPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
 
     await this.addValueInSatoshisToBeReceivedAndFee(newPegoutStatus);
@@ -126,13 +127,12 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
     this.logger.debug('[addValueInSatoshisToBeReceivedAndFee] found a pegout in waiting for confirmations at block: ', pegout.pegoutCreationBlockNumber);
-
     const parsedBtcTransaction = bitcoin.Transaction.fromHex(pegout.btcRawTx);
     const output = parsedBtcTransaction.outs.find(out => {
       const parsedBtcAddress = bitcoin.address.fromOutputScript(out.script, this.getBitcoinNetwork());
       return parsedBtcAddress === pegoutStatus.btcRecipientAddress;
     });
-
+    
     if(!output) {
       this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] did not find 
         an output containing the btcRecipientAddress ${pegoutStatus.btcRecipientAddress}.`);
@@ -167,6 +167,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     status.rskSenderAddress = rskSenderAddress;
     status.btcRecipientAddress = btcDestinationAddress;
     status.valueRequestedInSatoshis = amount;
+    status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
     status.status = PegoutStatus.RECEIVED;
 
     try {
@@ -200,6 +201,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     status.rskSenderAddress = rskSenderAddress;
     status.valueRequestedInSatoshis = amount;
     status.reason = reason;
+    status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
     status.status = PegoutStatus.REJECTED;
 
     try {
