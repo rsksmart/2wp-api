@@ -1,7 +1,7 @@
 import {getLogger, Logger} from "log4js";
 import {inject} from "@loopback/core";
 import {ServicesBindings} from "../../dependency-injection-bindings";
-import {PegoutStatus, PegoutStatusDataModel} from "../../models/rsk/pegout-status-data-model";
+import {PegoutStatus, PegoutStatusAppDataModel, PegoutStatusDataModel} from "../../models/rsk/pegout-status-data-model";
 import {PegoutStatusMongoDbDataService} from "../pegout-status-data-services/pegout-status-mongo.service";
 
 export class PegoutStatusService {
@@ -17,9 +17,9 @@ export class PegoutStatusService {
     }
 
 
-    public getPegoutStatusByRskTxHash(rskTxHash: string): Promise<PegoutStatusDataModel> {
-        return new Promise<PegoutStatusDataModel>((resolve, reject) => {
-            let pegoutStatus: PegoutStatusDataModel = new PegoutStatusDataModel();
+    public getPegoutStatusByRskTxHash(rskTxHash: string): Promise<PegoutStatusAppDataModel> {
+        return new Promise<PegoutStatusAppDataModel>((resolve, reject) => {
+            let pegoutStatus: PegoutStatusAppDataModel = new PegoutStatusAppDataModel();
             this.pegoutStatusDataService.getLastByOriginatingRskTxHash(rskTxHash)
                 .then((pegoutStatusDbDataModel) => {
                     if (!pegoutStatusDbDataModel) {
@@ -27,7 +27,7 @@ export class PegoutStatusService {
                     } else if (pegoutStatusDbDataModel.status === PegoutStatus.REJECTED) {
                         pegoutStatus.status = PegoutStatus.REJECTED;
                     } else {
-                        pegoutStatus = PegoutStatusDataModel.fromPegoutStatusDbDataModell(pegoutStatusDbDataModel);
+                        pegoutStatus = PegoutStatusDataModel.fromPegoutStatusDataModell(pegoutStatusDbDataModel);
                     }
                     this.logger.debug(`TxId:${rskTxHash} Pegout Status: ${pegoutStatus.status}`);
                     resolve(pegoutStatus);
