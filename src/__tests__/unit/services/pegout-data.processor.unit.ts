@@ -221,4 +221,81 @@ describe('Service: PegoutDataProcessor', () => {
 
   });
 
+  it('handles SIGNED status', async () => {
+    const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
+    const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
+    const rskTransactionHash = '0x3769e1117683faa318c683af5fb763dc03d431580ecf2ad1271ff25bf946fe9c';
+    const btcTxHash = '0xfbfbc14548d7a352287b5f02199ac909d473333f7c2a072eb4dfda30f97a84e2';
+    const amount = 500000;
+    const originatingRskTxHash = '0x5628682b56ef179e066fd12ee25a84436def371b0a11b45cf1d8308ed06f4698';
+    const createdOn = new Date();
+    const rskBlockHeight = 2831033;
+    const foundReceivedPegoutStatus: PegoutStatusDataModel = new PegoutStatusDataModel();
+
+    mockedBridgeService.getBridgeState.resolves(bridgeState);
+
+    foundReceivedPegoutStatus.rskTxHash = originatingRskTxHash;
+    foundReceivedPegoutStatus.btcRecipientAddress = 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55';
+    foundReceivedPegoutStatus.createdOn = createdOn;
+    foundReceivedPegoutStatus.originatingRskTxHash = originatingRskTxHash;
+    foundReceivedPegoutStatus.rskBlockHeight = 2831033;
+    foundReceivedPegoutStatus.rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
+    foundReceivedPegoutStatus.status = PegoutStatus.RECEIVED;
+    foundReceivedPegoutStatus.valueRequestedInSatoshis = 500000;
+
+    mockedPegoutStatusDataService.getLastByOriginatingRskTxHash.withArgs(originatingRskTxHash).resolves(foundReceivedPegoutStatus);
+
+    const releaseBTCRequestedEventsArgs = new Map();
+    releaseBTCRequestedEventsArgs.set('rskTxHash', originatingRskTxHash);
+    releaseBTCRequestedEventsArgs.set('btcTxHash', btcTxHash);
+    releaseBTCRequestedEventsArgs.set('amount', amount);
+
+    const bridgeTransaction: Transaction = {
+      txHash: rskTransactionHash,
+      blockNumber: rskBlockHeight,
+      method: {
+        name: '',
+        signature: '',
+        arguments: new Map()
+      },
+      events: [{
+        name: BRIDGE_EVENTS.RELEASE_BTC,
+        signature: '0x7a7c29481528ac8c2b2e93aee658fddd4dc15304fa723a5c2b88514557bcc790',
+        arguments: releaseBTCRequestedEventsArgs
+      }]
+    }
+
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash,
+      txHash: bridgeTransaction.txHash,
+      createdOn,
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+
+    await thisService.process(extendedBridgeTx);
+
+    const status: PegoutStatusDataModel = new PegoutStatusDataModel();
+
+    status.createdOn = extendedBridgeTx.createdOn;
+    status.originatingRskTxHash = originatingRskTxHash;
+    status.rskTxHash = extendedBridgeTx.txHash;
+    status.rskBlockHeight = extendedBridgeTx.blockNumber;
+    status.rskSenderAddress = foundReceivedPegoutStatus.rskSenderAddress;
+    status.btcRecipientAddress = foundReceivedPegoutStatus.btcRecipientAddress;
+    status.valueRequestedInSatoshis = amount;
+    status.btcTxHash = btcTxHash;
+    status.status = PegoutStatus.SIGNED;
+    status.valueRequestedInSatoshis = 500000;
+    status.valueInSatoshisToBeReceived = 337100;
+    status.feeInSatoshisToBePaid = 162900;
+    status.btcRawTransaction = bridgeState.pegoutsWaitingForConfirmations[0].btcRawTx;
+
+    sinon.assert.calledOnceWithMatch(mockedPegoutStatusDataService.set, status);
+
+  });
+
 });

@@ -47,6 +47,11 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       return await this.processReleaseRequestRejectedStatus(extendedBridgeTx);
     }
 
+    if(this.hasSignedEvent(events)) {
+      this.logger.trace('[process] found a add_signature event. Processing...');
+      return await this.processSignedStatus(extendedBridgeTx);
+    }
+
     this.logger.warn('[process] other statuses processing not yet implemented.');
 
   }
@@ -69,6 +74,10 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   hasReleaseRequestedEvent(events: BridgeEvent[]): boolean {
     return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
+  }
+
+  hasSignedEvent(events: BridgeEvent[]): boolean {
+    return events.some(event => event.name === BRIDGE_EVENTS.ADD_SIGNATURE);
   }
 
   private async processReleaseRequestedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
@@ -176,6 +185,55 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       this.logger.warn('[processReleaseRequestReceivedStatus] There was a problem with the storage', e);
     }
 
+  }
+
+  private async processSignedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
+
+    const events: BridgeEvent[] = extendedBridgeTx.events;
+    const releaseBTCEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_BTC);
+
+    if(!releaseBTCEvent) {
+      return;
+    }
+
+    const originatingRskTxHash = <string> releaseBTCEvent.arguments.get('rskTxHash');
+
+    const foundPegoutStatus = await this.pegoutStatusDataService.getLastByOriginatingRskTxHash(originatingRskTxHash);
+
+    if(!foundPegoutStatus) {
+      return this.logger.warn(`[processReleaseRequestedStatus] could not find a pegout status record
+       in the db for this transaction '${extendedBridgeTx.txHash}' with 'release_btc' event.`);
+    }
+
+    //const status: PegoutStatusDataModel = await this.getPegoutStatusCreateIfNotExists(originatingRskTxHash, releaseBTCEvent, extendedBridgeTx);
+
+    try {
+      await this.pegoutStatusDataService.set(foundPegoutStatus);
+      this.logger.trace(`[processSignedStatus] ${extendedBridgeTx.txHash} registered`);
+    } catch(e) {
+      this.logger.warn('[processSignedStatus] There was a problem with the storage', e);
+    }
+
+  }
+
+  private async getPegoutStatusCreateIfNotExists(originatingRskTxHash: string, event: BridgeEvent, extendedBridgeTx: ExtendedBridgeTx): Promise<PegoutStatusDataModel> {
+    let status = await this.pegoutStatusDataService.getLastByOriginatingRskTxHash(originatingRskTxHash);
+
+    if(!status) {
+      status = new PegoutStatusDataModel();
+      const rskSenderAddress = <string> event.arguments.get('sender');
+      const amount = <number> event.arguments.get('amount');
+      status.createdOn = extendedBridgeTx.createdOn;
+      status.originatingRskTxHash = extendedBridgeTx.txHash;
+      status.rskTxHash = extendedBridgeTx.txHash;
+      status.rskBlockHeight = extendedBridgeTx.blockNumber;
+      status.rskSenderAddress = rskSenderAddress;
+      status.valueRequestedInSatoshis = amount;
+    } else {
+      status.status = PegoutStatus.SIGNED;
+    }
+
+    return status;
   }
 
   private async processReleaseRequestRejectedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
