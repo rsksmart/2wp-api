@@ -20,7 +20,8 @@ const PegoutStatusSchema = new mongoose.Schema({
   btcRawTransaction: {type: String, required: true},
   status: {type: String, required: true, enum: Object.values(PegoutStatus)},
   createdOn: {type: Date, required: true},
-  rskBlockHeight: {type: Number, required: true}
+  rskBlockHeight: {type: Number, required: true},
+  originatingRskBlockHeight: {type: Number, required: true}
 });
 
 const PegoutStatusConnector = mongoose.model<PegoutStatusMongoModel>("PegoutStatus", PegoutStatusSchema);
