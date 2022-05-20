@@ -206,6 +206,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
     //const status: PegoutStatusDataModel = await this.getPegoutStatusCreateIfNotExists(originatingRskTxHash, releaseBTCEvent, extendedBridgeTx);
+    foundPegoutStatus.status = PegoutStatus.SIGNED;
 
     try {
       await this.pegoutStatusDataService.set(foundPegoutStatus);
