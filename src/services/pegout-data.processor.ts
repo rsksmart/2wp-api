@@ -52,6 +52,10 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       return await this.processSignedStatus(extendedBridgeTx);
     }
 
+    for(var event of events) {
+      this.logger.info(`Event found:: ${event.name}`);
+    }
+
     this.logger.warn('[process] other statuses processing not yet implemented.');
 
   }
@@ -77,7 +81,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   hasSignedEvent(events: BridgeEvent[]): boolean {
-    return events.some(event => event.name === BRIDGE_EVENTS.ADD_SIGNATURE);
+    return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_BTC);
   }
 
   private async processReleaseRequestedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
@@ -205,7 +209,6 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
        in the db for this transaction '${extendedBridgeTx.txHash}' with 'release_btc' event.`);
     }
 
-    //const status: PegoutStatusDataModel = await this.getPegoutStatusCreateIfNotExists(originatingRskTxHash, releaseBTCEvent, extendedBridgeTx);
     foundPegoutStatus.status = PegoutStatus.SIGNED;
 
     try {
@@ -215,26 +218,6 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       this.logger.warn('[processSignedStatus] There was a problem with the storage', e);
     }
 
-  }
-
-  private async getPegoutStatusCreateIfNotExists(originatingRskTxHash: string, event: BridgeEvent, extendedBridgeTx: ExtendedBridgeTx): Promise<PegoutStatusDataModel> {
-    let status = await this.pegoutStatusDataService.getLastByOriginatingRskTxHash(originatingRskTxHash);
-
-    if(!status) {
-      status = new PegoutStatusDataModel();
-      const rskSenderAddress = <string> event.arguments.get('sender');
-      const amount = <number> event.arguments.get('amount');
-      status.createdOn = extendedBridgeTx.createdOn;
-      status.originatingRskTxHash = extendedBridgeTx.txHash;
-      status.rskTxHash = extendedBridgeTx.txHash;
-      status.rskBlockHeight = extendedBridgeTx.blockNumber;
-      status.rskSenderAddress = rskSenderAddress;
-      status.valueRequestedInSatoshis = amount;
-    } else {
-      status.status = PegoutStatus.SIGNED;
-    }
-
-    return status;
   }
 
   private async processReleaseRequestRejectedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
