@@ -47,7 +47,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       return await this.processReleaseRequestRejectedStatus(extendedBridgeTx);
     }
 
-    if(this.hasSignedEvent(events)) {
+    if(this.hasReleaseBtcEvent(events)) {
       this.logger.trace('[process] found a add_signature event. Processing...');
       return await this.processSignedStatus(extendedBridgeTx);
     }
@@ -75,7 +75,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
   }
 
-  hasSignedEvent(events: BridgeEvent[]): boolean {
+  hasReleaseBtcEvent(events: BridgeEvent[]): boolean {
     return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_BTC);
   }
 
