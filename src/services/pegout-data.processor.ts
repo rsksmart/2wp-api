@@ -52,10 +52,6 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       return await this.processSignedStatus(extendedBridgeTx);
     }
 
-    for(var event of events) {
-      this.logger.info(`Event found:: ${event.name}`);
-    }
-
     this.logger.warn('[process] other statuses processing not yet implemented.');
 
   }
