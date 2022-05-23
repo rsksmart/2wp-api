@@ -9,6 +9,7 @@ import { BRIDGE_EVENTS } from '../../../utils/bridge-utils';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import { PegoutStatus, PegoutStatusDataModel } from '../../../models/rsk/pegout-status-data-model';
 import { BridgeService } from '../../../services';
+import { request } from 'http';
 
 const rskTxHash = '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d660';
 const blockHash = '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d660';
@@ -271,11 +272,14 @@ describe('Service: PegoutDataProcessor', () => {
     await thisService.process(extendedBridgeTx);
 
     const status: PegoutStatusDataModel = new PegoutStatusDataModel();
-    status.btcRawTransaction = originatingRskTxHash;
+    status.rskTxHash = originatingRskTxHash;
     status.status = PegoutStatus.SIGNED;
 
-
     sinon.assert.calledOnce(mockedPegoutStatusDataService.set);
+
+    sinon.assert.calledOnceWithMatch(mockedPegoutStatusDataService.set, status);
+
+    sinon.assert.match(thisService.hasReleaseBtcEvent(bridgeTransaction.events), true);
 
   });
 
