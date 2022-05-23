@@ -53,7 +53,6 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
     this.logger.warn('[process] other statuses processing not yet implemented.');
-
   }
 
   getFilters(): BridgeDataFilterModel[] {
