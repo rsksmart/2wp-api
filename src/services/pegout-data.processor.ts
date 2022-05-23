@@ -48,8 +48,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
     if(this.hasReleaseBtcEvent(events)) {
-      this.logger.trace('[process] found a add_signature event. Processing...');
-      return await this.processSignedStatus(extendedBridgeTx);
+      this.logger.trace('[process] found a release_btc event. Processing...');
+      return await this.processReleaseBtcStatus(extendedBridgeTx);
     }
 
     this.logger.warn('[process] other statuses processing not yet implemented.');
@@ -186,7 +186,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   }
 
-  private async processSignedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
+  private async processReleaseBtcStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
 
     const events: BridgeEvent[] = extendedBridgeTx.events;
     const releaseBTCEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_BTC);
@@ -200,7 +200,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     const foundPegoutStatus = await this.pegoutStatusDataService.getLastByOriginatingRskTxHash(originatingRskTxHash);
 
     if(!foundPegoutStatus) {
-      return this.logger.warn(`[processReleaseRequestedStatus] could not find a pegout status record
+      return this.logger.warn(`[processReleaseBtcStatus] could not find a pegout status record
        in the db for this transaction '${extendedBridgeTx.txHash}' with 'release_btc' event.`);
     }
 
@@ -208,9 +208,9 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
     try {
       await this.pegoutStatusDataService.set(foundPegoutStatus);
-      this.logger.trace(`[processSignedStatus] ${extendedBridgeTx.txHash} registered`);
+      this.logger.trace(`[processReleaseBtcStatus] ${extendedBridgeTx.txHash} registered`);
     } catch(e) {
-      this.logger.warn('[processSignedStatus] There was a problem with the storage', e);
+      this.logger.warn('[processReleaseBtcStatus] There was a problem with the storage', e);
     }
 
   }
