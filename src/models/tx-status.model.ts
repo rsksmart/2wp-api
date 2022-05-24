@@ -25,4 +25,5 @@ export enum TxStatusType {
   PEGIN = 'PEGIN',
   PEGOUT = 'PEGOUT',
   INVALID_DATA = 'INVALID_DATA',
+  UNEXPECTED_ERROR = 'UNEXPECTED_ERROR',
 }
