@@ -85,7 +85,7 @@ export class BtcAddressUtils {
 
   public validateAddress(address: string): {valid: boolean; addressType: AddressType} {
     const network = process.env.NETWORK ?? constants.NETWORK_TESTNET;
-    const addressInfo = peginAddressVerifier.getAddressInformation(address)
+    const addressInfo = peginAddressVerifier.getAddressInformation(address);
     let addressType: AddressType = constants.BITCOIN_MULTISIGNATURE_ADDRESS;
     const valid = addressInfo ? addressInfo.network === network : false;
     if (valid) {
