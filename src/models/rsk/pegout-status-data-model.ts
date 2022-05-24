@@ -10,13 +10,27 @@ export enum PegoutStatus {
   NOT_FOUND = 'NOT_FOUND',
 }
 
-export class PegoutStatusAppDataModel {
+export interface PegoutStatusDataModel {
+  originatingRskTxHash: string;
+  rskTxHash: string;
+  rskSenderAddress: string;
+  btcRecipientAddress: string;
+  valueRequestedInSatoshis: number;
+  valueInSatoshisToBeReceived: number;
+  feeInSatoshisToBePaid: number;
+  status: PegoutStatus;
+  btcRawTransaction: string;
+}
+
+export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
   constructor(data?: Partial<PegoutStatusAppDataModel>) {
     Object.assign(this, data);
   }
 
-  static fromPegoutStatusDataModell(model: PegoutStatusDataModel):PegoutStatusAppDataModel {
-    const { rskTxHash,
+  static fromPegoutStatusDbDataModel(model: PegoutStatusDbDataModel):PegoutStatusAppDataModel {
+    const {
+      originatingRskTxHash,
+      rskTxHash,
       rskSenderAddress,
       btcRecipientAddress,
       valueRequestedInSatoshis,
@@ -26,6 +40,7 @@ export class PegoutStatusAppDataModel {
       btcRawTransaction,
     } = model;
     return new PegoutStatusAppDataModel({
+      originatingRskTxHash,
       rskTxHash,
       rskSenderAddress,
       btcRecipientAddress,
@@ -44,9 +59,18 @@ export class PegoutStatusAppDataModel {
   feeInSatoshisToBePaid: number;
   status: PegoutStatus;
   btcRawTransaction: string;
+  originatingRskTxHash: string;
 }
 
-export class PegoutStatusDataModel extends PegoutStatusAppDataModel implements SearchableModel {
+export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDataModel {
+  rskTxHash: string;
+  rskSenderAddress: string;
+  btcRecipientAddress: string;
+  valueRequestedInSatoshis: number;
+  valueInSatoshisToBeReceived: number;
+  feeInSatoshisToBePaid: number;
+  status: PegoutStatus;
+  btcRawTransaction: string;
   originatingRskTxHash: string; // First pegout rskTxHash, the one the user should have.
   rskBlockHeight: number;
   reason: string;

@@ -1,7 +1,7 @@
 import {getLogger, Logger} from "log4js";
 import {inject} from "@loopback/core";
 import {ServicesBindings} from "../../dependency-injection-bindings";
-import {PegoutStatus, PegoutStatusAppDataModel, PegoutStatusDataModel} from "../../models/rsk/pegout-status-data-model";
+import {PegoutStatus, PegoutStatusAppDataModel, PegoutStatusDbDataModel} from "../../models/rsk/pegout-status-data-model";
 import {PegoutStatusMongoDbDataService} from "../pegout-status-data-services/pegout-status-mongo.service";
 
 export class PegoutStatusService {
@@ -27,7 +27,7 @@ export class PegoutStatusService {
                     } else if (pegoutStatusDbDataModel.status === PegoutStatus.REJECTED) {
                         pegoutStatus.status = PegoutStatus.REJECTED;
                     } else {
-                        pegoutStatus = PegoutStatusDataModel.fromPegoutStatusDataModell(pegoutStatusDbDataModel);
+                        pegoutStatus = PegoutStatusAppDataModel.fromPegoutStatusDbDataModel(pegoutStatusDbDataModel);
                     }
                     this.logger.debug(`TxId:${rskTxHash} Pegout Status: ${pegoutStatus.status}`);
                     resolve(pegoutStatus);
