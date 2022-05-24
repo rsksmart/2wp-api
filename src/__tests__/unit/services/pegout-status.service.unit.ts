@@ -44,6 +44,7 @@ describe('Pegout Status Service:', () => {
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
         const expectedResponse = new PegoutStatusAppDataModel({
+            originatingRskTxHash: 'RskTestTxId',
             rskTxHash: 'RskTestTxId',
             rskSenderAddress: 'testSenderAddress',
             btcRecipientAddress: 'testBtcRecipientAddress',
@@ -95,6 +96,7 @@ describe('Pegout Status Service:', () => {
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
         const expectedResponse = new PegoutStatusAppDataModel({
+            originatingRskTxHash: 'RskTestTxId',
             rskTxHash: 'RskTestTxId',
             rskSenderAddress: 'testSenderAddress',
             btcRecipientAddress: 'testBtcRecipientAddress',
@@ -124,6 +126,7 @@ describe('Pegout Status Service:', () => {
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
         const expectedResponse = new PegoutStatusAppDataModel({
+            originatingRskTxHash: 'RskTestTxId',
             rskTxHash: 'RskTestTxId',
             rskSenderAddress: 'testSenderAddress',
             btcRecipientAddress: 'testBtcRecipientAddress',
@@ -153,6 +156,7 @@ describe('Pegout Status Service:', () => {
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
         const expectedResponse = new PegoutStatusAppDataModel({
+            originatingRskTxHash: 'RskTestTxId',
             rskTxHash: 'RskTestTxId',
             rskSenderAddress: 'testSenderAddress',
             btcRecipientAddress: 'testBtcRecipientAddress',
