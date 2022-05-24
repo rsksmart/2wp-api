@@ -5,7 +5,7 @@ import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-tran
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import { PegoutStatusDataService } from './pegout-status-data-services/pegout-status-data.service';
 import ExtendedBridgeTx from './extended-bridge-tx';
-import { PegoutStatus, PegoutStatusDataModel } from '../models/rsk/pegout-status-data-model';
+import { PegoutStatus, PegoutStatusDbDataModel } from '../models/rsk/pegout-status-data-model';
 import { BridgeEvent } from 'bridge-transaction-parser';
 import { ServicesBindings } from '../dependency-injection-bindings';
 import * as bitcoin from 'bitcoinjs-lib';
@@ -88,9 +88,9 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
        in the db for this transaction '${extendedBridgeTx.txHash}' with 'release_requested' event.`);
     }
 
-    const newPegoutStatus: PegoutStatusDataModel = new PegoutStatusDataModel();
+    const newPegoutStatus: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
-    newPegoutStatus.btcRecipientAddress = foundPegoutStatus.btcRecipientAddress; 
+    newPegoutStatus.btcRecipientAddress = foundPegoutStatus.btcRecipientAddress;
     newPegoutStatus.originatingRskTxHash = originatingRskTxHash;
     newPegoutStatus.valueRequestedInSatoshis = foundPegoutStatus.valueRequestedInSatoshis;
     newPegoutStatus.rskSenderAddress = foundPegoutStatus.rskSenderAddress;
@@ -112,7 +112,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   }
 
-  private async addValueInSatoshisToBeReceivedAndFee(pegoutStatus: PegoutStatusDataModel): Promise<void> {
+  private async addValueInSatoshisToBeReceivedAndFee(pegoutStatus: PegoutStatusDbDataModel): Promise<void> {
     const rskTxHash = remove0x(pegoutStatus.originatingRskTxHash);
     const bridgeState = await this.bridgeService.getBridgeState();
 
@@ -132,13 +132,13 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       const parsedBtcAddress = bitcoin.address.fromOutputScript(out.script, this.getBitcoinNetwork());
       return parsedBtcAddress === pegoutStatus.btcRecipientAddress;
     });
-    
+
     if(!output) {
       this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] did not find 
         an output containing the btcRecipientAddress ${pegoutStatus.btcRecipientAddress}.`);
       return;
     }
-    
+
     pegoutStatus.valueInSatoshisToBeReceived = output.value;
     pegoutStatus.feeInSatoshisToBePaid = pegoutStatus.valueRequestedInSatoshis - pegoutStatus.valueInSatoshisToBeReceived;
     pegoutStatus.btcRawTransaction = pegout.btcRawTx;
@@ -158,7 +158,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     const btcDestinationAddress = <string> releaseRequestReceivedEvent.arguments.get('btcDestinationAddress');
     const amount = <number> releaseRequestReceivedEvent.arguments.get('amount');
 
-    const status: PegoutStatusDataModel = new PegoutStatusDataModel();
+    const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
     status.createdOn = extendedBridgeTx.createdOn;
     status.originatingRskTxHash = extendedBridgeTx.txHash;
@@ -192,7 +192,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     const amount = <number> releaseRequestRejectedEvent.arguments.get('amount');
     const reason = <string> releaseRequestRejectedEvent.arguments.get('reason');
 
-    const status: PegoutStatusDataModel = new PegoutStatusDataModel();
+    const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
     status.createdOn = extendedBridgeTx.createdOn;
     status.originatingRskTxHash = extendedBridgeTx.txHash;
@@ -216,7 +216,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private getBitcoinNetwork() {
     const envNetwork = process.env.NETWORK ?? constants.NETWORK_TESTNET;
     if(envNetwork === constants.NETWORK_MAINNET) {
-      return bitcoin.networks.bitcoin; 
+      return bitcoin.networks.bitcoin;
     }
     return bitcoin.networks.testnet;
   }

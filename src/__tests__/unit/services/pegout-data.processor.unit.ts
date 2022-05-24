@@ -7,7 +7,7 @@ import ExtendedBridgeTx from '../../../services/extended-bridge-tx';
 import {Transaction} from 'bridge-transaction-parser';
 import { BRIDGE_EVENTS } from '../../../utils/bridge-utils';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
-import { PegoutStatus, PegoutStatusDataModel } from '../../../models/rsk/pegout-status-data-model';
+import { PegoutStatus, PegoutStatusDbDataModel } from '../../../models/rsk/pegout-status-data-model';
 import { BridgeService } from '../../../services';
 import * as constants from '../../../constants';
 import { BridgeState } from 'bridge-state-data-parser';
@@ -61,7 +61,7 @@ describe('Service: PegoutDataProcessor', () => {
     releaseRequestReceivedEventsArgs.set('amount', amount);
 
     const createdOn = new Date();
-    
+
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
@@ -89,7 +89,7 @@ describe('Service: PegoutDataProcessor', () => {
 
     await thisService.process(extendedBridgeTx);
 
-    const status: PegoutStatusDataModel = new PegoutStatusDataModel();
+    const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
     status.createdOn = extendedBridgeTx.createdOn;
     status.originatingRskTxHash = extendedBridgeTx.txHash;
@@ -117,7 +117,7 @@ describe('Service: PegoutDataProcessor', () => {
     releaseRequestedRejectEventsArgs.set('reason', reason);
 
     const createdOn = new Date();
-    
+
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
@@ -145,7 +145,7 @@ describe('Service: PegoutDataProcessor', () => {
 
     await thisService.process(extendedBridgeTx);
 
-    const status: PegoutStatusDataModel = new PegoutStatusDataModel();
+    const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
     status.createdOn = extendedBridgeTx.createdOn;
     status.originatingRskTxHash = extendedBridgeTx.txHash;
@@ -169,7 +169,7 @@ describe('Service: PegoutDataProcessor', () => {
     const originatingRskTxHash = '0x5628682b56ef179e066fd12ee25a84436def371b0a11b45cf1d8308ed06f4698';
     const createdOn = new Date();
     const rskBlockHeight = 2831033;
-    const foundReceivedPegoutStatus: PegoutStatusDataModel = new PegoutStatusDataModel();
+    const foundReceivedPegoutStatus: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
     mockedBridgeService.getBridgeState.resolves(bridgeState);
 
@@ -216,7 +216,7 @@ describe('Service: PegoutDataProcessor', () => {
 
     await thisService.process(extendedBridgeTx);
 
-    const status: PegoutStatusDataModel = new PegoutStatusDataModel();
+    const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
     status.createdOn = extendedBridgeTx.createdOn;
     status.originatingRskTxHash = originatingRskTxHash;
@@ -250,7 +250,7 @@ describe('Service: PegoutDataProcessor', () => {
     const originatingRskTxHash = '0x5628682b56ef179e066fd12ee25a84436def371b0a11b45cf1d8308ed06f4698';
     const createdOn = new Date();
     const rskBlockHeight = 2831033;
-    const foundReceivedPegoutStatus: PegoutStatusDataModel = new PegoutStatusDataModel();
+    const foundReceivedPegoutStatus: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
     mockedBridgeService.getBridgeState.resolves(bridgeState);
 
@@ -297,7 +297,7 @@ describe('Service: PegoutDataProcessor', () => {
 
     await thisService.process(extendedBridgeTx);
 
-    const status: PegoutStatusDataModel = new PegoutStatusDataModel();
+    const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
     status.createdOn = extendedBridgeTx.createdOn;
     status.originatingRskTxHash = originatingRskTxHash;
