@@ -4,8 +4,11 @@ import {RskBlock} from '../../../models/rsk/rsk-block.model';
 import {DaemonService} from '../../../services/daemon.service';
 import {NodeBridgeDataProvider} from '../../../services/node-bridge-data.provider';
 import {PeginStatusDataService} from '../../../services/pegin-status-data-services/pegin-status-data.service';
+import {PegoutStatusDataService} from '../../../services/pegout-status-data-services/pegout-status-data.service';
+import {BridgeService} from '../../../services/bridge.service';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
 import {PeginDataProcessor} from '../../../services/pegin-data.processor';
+import {PegoutDataProcessor} from '../../../services/pegout-data.processor';
 import RskBlockProcessorPublisher from '../../../services/rsk-block-processor-publisher';
 import {RskChainSyncService, RskChainSyncSubscriber} from '../../../services/rsk-chain-sync.service';
 import {getRandomHash} from '../../helper';
@@ -25,6 +28,8 @@ describe('Service: DaemonService', () => {
     const mockedRskBlockProcessorPublisher =
       sinon.createStubInstance(NodeBridgeDataProvider) as SinonStubbedInstance<RskBlockProcessorPublisher>;
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
+    const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
+    const bridgeService: BridgeService = <BridgeService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
     const mockedRskSyncChainService =
@@ -34,7 +39,8 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor(mockedPeginStatusDataService)
+      new PeginDataProcessor(mockedPeginStatusDataService),
+      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
     );
 
     await daemonService.start();
@@ -43,7 +49,7 @@ describe('Service: DaemonService', () => {
     expect(daemonService.started).to.be.true;
 
     sinon.assert.calledOnce(mockedRskSyncChainService.start);
-    sinon.assert.calledOnce(mockedRskBlockProcessorPublisher.addSubscriber);
+    sinon.assert.calledTwice(mockedRskBlockProcessorPublisher.addSubscriber);
 
     await daemonService.stop();
 
@@ -56,6 +62,8 @@ describe('Service: DaemonService', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
+    const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
+    const bridgeService: BridgeService = <BridgeService>{};
     const mockedRskSyncChainService =
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
     const daemonService = new DaemonService(
@@ -63,7 +71,8 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor(mockedPeginStatusDataService)
+      new PeginDataProcessor(mockedPeginStatusDataService),
+      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
     );
 
     clock.tick(1);
@@ -73,7 +82,7 @@ describe('Service: DaemonService', () => {
     await daemonService.start();
 
     clock.tick(1);
-    sinon.assert.calledOnce(mockedRskBlockProcessorPublisher.addSubscriber);
+    sinon.assert.calledTwice(mockedRskBlockProcessorPublisher.addSubscriber);
     expect(mockedRskSyncChainService.sync.called).to.be.true;
 
   });
@@ -85,7 +94,8 @@ describe('Service: DaemonService', () => {
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
     const mockedPeginDataProcessor =
       sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<PeginDataProcessor> & PeginDataProcessor;
-
+    const mockedPegoutDataProcessor = 
+      sinon.createStubInstance(PegoutDataProcessor) as SinonStubbedInstance<PegoutDataProcessor> & PegoutDataProcessor;
     const deletedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
 
     const daemonService = new DaemonService(
@@ -93,7 +103,8 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      mockedPeginDataProcessor
+      mockedPeginDataProcessor,
+      mockedPegoutDataProcessor
     );
 
     // Daemon should have subscribed to mockedRskSyncChainService events
