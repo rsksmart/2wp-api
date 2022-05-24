@@ -1,7 +1,7 @@
 import {getLogger, Logger} from "log4js";
 import {inject} from "@loopback/core";
 import {ServicesBindings} from "../../dependency-injection-bindings";
-import {PegoutStatus, PegoutStatusAppDataModel, PegoutStatusDbDataModel} from "../../models/rsk/pegout-status-data-model";
+import {PegoutStatus, PegoutStatusAppDataModel} from "../../models/rsk/pegout-status-data-model";
 import {PegoutStatusMongoDbDataService} from "../pegout-status-data-services/pegout-status-mongo.service";
 
 export class PegoutStatusService {
