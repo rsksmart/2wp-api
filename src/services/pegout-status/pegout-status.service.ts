@@ -10,7 +10,7 @@ export class PegoutStatusService {
 
     constructor(
         @inject(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
-            pegoutStatusDataService: PegoutStatusMongoDbDataService,
+            pegoutStatusDataService: PegoutStatusDataService,
     ) {
         this.logger = getLogger('pegoutStatusService');
         this.pegoutStatusDataService = pegoutStatusDataService;
