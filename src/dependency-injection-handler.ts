@@ -133,9 +133,9 @@ export class DependencyInjectionHandler {
       .inScope(BindingScope.SINGLETON);
 
     app
-    .bind(ServicesBindings.RSK_BLOCK_PROCESSOR_PUBLISHER)
-    .toClass(NodeBridgeDataProvider)
-    .inScope(BindingScope.SINGLETON);
+      .bind(ServicesBindings.RSK_BLOCK_PROCESSOR_PUBLISHER)
+      .toClass(NodeBridgeDataProvider)
+      .inScope(BindingScope.SINGLETON);
 
     app
         .bind(ServicesBindings.PEGOUT_STATUS_SERVICE)
