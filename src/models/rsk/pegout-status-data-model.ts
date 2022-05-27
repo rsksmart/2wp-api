@@ -27,7 +27,7 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
     Object.assign(this, data);
   }
 
-  static fromPegoutStatusDbDataModel(model: PegoutStatusDbDataModel):PegoutStatusAppDataModel {
+  static fromPegoutStatusDataModel(model: PegoutStatusDataModel):PegoutStatusAppDataModel {
     const {
       originatingRskTxHash,
       rskTxHash,
