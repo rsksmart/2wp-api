@@ -21,27 +21,25 @@ export class RskNodeService {
     return new Promise<RskTransaction>((resolve, reject) => {
       this.web3.eth.getTransaction(txHash)
         .then((web3Tx) => {
-          rskTx.blockHash = web3Tx.blockHash;
-          rskTx.blockHeight = web3Tx.blockNumber;
-          rskTx.hash = web3Tx.hash;
-          rskTx.data = web3Tx.input;
+          rskTx.blockHash = <string> web3Tx.blockHash;
+          rskTx.hash = <string> web3Tx.hash;
+          rskTx.data = <string> web3Tx.input;
           rskTx.to = <string> web3Tx.to;
 
           if(includeReceipt) {
             this.getTransactionReceipt(rskTx.hash)
               .then((receipt) => {
                 if(receipt) {
-                  rskTx.blockHeight = receipt.number;
-                  rskTx.blockHash = receipt.hash;
-                  rskTx.createdOn = new Date(Number(receipt.timestamp) * 1000);
+                  rskTx.receipt = receipt;
+                  return resolve(rskTx);
                 }
               })
               .catch((reason) => {
                 return reject(reason);
               });
+          }else{
+            return resolve(rskTx);
           }
-
-          return resolve(rskTx);
         })
         .catch((reason) => {
           return reject(reason);

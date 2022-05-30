@@ -141,7 +141,8 @@ describe('Service: NodeBridgeDataProvider', () => {
       data,
       createdOn,
       blockHeight: 1,
-      to: bridge.address
+      to: bridge.address,
+      receipt: null
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
@@ -205,7 +206,8 @@ describe('Service: NodeBridgeDataProvider', () => {
       data: noBridgeData,
       createdOn: new Date(),
       blockHeight: 1,
-      to: bridge.address
+      to: bridge.address,
+      receipt: null
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
@@ -248,7 +250,8 @@ describe('Service: NodeBridgeDataProvider', () => {
       data,
       createdOn,
       blockHeight: 1,
-      to: bridge.address
+      to: bridge.address,
+      receipt: null
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
@@ -315,7 +318,8 @@ describe('Service: NodeBridgeDataProvider', () => {
       data,
       createdOn: new Date(),
       blockHeight: 1,
-      to: '0x123'
+      to: '0x123',
+      receipt: null
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
