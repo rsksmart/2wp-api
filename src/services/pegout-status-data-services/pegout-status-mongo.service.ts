@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
-import {PegoutStatus, PegoutStatusDataModel} from '../../models/rsk/pegout-status-data-model';
+import {PegoutStatus, PegoutStatusDbDataModel} from '../../models/rsk/pegout-status-data-model';
 import {MongoDbDataService} from '../mongodb-data.service';
 import {PegoutStatusDataService} from './pegout-status-data.service';
 
 /*
 - THESE MODEL INTERFACES AND CLASSES ARE REQUIRED FOR MONGO BUT WE DON'T WANT THEM EXPOSED OUT OF THIS LAYER
 */
-interface PegoutStatusMongoModel extends mongoose.Document, PegoutStatusDataModel {
+interface PegoutStatusMongoModel extends mongoose.Document, PegoutStatusDbDataModel {
 }
 
 const PegoutStatusSchema = new mongoose.Schema({
@@ -26,7 +26,7 @@ const PegoutStatusSchema = new mongoose.Schema({
 
 const PegoutStatusConnector = mongoose.model<PegoutStatusMongoModel>("PegoutStatus", PegoutStatusSchema);
 
-export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutStatusDataModel, PegoutStatusMongoModel> implements PegoutStatusDataService {
+export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutStatusDbDataModel, PegoutStatusMongoModel> implements PegoutStatusDataService {
 
   protected getLoggerName(): string {
     return 'pegoutStatusMongoService';
@@ -48,19 +48,19 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
       .then(() => true);
   }
 
-  public getManyByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDataModel[]> {
+  public getManyByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel[]> {
     return this.getConnector()
     .find({originatingRskTxHash})
     .exec();
   }
 
-  public getLastByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDataModel | null> {
+  public getLastByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel | null> {
     return this.getConnector()
     .find({originatingRskTxHash})
     .sort({createdOn: -1})
     .limit(1)
     .exec()
-    .then((pegoutStatuses: PegoutStatusDataModel[]) => pegoutStatuses[0] || null);
+    .then((pegoutStatuses: PegoutStatusDbDataModel[]) => pegoutStatuses[0] || null);
   }
 
 }

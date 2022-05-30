@@ -64,7 +64,7 @@ export class PeginStatusService {
                 peginStatusInfo.setRskPeginStatus(peginRskInfo);
                 return peginStatusInfo;
               }
-            })
+            });
         } else {
           const peginRskInfo = new RskPeginStatus();
           peginRskInfo.recipientAddress = this.destinationAddress;
@@ -126,7 +126,7 @@ export class PeginStatusService {
               btcTx.vout
             ));
 
-            btcStatus.btcWTxId = ensure0x(calculateBtcTxHash(btcTx.hex))
+            btcStatus.btcWTxId = ensure0x(calculateBtcTxHash(btcTx.hex));
             btcStatus.fees = btcTx.fees ? this.fromSatoshiToBtc(btcTx.fees) : 0;
             btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
             btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;
