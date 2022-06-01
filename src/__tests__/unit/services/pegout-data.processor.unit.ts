@@ -33,7 +33,7 @@ const bridgeState: BridgeState = {
 };
 
 const NETWORK = process.env.NETWORK;
-process.env.RSK_MINIMUM_CONFIRMATION = '10';
+process.env.RSK_PEGOUT_MINIMUM_CONFIRMATIONS = '10';
 
 describe('Service: PegoutDataProcessor', () => {
 
@@ -47,7 +47,7 @@ describe('Service: PegoutDataProcessor', () => {
     const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService);
     expect(thisService.getFilters()).to.be.Array;
     expect(thisService.getFilters()).to.not.be.empty;
-    expect(thisService.getFilters().length).to.equal(2);
+    expect(thisService.getFilters().length).to.equal(3);
   });
 
   it('handles RECEIVED status', async () => {
