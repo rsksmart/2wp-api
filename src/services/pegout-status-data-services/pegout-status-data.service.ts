@@ -5,4 +5,6 @@ export interface PegoutStatusDataService extends GenericDataService<PegoutStatus
   deleteByRskBlockHeight(rskBlockHeight: number): Promise<boolean>;
   getManyByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel[]>;
   getLastByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel | null>;
+  getManyWaitingForConfirmationNewest(): Promise<PegoutStatusDbDataModel[]>;
+  getManyWaitingForSignaturesNewest(): Promise<PegoutStatusDbDataModel[]>;
 }

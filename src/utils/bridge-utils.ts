@@ -15,6 +15,7 @@ export enum BRIDGE_EVENTS {
   REJECTED_PEGIN = 'rejected_pegin',
   RELEASE_REQUESTED = 'release_requested',
   UNREFUNDABLE_PEGIN = 'unrefundable_pegin',
+  UPDATE_COLLECTIONS = 'update_collections',
   RELEASE_BTC = 'release_btc',
   RELEASE_REQUEST_RECEIVED = 'release_request_received',
   RELEASE_REQUEST_REJECTED = 'release_request_rejected',
