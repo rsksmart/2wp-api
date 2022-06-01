@@ -50,7 +50,7 @@ export class PeginTxController {
       const validAddress = addressInfo
         ? peginAddressVerifier.canPegIn(addressInfo)
         : false;
-      if (!validAddress)
+      if (createPeginTxData.refundAddress && !validAddress)
         reject(
           new Error(`Invalid Refund Address provided ${createPeginTxData.refundAddress} for network ${network}`),
         );
@@ -116,15 +116,17 @@ export class PeginTxController {
       op_return_data: '52534b5401',
     });
     output.op_return_data += recipient;
-    const addressInfo =
-      peginAddressVerifier.getAddressInformation(refundAddress);
-    switch (addressInfo.type) {
-      case 'p2pkh':
-        output.op_return_data += `01${addressInfo.scriptPubKey}`;
-        break;
-      case 'p2sh':
-        output.op_return_data += `02${addressInfo.scriptHash}`;
-        break;
+    if (refundAddress) {
+      const addressInfo =
+          peginAddressVerifier.getAddressInformation(refundAddress);
+      switch (addressInfo.type) {
+        case 'p2pkh':
+          output.op_return_data += `01${addressInfo.scriptPubKey}`;
+          break;
+        case 'p2sh':
+          output.op_return_data += `02${addressInfo.scriptHash}`;
+          break;
+      }
     }
     return output;
   }
