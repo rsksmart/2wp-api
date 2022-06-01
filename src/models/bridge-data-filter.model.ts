@@ -7,8 +7,8 @@ export class BridgeDataFilterModel {
   }
 
   isMethodCall(callData: string) {
-    return callData.startsWith(this.abiEncodedSignature) ||
-      callData.startsWith('0x' + this.abiEncodedSignature);
+    const methodSignature = callData.slice(0, 10);
+    return methodSignature === this.abiEncodedSignature;
   }
 
 }

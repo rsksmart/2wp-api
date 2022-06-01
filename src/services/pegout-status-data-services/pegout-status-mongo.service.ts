@@ -21,7 +21,8 @@ const PegoutStatusSchema = new mongoose.Schema({
   status: {type: String, required: true, enum: Object.values(PegoutStatus)},
   createdOn: {type: Date, required: true},
   rskBlockHeight: {type: Number, required: true},
-  originatingRskBlockHeight: {type: Number, required: true}
+  originatingRskBlockHeight: {type: Number, required: true},
+  isNewestStatus: {type: Boolean, required: true}
 });
 
 const PegoutStatusConnector = mongoose.model<PegoutStatusMongoModel>("PegoutStatus", PegoutStatusSchema);
@@ -54,13 +55,36 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
     .exec();
   }
 
-  public getLastByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel | null> {
-    return this.getConnector()
+  public async getLastByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel | null> {
+    const pegoutDocument = await this.getConnector()
     .find({originatingRskTxHash})
     .sort({createdOn: -1})
     .limit(1)
     .exec()
     .then((pegoutStatuses: PegoutStatusDbDataModel[]) => pegoutStatuses[0] || null);
+    if(!pegoutDocument) {
+      return null;
+    }
+    // Getting the pegout status from the db does not create a PegoutStatusDataModel instance.
+    // So the data that the db returns does not have the 'getIdFieldName' method,
+    // which is needed to be able to update and safe the pegout status.
+    // That's why we need to 'clone' it here, to create an actual PegoutStatusDataModel instance and have what we need.
+    // Same for the other uses of this clone method in this file.
+    return PegoutStatusDbDataModel.clonePegoutStatusInstance(pegoutDocument);
+  }
+
+  public async getManyWaitingForConfirmationNewest(): Promise<PegoutStatusDbDataModel[]> {
+    const pegoutsDocuments = await this.getConnector()
+    .find({status: PegoutStatus.WAITING_FOR_CONFIRMATION, isNewestStatus: true})
+    .exec();
+    return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
+  }
+
+  public async getManyWaitingForSignaturesNewest(): Promise<PegoutStatusDbDataModel[]> {
+    const pegoutsDocuments = await  this.getConnector()
+    .find({status: PegoutStatus.WAITING_FOR_SIGNATURE, isNewestStatus: true})
+    .exec();
+    return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 
 }
