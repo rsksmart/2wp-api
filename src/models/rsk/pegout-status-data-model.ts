@@ -77,6 +77,8 @@ export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDat
   btcTxHash: string;
   originatingRskBlockHeight: number;
   isNewestStatus: boolean;
+  originatingRskBlockHash: string;
+  rskBlockHash: string;
   getId() {
     return this.rskTxHash;
   }
@@ -101,6 +103,8 @@ export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDat
     pegoutStatusInstance.reason = pegoutStatus.reason;
     pegoutStatusInstance.valueInSatoshisToBeReceived = pegoutStatus.valueInSatoshisToBeReceived;
     pegoutStatusInstance.feeInSatoshisToBePaid = pegoutStatus.feeInSatoshisToBePaid;
+    pegoutStatusInstance.originatingRskBlockHash = pegoutStatus.originatingRskBlockHash;
+    pegoutStatusInstance.rskBlockHash = pegoutStatus.rskBlockHash;
     return pegoutStatusInstance;
   }
 
