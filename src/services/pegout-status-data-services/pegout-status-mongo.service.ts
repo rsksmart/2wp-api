@@ -22,7 +22,9 @@ const PegoutStatusSchema = new mongoose.Schema({
   createdOn: {type: Date, required: true},
   rskBlockHeight: {type: Number, required: true},
   originatingRskBlockHeight: {type: Number, required: true},
-  isNewestStatus: {type: Boolean, required: true}
+  isNewestStatus: {type: Boolean, required: true},
+  originatingRskBlockHash: {type: String, required: true},
+  rskBlockHash: {type: String, required: true},
 });
 
 const PegoutStatusConnector = mongoose.model<PegoutStatusMongoModel>("PegoutStatus", PegoutStatusSchema);
