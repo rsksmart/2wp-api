@@ -8,6 +8,7 @@ export enum PegoutStatus {
   WAITING_FOR_SIGNATURE = 'WAITING_FOR_SIGNATURE',
   SIGNED = 'SIGNED',
   NOT_FOUND = 'NOT_FOUND',
+  NOT_PEGOUT_TX = 'NOT_PEGOUT_TX'
 }
 
 export interface PegoutStatusDataModel {
@@ -60,6 +61,7 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
   status: PegoutStatus;
   btcRawTransaction: string;
   originatingRskTxHash: string;
+  createdOn:Date;
 }
 
 export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDataModel {
