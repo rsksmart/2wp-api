@@ -35,9 +35,11 @@ export class PegoutStatusService {
                 .then(async (pegoutStatusDbDataModel) => {
                     if (!pegoutStatusDbDataModel) {
 
+                        // TODO implements the new getTransactionMethod in rskNodeService
                         let transaction:Transaction = await this.rskNodeService.getTransactionReceipt(rskTxHash);
                         
                         if(transaction) {
+                            //Process the transaction using the same rules in pegout-data-processor
                             pegoutStatus = await this.processTransaction(transaction);
                         } else {
                             pegoutStatus.status = PegoutStatus.NOT_FOUND;
