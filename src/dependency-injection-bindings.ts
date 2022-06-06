@@ -31,5 +31,5 @@ export const ServicesBindings = {
   ADDRESS_SERVICE: 'services.AddressService',
   UNUSED_ADDRESS_SERVICE: 'services.UnusedAddressService',
   RSK_BLOCK_PROCESSOR_PUBLISHER: 'services.RskBlockProcessorPublisher',
-  PEGOUT_STATUS_SERVICE: 'services.PeginStatusService',
+  PEGOUT_STATUS_SERVICE: 'services.PegoutStatusService',
 };
