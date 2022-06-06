@@ -37,7 +37,7 @@ export class RskNodeService {
               .catch((reason) => {
                 return reject(reason);
               });
-          }else{
+          } else {
             return resolve(rskTx);
           }
         })
