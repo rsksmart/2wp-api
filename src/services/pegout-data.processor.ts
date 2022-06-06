@@ -34,7 +34,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     return [
       new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.UPDATE_COLLECTIONS)),
       new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.ADD_SIGNATURE)),
-      BridgeDataFilterModel.EMPTY_DATA_FILTER
+      BridgeDataFilterModel.EMPTY_DATA_FILTER,
+      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.RELEASE_BTC))
     ];
   }
 
