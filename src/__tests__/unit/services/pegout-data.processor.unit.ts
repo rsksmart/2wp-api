@@ -33,7 +33,7 @@ const bridgeState: BridgeState = {
 };
 
 const NETWORK = process.env.NETWORK;
-process.env.RSK_MINIMUM_CONFIRMATION = '10';
+process.env.RSK_PEGOUT_MINIMUM_CONFIRMATIONS = '10';
 
 describe('Service: PegoutDataProcessor', () => {
 
@@ -47,7 +47,7 @@ describe('Service: PegoutDataProcessor', () => {
     const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService);
     expect(thisService.getFilters()).to.be.Array;
     expect(thisService.getFilters()).to.not.be.empty;
-    expect(thisService.getFilters().length).to.equal(2);
+    expect(thisService.getFilters().length).to.equal(3);
   });
 
   it('handles RECEIVED status', async () => {
@@ -343,8 +343,6 @@ describe('Service: PegoutDataProcessor', () => {
 
     const originatingRskTxHash = '0x3ca5051117e635df4e77a66214d3a0805904c1b86357d5c43279d73f7baad8d9';
     const rskTxHash = '0x7bdcfca72ea7103a804f9f9013bfb205c8c61fe9deb903a9923e03b80a16bfd2';
-  
-    mockedPegoutStatusDataService.getManyWaitingForConfirmationNewest.resolves();
 
     const dbPegoutWaitingForConfirmation: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
@@ -412,5 +410,93 @@ describe('Service: PegoutDataProcessor', () => {
     sinon.assert.calledOnceWithMatch(mockedPegoutStatusDataService.set, pegoutWithWaitingForSignature);
 
   });
+
+  it('handles SIGNED status for pegouts WAITING_FOR_SIGNATURE', async () => {
+
+    const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
+    const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
+
+    const createdOn = new Date();
+
+    const originatingRskTxHash = '0x3ca5051117e635df4e77a66214d3a0805904c1b86357d5c43279d73f7baad8d9';
+    const rskTxHash = '0x7bdcfca72ea7103a804f9f9013bfb205c8c61fe9deb903a9923e03b80a16bfd2';
+
+    const dbPegoutWaitingForSignature: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
+
+    const rskBlockHeight = 2869973;
+    const rskBlockHash = '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d661';
+
+    dbPegoutWaitingForSignature.rskTxHash = rskTxHash;
+    dbPegoutWaitingForSignature.btcRecipientAddress = 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55';
+    dbPegoutWaitingForSignature.createdOn = createdOn;
+    dbPegoutWaitingForSignature.originatingRskTxHash = originatingRskTxHash;
+    dbPegoutWaitingForSignature.rskBlockHeight = rskBlockHeight;
+    dbPegoutWaitingForSignature.rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
+    dbPegoutWaitingForSignature.status = PegoutStatus.WAITING_FOR_SIGNATURE;
+    dbPegoutWaitingForSignature.btcRawTransaction = btcRawTx1;
+    dbPegoutWaitingForSignature.originatingRskBlockHeight = 2869983;
+    dbPegoutWaitingForSignature.valueRequestedInSatoshis = 521000;
+    dbPegoutWaitingForSignature.originatingRskBlockHash = blockHash;
+    dbPegoutWaitingForSignature.rskBlockHash = rskBlockHash;
+
+    mockedPegoutStatusDataService.getManyWaitingForSignaturesNewest.resolves([dbPegoutWaitingForSignature]);
+    mockedPegoutStatusDataService.getManyWaitingForConfirmationNewest.resolves([]);
+
+    mockedBridgeService.getBridgeState.resolves(bridgeState);
+
+    const relaseBtcEventsArgs = new Map();
+    relaseBtcEventsArgs.set('btcRawTransaction', btcRawTx1);
+
+    const bridgeTransaction: Transaction = {
+      txHash: rskTxHash,
+      blockNumber: rskBlockHeight,
+      method: {
+        name: 'addSignature',
+        signature: '0xf10b9c59',
+        arguments: new Map()
+      },
+      events: [{
+        name: BRIDGE_EVENTS.RELEASE_BTC,
+        signature: '0x655929b56d5c5a24f81ee80267d5151b9d680e7e703387999922e9070bc98a02',
+        arguments: relaseBtcEventsArgs
+      }]
+    }
+    
+    const rskBlockHash2 = '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d662';
+
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash: rskBlockHash2,
+      txHash: bridgeTransaction.txHash,
+      createdOn,
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+
+    await thisService.process(extendedBridgeTx);
+
+    const pegoutWithSigned: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
+
+    pegoutWithSigned.rskTxHash = rskTxHash;
+    pegoutWithSigned.btcRecipientAddress = 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55';
+    pegoutWithSigned.createdOn = createdOn;
+    pegoutWithSigned.originatingRskTxHash = originatingRskTxHash;
+    pegoutWithSigned.rskBlockHeight = rskBlockHeight;
+    pegoutWithSigned.rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
+    pegoutWithSigned.status = PegoutStatus.SIGNED;
+    pegoutWithSigned.btcRawTransaction = btcRawTx1;
+    pegoutWithSigned.originatingRskBlockHeight = 2869983;
+    pegoutWithSigned.valueRequestedInSatoshis = 521000;
+    pegoutWithSigned.originatingRskBlockHash = blockHash;
+    pegoutWithSigned.rskBlockHash = rskBlockHash2;
+
+    sinon.assert.calledTwice(mockedPegoutStatusDataService.set);
+    sinon.assert.calledWithMatch(mockedPegoutStatusDataService.set, dbPegoutWaitingForSignature);
+    sinon.assert.calledWithMatch(mockedPegoutStatusDataService.set, pegoutWithSigned);
+
+  });
+
 
 });
