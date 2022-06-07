@@ -59,7 +59,7 @@
     "@loopback/rest": "^9.1.1",
     "@loopback/rest-explorer": "^3.0.5",
     "@loopback/service-proxy": "^3.0.5",
-    "@rsksmart/rsk-precompiled-abis": "^4.0.2-IRIS",
+    "@rsksmart/rsk-precompiled-abis": "https://github.com/rsksmart/precompiled-abis",
     "@types/mongoose": "^5.11.97",
     "big.js": "^6.1.1",
     "bitcoinjs-lib": "^6.0.1",
