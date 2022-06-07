@@ -3,7 +3,6 @@ import { SearchableModel } from './searchable-model';
 export enum PegoutStatus {
   RECEIVED = 'RECEIVED',
   REJECTED = 'REJECTED',
-  CREATED = 'CREATED',
   WAITING_FOR_CONFIRMATION = 'WAITING_FOR_CONFIRMATION',
   WAITING_FOR_SIGNATURE = 'WAITING_FOR_SIGNATURE',
   SIGNED = 'SIGNED',
@@ -79,10 +78,36 @@ export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDat
   createdOn: Date;
   btcTxHash: string;
   originatingRskBlockHeight: number;
+  isNewestStatus: boolean;
+  originatingRskBlockHash: string;
+  rskBlockHash: string;
   getId() {
     return this.rskTxHash;
   }
   getIdFieldName(): string {
     return 'rskTxHash';
   }
+
+  public static clonePegoutStatusInstance(pegoutStatus: PegoutStatusDbDataModel): PegoutStatusDbDataModel {
+    const pegoutStatusInstance: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
+    pegoutStatusInstance.btcRecipientAddress = pegoutStatus.btcRecipientAddress; 
+    pegoutStatusInstance.originatingRskTxHash = pegoutStatus.originatingRskTxHash;
+    pegoutStatusInstance.valueRequestedInSatoshis = pegoutStatus.valueRequestedInSatoshis;
+    pegoutStatusInstance.rskSenderAddress = pegoutStatus.rskSenderAddress;
+    pegoutStatusInstance.rskTxHash = pegoutStatus.rskTxHash;
+    pegoutStatusInstance.rskBlockHeight = pegoutStatus.rskBlockHeight;
+    pegoutStatusInstance.createdOn = pegoutStatus.createdOn;
+    pegoutStatusInstance.btcTxHash = pegoutStatus.btcTxHash;
+    pegoutStatusInstance.originatingRskBlockHeight = pegoutStatus.originatingRskBlockHeight;
+    pegoutStatusInstance.isNewestStatus = pegoutStatus.isNewestStatus;
+    pegoutStatusInstance.status = pegoutStatus.status;
+    pegoutStatusInstance.btcRawTransaction = pegoutStatus.btcRawTransaction;
+    pegoutStatusInstance.reason = pegoutStatus.reason;
+    pegoutStatusInstance.valueInSatoshisToBeReceived = pegoutStatus.valueInSatoshisToBeReceived;
+    pegoutStatusInstance.feeInSatoshisToBePaid = pegoutStatus.feeInSatoshisToBePaid;
+    pegoutStatusInstance.originatingRskBlockHash = pegoutStatus.originatingRskBlockHash;
+    pegoutStatusInstance.rskBlockHash = pegoutStatus.rskBlockHash;
+    return pegoutStatusInstance;
+  }
+
 }
