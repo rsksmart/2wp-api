@@ -60,7 +60,7 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
   status: PegoutStatus;
   btcRawTransaction: string;
   originatingRskTxHash: string;
-  createdOn:Date;
+  createdOn: Date;
 }
 
 export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDataModel {
