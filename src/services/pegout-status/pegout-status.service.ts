@@ -64,9 +64,6 @@ export class PegoutStatusService {
         let pegoutStatus: PegoutStatusAppDataModel = new PegoutStatusAppDataModel();
         const events: BridgeEvent[] = transaction.events;
 
-        if(this.hasReleaseRequestedEvent(events)) {
-            return await this.processReleaseRequestedStatus(transaction);
-        }
         if(this.hasReleaseRequestReceivedEvent(events)) {
             return await this.processReleaseRequestReceivedStatus(transaction);
         }
@@ -84,23 +81,6 @@ export class PegoutStatusService {
     
       private hasReleaseRequestRejectedEvent(events: BridgeEvent[]): boolean {
         return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
-      }
-    
-      private hasReleaseRequestedEvent(events: BridgeEvent[]): boolean {
-        return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
-      }
-
-      private async processReleaseRequestedStatus(transaction:Transaction): Promise<PegoutStatusAppDataModel> {
-        const events: BridgeEvent[] = transaction.events;
-        const releaseRequestedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
-        const status:PegoutStatusAppDataModel = new PegoutStatusAppDataModel();
-
-        if(!releaseRequestedEvent) {
-            status.status = PegoutStatus.NOT_PEGOUT_TX;
-        }
-    
-        
-        return status;
       }
 
       private async processReleaseRequestReceivedStatus(transaction: Transaction): Promise<PegoutStatusAppDataModel> {
