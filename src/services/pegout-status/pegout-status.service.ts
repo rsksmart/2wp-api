@@ -5,10 +5,8 @@ import {PegoutStatus, PegoutStatusAppDataModel} from "../../models/rsk/pegout-st
 import {PegoutStatusDataService} from "../pegout-status-data-services/pegout-status-data.service";
 import {RskNodeService} from "../rsk-node.service";
 import Web3 from 'web3';
-import {TransactionReceipt} from 'web3-eth';
 import {BridgeEvent, Transaction} from 'bridge-transaction-parser';
-import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../../utils/bridge-utils';
-import { stat } from "fs";
+import {BRIDGE_EVENTS} from '../../utils/bridge-utils';
 import {RskTransaction} from "../../models/rsk/rsk-transaction.model";
 import {PegoutDataProcessor} from "../pegout-data.processor";
 
@@ -43,7 +41,8 @@ export class PegoutStatusService {
 
                         // TODO implements the new getTransactionMethod in rskNodeService
                         const transaction:RskTransaction = await this.rskNodeService.getTransaction(rskTxHash);
-                        const receipt = await this.rskNodeService.getTransactionReceipt(rskTxHash);
+                        // TODO implements the receipt validation 
+                        //const receipt = await this.rskNodeService.getTransactionReceipt(rskTxHash);
                         
                         if(transaction) {
                             //Process the transaction using the same rules in pegout-data-processor
