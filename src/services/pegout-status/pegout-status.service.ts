@@ -9,23 +9,29 @@ import {TransactionReceipt} from 'web3-eth';
 import {BridgeEvent, Transaction} from 'bridge-transaction-parser';
 import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../../utils/bridge-utils';
 import { stat } from "fs";
+import {RskTransaction} from "../../models/rsk/rsk-transaction.model";
+import {PegoutDataProcessor} from "../pegout-data.processor";
 
 export class PegoutStatusService {
     private logger: Logger;
     private pegoutStatusDataService: PegoutStatusDataService;
     private web3: Web3;
     private rskNodeService:RskNodeService;
+    private pegoutDataProcessor:PegoutDataProcessor;
 
     constructor(
         @inject(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
             pegoutStatusDataService: PegoutStatusDataService,
         @inject(ServicesBindings.RSK_NODE_SERVICE)
-            rskNodeService: RskNodeService
+            rskNodeService: RskNodeService,
+        @inject(ServicesBindings.PEGOUT_DATA_PROCESSOR)
+            pegoutDataProcessor: PegoutDataProcessor
     ) {
         this.logger = getLogger('pegoutStatusService');
         this.pegoutStatusDataService = pegoutStatusDataService;
         this.rskNodeService = rskNodeService;
         this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
+        this.pegoutDataProcessor = pegoutDataProcessor;
     }
 
     public getPegoutStatusByRskTxHash(rskTxHash: string): Promise<PegoutStatusAppDataModel> {
@@ -36,11 +42,12 @@ export class PegoutStatusService {
                     if (!pegoutStatusDbDataModel) {
 
                         // TODO implements the new getTransactionMethod in rskNodeService
-                        let transaction:Transaction = await this.rskNodeService.getTransactionReceipt(rskTxHash);
+                        const transaction:RskTransaction = await this.rskNodeService.getTransaction(rskTxHash);
+                        const receipt = await this.rskNodeService.getTransactionReceipt(rskTxHash);
                         
                         if(transaction) {
                             //Process the transaction using the same rules in pegout-data-processor
-                            pegoutStatus = await this.processTransaction(transaction);
+                           //pegoutStatus = await this.processTransaction(transaction);
                         } else {
                             pegoutStatus.status = PegoutStatus.NOT_FOUND;
                         }
@@ -84,43 +91,13 @@ export class PegoutStatusService {
       }
 
       private async processReleaseRequestReceivedStatus(transaction: Transaction): Promise<PegoutStatusAppDataModel> {
-
-        const events: BridgeEvent[] = transaction.events;
-        const releaseRequestReceivedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
-        const status:PegoutStatusAppDataModel = new PegoutStatusAppDataModel();
-
-        if(!releaseRequestReceivedEvent) {
-          status.status = PegoutStatus.NOT_PEGOUT_TX;
-          return status;
-        }
-    
-        const rskSenderAddress = <string> releaseRequestReceivedEvent.arguments.get('sender');
-        const btcDestinationAddress = <string> releaseRequestReceivedEvent.arguments.get('btcDestinationAddress');
-        const amount = <number> releaseRequestReceivedEvent.arguments.get('amount');
-        status.status = PegoutStatus.RECEIVED;
-    
-        return status;
+        //return this.pegoutDataProcessor.fillRequestReceivedStatus(transaction.events);
+        return new PegoutStatusAppDataModel();
       }
 
       private async processReleaseRequestRejectedStatus(transaction: Transaction): Promise<PegoutStatusAppDataModel> {
-
-        const events: BridgeEvent[] = transaction.events;
-        const releaseRequestRejectedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
-        const status:PegoutStatusAppDataModel = new PegoutStatusAppDataModel();
-        
-        if(!releaseRequestRejectedEvent) {
-            status.status = PegoutStatus.NOT_PEGOUT_TX;
-            return status;
-        }
-    
-        const rskSenderAddress = <string> releaseRequestRejectedEvent.arguments.get('sender');
-        const amount = <number> releaseRequestRejectedEvent.arguments.get('amount');
-        const reason = <string> releaseRequestRejectedEvent.arguments.get('reason');
-        
-        status.rskSenderAddress = rskSenderAddress;
-        status.valueRequestedInSatoshis = amount;
-        status.status = PegoutStatus.REJECTED;
-        return status;
+        //return this.pegoutDataProcessor.fillRequestRejectedStatus(transaction.events);
+        return new PegoutStatusAppDataModel();
       }
 }
 

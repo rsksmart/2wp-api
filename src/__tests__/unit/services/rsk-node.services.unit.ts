@@ -1,16 +1,8 @@
 import {expect, sinon} from '@loopback/testlab';
 import {RskBlock} from '../../../models/rsk/rsk-block.model';
-import {SyncStatusModel} from '../../../models/rsk/sync-status.model';
-import {RskChainSyncService} from '../../../services/rsk-chain-sync.service';
 import {RskNodeService} from '../../../services/rsk-node.service';
 
-const getRskNodeService = () => {
-    const mockedRskNodeService = sinon.createStubInstance(RskNodeService);
-    return mockedRskNodeService;  
-};
-
 const getInitialBlock = () => new RskBlock(2863627, '0xba5e', '0x');
-
 
 describe('Service: RskNodeService', () => {
     it('Searches the block using initial block conf', async () => {
