@@ -268,7 +268,6 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   private async processReleaseRequestReceivedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
-
     const events: BridgeEvent[] = extendedBridgeTx.events;
     const releaseRequestReceivedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
 
@@ -276,6 +275,18 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       return;
     }
 
+    const status = await this.fillRequestReceivedStatus(extendedBridgeTx, releaseRequestReceivedEvent);
+
+    try {
+      await this.pegoutStatusDataService.set(status);
+      this.logger.trace(`[processReleaseRequestReceivedStatus] ${extendedBridgeTx.txHash} registered`);
+    } catch(e) {
+      this.logger.warn('[processReleaseRequestReceivedStatus] There was a problem with the storage', e);
+    }
+
+  }
+
+  public async fillRequestReceivedStatus(extendedBridgeTx: ExtendedBridgeTx, releaseRequestReceivedEvent: BridgeEvent):Promise<PegoutStatusDbDataModel> {
     const rskSenderAddress = <string> releaseRequestReceivedEvent.arguments.get('sender');
     const btcDestinationAddress = <string> releaseRequestReceivedEvent.arguments.get('btcDestinationAddress');
     const amount = <number> releaseRequestReceivedEvent.arguments.get('amount');
@@ -295,17 +306,10 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     status.originatingRskBlockHash = extendedBridgeTx.blockHash;
     status.isNewestStatus = true;
 
-    try {
-      await this.pegoutStatusDataService.set(status);
-      this.logger.trace(`[processReleaseRequestReceivedStatus] ${extendedBridgeTx.txHash} registered`);
-    } catch(e) {
-      this.logger.warn('[processReleaseRequestReceivedStatus] There was a problem with the storage', e);
-    }
-
+    return status;
   }
 
   private async processReleaseRequestRejectedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
-
     const events: BridgeEvent[] = extendedBridgeTx.events;
     const releaseRequestRejectedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
 
@@ -313,6 +317,18 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       return;
     }
 
+   const status = await this.fillRequestRejectedStatus(extendedBridgeTx, releaseRequestRejectedEvent);
+
+    try {
+      await this.pegoutStatusDataService.set(status);
+      this.logger.trace(`[processReleaseRequestRejectedStatus] ${extendedBridgeTx.txHash} registered`);
+    } catch(e) {
+      this.logger.warn('[processReleaseRequestRejectedStatus] There was a problem with the storage', e);
+    }
+
+  }
+
+  public async fillRequestRejectedStatus(extendedBridgeTx: ExtendedBridgeTx, releaseRequestRejectedEvent: BridgeEvent):Promise<PegoutStatusDbDataModel> {
     const rskSenderAddress = <string> releaseRequestRejectedEvent.arguments.get('sender');
     const amount = <number> releaseRequestRejectedEvent.arguments.get('amount');
     const reason = <string> releaseRequestRejectedEvent.arguments.get('reason');
@@ -329,14 +345,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
     status.status = PegoutStatus.REJECTED;
     status.isNewestStatus = true;
-
-    try {
-      await this.pegoutStatusDataService.set(status);
-      this.logger.trace(`[processReleaseRequestRejectedStatus] ${extendedBridgeTx.txHash} registered`);
-    } catch(e) {
-      this.logger.warn('[processReleaseRequestRejectedStatus] There was a problem with the storage', e);
-    }
-
+    return status;
   }
 
   private getBitcoinNetwork() {
