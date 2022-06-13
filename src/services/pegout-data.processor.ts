@@ -13,6 +13,7 @@ import {BridgeService} from './bridge.service';
 import * as constants from '../constants';
 import { remove0x } from '../utils/hex-utils';
 import { PegoutWaitingConfirmation } from 'bridge-state-data-parser';
+import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
@@ -275,7 +276,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       return;
     }
 
-    const status = await this.fillRequestReceivedStatus(extendedBridgeTx, releaseRequestReceivedEvent);
+    const status = await PegoutStatusBuilder.fillRequestReceivedStatus(extendedBridgeTx);
 
     try {
       await this.pegoutStatusDataService.set(status);
@@ -286,29 +287,6 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   }
 
-  public async fillRequestReceivedStatus(extendedBridgeTx: ExtendedBridgeTx, releaseRequestReceivedEvent: BridgeEvent):Promise<PegoutStatusDbDataModel> {
-    const rskSenderAddress = <string> releaseRequestReceivedEvent.arguments.get('sender');
-    const btcDestinationAddress = <string> releaseRequestReceivedEvent.arguments.get('btcDestinationAddress');
-    const amount = <number> releaseRequestReceivedEvent.arguments.get('amount');
-
-    const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
-
-    status.createdOn = extendedBridgeTx.createdOn;
-    status.originatingRskTxHash = extendedBridgeTx.txHash;
-    status.rskTxHash = extendedBridgeTx.txHash;
-    status.rskBlockHeight = extendedBridgeTx.blockNumber;
-    status.rskSenderAddress = rskSenderAddress;
-    status.btcRecipientAddress = btcDestinationAddress;
-    status.valueRequestedInSatoshis = amount;
-    status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
-    status.status = PegoutStatus.RECEIVED;
-    status.rskBlockHash = extendedBridgeTx.blockHash;
-    status.originatingRskBlockHash = extendedBridgeTx.blockHash;
-    status.isNewestStatus = true;
-
-    return status;
-  }
-
   private async processReleaseRequestRejectedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
     const events: BridgeEvent[] = extendedBridgeTx.events;
     const releaseRequestRejectedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
@@ -317,7 +295,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       return;
     }
 
-   const status = await this.fillRequestRejectedStatus(extendedBridgeTx, releaseRequestRejectedEvent);
+   const status = await PegoutStatusBuilder.fillRequestRejectedStatus(extendedBridgeTx);
 
     try {
       await this.pegoutStatusDataService.set(status);
@@ -326,26 +304,6 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       this.logger.warn('[processReleaseRequestRejectedStatus] There was a problem with the storage', e);
     }
 
-  }
-
-  public async fillRequestRejectedStatus(extendedBridgeTx: ExtendedBridgeTx, releaseRequestRejectedEvent: BridgeEvent):Promise<PegoutStatusDbDataModel> {
-    const rskSenderAddress = <string> releaseRequestRejectedEvent.arguments.get('sender');
-    const amount = <number> releaseRequestRejectedEvent.arguments.get('amount');
-    const reason = <string> releaseRequestRejectedEvent.arguments.get('reason');
-
-    const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
-
-    status.createdOn = extendedBridgeTx.createdOn;
-    status.originatingRskTxHash = extendedBridgeTx.txHash;
-    status.rskTxHash = extendedBridgeTx.txHash;
-    status.rskBlockHeight = extendedBridgeTx.blockNumber;
-    status.rskSenderAddress = rskSenderAddress;
-    status.valueRequestedInSatoshis = amount;
-    status.reason = reason;
-    status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
-    status.status = PegoutStatus.REJECTED;
-    status.isNewestStatus = true;
-    return status;
   }
 
   private getBitcoinNetwork() {

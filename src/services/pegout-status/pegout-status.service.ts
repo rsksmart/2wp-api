@@ -8,28 +8,26 @@ import Web3 from 'web3';
 import {BridgeEvent, Transaction} from 'bridge-transaction-parser';
 import {BRIDGE_EVENTS} from '../../utils/bridge-utils';
 import {RskTransaction} from "../../models/rsk/rsk-transaction.model";
-import {PegoutDataProcessor} from "../pegout-data.processor";
+import {PegoutStatusBuilder} from "./pegout-status-builder";
+import ExtendedBridgeTx, {ExtendedBridgeTxModel} from '../extended-bridge-tx';
 
 export class PegoutStatusService {
     private logger: Logger;
     private pegoutStatusDataService: PegoutStatusDataService;
     private web3: Web3;
     private rskNodeService:RskNodeService;
-    private pegoutDataProcessor:PegoutDataProcessor;
+    private ATTACH_TRANSACTION_RECEIPT = true;
 
     constructor(
         @inject(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
             pegoutStatusDataService: PegoutStatusDataService,
         @inject(ServicesBindings.RSK_NODE_SERVICE)
-            rskNodeService: RskNodeService,
-        @inject(ServicesBindings.PEGOUT_DATA_PROCESSOR)
-            pegoutDataProcessor: PegoutDataProcessor
+            rskNodeService: RskNodeService
     ) {
         this.logger = getLogger('pegoutStatusService');
         this.pegoutStatusDataService = pegoutStatusDataService;
         this.rskNodeService = rskNodeService;
         this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
-        this.pegoutDataProcessor = pegoutDataProcessor;
     }
 
     public getPegoutStatusByRskTxHash(rskTxHash: string): Promise<PegoutStatusAppDataModel> {
@@ -39,14 +37,17 @@ export class PegoutStatusService {
                 .then(async (pegoutStatusDbDataModel) => {
                     if (!pegoutStatusDbDataModel) {
 
-                        // TODO implements the new getTransactionMethod in rskNodeService
-                        const transaction:RskTransaction = await this.rskNodeService.getTransaction(rskTxHash);
-                        // TODO implements the receipt validation 
-                        //const receipt = await this.rskNodeService.getTransactionReceipt(rskTxHash);
+                        const rskTransaction:RskTransaction = await this.rskNodeService.getTransaction(rskTxHash, this.ATTACH_TRANSACTION_RECEIPT);
                         
-                        if(transaction) {
-                            //Process the transaction using the same rules in pegout-data-processor
-                           //pegoutStatus = await this.processTransaction(transaction);
+                        if(rskTransaction) {
+                            const receipt = rskTransaction.receipt; //await this.rskNodeService.getTransactionReceipt(rskTxHash);
+                            if(receipt) {
+                                const transaction:Transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
+                                const extendedModel: ExtendedBridgeTxModel = new ExtendedBridgeTxModel(transaction, rskTransaction);
+                                pegoutStatus = await this.processTransaction(extendedModel);
+                            } else {
+                                pegoutStatus.status = PegoutStatus.PENDING;
+                            }
                         } else {
                             pegoutStatus.status = PegoutStatus.NOT_FOUND;
                         }
@@ -66,15 +67,15 @@ export class PegoutStatusService {
         });
     }
 
-    private async processTransaction(transaction: Transaction): Promise<PegoutStatusAppDataModel> {
-        let pegoutStatus: PegoutStatusAppDataModel = new PegoutStatusAppDataModel();
-        const events: BridgeEvent[] = transaction.events;
+    private async processTransaction(extendedBridgeTx: ExtendedBridgeTx): Promise<PegoutStatusAppDataModel> {
+        const pegoutStatus: PegoutStatusAppDataModel = new PegoutStatusAppDataModel();
+        const events = extendedBridgeTx.events;
 
         if(this.hasReleaseRequestReceivedEvent(events)) {
-            return await this.processReleaseRequestReceivedStatus(transaction);
+            return PegoutStatusBuilder.fillRequestReceivedStatus(extendedBridgeTx);
         }
         if(this.hasReleaseRequestRejectedEvent(events)) {
-            return await this.processReleaseRequestRejectedStatus(transaction);
+            return PegoutStatusBuilder.fillRequestRejectedStatus(extendedBridgeTx);
         }
 
         pegoutStatus.status = PegoutStatus.NOT_PEGOUT_TX;
@@ -83,23 +84,10 @@ export class PegoutStatusService {
 
     private hasReleaseRequestReceivedEvent(events: BridgeEvent[]): boolean {
         return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
-      }
+    }
     
-      private hasReleaseRequestRejectedEvent(events: BridgeEvent[]): boolean {
+    private hasReleaseRequestRejectedEvent(events: BridgeEvent[]): boolean {
         return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
-      }
+    }
 
-      private async processReleaseRequestReceivedStatus(transaction: Transaction): Promise<PegoutStatusAppDataModel> {
-        //return this.pegoutDataProcessor.fillRequestReceivedStatus(transaction.events);
-        return new PegoutStatusAppDataModel();
-      }
-
-      private async processReleaseRequestRejectedStatus(transaction: Transaction): Promise<PegoutStatusAppDataModel> {
-        //return this.pegoutDataProcessor.fillRequestRejectedStatus(transaction.events);
-        return new PegoutStatusAppDataModel();
-      }
 }
-
-
-
-

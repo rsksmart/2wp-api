@@ -1,6 +1,8 @@
 import {expect, sinon} from '@loopback/testlab';
+import { BridgeEvent } from 'bridge-transaction-parser';
 import {RskBlock} from '../../../models/rsk/rsk-block.model';
 import {RskNodeService} from '../../../services/rsk-node.service';
+import { BRIDGE_EVENTS } from '../../../utils/bridge-utils';
 
 const getInitialBlock = () => new RskBlock(2863627, '0xba5e', '0x');
 
@@ -47,5 +49,19 @@ describe('Service: RskNodeService', () => {
         const thisService = new RskNodeService();
         const block = await thisService.getBlockNumber();
         expect(block).to.not.be.null;
+    });
+    it('Searches the Bridge Transaction', async () => {
+        const simpleTransaction = "0x368cfbff365655d14eeaaba822c20fa8bb0c98fda0eef938094dee4ec7a83a66";
+        const thisService = new RskNodeService();
+        const txRsk = await thisService.getBridgeTransaction(simpleTransaction);
+        expect(txRsk.events).to.be.null;
+    });
+    it('Searches the Bridge Transaction RELEASE_REQUEST_RECEIVED', async () => {
+        const simpleTransaction = "0x368cfbff365655d14eeaaba822c20fa8bb0c98fda0eef938094dee4ec7a83a66";
+        const thisService = new RskNodeService();
+        const txRsk = await thisService.getBridgeTransaction(simpleTransaction);
+        const releaseRequestRejectedEvent: BridgeEvent = txRsk.events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)!;
+
+        expect(releaseRequestRejectedEvent).to.be.null;
     });
 });
