@@ -13,15 +13,13 @@ describe('Pegout Status Service:', () => {
     let pegoutStatusService: PegoutStatusService;
     let getLastByOriginatingRskTxHash: sinon.SinonStub;
     let rskNodeService: RskNodeService;
-    let pegoutDataProcessor: PegoutDataProcessor;
     let pegoutStatusDataService: StubbedInstanceWithSinonAccessor<PegoutStatusMongoDbDataService>;
     beforeEach(() => {
         pegoutStatusDataService = createStubInstance(PegoutStatusMongoDbDataService);
         rskNodeService = createStubInstance(RskNodeService);
-        pegoutDataProcessor = createStubInstance(PegoutDataProcessor);
         getLastByOriginatingRskTxHash = pegoutStatusDataService.getLastByOriginatingRskTxHash as sinon.SinonStub;
 
-        pegoutStatusService = new PegoutStatusService(pegoutStatusDataService, rskNodeService, pegoutDataProcessor);
+        pegoutStatusService = new PegoutStatusService(pegoutStatusDataService, rskNodeService);
         
     });
     it('should return a valid Pegout Status if there is no record on database', async () => {
