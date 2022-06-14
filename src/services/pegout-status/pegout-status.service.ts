@@ -40,7 +40,7 @@ export class PegoutStatusService {
                         const rskTransaction:RskTransaction = await this.rskNodeService.getTransaction(rskTxHash, this.ATTACH_TRANSACTION_RECEIPT);
                         
                         if(rskTransaction) {
-                            const receipt = rskTransaction.receipt; //await this.rskNodeService.getTransactionReceipt(rskTxHash);
+                            const receipt = rskTransaction.receipt;
                             if(receipt) {
                                 const transaction:Transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
                                 const extendedModel: ExtendedBridgeTxModel = new ExtendedBridgeTxModel(transaction, rskTransaction);
