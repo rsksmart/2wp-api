@@ -17,7 +17,7 @@ describe('Pegin Tx Controller', () => {
 
   it('invokes POST /pegin-tx with P2PKH address', async () => {
     const peginConf = await client.get('/pegin-configuration').expect(200);
-    await client
+    const balances = await client
       .post('/balance')
       .send({
         sessionId: peginConf.body.sessionId,
@@ -55,17 +55,18 @@ describe('Pegin Tx Controller', () => {
         ],
       })
       .expect(200);
+    const amountToTransfer = balances.body.legacy - 10000;
     await client
       .post('/tx-fee')
       .send({
         sessionId: peginConf.body.sessionId,
-        amount: 200,
+        amount: amountToTransfer,
         accountType: constants.BITCOIN_NATIVE_SEGWIT_ADDRESS,
       })
       .expect(200);
     const peginTxData = {
       sessionId: peginConf.body.sessionId,
-      amountToTransferInSatoshi: 1000000,
+      amountToTransferInSatoshi: amountToTransfer,
       refundAddress: 'mzMCEHDUAZaKL9BXt9SzasFPUUqM77TqP1',
       recipient: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
       feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
@@ -113,17 +114,18 @@ describe('Pegin Tx Controller', () => {
         ],
       })
       .expect(200);
+    const amountToTransfer = balance.body.nativeSegwit - 100000
     await client
       .post('/tx-fee')
       .send({
         sessionId: peginConf.body.sessionId,
-        amount: 200,
-        accountType: constants.BITCOIN_LEGACY_ADDRESS,
+        amount: amountToTransfer,
+        accountType: constants.BITCOIN_NATIVE_SEGWIT_ADDRESS,
       })
       .expect(200);
     const peginTxData = {
       sessionId: peginConf.body.sessionId,
-      amountToTransferInSatoshi: balance.body.legacy,
+      amountToTransferInSatoshi: amountToTransfer,
       refundAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
       recipient: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
       feeLevel: constants.BITCOIN_AVERAGE_FEE_LEVEL,
@@ -182,7 +184,7 @@ describe('Pegin Tx Controller', () => {
     const peginTxData = {
       sessionId: peginConf.body.sessionId,
       amountToTransferInSatoshi: balance.body.legacy,
-      refundAddress: 'tb1qkfcu7q7q6y7xmfe5glp9amsm45x0um59rwwmsmsmd355g32',
+      refundAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
       recipient: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
       feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
       changeAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',

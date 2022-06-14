@@ -17,4 +17,6 @@ export * from './tx-request.model';
 export * from './tx.model';
 export * from './utxo.model';
 export * from './wallet-address.model';
-
+export * from './address-used-status.model';
+export * from './unused-address-response.model';
+export * from './api-information.model';

@@ -52,7 +52,7 @@ export class PeginTxController {
         : false;
       if (!validAddress)
         reject(
-          `Invalid Refund Address provided ${createPeginTxData.refundAddress} for network ${network}`,
+          new Error(`Invalid Refund Address provided ${createPeginTxData.refundAddress} for network ${network}`),
         );
       Promise.all([
         this.sessionRepository.getAccountInputs(createPeginTxData.sessionId),
@@ -63,6 +63,13 @@ export class PeginTxController {
         bridgeService.getFederationAddress(),
       ])
         .then(([inputs, fee, federationAddress]) => {
+          if (!inputs.length) reject(new Error(`There are no inputs selected for this sessionId ${createPeginTxData.sessionId}`))
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          const inputsAmount = inputs.reduce((acc, curr) => ({amount: acc.amount + curr.amount}));
+          if (inputsAmount.amount - (createPeginTxData.amountToTransferInSatoshi + fee) < 0) {
+            return reject(new Error('The stored input list has not enough amount'));
+          }
           outputs.push(
             this.getRSKOutput(
               createPeginTxData.recipient,
@@ -75,14 +82,16 @@ export class PeginTxController {
               federationAddress,
             ),
           );
-          outputs.push(
-            this.getChangeOutput(
-              inputs,
-              createPeginTxData.changeAddress,
-              createPeginTxData.amountToTransferInSatoshi,
-              fee,
-            ),
-          );
+          const changeOutput: TxOutput = this.getChangeOutput(
+            inputs,
+            createPeginTxData.changeAddress,
+            createPeginTxData.amountToTransferInSatoshi,
+            fee,
+            );
+          const burnDustValue = Number(process.env.BURN_DUST_VALUE) ?? 2000;
+          if (Number(changeOutput.amount) > burnDustValue ) {
+            outputs.push(changeOutput);
+          }
           this.logger.trace('[create] Created pegin successfully!');
           resolve(
             new NormalizedTx({

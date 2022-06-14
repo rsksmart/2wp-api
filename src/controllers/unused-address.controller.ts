@@ -2,8 +2,8 @@ import {inject} from '@loopback/core';
 import {getModelSchemaRef, post, requestBody} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
 import {ServicesBindings} from '../dependency-injection-bindings';
-import {AddressList} from '../models/address-list.model';
-import {UnusedAddressService} from '../services/unused-address.service';
+import {AddressList, UnusedAddressResponse} from '../models';
+import {UnusedAddressService} from '../services';
 
 export class UnusedAddressController {
   logger: Logger;
@@ -21,7 +21,7 @@ export class UnusedAddressController {
         description: 'verify unused addresses',
         content: {
           'application/json': {
-            schema: getModelSchemaRef(Boolean, {includeRelations: true}),
+            schema: getModelSchemaRef(UnusedAddressResponse),
           },
         },
       },
@@ -30,7 +30,7 @@ export class UnusedAddressController {
   async isUnusedAddresses(
     @requestBody({schema: getModelSchemaRef(AddressList)})
     addressList: AddressList,
-  ): Promise<Boolean> {
+  ): Promise<UnusedAddressResponse> {
     this.logger.trace(`[isUnusedAddresses] Starting with addressList ${addressList}`);
     return this.unusedAddressService.isUnusedAddresses(addressList.addressList);
   }

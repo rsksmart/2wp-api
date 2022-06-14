@@ -13,8 +13,7 @@ export const ConstantsBindings = {
 
 export const DatasourcesBindings = {
   MONGO_DB_DATASOURCE: 'datasources.MongoDbDataSource',
-  TX_V2_PROVIDER: 'datasources.txV2Provider',
-  RSK_BRIDGE_DATA_PROVIDER: 'datasources.RskBridgeDataProvider'
+  TX_V2_PROVIDER: 'datasources.txV2Provider'
 };
 
 export const ServicesBindings = {
@@ -24,9 +23,10 @@ export const ServicesBindings = {
   PEGIN_STATUS_SERVICE: 'services.PeginStatusService',
   SYNC_STATUS_DATA_SERVICE: 'services.SyncStatusDataService',
   RSK_CHAIN_SYNC_SERVICE: 'services.RskChainSyncService',
-  REGISTER_BTC_TRANSACTION_DATA_PARSER: 'services.RegisterBtcTransactionDataParser',
+  PEGIN_DATA_PROCESSOR: 'services.PeginDataProcessor',
   DAEMON_SERVICE: 'services.DaemonService',
   BRIDGE_SERVICE: 'services.BridgeService',
   ADDRESS_SERVICE: 'services.AddressService',
-  UNUSED_ADDRESS_SERVICE: 'services.UnusedAddressService'
+  UNUSED_ADDRESS_SERVICE: 'services.UnusedAddressService',
+  RSK_BLOCK_PROCESSOR_PUBLISHER: 'services.RskBlockProcessorPublisher'
 };
