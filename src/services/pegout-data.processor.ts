@@ -363,4 +363,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     });
   }
 
+  public async deleteByRskBlockHeight(rskBlockHeight: number) {
+    await this.pegoutStatusDataService.deleteByRskBlockHeight(rskBlockHeight);
+  }
+
 }

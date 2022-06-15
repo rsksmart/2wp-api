@@ -58,6 +58,7 @@ export class DaemonService implements iDaemonService {
   private async handleDeleteBlock(block: RskBlock): Promise<void> {
     try {
       await this.peginStatusStorageService.deleteByRskBlockHeight(block.height);
+      await this.pegoutDataProcessor.deleteByRskBlockHeight(block.height);
     } catch (e) {
       this.logger.warn('There was a problem handling the deleted block', e);
     }
