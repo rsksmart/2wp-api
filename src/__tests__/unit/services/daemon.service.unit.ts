@@ -94,8 +94,9 @@ describe('Service: DaemonService', () => {
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
     const mockedPeginDataProcessor =
       sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<PeginDataProcessor> & PeginDataProcessor;
-    const mockedPegoutDataProcessor = 
-      sinon.createStubInstance(PegoutDataProcessor) as SinonStubbedInstance<PegoutDataProcessor> & PegoutDataProcessor;
+    
+    const mockedPegoutDataProcessor = sinon.createStubInstance(PegoutDataProcessor) as SinonStubbedInstance<PegoutDataProcessor> & PegoutDataProcessor;
+  
     const deletedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
 
     const daemonService = new DaemonService(
@@ -117,6 +118,8 @@ describe('Service: DaemonService', () => {
     await subscriber.blockDeleted(deletedBlock);
 
     sinon.assert.calledOnce(mockedPeginStatusDataService.deleteByRskBlockHeight);
+    sinon.assert.calledOnce(mockedPegoutDataProcessor.deleteByRskBlockHeight);
+
   });
 
 });
