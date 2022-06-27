@@ -49,12 +49,9 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       return await this.processSignedStatus(extendedBridgeTx);
     }
 
-    if(Boolean(process.env.HOP_ACTIVATED) && this.hasBatchPegoutEvent(events)) {
+    if(this.hasBatchPegoutEvent(events)) {
       this.logger.trace('[process] found a batch_pegout_created event. Processing...');
       return await this.processBatchPegouts(extendedBridgeTx);
-    } else if(this.hasReleaseRequestedEvent(events)) {
-      this.logger.trace('[process] found a release_requested event. Processing...');
-      return await this.processWaitingForConfirmationStatus(extendedBridgeTx);
     }
 
     if(this.hasReleaseRequestReceivedEvent(events)) {
