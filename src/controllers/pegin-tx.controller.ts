@@ -2,6 +2,7 @@ import {repository} from '@loopback/repository';
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
 import {config} from 'dotenv';
 import {getLogger, Logger} from 'log4js';
+// @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
 import {CreatePeginTxData, NormalizedTx, TxInput, TxOutput} from '../models';
 import {SessionRepository} from '../repositories';
