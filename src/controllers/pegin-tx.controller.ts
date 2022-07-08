@@ -2,6 +2,7 @@ import {repository} from '@loopback/repository';
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
 import {config} from 'dotenv';
 import {getLogger, Logger} from 'log4js';
+// @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
 import {CreatePeginTxData, NormalizedTx, TxInput, TxOutput} from '../models';
 import {SessionRepository} from '../repositories';
@@ -62,6 +63,7 @@ export class PeginTxController {
       ])
         .then(([inputs, fee, federationAddress]) => {
           if (!inputs.length) reject(new Error(`There are no inputs selected for this sessionId ${createPeginTxData.sessionId}`))
+          // @ts-ignore
           const inputsAmount = inputs.reduce((acc, curr) => ({amount: acc.amount + curr.amount}));
           if (inputsAmount.amount - (createPeginTxData.amountToTransferInSatoshi + fee) < 0) {
             return reject(new Error('The stored input list has not enough amount'));
