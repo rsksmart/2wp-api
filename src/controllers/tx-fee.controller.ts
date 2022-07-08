@@ -137,11 +137,8 @@ export class TxFeeController {
         inputs.push(
           new TxInput({
             address: utxo.address,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             address_n: [0],
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             prev_hash: utxo.txid,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             prev_index: utxo.vout,
             amount: +utxo.satoshis,
           }),

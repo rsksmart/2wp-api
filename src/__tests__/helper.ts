@@ -105,32 +105,23 @@ export function getUtxoList(): Utxo[] {
 export function getMockInputs(): TxInput[] {
   const txInputs = [
     {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       address_n: [0],
       address: 'tb1qfuk3j0l4qn4uzstc47uwk68kedmjwuucl7avqr',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       prev_hash: 'tx_id',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       prev_index: 2,
       amount: 2000,
     },
     {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       address_n: [0],
       address: 'tb1qfuk3j0l4qn4uzstc47uwk68kedmjwuucl7avqr',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       prev_hash: 'tx_id2',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       prev_index: 2,
       amount: 2000,
     },
     {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       address_n: [0],
       address: 'tb1qfuk3j0l4qn4uzstc47uwk68kedmjwuucl7avqr',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       prev_hash: 'tx_id3',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       prev_index: 2,
       amount: 2000,
     },

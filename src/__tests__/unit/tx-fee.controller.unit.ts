@@ -107,21 +107,15 @@ describe('tx Fee controller', () => {
     const fastInputs = [
       new TxInput({
         address: 'address',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         address_n: [0],
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_hash: 'txId1',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_index: 0,
         amount: 100000,
       },),
       new TxInput({
         address: 'address',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         address_n: [0],
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_hash: 'txId2',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_index: 0,
         amount: 100000,
       }),
@@ -157,21 +151,15 @@ describe('tx Fee controller', () => {
     const fastInputs = [
       new TxInput({
         address: 'address',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         address_n: [0],
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_hash: 'txId1',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_index: 0,
         amount: 100000,
       }),
       new TxInput({
         address: 'address',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         address_n: [0],
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_hash: 'txId2',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_index: 0,
         amount: 100000,
       }),
@@ -285,21 +273,15 @@ describe('tx Fee controller', () => {
     const fastInputs = [
       new TxInput({
         address: 'address',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         address_n: [0],
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_hash: 'txId1',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_index: 0,
         amount: 100000,
       }),
       new TxInput({
         address: 'address',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         address_n: [0],
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_hash: 'txId2',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_index: 0,
         amount: 100000,
       }),
@@ -344,21 +326,15 @@ describe('tx Fee controller', () => {
     const fastInputs =  [
       new TxInput({
         address: 'address',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         address_n: [0],
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_hash: 'txId1',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_index: 0,
         amount: 100000,
       }),
       new TxInput({
         address: 'address',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         address_n: [0],
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_hash: 'txId2',
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         prev_index: 0,
         amount: 100000,
       }),
