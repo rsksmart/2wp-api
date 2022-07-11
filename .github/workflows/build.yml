@@ -22,4 +22,5 @@ jobs:
       - name: Build & test project
         run: |
           npm ci
+          npm run eslint
           npm run unit-test
