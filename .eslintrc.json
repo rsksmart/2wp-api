@@ -22,7 +22,7 @@
         "import/extensions": 0,
         "import/order": 0,
         "import/newline-after-import": 0,
-        "import/no-useless-path-segments": 0,
+        "import/no-useless-path-segments": 2,
 
         "no-underscore-dangle": 0,
         "no-useless-constructor": 0,
