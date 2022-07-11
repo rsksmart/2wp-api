@@ -37,6 +37,7 @@ export class PegoutStatusService {
                 .then(async (pegoutStatusDbDataModel) => {
                     if (!pegoutStatusDbDataModel) {
 
+                        //TODO Change it when bridgeTransactionParser return PENDING transaction (tx on mempool)
                         const rskTransaction:RskTransaction = await this.rskNodeService.getTransaction(rskTxHash, this.ATTACH_TRANSACTION_RECEIPT);
                         
                         if(rskTransaction) {
