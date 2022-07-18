@@ -44,11 +44,9 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
   }
 
   //catches ctrl+c event
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   process.on('SIGINT', shutdown.bind(null));
 
   //catches uncaught exceptions
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   process.on('uncaughtException', shutdown.bind(null));
 
   const appMode = searchAppMode();

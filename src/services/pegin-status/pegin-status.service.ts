@@ -1,6 +1,5 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
 import {BitcoinService, BridgeService} from '..';
