@@ -81,7 +81,7 @@ To automatically fix such issues:
 npm run lint:fix
 
 ```
-## Depĺoyment
+## Deployment
 In the root directory run:
 ```shell
 docker-compose up
