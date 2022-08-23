@@ -1,6 +1,6 @@
 {
   "name": "2wp-api",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Two Way Peg API",
   "keywords": [
     "loopback-application",
@@ -67,7 +67,7 @@
     "bridge-state-data-parser": "https://github.com/rsksmart/bridge-state-data-parser#v0.1.4-beta",
     "dotenv": "^8.6.0",
     "jssha": "^3.2.0",
-    "log4js": "^6.4.6",
+    "log4js": "^6.6.1",
     "loopback-connector-kv-redis": "^3.0.3",
     "loopback-connector-mongodb": "^5.5.0",
     "loopback-connector-redis": "^3.0.0",
