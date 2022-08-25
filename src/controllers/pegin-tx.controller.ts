@@ -88,7 +88,7 @@ export class PeginTxController {
             createPeginTxData.amountToTransferInSatoshi,
             fee,
             );
-          const burnDustValue = Math.min(Number(process.env.BURN_DUST_VALUE) ?? 2000, 30000);
+          const burnDustValue = Math.min(Number(process.env.BURN_DUST_VALUE ?? 2000), 30000);
           if (Number(changeOutput.amount) > burnDustValue ) {
             outputs.push(changeOutput);
           }
