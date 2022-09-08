@@ -5,8 +5,9 @@ import {PeginStatusDataService} from '../../../services/pegin-status-data-servic
 import sinon, {SinonStubbedInstance} from 'sinon';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
 import ExtendedBridgeTx from '../../../services/extended-bridge-tx';
-import {BridgeEvent, Transaction} from 'bridge-transaction-parser';
+import {Transaction} from 'bridge-transaction-parser';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
+import {ExtendedBridgeEvent} from "../../../models/types/bridge-transaction-parser";
 
 const btcTxHash = '0x1f789f91cb5cb6f76b91f19adcc89233f3447d7228d8798c4e94ef09fd6d8950';
 const rskTxHash = '0xd2852f38fedf1915978715b8a0dc0670040ac4e9065989c810a5bf29c1e006fb';
@@ -21,29 +22,33 @@ const getMockedRegisterBtcTransactionMethodArgs = () => {
 };
 
 const getMockedPeginBtcEvent = () => {
-  const peginBtcEventArgs = new Map();
-  peginBtcEventArgs.set('receiver', '0x2D623170Cb518434af6c02602334610f194818c1');
-  peginBtcEventArgs.set('btcTxHash', btcTxHash);
-  peginBtcEventArgs.set('amount', '504237');
-  peginBtcEventArgs.set('protocolVersion', '1');
-  const peginBtcEvent: BridgeEvent = {
+  const peginBtcEvent: ExtendedBridgeEvent = {
     name: 'pegin_btc',
     signature: '0x44cdc782a38244afd68336ab92a0b39f864d6c0b2a50fa1da58cafc93cd2ae5a',
-    arguments: peginBtcEventArgs
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    arguments: {
+      receiver : '0x2D623170Cb518434af6c02602334610f194818c1',
+      btcTxHash,
+      amount : 504237,
+      protocolVersion :'1'
+    }
   };
   return peginBtcEvent;
 };
 
 const getMockedLockBtcEvent = () => {
-  const lockBtcEventArgs = new Map();
-  lockBtcEventArgs.set('receiver', '0x2D623170Cb518434af6c02602334610f194818c1');
-  lockBtcEventArgs.set('btcTxHash', btcTxHash);
-  lockBtcEventArgs.set('senderBtcAddress', '0x413bfc1ab391bbedcfdbc45116c5a0a75e628fc4d7b955dfb99b0214d0f1be43');
-  lockBtcEventArgs.set('amount', '1000000');
-  const peginBtcEvent: BridgeEvent = {
+  const peginBtcEvent: ExtendedBridgeEvent = {
     name: 'lock_btc',
     signature: '0xec2232bdbe54a92238ce7a6b45d53fb31f919496c6abe1554be1cc8eddb6600a',
-    arguments: lockBtcEventArgs
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    arguments: {
+      receiver : '0x2D623170Cb518434af6c02602334610f194818c1',
+      senderBtcAddress: '0x413bfc1ab391bbedcfdbc45116c5a0a75e628fc4d7b955dfb99b0214d0f1be43',
+      btcTxHash,
+      amount : 1000000,
+    }
   };
   return peginBtcEvent;
 };
@@ -52,23 +57,30 @@ const getMockedRejectedPeginEvent = () => {
   const rejectedPeginEventArgs = new Map();
   rejectedPeginEventArgs.set('btcTxHash', btcTxHash);
   rejectedPeginEventArgs.set('reason', '3');
-  const peginBtcEvent: BridgeEvent = {
+  const peginBtcEvent: ExtendedBridgeEvent = {
     name: 'rejected_pegin',
     signature: '0x708ce1ead20561c5894a93be3fee64b326b2ad6c198f8253e4bb56f1626053d6',
-    arguments: rejectedPeginEventArgs
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    arguments: {
+      btcTxHash,
+      reason: '3'
+    }
   };
   return peginBtcEvent;
 };
 
 const getMockedReleaseRequestedEvent = () => {
-  const releaseRequestedventArgs = new Map();
-  releaseRequestedventArgs.set('rskTxHash', rskTxHash);
-  releaseRequestedventArgs.set('btcTxHash', btcTxHash);
-  releaseRequestedventArgs.set('amount', '1000');
-  const peginBtcEvent: BridgeEvent = {
+  const peginBtcEvent: ExtendedBridgeEvent = {
     name: 'release_requested',
     signature: '0x7a7c29481528ac8c2b2e93aee658fddd4dc15304fa723a5c2b88514557bcc790',
-    arguments: releaseRequestedventArgs
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    arguments: {
+      btcTxHash,
+      rskTxHash,
+      amount : 1000,
+    }
   };
   return peginBtcEvent;
 };
@@ -77,10 +89,15 @@ const getMockedUnrefundablePeginEvent = () => {
   const lunrefundablePeginEventArgs = new Map();
   lunrefundablePeginEventArgs.set('btcTxHash', btcTxHash);
   lunrefundablePeginEventArgs.set('reason', '1');
-  const peginBtcEvent: BridgeEvent = {
+  const peginBtcEvent: ExtendedBridgeEvent = {
     name: 'unrefundable_pegin',
     signature: '0x35be155c87e408cbbcb753dc12f95fc5a242a29460a3d7189e807e63d7c185a7',
-    arguments: lunrefundablePeginEventArgs
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    arguments: {
+      btcTxHash,
+      reason: '1',
+    }
   };
   return peginBtcEvent;
 };
@@ -138,7 +155,8 @@ describe('Service: PeginDataProcessor', () => {
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
-      const rskReceiver = <string> bridgeTransaction.events[0].arguments.get('receiver');
+      const [event] = bridgeTransaction.events as ExtendedBridgeEvent[]
+      const rskReceiver = <string> event.arguments.receiver;
       expect(result.rskRecipient).to.be.equal(rskReceiver.toLowerCase());
       expect(result.status).to.be.equal(PeginStatus.LOCKED);
       expect(result.btcTxId).to.be.equal(btcTxHash);
@@ -176,7 +194,8 @@ describe('Service: PeginDataProcessor', () => {
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
-      const rskReceiver = <string> bridgeTransaction.events[0].arguments.get('receiver');
+      const [event] = bridgeTransaction.events as ExtendedBridgeEvent[]
+      const rskReceiver = <string> event.arguments.receiver;
       expect(result.rskRecipient).to.be.equal(rskReceiver.toLowerCase());
       expect(result.status).to.be.equal(PeginStatus.LOCKED);
       expect(result.btcTxId).to.be.equal(btcTxHash);
@@ -301,7 +320,7 @@ describe('Service: PeginDataProcessor', () => {
   it('processes pegin transaction', async () => {
     const mockedPeginStatusDataService =
       sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;;
-    
+
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
@@ -312,7 +331,7 @@ describe('Service: PeginDataProcessor', () => {
       },
       events: [getMockedRejectedPeginEvent(), getMockedReleaseRequestedEvent()]
     };
-  
+
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
       txHash: bridgeTransaction.txHash,
@@ -322,7 +341,7 @@ describe('Service: PeginDataProcessor', () => {
       method: bridgeTransaction.method,
       events: bridgeTransaction.events
     };
-    
+
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
     await thisService.process(extendedBridgeTx);
     sinon.assert.calledOnce(mockedPeginStatusDataService.set);
@@ -342,7 +361,7 @@ describe('Service: PeginDataProcessor', () => {
       },
       events: [getMockedRejectedPeginEvent(), getMockedReleaseRequestedEvent()]
     };
-    
+
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
       txHash: bridgeTransaction.txHash,
@@ -374,7 +393,7 @@ describe('Service: PeginDataProcessor', () => {
       },
       events: []
     };
-    
+
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
       txHash: bridgeTransaction.txHash,
@@ -390,5 +409,5 @@ describe('Service: PeginDataProcessor', () => {
     sinon.assert.neverCalledWith(mockedPeginStatusDataService.getById);
     sinon.assert.neverCalledWith(mockedPeginStatusDataService.set);
   });
-  
+
 });

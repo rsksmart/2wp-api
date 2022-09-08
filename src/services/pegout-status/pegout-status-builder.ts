@@ -2,16 +2,17 @@ import { BridgeEvent } from 'bridge-transaction-parser';
 import ExtendedBridgeTx from '../extended-bridge-tx';
 import { PegoutStatus, PegoutStatusDbDataModel } from '../../models/rsk/pegout-status-data-model';
 import { BRIDGE_EVENTS } from '../../utils/bridge-utils';
+import {ExtendedBridgeEvent} from "../../models/types/bridge-transaction-parser";
 
 export class PegoutStatusBuilder {
 
     public static async fillRequestReceivedStatus(extendedBridgeTx: ExtendedBridgeTx):Promise<PegoutStatusDbDataModel> {
-        const events: BridgeEvent[] = extendedBridgeTx.events;
-        const releaseRequestReceivedEvent:BridgeEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)!;
-        const rskSenderAddress = <string> releaseRequestReceivedEvent!.arguments.get('sender');
-        const btcDestinationAddress = <string> releaseRequestReceivedEvent!.arguments.get('btcDestinationAddress');
-        const amount = <number> releaseRequestReceivedEvent!.arguments.get('amount');
-    
+        const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
+        const releaseRequestReceivedEvent:ExtendedBridgeEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)!;
+        const rskSenderAddress = <string> releaseRequestReceivedEvent!.arguments.sender;
+        const btcDestinationAddress = <string> releaseRequestReceivedEvent!.arguments.btcDestinationAddress;
+        const amount = <number> releaseRequestReceivedEvent!.arguments.amount;
+
         const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
         status.createdOn = extendedBridgeTx.createdOn;
         status.originatingRskTxHash = extendedBridgeTx.txHash;
@@ -25,17 +26,17 @@ export class PegoutStatusBuilder {
         status.rskBlockHash = extendedBridgeTx.blockHash;
         status.originatingRskBlockHash = extendedBridgeTx.blockHash;
         status.isNewestStatus = true;
-    
+
         return status;
     }
 
     public static async fillRequestRejectedStatus(extendedBridgeTx: ExtendedBridgeTx):Promise<PegoutStatusDbDataModel> {
-        const events: BridgeEvent[] = extendedBridgeTx.events;
-        const releaseRequestRejectedEvent: BridgeEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED)!;
+        const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
+        const releaseRequestRejectedEvent: ExtendedBridgeEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED)!;
 
-        const rskSenderAddress = <string> releaseRequestRejectedEvent!.arguments.get('sender');
-        const amount = <number> releaseRequestRejectedEvent.arguments!.get('amount');
-        const reason = <string> releaseRequestRejectedEvent.arguments!.get('reason');
+        const rskSenderAddress = <string> releaseRequestRejectedEvent!.arguments.sender;
+        const amount = <number> releaseRequestRejectedEvent.arguments!.amount;
+        const reason = <string> releaseRequestRejectedEvent.arguments!.reason;
 
         const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
