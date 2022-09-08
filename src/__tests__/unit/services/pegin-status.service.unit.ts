@@ -5,7 +5,7 @@ import {Status} from '../../../models/pegin-status.model';
 import {PeginStatus, PeginStatusDataModel} from '../../../models/rsk/pegin-status-data.model';
 import {Vin} from '../../../models/vin.model';
 import {Vout} from '../../../models/vout.model';
-import {BitcoinService, BridgeService, PeginStatusService} from '../../../services';
+import {BitcoinService, BridgeService, MockedBitcoinService, PeginStatusService} from '../../../services';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
 
 const federationAddress = '2N1GMB8gxHYR5HLPSRgf9CJ9Lunjb9CTnKB';
@@ -54,7 +54,7 @@ const getPeginStatusServiceWithMockedEnvironment = (
   rskTransaction?: PeginStatusDataModel
 ): PeginStatusService => {
   const mockedBitcoinService =
-    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+    sinon.createStubInstance(MockedBitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
   if (btcTransaction) {
     mockedBitcoinService.getTx.resolves(btcTransaction);
   } else {

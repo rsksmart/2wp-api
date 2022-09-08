@@ -3,7 +3,7 @@ import {TxV2ProviderDataSource} from './datasources';
 import {MongoDbDataSource} from './datasources/mongodb.datasource';
 import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from './dependency-injection-bindings';
 import {RskBlock} from './models/rsk/rsk-block.model';
-import {BitcoinService, BridgeService, PeginStatusService} from './services';
+import {BridgeService, PeginStatusService, MockedBitcoinService, BlockbookBitcoinService} from './services';
 import {DaemonService} from './services/daemon.service';
 import {NodeBridgeDataProvider} from './services/node-bridge-data.provider';
 import {PeginStatusMongoDbDataService} from './services/pegin-status-data-services/pegin-status-mongo.service';
@@ -73,7 +73,9 @@ export class DependencyInjectionHandler {
   private static configureServices(app: Application): void {
     app
       .bind(ServicesBindings.BITCOIN_SERVICE)
-      .toClass(BitcoinService)
+      .toClass(BlockbookBitcoinService)
+      // Bind to MockedBitcoinService if you want to use a mocked bitcoin service
+      // .toClass(MockedBitcoinService)
       .inScope(BindingScope.SINGLETON);
 
     app

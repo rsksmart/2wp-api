@@ -5,13 +5,13 @@ import {
 } from '@loopback/testlab';
 import {SessionRepository} from '../../repositories';
 import {BalanceController} from '../../controllers';
-import {UtxoProvider} from '../../services';
+import {BitcoinService, MockedBitcoinService, UtxoProvider} from '../../services';
 import {sinon} from '@loopback/testlab/dist/sinon';
 import {AccountBalance, GetBalance, WalletAddress} from '../../models';
 
 describe('balance controller', () => {
-  let utxoProviderService: UtxoProvider;
-  let utxoProvider: sinon.SinonStub;
+  let bitcoinService: BitcoinService;
+  let getUtxos: sinon.SinonStub
   let sessionRepository: StubbedInstanceWithSinonAccessor<SessionRepository>;
   let balanceController: BalanceController;
   const request: GetBalance = new GetBalance({
@@ -52,16 +52,16 @@ describe('balance controller', () => {
   beforeEach(resetRepositories);
 
   function resetRepositories() {
-    utxoProviderService = {utxoProvider: sinon.stub()};
-    utxoProvider = utxoProviderService.utxoProvider as sinon.SinonStub;
+    bitcoinService = createStubInstance(MockedBitcoinService);
+    getUtxos = bitcoinService.getUTXOs as sinon.SinonStub;
     sessionRepository = createStubInstance(SessionRepository);
     balanceController = new BalanceController(
-      utxoProviderService,
+      bitcoinService,
       sessionRepository,
     );
   }
   it('should return a computed balance for a set of addresses', async () => {
-    utxoProvider.resolves([
+    getUtxos.resolves([
       {
         txid: '',
         vout: 0,
@@ -72,7 +72,7 @@ describe('balance controller', () => {
       },
     ]);
     const balance = await balanceController.getBalance(request);
-    sinon.assert.callCount(utxoProvider, 6);
+    sinon.assert.callCount(getUtxos, 6);
     sinon.assert.called(sessionRepository.stubs.addUxos);
     expect(balance).deepEqual(
       new AccountBalance({

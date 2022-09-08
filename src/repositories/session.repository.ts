@@ -17,6 +17,7 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
   }
 
   findAccountUtxos(sessionId: string, accountType: string): Promise<Utxo[]> {
+    this.logger.trace(`[findAccountUtxos] sessionId:${sessionId} accountType:${accountType}`);
     return new Promise<Utxo[]>((resolve, reject) => {
       let finalUtxoList: Utxo[] = [];
       this.get(sessionId)
@@ -36,6 +37,7 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
   }
 
   getAccountInputs(sessionId: string): Promise<TxInput[]> {
+    this.logger.trace(`[getAccountInputs] sessionId:${sessionId}`);
     return new Promise<TxInput[]>((resolve, reject) => {
       this.get(sessionId)
         .then(({inputs}) => {
@@ -51,6 +53,7 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
     inputs: TxInput[],
     fees: FeeAmountData,
   ): Promise<void> {
+    this.logger.trace(`[setInputs] sessionId:${sessionId}`);
     return this.get(sessionId).then(sessionObject => {
       sessionObject.inputs = inputs;
       sessionObject.fees = fees;
@@ -59,6 +62,7 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
   }
 
   addUxos(sessionId: string, addressBalances: AddressBalance[]): Promise<void> {
+    this.logger.trace(`[addUxos] sessionId:${sessionId} utxos:${addressBalances.length}`);
     return new Promise<void>((resolve, reject) => {
       this.get(sessionId)
         .then((sessionObject) => {
@@ -72,6 +76,7 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
   }
 
   getFeeLevel(sessionId: string, feeLevel: string): Promise<number> {
+    this.logger.trace(`[getFeeLevel] sessionId:${sessionId} level:${feeLevel}`);
     return new Promise<number>((resolve, reject) => {
       this.get(sessionId)
         .then(({fees}) => {

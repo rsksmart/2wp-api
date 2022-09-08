@@ -4,7 +4,7 @@ import {
 } from '@loopback/testlab';
 import {SessionRepository} from '../../repositories';
 import { TxFeeController} from '../../controllers';
-import {FeeLevel} from '../../services';
+import {BitcoinService, FeeLevel, MockedBitcoinService} from '../../services';
 import {config} from 'dotenv';
 import {sinon} from '@loopback/testlab/dist/sinon';
 import {FeeAmountData, FeeRequestData, TxInput} from '../../models';
@@ -15,8 +15,8 @@ import Big from 'big.js';
 config();
 
 describe('tx Fee controller', () => {
-  let feeLevelProvider: FeeLevel;
-  let feeProvider: sinon.SinonStub;
+  let bitcoinService: BitcoinService;
+  let getFee: sinon.SinonStub;
   let findAccountUtxos : sinon.SinonStub;
   let setInputs : sinon.SinonStub;
   let sessionRepository: StubbedInstanceWithSinonAccessor<SessionRepository>;
@@ -84,15 +84,15 @@ describe('tx Fee controller', () => {
     },
   ]
   function resetRepositories() {
-    feeLevelProvider = {feeProvider: sinon.stub()}
-    feeProvider = feeLevelProvider.feeProvider as sinon.SinonStub;
+    bitcoinService = createStubInstance(MockedBitcoinService);
+    getFee = bitcoinService.getFee as sinon.SinonStub;
     sessionRepository = createStubInstance(SessionRepository);
     setInputs = sessionRepository.setInputs as sinon.SinonStub;
     findAccountUtxos = sessionRepository.findAccountUtxos as sinon.SinonStub;
-    txFeeController = new TxFeeController(sessionRepository, feeLevelProvider)
-    feeProvider.withArgs(+fast).resolves([fastAmount.toBTCString()]);
-    feeProvider.withArgs(+average).resolves([averageAmount.toBTCString()]);
-    feeProvider.withArgs(+low).resolves([lowAmount.toBTCString()]);
+    txFeeController = new TxFeeController(sessionRepository, bitcoinService);
+    getFee.withArgs(+fast).resolves([fastAmount.toBTCString()]);
+    getFee.withArgs(+average).resolves([averageAmount.toBTCString()]);
+    getFee.withArgs(+low).resolves([lowAmount.toBTCString()]);
   }
   it('should store a optimal input list given based on fastFee amount', async () => {
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
@@ -222,9 +222,9 @@ describe('tx Fee controller', () => {
     const minFastFee = new SatoshiBig(process.env.FEE_PER_KB_FAST_MIN ?? 100, 'satoshi');
     const minAverageFee = new SatoshiBig(process.env.FEE_PER_KB_AVERAGE_MIN ?? 100, 'satoshi');
     const minSlowFee = new SatoshiBig(process.env.FEE_PER_KB_SLOW_MIN ?? 100, 'satoshi');
-    feeProvider.withArgs(+fast).resolves(['0.0001']);
-    feeProvider.withArgs(+average).resolves(['0.00005']);
-    feeProvider.withArgs(+low).resolves(['0.00001']);
+    getFee.withArgs(+fast).resolves(['0.0001']);
+    getFee.withArgs(+average).resolves(['0.00005']);
+    getFee.withArgs(+low).resolves(['0.00001']);
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
       .resolves(utxos1);
     await txFeeController.getTxFee(new FeeRequestData({ sessionId, amount: 97411, accountType: constants.BITCOIN_LEGACY_ADDRESS}));
@@ -262,9 +262,9 @@ describe('tx Fee controller', () => {
     const minFastFee = new SatoshiBig(process.env.FEE_PER_KB_FAST_MIN ?? 100, 'satoshi');
     const minAverageFee = new SatoshiBig(process.env.FEE_PER_KB_AVERAGE_MIN ?? 100, 'satoshi');
     const minSlowFee = new SatoshiBig(process.env.FEE_PER_KB_SLOW_MIN ?? 100, 'satoshi');
-    feeProvider.withArgs(+fast).resolves(['0.0001']);
-    feeProvider.withArgs(+average).resolves(['0.00005']);
-    feeProvider.withArgs(+low).resolves(['0.00001']);
+    getFee.withArgs(+fast).resolves(['0.0001']);
+    getFee.withArgs(+average).resolves(['0.00005']);
+    getFee.withArgs(+low).resolves(['0.00001']);
     findAccountUtxos.withArgs(sessionId, constants.BITCOIN_LEGACY_ADDRESS)
         .resolves(utxos1);
     const amount = 97000;

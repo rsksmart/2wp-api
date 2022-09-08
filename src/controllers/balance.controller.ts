@@ -9,15 +9,15 @@ import {
   Utxo, WalletAddress
 } from '../models';
 import {SessionRepository} from '../repositories';
-import {UtxoProvider} from '../services';
+import {BitcoinService} from '../services';
 import {BtcAddressUtils} from '../utils/btc-utils';
 
 export class BalanceController {
   btcAddressUtils: BtcAddressUtils = new BtcAddressUtils();
   logger: Logger;
   constructor(
-    @inject('services.UtxoProvider')
-    protected utxoProviderService: UtxoProvider,
+    @inject('services.BitcoinService')
+    protected bitcoinService: BitcoinService,
     @repository(SessionRepository)
     public sessionRepository: SessionRepository,
   ) {
@@ -47,7 +47,7 @@ export class BalanceController {
       const eventualUtxos = classifiedList.map((walletAddress) =>
         Promise.all([
           walletAddress,
-          this.utxoProviderService.utxoProvider(walletAddress.address),
+          this.bitcoinService.getUTXOs(walletAddress.address),
         ]),
       );
       Promise.all(eventualUtxos)
@@ -57,7 +57,7 @@ export class BalanceController {
               new AddressBalance({
                 address: walletAddress.address,
                 addressType: walletAddress.addressType,
-                utxoList: utxoList.map(uxto => new Utxo(uxto)),
+                utxoList: utxoList,
               }),
           ),
         )

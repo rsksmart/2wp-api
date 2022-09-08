@@ -7,7 +7,7 @@ import {getLogger, Logger} from 'log4js';
 import * as constants from '../constants';
 import {FeeAmountData, FeeRequestData, TxInput, Utxo} from '../models';
 import {SessionRepository} from '../repositories';
-import {FeeLevel} from '../services';
+import {BitcoinService} from '../services';
 import SatoshiBig from '../utils/SatoshiBig';
 
 config();
@@ -18,8 +18,8 @@ export class TxFeeController {
   constructor(
     @repository(SessionRepository)
     public sessionRepository: SessionRepository,
-    @inject('services.FeeLevel')
-    protected feeLevelProviderService: FeeLevel,
+    @inject('services.BitcoinService')
+    protected bitcoinService: BitcoinService,
   ) {
     this.logger = getLogger('tx-fee-controller');
   }
@@ -67,9 +67,9 @@ export class TxFeeController {
           feeRequestData.sessionId,
           feeRequestData.accountType,
         ),
-        this.feeLevelProviderService.feeProvider(+fast),
-        this.feeLevelProviderService.feeProvider(+average),
-        this.feeLevelProviderService.feeProvider(+low),
+        this.bitcoinService.getFee(+fast),
+        this.bitcoinService.getFee(+average),
+        this.bitcoinService.getFee(+low),
       ])
         .then(
           ([accountUtxoList, [fastAmount], [averageAmount], [lowAmount]]) => {

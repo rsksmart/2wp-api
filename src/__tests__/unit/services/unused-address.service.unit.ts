@@ -1,7 +1,7 @@
 import {expect} from '@loopback/testlab';
 import sinon, {SinonStubbedInstance} from 'sinon';
 import {BitcoinAddress} from '../../../models/bitcoin-address.model';
-import {BitcoinService, UnusedAddressService} from '../../../services';
+import {BitcoinService, MockedBitcoinService, UnusedAddressService} from '../../../services';
 import {AddressUsedStatus, UnusedAddressResponse} from '../../../models';
 
 describe('Service: UnusedAddress', () => {
@@ -13,7 +13,7 @@ describe('Service: UnusedAddress', () => {
   const mockBitcoinService = () => {
 
     const mockedBitcoinService =
-      sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+      sinon.createStubInstance(MockedBitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
 
     const addressA: BitcoinAddress = new BitcoinAddress();
     addressA.address = 'a';
@@ -72,7 +72,7 @@ describe('Service: UnusedAddress', () => {
 
   it('isUnusedAddresses empty list', async () => {
     const mockedBitcoinService
-      = sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+      = sinon.createStubInstance(MockedBitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
     const thisService = new UnusedAddressService(mockedBitcoinService);
     const result = await thisService.isUnusedAddresses([]);
     expect(result).to.be.eql(new UnusedAddressResponse({ data : []}));

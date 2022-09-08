@@ -2,14 +2,14 @@ import {inject} from '@loopback/core';
 import {get, getModelSchemaRef} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
 import {Tx} from '../models';
-import {TxService} from '../services';
+import {BitcoinService, TxService} from '../services';
 
 export class TxController {
   logger: Logger;
 
   constructor(
-    @inject('services.TxService')
-    protected txService: TxService,
+    @inject('services.BitcoinService')
+    protected bitcoinService: BitcoinService,
   ) {
     this.logger = getLogger('tx-controller');
   }
@@ -30,9 +30,8 @@ export class TxController {
   getTx(txId: string): Promise<Tx> {
     this.logger.debug(`[getTx] started with txId: ${txId}`);
     return new Promise<Tx>((resolve, reject) => {
-      this.txService
-        .txProvider(txId)
-        .then(([tx]) => {
+      this.bitcoinService.getTx2(txId)      
+        .then((tx) => {
           this.logger.trace(`[getTx] found tx!`);
           return resolve(new Tx(tx));
         })
