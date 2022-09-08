@@ -19,8 +19,7 @@ export class RskNodeService {
     return this.web3.eth.getBlockNumber();
   }
   getBridgeTransaction(txHash: string): Promise<Transaction> {
-    const network = process.env.NETWORK ?? 'testnet';
-    return getBridgeTransactionByTxHash(this.web3, txHash, network);
+    return getBridgeTransactionByTxHash(this.web3, txHash);
   }
   getTransaction(txHash: string, includeReceipt = false): Promise<RskTransaction> {
     const rskTx = new RskTransaction();

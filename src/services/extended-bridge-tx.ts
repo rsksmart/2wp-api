@@ -1,5 +1,6 @@
-import {BridgeEvent, BridgeMethod, Transaction} from 'bridge-transaction-parser';
+import { BridgeMethod, Transaction} from 'bridge-transaction-parser';
 import { RskTransaction } from '../models/rsk/rsk-transaction.model';
+import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 
 export default interface ExtendedBridgeTx extends Transaction {
   blockHash: string;
@@ -14,7 +15,7 @@ export class ExtendedBridgeTxModel implements ExtendedBridgeTx{
     this.to = rskTransaction.to;
     this.txHash = transaction.txHash;
     this.blockNumber = transaction.blockNumber;
-    this.events = transaction.events;
+    this.events = transaction.events as ExtendedBridgeEvent[];
     this.method = transaction.method;
   }
 
@@ -23,6 +24,6 @@ export class ExtendedBridgeTxModel implements ExtendedBridgeTx{
   to: string;
   txHash: string;
   method: BridgeMethod;
-  events: BridgeEvent[];
+  events: ExtendedBridgeEvent[];
   blockNumber: number;
 }

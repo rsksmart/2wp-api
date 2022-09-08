@@ -97,12 +97,11 @@ export class BridgeService {
   }
 
   public async getBridgeTransactionByHash(txHash: string): Promise<Transaction> {
-    const network = process.env.NETWORK ?? constants.NETWORK_TESTNET;
-    return await bridgeTransactionParser.getBridgeTransactionByTxHash(this.web3, txHash, network);
+    return await bridgeTransactionParser.getBridgeTransactionByTxHash(this.web3, txHash);
   }
 
   public async getBridgeState(): Promise<BridgeState> {
     return await getBridgeState(this.web3);
   }
-  
+
 }

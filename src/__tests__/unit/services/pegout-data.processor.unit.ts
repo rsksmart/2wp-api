@@ -58,10 +58,12 @@ describe('Service: PegoutDataProcessor', () => {
     const btcDestinationAddress = 'mreuQThm58CrYL4WCuY4SmDqiAQzWSy9GR';
     const amount = 504237;
 
-    const releaseRequestReceivedEventsArgs = new Map();
-    releaseRequestReceivedEventsArgs.set('sender', rskSenderAddress);
-    releaseRequestReceivedEventsArgs.set('btcDestinationAddress', btcDestinationAddress);
-    releaseRequestReceivedEventsArgs.set('amount', amount);
+    const releaseRequestReceivedEventsArgs = {
+      sender : rskSenderAddress,
+      btcDestinationAddress : btcDestinationAddress,
+      amount : amount,
+    };
+
 
     const createdOn = new Date();
 
@@ -115,9 +117,10 @@ describe('Service: PegoutDataProcessor', () => {
     const rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
     const reason = '3';
 
-    const releaseRequestedRejectEventsArgs = new Map();
-    releaseRequestedRejectEventsArgs.set('sender', rskSenderAddress);
-    releaseRequestedRejectEventsArgs.set('reason', reason);
+    const releaseRequestedRejectEventsArgs = {
+      sender : rskSenderAddress,
+      reason : reason,
+    };
 
     const createdOn = new Date();
 
@@ -189,10 +192,11 @@ describe('Service: PegoutDataProcessor', () => {
 
     mockedPegoutStatusDataService.getLastByOriginatingRskTxHash.withArgs(originatingRskTxHash).resolves(foundReceivedPegoutStatus);
 
-    const releaseRequestedEventsArgs = new Map();
-    releaseRequestedEventsArgs.set('rskTxHash', originatingRskTxHash);
-    releaseRequestedEventsArgs.set('btcTxHash', btcTxHash);
-    releaseRequestedEventsArgs.set('amount', amount);
+    const releaseRequestedEventsArgs = {
+      rskTxHash : originatingRskTxHash,
+      btcTxHash : btcTxHash,
+      amount : amount,
+    };
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
@@ -276,10 +280,11 @@ describe('Service: PegoutDataProcessor', () => {
 
     mockedPegoutStatusDataService.getLastByOriginatingRskTxHash.withArgs(originatingRskTxHash).resolves(foundReceivedPegoutStatus);
 
-    const releaseRequestedEventsArgs = new Map();
-    releaseRequestedEventsArgs.set('rskTxHash', originatingRskTxHash);
-    releaseRequestedEventsArgs.set('btcTxHash', btcTxHash);
-    releaseRequestedEventsArgs.set('amount', amount);
+    const releaseRequestedEventsArgs = {
+      rskTxHash : originatingRskTxHash,
+      btcTxHash : btcTxHash,
+      amount : amount,
+    };
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
@@ -406,7 +411,7 @@ describe('Service: PegoutDataProcessor', () => {
     pegoutWithWaitingForSignature.btcRawTransaction = btcRawTx1;
     pegoutWithWaitingForSignature.originatingRskBlockHeight = 2869983;
     pegoutWithWaitingForSignature.valueRequestedInSatoshis = 521000;
-    
+
     sinon.assert.calledOnceWithMatch(mockedPegoutStatusDataService.set, pegoutWithWaitingForSignature);
 
   });
@@ -445,8 +450,9 @@ describe('Service: PegoutDataProcessor', () => {
 
     mockedBridgeService.getBridgeState.resolves(bridgeState);
 
-    const relaseBtcEventsArgs = new Map();
-    relaseBtcEventsArgs.set('btcRawTransaction', btcRawTx1);
+    const relaseBtcEventsArgs = {
+      btcRawTransaction : btcRawTx1,
+    };
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
@@ -462,7 +468,7 @@ describe('Service: PegoutDataProcessor', () => {
         arguments: relaseBtcEventsArgs
       }]
     }
-    
+
     const rskBlockHash2 = '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d662';
 
     const extendedBridgeTx: ExtendedBridgeTx = {

@@ -14,6 +14,7 @@ import * as constants from '../constants';
 import { remove0x } from '../utils/hex-utils';
 import { PegoutWaitingConfirmation } from 'bridge-state-data-parser';
 import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
+import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
@@ -95,7 +96,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   private async processSignedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
-    const events: BridgeEvent[] = extendedBridgeTx.events;
+    const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
     const releaseBTCEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_BTC);
 
     if(!releaseBTCEvent) {
@@ -122,7 +123,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
     const concatenateBtcTxInputHashes = (btcTx: bitcoin.Transaction) => btcTx.ins.reduce((acc, input) => `${acc}_${input.hash.toString('hex')}`, '');
 
-    const btcRawTx = remove0x(<string> releaseBTCEvent.arguments.get('btcRawTransaction'));
+    const btcRawTx = remove0x(<string> releaseBTCEvent.arguments.btcRawTransaction);
     const btcTx = bitcoin.Transaction.fromHex(btcRawTx);
 
     const concatenatedBtcTxInputHashes = concatenateBtcTxInputHashes(btcTx);
@@ -194,21 +195,21 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   private async processWaitingForConfirmationStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
-    const events: BridgeEvent[] = extendedBridgeTx.events;
+    const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
     const releaseRequestedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
     if(!releaseRequestedEvent) {
       return;
     }
 
-    const originatingRskTxHash = <string> releaseRequestedEvent.arguments.get('rskTxHash');
-    const btcTxHash = <string> releaseRequestedEvent.arguments.get('btcTxHash');
+    const originatingRskTxHash = <string> releaseRequestedEvent.arguments.rskTxHash;
+    const btcTxHash = <string> releaseRequestedEvent.arguments.btcTxHash;
 
     const foundPegoutStatus = await this.pegoutStatusDataService.getLastByOriginatingRskTxHash(originatingRskTxHash);
     if(!foundPegoutStatus) {
       return this.logger.warn(`[processWaitingForConfirmationStatus] could not find a pegout status record
        in the db for this transaction '${extendedBridgeTx.txHash}' with 'release_requested' event.`);
     }
-    
+
     const newPegoutStatus: PegoutStatusDbDataModel = PegoutStatusDbDataModel.clonePegoutStatusInstance(foundPegoutStatus);
 
     newPegoutStatus.btcRecipientAddress = foundPegoutStatus.btcRecipientAddress;
