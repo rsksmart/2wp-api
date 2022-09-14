@@ -78,13 +78,13 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
           if (fees) {
             switch (feeLevel) {
               case constants.BITCOIN_FAST_FEE_LEVEL:
-                resolve(fees.fast);
+                resolve(fees.fast.amount);
                 break;
               case constants.BITCOIN_AVERAGE_FEE_LEVEL:
-                resolve(fees.average);
+                resolve(fees.average.amount);
                 break;
               case constants.BITCOIN_SLOW_FEE_LEVEL:
-                resolve(fees.slow);
+                resolve(fees.slow.amount);
                 break;
               default:
                 reject(new Error(`Wrong Fee Level: ${feeLevel}`));
