@@ -5,7 +5,7 @@ import Big from 'big.js';
 import {config} from 'dotenv';
 import {getLogger, Logger} from 'log4js';
 import * as constants from '../constants';
-import {FeeAmountData, FeeRequestData, TxInput, Utxo} from '../models';
+import {Fee, FeeAmountData, FeeRequestData, TxInput, Utxo} from '../models';
 import {SessionRepository} from '../repositories';
 import {FeeLevel} from '../services';
 import SatoshiBig from '../utils/SatoshiBig';
@@ -47,10 +47,18 @@ export class TxFeeController {
       const average = process.env.AVERAGE_MINING_BLOCK ?? 6;
       const low = process.env.LOW_MINING_BLOCK ?? 12;
       let fees: FeeAmountData = new FeeAmountData({
-        slow: 0,
-        average: 0,
-        fast: 0,
-        wereInputsStored: false,
+        slow: new Fee({
+            amount: 0,
+            enoughBalance: false,
+        }),
+        average: new Fee({
+            amount: 0,
+            enoughBalance: false,
+        }),
+        fast: new Fee({
+            amount: 0,
+            enoughBalance: false,
+        }),
       });
       const txHeaderSize = 13;
       const inputSize = 32 + 4 + 71 + 34 + 4;
@@ -90,11 +98,10 @@ export class TxFeeController {
             if (selectedInputs.length === 0) reject(new Error('The required amount is not satisfied with the current utxo List'));
             const totalBytes: SatoshiBig = new SatoshiBig((selectedInputs.length * +inputSize + txBytes).toString(), 'satoshi');
             this.logger.trace(`[getTxFee] Total Bytes: ${totalBytes} (inputs: ${selectedInputs.length})`);
-            fees.fast = totalBytes.mul(satoshiPerByte.fast).toNumber();
-            fees.average = totalBytes.mul(satoshiPerByte.average).toNumber();
-            fees.slow = totalBytes.mul(satoshiPerByte.slow).toNumber();
+            fees.fast.amount = totalBytes.mul(satoshiPerByte.fast).toNumber();
+            fees.average.amount = totalBytes.mul(satoshiPerByte.average).toNumber();
+            fees.slow.amount= totalBytes.mul(satoshiPerByte.slow).toNumber();
             fees = TxFeeController.checkFeeBoundaries(fees);
-            fees.wereInputsStored = enoughBalance;
             this.logger.trace(`[getTxFee] Calculated fees for the peg-in. fast: ${fees.fast}. average: ${fees.average}. slow: ${fees.slow}`);
             this.logger.trace(`[getTxFee] ${enoughBalance ? '' : 'not'} enough balance to pay fees.`);
             return Promise.all([
@@ -147,14 +154,22 @@ export class TxFeeController {
 
   private static checkFeeBoundaries(fees: FeeAmountData) {
     const checkedFees: FeeAmountData = new FeeAmountData({
-      slow: 0,
-      average: 0,
-      fast: 0,
-      wereInputsStored: false,
+        slow: new Fee({
+            amount: 0,
+            enoughBalance: false,
+        }),
+        average: new Fee({
+            amount: 0,
+            enoughBalance: false,
+        }),
+        fast: new Fee({
+            amount: 0,
+            enoughBalance: false,
+        }),
     });
-    checkedFees.slow = Math.min(Math.max(fees.slow, constants.BITCOIN_MIN_SATOSHI_FEE), constants.BITCOIN_MAX_SATOSHI_FEE);
-    checkedFees.average = Math.min(Math.max(fees.average, constants.BITCOIN_MIN_SATOSHI_FEE), constants.BITCOIN_MAX_SATOSHI_FEE);
-    checkedFees.fast = Math.min(Math.max(fees.fast, constants.BITCOIN_MIN_SATOSHI_FEE), constants.BITCOIN_MAX_SATOSHI_FEE);
+    checkedFees.slow.amount = Math.min(Math.max(fees.slow.amount, constants.BITCOIN_MIN_SATOSHI_FEE), constants.BITCOIN_MAX_SATOSHI_FEE);
+    checkedFees.average.amount = Math.min(Math.max(fees.average.amount, constants.BITCOIN_MIN_SATOSHI_FEE), constants.BITCOIN_MAX_SATOSHI_FEE);
+    checkedFees.fast.amount = Math.min(Math.max(fees.fast.amount, constants.BITCOIN_MIN_SATOSHI_FEE), constants.BITCOIN_MAX_SATOSHI_FEE);
 
     return checkedFees;
   }
