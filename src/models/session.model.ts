@@ -1,6 +1,5 @@
 import {Entity, model, property} from '@loopback/repository';
 import {AddressBalance} from './address-balance.model';
-import {TxInput} from './tx-input.model';
 import {FeeAmountData} from './fee-amount-data.model';
 import {InputPerFee} from "./input-per-fee.model";
 
