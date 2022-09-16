@@ -63,10 +63,10 @@ export class PeginTxController {
         bridgeService.getFederationAddress(),
       ])
         .then(([inputs, fee, federationAddress]) => {
-          if (!inputs.length) reject(new Error(`There are no inputs selected for this sessionId ${createPeginTxData.sessionId}`))
+          if (!inputs.fast.length) reject(new Error(`There are no inputs selected for this sessionId ${createPeginTxData.sessionId}`))
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
-          const inputsAmount = inputs.reduce((acc, curr) => ({amount: acc.amount + curr.amount}));
+          const inputsAmount = inputs.fast.reduce((acc, curr) => ({amount: acc.amount + curr.amount}));
           if (inputsAmount.amount - (createPeginTxData.amountToTransferInSatoshi + fee) < 0) {
             return reject(new Error('The stored input list has not enough amount'));
           }
@@ -83,7 +83,7 @@ export class PeginTxController {
             ),
           );
           const changeOutput: TxOutput = this.getChangeOutput(
-            inputs,
+            inputs.fast,
             createPeginTxData.changeAddress,
             createPeginTxData.amountToTransferInSatoshi,
             fee,
@@ -95,7 +95,7 @@ export class PeginTxController {
           this.logger.trace('[create] Created pegin successfully!');
           resolve(
             new NormalizedTx({
-              inputs,
+              inputs: inputs.fast,
               outputs,
             }),
           );

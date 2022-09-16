@@ -7,7 +7,7 @@ import { TxFeeController} from '../../controllers';
 import {FeeLevel} from '../../services';
 import {config} from 'dotenv';
 import {sinon} from '@loopback/testlab/dist/sinon';
-import {Fee, FeeAmountData, FeeRequestData, TxInput} from '../../models';
+import {Fee, FeeAmountData, FeeRequestData, InputPerFee, TxInput} from '../../models';
 import * as constants from '../../constants';
 import SatoshiBig from '../../utils/SatoshiBig';
 import Big from 'big.js';
@@ -104,8 +104,7 @@ describe('tx Fee controller', () => {
       amount: 97410,
       accountType: constants.BITCOIN_LEGACY_ADDRESS
     }));
-    const totalBytes: Big = new Big((2 * +inputSize + txBytes).toString());
-    expect(setInputs.calledOnceWith(sessionId, [
+    const fastInputs = [
       new TxInput({
         address: 'address',
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -126,7 +125,13 @@ describe('tx Fee controller', () => {
         prev_index: 0,
         amount: 100000,
       }),
-    ], new FeeAmountData({
+    ]
+    const totalBytes: Big = new Big((2 * +inputSize + txBytes).toString());
+    expect(setInputs.calledOnceWith(sessionId, new InputPerFee({
+      fast: fastInputs,
+      average: fastInputs,
+      slow: fastInputs,
+    }), new FeeAmountData({
       slow: new Fee({
         amount: totalBytes.mul(lowAmount.div(1000)).toNumber(),
         enoughBalance: false,
@@ -149,8 +154,7 @@ describe('tx Fee controller', () => {
       amount: 97411,
       accountType: constants.BITCOIN_LEGACY_ADDRESS
     }));
-    const totalBytes: Big = new Big((2 * +inputSize + txBytes).toString());
-    expect(setInputs.calledOnceWith(sessionId, [
+    const fastInputs = [
       new TxInput({
         address: 'address',
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -171,7 +175,13 @@ describe('tx Fee controller', () => {
         prev_index: 0,
         amount: 100000,
       }),
-    ], new FeeAmountData({
+    ]
+    const totalBytes: Big = new Big((2 * +inputSize + txBytes).toString());
+    expect(setInputs.calledOnceWith(sessionId, new InputPerFee({
+      fast: fastInputs,
+      average: fastInputs,
+      slow: fastInputs,
+    }), new FeeAmountData({
       slow: new Fee({
         amount: totalBytes.mul(lowAmount.div(1000)).toNumber(),
         enoughBalance: false,
@@ -196,7 +206,6 @@ describe('tx Fee controller', () => {
       accountType: constants.BITCOIN_LEGACY_ADDRESS
     }))
     const totalBytes: Big = new Big((utxos1.length * +inputSize + txBytes).toString());
-    expect(setInputs.notCalled).to.be.true();
     expect(fees).to.be.eql(new FeeAmountData({
       slow: new Fee({
         amount: totalBytes.mul(lowAmount.div(1000)).toNumber(),
@@ -273,7 +282,7 @@ describe('tx Fee controller', () => {
       accountType: constants.BITCOIN_LEGACY_ADDRESS
     }));
     const totalBytes: Big = new Big((2 * +inputSize + txBytes).toString());
-    expect(setInputs.calledOnceWith(sessionId, [
+    const fastInputs = [
       new TxInput({
         address: 'address',
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -294,7 +303,12 @@ describe('tx Fee controller', () => {
         prev_index: 0,
         amount: 100000,
       }),
-    ], new FeeAmountData({
+    ]
+    expect(setInputs.calledOnceWith(sessionId, new InputPerFee({
+      fast: fastInputs,
+      average: fastInputs,
+      slow: fastInputs,
+    }) , new FeeAmountData({
       slow: new Fee({
         amount: totalBytes.mul(minSlowFee).toNumber(),
         enoughBalance: false,
@@ -327,7 +341,7 @@ describe('tx Fee controller', () => {
     }));
     const totalBytes: Big = new Big((2 * +inputSize + (3 * outputSize) + txHeaderSize).toString());
     const changeAmount = 200000 - amount - totalBytes.mul(minFastFee).toNumber();
-    expect(setInputs.calledOnceWith(sessionId, [
+    const fastInputs =  [
       new TxInput({
         address: 'address',
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -348,7 +362,12 @@ describe('tx Fee controller', () => {
         prev_index: 0,
         amount: 100000,
       }),
-    ], new FeeAmountData({
+    ]
+    expect(setInputs.calledOnceWith(sessionId,new InputPerFee({
+      fast: fastInputs,
+      average: fastInputs,
+      slow: fastInputs,
+    }), new FeeAmountData({
       slow: new Fee({
         amount: totalBytes.mul(minSlowFee).toNumber(),
         enoughBalance: false,

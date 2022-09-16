@@ -5,7 +5,7 @@ import Big from 'big.js';
 import {config} from 'dotenv';
 import {getLogger, Logger} from 'log4js';
 import * as constants from '../constants';
-import {Fee, FeeAmountData, FeeRequestData, TxInput, Utxo} from '../models';
+import {Fee, FeeAmountData, FeeRequestData, InputPerFee, TxInput, Utxo} from '../models';
 import {SessionRepository} from '../repositories';
 import {FeeLevel} from '../services';
 import SatoshiBig from '../utils/SatoshiBig';
@@ -60,6 +60,7 @@ export class TxFeeController {
             enoughBalance: false,
         }),
       });
+      const inputsPerFee: InputPerFee = new InputPerFee({});
       const txHeaderSize = 13;
       const inputSize = 32 + 4 + 71 + 34 + 4;
       /**
@@ -89,34 +90,36 @@ export class TxFeeController {
             });
             this.logger.trace(`[getTxFee] Fee per byte Sat/byte:  Fast - ${satoshiPerByte.fast.toSatoshiString()} s/b. Average - ${satoshiPerByte.average.toSatoshiString()} s/b. Slow - ${satoshiPerByte.slow.toSatoshiString()} s/b.`);
             if (accountUtxoList.length === 0) reject(new Error('There are no utxos stored for this account type'));
-            const {selectedInputs, enoughBalance} = this.selectOptimalInputs(
-              accountUtxoList,
-              +feeRequestData.amount,
-              satoshiPerByte.fast.mul(new Big(txBytes)).toNumber(),
-              satoshiPerByte.fast.mul(new Big(inputSize)).toNumber(),
-            );
-            if (selectedInputs.length === 0) reject(new Error('The required amount is not satisfied with the current utxo List'));
-            const totalBytes: SatoshiBig = new SatoshiBig((selectedInputs.length * +inputSize + txBytes).toString(), 'satoshi');
-            this.logger.trace(`[getTxFee] Total Bytes: ${totalBytes} (inputs: ${selectedInputs.length})`);
-            fees.fast.amount = totalBytes.mul(satoshiPerByte.fast).toNumber();
-            fees.average.amount = totalBytes.mul(satoshiPerByte.average).toNumber();
-            fees.slow.amount= totalBytes.mul(satoshiPerByte.slow).toNumber();
+            let feeLevel: 'fast' | 'average' | 'slow';
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            for (feeLevel in fees) {
+                const {selectedInputs, enoughBalance} = this.selectOptimalInputs(
+                    accountUtxoList,
+                    +feeRequestData.amount,
+                    satoshiPerByte[feeLevel].mul(new Big(txBytes)).toNumber(),
+                    satoshiPerByte[feeLevel].mul(new Big(inputSize)).toNumber(),
+                );
+                if (selectedInputs.length === 0) reject(new Error('The required amount is not satisfied with the current utxo List'));
+                const totalBytes: SatoshiBig = new SatoshiBig((selectedInputs.length * +inputSize + txBytes).toString(), 'satoshi');
+                this.logger.trace(`[getTxFee] Total Bytes: ${totalBytes} (inputs: ${selectedInputs.length})`);
+                fees[feeLevel].amount = totalBytes.mul(satoshiPerByte[feeLevel]).toNumber();
+                fees[feeLevel].enoughBalance = enoughBalance;
+                inputsPerFee[feeLevel] = selectedInputs;
+            }
             fees = TxFeeController.checkFeeBoundaries(fees);
-            this.logger.trace(`[getTxFee] Calculated fees for the peg-in. fast: ${fees.fast}. average: ${fees.average}. slow: ${fees.slow}`);
-            this.logger.trace(`[getTxFee] ${enoughBalance ? '' : 'not'} enough balance to pay fees.`);
-            return Promise.all([
-              fees,
-              enoughBalance ? this.sessionRepository.setInputs(
+            this.logger.trace(`[getTxFee] Calculated fees for the peg-in. fast: ${JSON.stringify(fees.fast)}. average: ${JSON.stringify(fees.average)}. slow: ${JSON.stringify(fees.slow)}`);
+
+            return this.sessionRepository.setInputs(
                 feeRequestData.sessionId,
-                selectedInputs,
+                inputsPerFee,
                 fees,
-              ) : null,
-            ]);
+              );
           },
         )
-        .then(([feeObj]) => {
+        .then(() => {
           this.logger.trace(`[getTxFee] Finished fee calculation!`);
-          return resolve(feeObj);
+          resolve(fees);
         })
         .catch((reason) => {
           this.logger.warn(`[getTx] There was an error: ${reason}`);

@@ -3,7 +3,7 @@ import {DefaultKeyValueRepository} from '@loopback/repository';
 import {getLogger, Logger} from 'log4js';
 import * as constants from '../constants';
 import {RedisDataSource} from '../datasources';
-import {AddressBalance, FeeAmountData, Session, TxInput, Utxo} from '../models';
+import {AddressBalance, FeeAmountData, InputPerFee, Session, TxInput, Utxo} from '../models';
 import {BtcAddressUtils} from '../utils/btc-utils';
 
 export class SessionRepository extends DefaultKeyValueRepository<Session> {
@@ -35,12 +35,12 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
     });
   }
 
-  getAccountInputs(sessionId: string): Promise<TxInput[]> {
-    return new Promise<TxInput[]>((resolve, reject) => {
+  getAccountInputs(sessionId: string): Promise<InputPerFee> {
+    return new Promise<InputPerFee>((resolve, reject) => {
       this.get(sessionId)
         .then(({inputs}) => {
           if (inputs) resolve(inputs);
-          else resolve([]);
+          else reject(new Error('Account inputs not found'));
         })
         .catch(reject);
     });
@@ -48,7 +48,7 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
 
   setInputs(
     sessionId: string,
-    inputs: TxInput[],
+    inputs: InputPerFee,
     fees: FeeAmountData,
   ): Promise<void> {
     return this.get(sessionId).then(sessionObject => {

@@ -21,3 +21,4 @@ export * from './address-used-status.model';
 export * from './unused-address-response.model';
 export * from './api-information.model';
 export * from './tx-status.model';
+export * from './input-per-fee.model';
