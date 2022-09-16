@@ -63,7 +63,7 @@ export class PeginTxController {
         bridgeService.getFederationAddress(),
       ])
         .then(([inputs, fee, federationAddress]) => {
-          if (!inputs.fast.length) reject(new Error(`There are no inputs selected for this sessionId ${createPeginTxData.sessionId}`))
+          if (!inputs.fast.length) reject(new Error(`There are no inputs selected for this sessionId ${createPeginTxData.sessionId}`));
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           const inputsAmount = inputs.fast.reduce((acc, curr) => ({amount: acc.amount + curr.amount}));

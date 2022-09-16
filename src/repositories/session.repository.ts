@@ -3,7 +3,7 @@ import {DefaultKeyValueRepository} from '@loopback/repository';
 import {getLogger, Logger} from 'log4js';
 import * as constants from '../constants';
 import {RedisDataSource} from '../datasources';
-import {AddressBalance, FeeAmountData, InputPerFee, Session, TxInput, Utxo} from '../models';
+import {AddressBalance, FeeAmountData, InputPerFee, Session, Utxo} from '../models';
 import {BtcAddressUtils} from '../utils/btc-utils';
 
 export class SessionRepository extends DefaultKeyValueRepository<Session> {
