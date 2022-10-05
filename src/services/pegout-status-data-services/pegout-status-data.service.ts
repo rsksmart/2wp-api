@@ -7,4 +7,6 @@ export interface PegoutStatusDataService extends GenericDataService<PegoutStatus
   getLastByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel | null>;
   getManyWaitingForConfirmationNewest(): Promise<PegoutStatusDbDataModel[]>;
   getManyWaitingForSignaturesNewest(): Promise<PegoutStatusDbDataModel[]>;
+  getManyByRskTxHashes(originatingRskTxHashes: Array<string>): Promise<PegoutStatusDbDataModel[]>;
+  getManyByBtcRawTxInputsHashNewest(btcRawTxInputsHash: string): Promise<PegoutStatusDbDataModel[]>;
 }
