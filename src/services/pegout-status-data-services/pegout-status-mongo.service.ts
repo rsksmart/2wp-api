@@ -89,4 +89,18 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
     return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 
+  public async getManyByRskTxHashes(rskTxHashes: Array<string>): Promise<PegoutStatusDbDataModel[]> {
+    const pegoutsDocuments = await  this.getConnector()
+    .find({rskTxHash: { $in: rskTxHashes }})
+    .exec();
+    return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
+  }
+
+  public async getManyByBtcRawTxInputsHashNewest(btcRawTxInputsHash: string): Promise<PegoutStatusDbDataModel[]> {
+    const pegoutsDocuments = await  this.getConnector()
+    .find({btcRawTxInputsHash, isNewestStatus: true})
+    .exec();
+    return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
+  }
+
 }
