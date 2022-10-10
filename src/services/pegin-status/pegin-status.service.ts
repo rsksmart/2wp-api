@@ -215,12 +215,8 @@ export class PeginStatusService {
       }
     }
     if (!foundOpReturn) {
-      if (btcTx.vin[0].isAddress) {
-        returnValue = btcTx.vin[0].addresses[0];
-        this.logger.debug(`Uses sender as refund address: ${returnValue}`);
-      } else {
-        this.logger.warn(`Empty value for refund address`);
-      }
+      returnValue = '';
+      this.logger.warn(`Empty value for refund address`);
     }
     return returnValue;
   }
