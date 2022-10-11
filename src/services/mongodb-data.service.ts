@@ -63,7 +63,6 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
         }
         const connector = this.getConnector();
         const filter: any = {};
-        console.log(data);
         filter[data.getIdFieldName()] = data.getId();
         connector.findOneAndUpdate(filter, <any>data, {upsert: true}, (err: any) => {
           metricLogger();
