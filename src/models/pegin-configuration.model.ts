@@ -6,42 +6,43 @@ export class PeginConfiguration extends Entity {
     type: 'number',
     required: true,
   })
-  minValue: number;
+    minValue: number;
 
   @property({
     type: 'number',
     required: true,
   })
-  maxValue: number;
+    maxValue: number;
 
   @property({
     type: 'string',
     required: true,
   })
-  federationAddress: string;
+    federationAddress: string;
 
   @property({
     type: 'number',
     required: true,
   })
-  btcConfirmations: number;
+    btcConfirmations: number;
 
   @property({
     type: 'string',
     required: false,
   })
-  sessionId?: string;
+    sessionId?: string;
 
   @property({
     type: 'number',
     id: true,
     generated: true,
   })
-  id?: number;
+    id?: number;
 
   // Define well-known properties here
 
   // Indexer property to allow additional data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;
 
   constructor(data?: Partial<PeginConfiguration>) {

@@ -6,7 +6,7 @@ export class TxRequest extends Model {
     type: 'string',
     required: true,
   })
-  txId: string;
+    txId: string;
 
   constructor(data?: Partial<TxRequest>) {
     super(data);

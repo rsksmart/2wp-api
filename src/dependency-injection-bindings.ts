@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 
 export const ConstantsBindings = {
   MONGO_DB_USER: 'constants.mongoDbUser',
@@ -8,12 +9,12 @@ export const ConstantsBindings = {
   MONGO_DB_AUTH_SOURCE: 'constants.mongoDbAuthSource',
   INITIAL_BLOCK: 'constants.initialBlock',
   MIN_DEPTH_FOR_SYNC: 'constants.minDepthForSync',
-  SYNC_INTERVAL_TIME: 'constants.syncIntervalTime'
+  SYNC_INTERVAL_TIME: 'constants.syncIntervalTime',
 };
 
 export const DatasourcesBindings = {
   MONGO_DB_DATASOURCE: 'datasources.MongoDbDataSource',
-  TX_V2_PROVIDER: 'datasources.txV2Provider'
+  TX_V2_PROVIDER: 'datasources.txV2Provider',
 };
 
 export const ServicesBindings = {

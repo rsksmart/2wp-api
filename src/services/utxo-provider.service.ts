@@ -23,6 +23,7 @@ export class UtxoProviderProvider implements Provider<UtxoProvider> {
     // utxoProvider must match the name property in the datasource json file
     @inject('datasources.utxoProvider')
     protected dataSource: UtxoProviderDataSource = new UtxoProviderDataSource(),
+  // eslint-disable-next-line no-empty-function
   ) {}
 
   value(): Promise<UtxoProvider> {

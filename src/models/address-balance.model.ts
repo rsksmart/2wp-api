@@ -9,21 +9,21 @@ export class AddressBalance extends Model {
     generated: false,
     required: true,
   })
-  address: string;
+    address: string;
 
   @property({
     type: 'string',
     generated: false,
     required: true,
   })
-  addressType: string;
+    addressType: string;
 
   @property({
     type: 'array',
     itemType: 'object',
     default: [],
   })
-  utxoList?: Utxo[];
+    utxoList?: Utxo[];
 
   constructor(data?: Partial<AddressBalance>) {
     super(data);

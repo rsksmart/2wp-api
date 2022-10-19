@@ -6,37 +6,37 @@ export class CreatePeginTxData extends Model {
     type: 'number',
     required: true,
   })
-  amountToTransferInSatoshi: number;
+    amountToTransferInSatoshi: number;
 
   @property({
     type: 'string',
     required: true,
   })
-  refundAddress: string;
+    refundAddress: string;
 
   @property({
     type: 'string',
     required: true,
   })
-  changeAddress: string;
+    changeAddress: string;
 
   @property({
     type: 'string',
     required: true,
   })
-  recipient: string;
+    recipient: string;
 
   @property({
     type: 'string',
     required: true,
   })
-  sessionId: string;
+    sessionId: string;
 
   @property({
     type: 'string',
     required: true,
   })
-  feeLevel: string;
+    feeLevel: string;
 
   constructor(data?: Partial<CreatePeginTxData>) {
     super(data);

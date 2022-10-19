@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable no-shadow */
 import {config} from 'dotenv';
 import {configure, getLogger} from 'log4js';
 import {ApplicationConfig, TwpapiApplication} from './application';
@@ -9,10 +11,10 @@ enum APP_MODE {
   API,
   DAEMON,
   ALL
-};
+}
 
 const searchAppMode = (): APP_MODE => {
-  const arg = process.argv.find(a => a.startsWith('--appmode='));
+  const arg = process.argv.find((a) => a.startsWith('--appmode='));
   if (arg) {
     const value: string = arg.split('=')[1];
     const parsedEnum = APP_MODE[value as keyof typeof APP_MODE];
@@ -52,7 +54,7 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
   const appMode = searchAppMode();
 
   config();
-  if (appMode == APP_MODE.API || appMode == APP_MODE.ALL) {
+  if (appMode === APP_MODE.API || appMode === APP_MODE.ALL) {
     api = new TwpapiApplication(options);
     await api.boot();
     await api.start();
@@ -60,7 +62,7 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
     const url = api.restServer.url;
     logger.info(`Server is running at ${url}`);
   }
-  if (appMode == APP_MODE.DAEMON || appMode == APP_MODE.ALL) {
+  if (appMode === APP_MODE.DAEMON || appMode === APP_MODE.ALL) {
     daemon = new DaemonRunner();
     await daemon.start();
   }
@@ -84,7 +86,8 @@ if (require.main === module) {
       },
     },
   };
-  main(config).catch(err => {
+  main(config).catch((err) => {
+    // eslint-disable-next-line no-console
     console.error('Cannot start the application.', err);
     process.exit(1);
   });

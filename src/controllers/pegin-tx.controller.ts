@@ -1,3 +1,5 @@
+/* eslint-disable curly */
+/* eslint-disable @typescript-eslint/naming-convention */
 import {repository} from '@loopback/repository';
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
 import {config} from 'dotenv';
@@ -36,7 +38,7 @@ export class PeginTxController {
         },
       },
     })
-    createPeginTxData: CreatePeginTxData,
+      createPeginTxData: CreatePeginTxData,
   ): Promise<NormalizedTx> {
     this.logger.debug(`[create] started with session: ${createPeginTxData.sessionId}`);
     return new Promise<NormalizedTx>((resolve, reject) => {
@@ -51,7 +53,9 @@ export class PeginTxController {
         : false;
       if (createPeginTxData.refundAddress && !validAddress)
         reject(
-          new Error(`Invalid Refund Address provided ${createPeginTxData.refundAddress} for network ${network}`),
+          new Error(`Invalid Refund Address 
+            provided ${createPeginTxData.refundAddress} 
+            for network ${network}`),
         );
       Promise.all([
         this.sessionRepository.getAccountInputs(createPeginTxData.sessionId),
@@ -62,9 +66,9 @@ export class PeginTxController {
         bridgeService.getFederationAddress(),
       ])
         .then(([inputs, fee, federationAddress]) => {
-
+          // eslint-disable-next-line max-len
           if (!inputs.fast.length) reject(new Error(`There are no inputs selected for this sessionId ${createPeginTxData.sessionId}`));
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+           
           // @ts-ignore
           const inputsAmount = inputs.fast.reduce((acc, curr) => ({amount: acc.amount + curr.amount}));
 
@@ -88,9 +92,9 @@ export class PeginTxController {
             createPeginTxData.changeAddress,
             createPeginTxData.amountToTransferInSatoshi,
             fee,
-            );
+          );
           const burnDustValue = Math.min(Number(process.env.BURN_DUST_VALUE ?? 2000), 30000);
-          if (Number(changeOutput.amount) > burnDustValue ) {
+          if (Number(changeOutput.amount) > burnDustValue) {
             outputs.push(changeOutput);
           }
           this.logger.trace('[create] Created pegin successfully!');
@@ -116,8 +120,7 @@ export class PeginTxController {
     });
     output.op_return_data += recipient;
     if (refundAddress) {
-      const addressInfo =
-          peginAddressVerifier.getAddressInformation(refundAddress);
+      const addressInfo = peginAddressVerifier.getAddressInformation(refundAddress);
       switch (addressInfo.type) {
         case 'p2pkh':
           output.op_return_data += `01${addressInfo.scriptPubKey}`;
@@ -146,18 +149,19 @@ export class PeginTxController {
     amountToTransferInSatoshi: number,
     fee: number,
   ): TxOutput {
+    let newChangeAddress = changeAddress;
     let capacity = 0;
     const amountToTransferPlusFee = new SatoshiBig(amountToTransferInSatoshi, 'satoshi')
       .plus(new SatoshiBig(fee, 'satoshi'));
-    inputs.forEach(input => {
+    inputs.forEach((input) => {
       capacity += input.amount ? +input.amount : 0;
     });
-    if (changeAddress === '') {
-      changeAddress = inputs[0].address;
+    if (newChangeAddress === '') {
+      newChangeAddress = inputs[0].address;
     }
     return new TxOutput({
       amount: new SatoshiBig(capacity, 'satoshi').minus(amountToTransferPlusFee).toSatoshiString(),
-      address: changeAddress,
+      address: newChangeAddress,
     });
   }
 }

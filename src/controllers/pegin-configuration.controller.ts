@@ -1,3 +1,5 @@
+/* eslint-disable no-underscore-dangle */
+/* eslint-disable @typescript-eslint/naming-convention */
 import {repository} from '@loopback/repository';
 import {get, getModelSchemaRef} from '@loopback/rest';
 import crypto from 'crypto';
@@ -42,8 +44,7 @@ export class PeginConfigurationController {
         _id: crypto.randomBytes(16).toString('hex'),
         balance: 0,
       };
-      const ttlSessionDBExpire =
-        process.env.TTL_SESSIONDB_EXPIRE_MILLISECONDS ?? 3600000;
+      const ttlSessionDBExpire = process.env.TTL_SESSIONDB_EXPIRE_MILLISECONDS ?? 3600000;
       await this.sessionRepository.set(session._id, new Session(session));
       await this.sessionRepository.expire(session._id, +ttlSessionDBExpire);
       this.logger.trace(`[get] Got session ${session._id}`);

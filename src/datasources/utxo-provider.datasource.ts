@@ -4,8 +4,7 @@ import {config} from 'dotenv';
 
 config();
 
-const blockBookUrl =
-  process.env.BLOCKBOOK_URL ?? 'https://blockbook.trugroup.tech:19130';
+const blockBookUrl = process.env.BLOCKBOOK_URL ?? 'https://blockbook.trugroup.tech:19130';
 
 const confg = {
   name: 'utxoProvider',
@@ -13,6 +12,7 @@ const confg = {
   options: {
     headers: {
       accept: 'application/json',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       'content-type': 'application/json',
     },
   },
@@ -39,6 +39,7 @@ export class UtxoProviderDataSource
   extends juggler.DataSource
   implements LifeCycleObserver {
   static dataSourceName = 'utxoProvider';
+
   static readonly defaultConfig = confg;
 
   constructor(

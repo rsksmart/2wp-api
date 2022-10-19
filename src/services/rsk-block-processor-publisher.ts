@@ -1,4 +1,3 @@
-
 import {RskBlock} from '../models/rsk/rsk-block.model';
 import FilteredBridgeTransactionProcessor from './filtered-bridge-transaction-processor';
 

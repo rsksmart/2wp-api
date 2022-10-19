@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/naming-convention */
 import {getLogger, Logger} from 'log4js';
 import mongoose from 'mongoose';
 import {SyncStatusModel} from '../models/rsk/sync-status.model';
@@ -13,11 +15,12 @@ interface SyncStatusMongoModel extends mongoose.Document, SyncStatusModel {
 const SyncStatusSchema = new mongoose.Schema({
   rskBlockHeight: {type: Number, required: true, unique: true},
   rskBlockHash: {type: String, required: true, unique: true},
-  rskBlockParentHash: {type: String, required: true, unique: true}
+  rskBlockParentHash: {type: String, required: true, unique: true},
 });
 
-const SyncStatusConnector = mongoose.model<SyncStatusMongoModel>("SyncStatus", SyncStatusSchema);
+const SyncStatusConnector = mongoose.model<SyncStatusMongoModel>('SyncStatus', SyncStatusSchema);
 
+// eslint-disable-next-line max-len
 export class SyncStatusMongoService extends MongoDbDataService<SyncStatusModel, SyncStatusMongoModel> implements SyncStatusDataService {
   logger: Logger = getLogger('syncStatusMongoService');
 
@@ -43,7 +46,7 @@ export class SyncStatusMongoService extends MongoDbDataService<SyncStatusModel, 
       .sort({rskBlockHeight: -1}) // sort them by height descending
       .limit(1) // get the first one
       .exec()
-      .then(result => <SyncStatusModel>(result[0]))
+      .then((result) => <SyncStatusModel>(result[0]))
       .catch((reason) => {
         this.logger.warn(`[getBestBlock] Got an error: ${reason}`);
         return undefined;

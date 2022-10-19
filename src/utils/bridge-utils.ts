@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable no-shadow */
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import Web3 from 'web3';
 
@@ -9,7 +12,7 @@ export enum BRIDGE_METHODS {
   REGISTER_BTC_TRANSACTION = 'registerBtcTransaction',
   UPDATE_COLLECTIONS = 'updateCollections',
   ADD_SIGNATURE = 'addSignature'
-};
+}
 
 export enum BRIDGE_EVENTS {
   LOCK_BTC = 'lock_btc',
@@ -23,12 +26,13 @@ export enum BRIDGE_EVENTS {
   RELEASE_REQUEST_REJECTED = 'release_request_rejected',
   ADD_SIGNATURE = 'add_signature',
   BATCH_PEGOUT_CREATED = 'batch_pegout_created'
-};
+}
 
 export function getBridgeSignature(methodOrEvent: BRIDGE_METHODS | BRIDGE_EVENTS): string {
+  // eslint-disable-next-line no-underscore-dangle
   const method = bridgeInstance._jsonInterface.find((m: any) => m.name === methodOrEvent);
   if (!method) {
-    throw new Error(methodOrEvent + " does not exist in Bridge abi");
+    throw new Error(methodOrEvent + ' does not exist in Bridge abi');
   }
   return <string>method.signature;
 }
@@ -36,7 +40,7 @@ export function getBridgeSignature(methodOrEvent: BRIDGE_METHODS | BRIDGE_EVENTS
 export function getBridgeMethodABI(method: BRIDGE_METHODS): any {
   const abi = bridge.abi.find((m: any) => m.name === method);
   if (!abi) {
-    throw new Error(method + " does not exist in Bridge abi");
+    throw new Error(method + ' does not exist in Bridge abi');
   }
   return abi;
 }
@@ -46,7 +50,7 @@ export function encodeBridgeMethodParameters(method: BRIDGE_METHODS, args: Array
 
   return web3.eth.abi.encodeParameters(
     abi.inputs,
-    args
+    args,
   );
 }
 

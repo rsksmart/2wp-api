@@ -1,11 +1,12 @@
-import {get, getModelSchemaRef, param, response,} from '@loopback/rest';
+/* eslint-disable @typescript-eslint/naming-convention */
+import {get, getModelSchemaRef, param, response} from '@loopback/rest';
 import {PeginStatus, Status, TxStatus, TxStatusType} from '../models';
-import {PeginStatusError} from "../models/pegin-status-error.model";
-import {getLogger, Logger} from "log4js";
-import {inject} from "@loopback/core";
-import {ServicesBindings} from "../dependency-injection-bindings";
-import {PeginStatusService, PegoutStatusService} from "../services";
-import {PegoutStatus} from "../models/rsk/pegout-status-data-model";
+import {PeginStatusError} from '../models/pegin-status-error.model';
+import {getLogger, Logger} from 'log4js';
+import {inject} from '@loopback/core';
+import {ServicesBindings} from '../dependency-injection-bindings';
+import {PeginStatusService, PegoutStatusService} from '../services';
+import {PegoutStatus} from '../models/rsk/pegout-status-data-model';
 import { ensure0x, remove0x } from '../utils/hex-utils';
 
 export class TxStatusController {
@@ -15,7 +16,7 @@ export class TxStatusController {
       @inject(ServicesBindings.PEGIN_STATUS_SERVICE)
       protected peginStatusService: PeginStatusService,
       @inject(ServicesBindings.PEGOUT_STATUS_SERVICE)
-      protected pegoutStatusService: PegoutStatusService
+      protected pegoutStatusService: PegoutStatusService,
   ) {
     this.logger = getLogger('TxStatusController');
   }
@@ -38,11 +39,13 @@ export class TxStatusController {
       this.logger.debug(`[getTxStatus] trying to get a pegin with txHash: ${txHash}`);
       const peginStatus = await this.getPeginStatus(txHash);
       if (
-          peginStatus.status !== Status.ERROR_NOT_A_PEGIN
+        peginStatus.status !== Status.ERROR_NOT_A_PEGIN
           && peginStatus.status !== Status.ERROR_UNEXPECTED
           && peginStatus.status !== Status.NOT_IN_BTC_YET
       ) {
-        this.logger.debug(`[getTxStatus] Pegin status got for txId ${txHash} - Status: ${peginStatus.status}`);
+        this.logger.debug(`[getTxStatus] Pegin status got for 
+          txId ${txHash} - 
+          Status: ${peginStatus.status}`);
         txStatus = new TxStatus({
           type: TxStatusType.PEGIN,
           txDetails: peginStatus,
@@ -58,7 +61,8 @@ export class TxStatusController {
       this.logger.debug(`[getTxStatus] trying to get a pegout with txHash: ${txHash}`);
       const pegoutStatus = await this.pegoutStatusService.getPegoutStatusByRskTxHash(txHash);
       if (pegoutStatus.status !== PegoutStatus.NOT_FOUND) {
-        this.logger.debug(`[getTxStatus] Pegout status got for txId ${txHash} - Status: ${pegoutStatus.status}`);
+        this.logger.debug(`[getTxStatus] Pegout status got for 
+          txId ${txHash} - Status: ${pegoutStatus.status}`);
         txStatus = new TxStatus({
           type: TxStatusType.PEGOUT,
           txDetails: pegoutStatus,
@@ -87,7 +91,7 @@ export class TxStatusController {
     } catch (e) {
       this.logger.warn(`[getPeginStatus] Unexpected error: [${e}]`);
       return Promise.resolve(new PeginStatusError(txId));
-    };
+    }
   }
 
 }

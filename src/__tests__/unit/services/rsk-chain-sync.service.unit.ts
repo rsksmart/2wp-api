@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-unused-vars */
+/* eslint-disable max-len */
 import {expect, sinon} from '@loopback/testlab';
 import {RskBlock} from '../../../models/rsk/rsk-block.model';
 import {SyncStatusModel} from '../../../models/rsk/sync-status.model';
@@ -16,21 +19,27 @@ const mockSyncStatusDataService = () => {
     getBestBlock(): Promise<SyncStatusModel> {
       throw new Error('Method not implemented.');
     }
-    getById(id: any): Promise<SyncStatusModel> {
+
+    getById(_id: any): Promise<SyncStatusModel> {
       throw new Error('Method not implemented.');
     }
-    getMany(query?: any): Promise<SyncStatusModel[]> {
+
+    getMany(_query?: any): Promise<SyncStatusModel[]> {
       throw new Error('Method not implemented.');
     }
-    set(data: SyncStatusModel): Promise<boolean> {
+
+    set(_data: SyncStatusModel): Promise<boolean> {
       throw new Error('Method not implemented.');
     }
-    delete(id: any): Promise<boolean> {
+
+    delete(_id: any): Promise<boolean> {
       throw new Error('Method not implemented.');
     }
+
     start(): Promise<void> {
       throw new Error('Method not implemented.');
     }
+
     stop(): Promise<void> {
       throw new Error('Method not implemented.');
     }
@@ -78,7 +87,7 @@ describe('Service: RskChainSyncService', () => {
   it('gets sync status from service', async () => {
     const mockedSyncStatusDataService = mockSyncStatusDataService();
 
-    const bestSyncedBlock = new SyncStatusModel("0xbe57", 666, "0xdad1");
+    const bestSyncedBlock = new SyncStatusModel('0xbe57', 666, '0xdad1');
     mockedSyncStatusDataService.getBestBlock.resolves(bestSyncedBlock);
 
     const thisService = new RskChainSyncService(mockedSyncStatusDataService, getRskNodeService(), getInitialBlock(), 1);
@@ -101,8 +110,8 @@ describe('Service: RskChainSyncService', () => {
 
   it('allows subscribe and unsubscribe from events', async () => {
     const subscriber = {
-      blockDeleted: (block: RskBlock): void => { },
-      blockAdded: (block: RskBlock): void => { }
+      blockDeleted: (_block: RskBlock): void => { },
+      blockAdded: (_block: RskBlock): void => { },
     };
 
     const thisService = new RskChainSyncService(mockSyncStatusDataService(), getRskNodeService(), getInitialBlock(), 1);
@@ -117,7 +126,7 @@ describe('Service: RskChainSyncService', () => {
     // rsk chain => [1, 2, 3]
     // sync      => [1]
     // Expected: sync should receive block # 2 only with no reorganization
-    const firstBlock = new SyncStatusModel("0x0001", 1, '0x');
+    const firstBlock = new SyncStatusModel('0x0001', 1, '0x');
 
     const transactions: Transaction[] = [];
 
@@ -125,13 +134,13 @@ describe('Service: RskChainSyncService', () => {
       hash: '0x0002',
       parentHash: firstBlock.rskBlockHash,
       number: firstBlock.rskBlockHeight + 1,
-      transactions
+      transactions,
     };
     const bestBlock = {
       hash: '0x0003',
       parentHash: secondBlock.hash,
       number: secondBlock.number + 1,
-      transactions
+      transactions,
     };
 
     const mockedSyncStatusDataService = mockSyncStatusDataService();
@@ -143,7 +152,7 @@ describe('Service: RskChainSyncService', () => {
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
-      blockAdded: (): void => { }
+      blockAdded: (): void => { },
     });
 
     const thisService = new RskChainSyncService(mockedSyncStatusDataService, mockedRskNodeService, getInitialBlock(), 0);
@@ -177,25 +186,25 @@ describe('Service: RskChainSyncService', () => {
       hash: firstBlock.rskBlockHash,
       parentHash: firstBlock.rskBlockParentHash,
       number: firstBlock.rskBlockHeight,
-      transactions
+      transactions,
     };
     const secondBlockFromRsk = {
       hash: '0x0002',
       parentHash: firstBlockFromRsk.hash,
       number: firstBlockFromRsk.number + 1,
-      transactions
+      transactions,
     };
     const thirdBlockFromRsk = {
       hash: '0x0003',
       parentHash: secondBlockFromRsk.hash,
       number: secondBlockFromRsk.number + 1,
-      transactions
+      transactions,
     };
     const bestBlock = {
       hash: '0x0004',
       parentHash: thirdBlockFromRsk.hash,
       number: thirdBlockFromRsk.number + 1,
-      transactions
+      transactions,
     };
 
     const mockedSyncStatusDataService = mockSyncStatusDataService();
@@ -210,7 +219,7 @@ describe('Service: RskChainSyncService', () => {
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
-      blockAdded: (): void => { }
+      blockAdded: (): void => { },
     });
 
     const thisService = new RskChainSyncService(mockedSyncStatusDataService, mockedRskNodeService, getInitialBlock(), 0);
@@ -236,12 +245,12 @@ describe('Service: RskChainSyncService', () => {
     // rsk chain => [1, 2]
     // sync      => [1]
     // Expected: sync should not add new blocks
-    const firstBlock = new SyncStatusModel("0x0001", 1, '0x');
+    const firstBlock = new SyncStatusModel('0x0001', 1, '0x');
 
     const bestBlock = {
       hash: '0x0002',
       parentHash: firstBlock.rskBlockHash,
-      number: firstBlock.rskBlockHeight + 1
+      number: firstBlock.rskBlockHeight + 1,
     };
 
     const mockedSyncStatusDataService = mockSyncStatusDataService();
@@ -252,7 +261,7 @@ describe('Service: RskChainSyncService', () => {
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
-      blockAdded: (): void => { }
+      blockAdded: (): void => { },
     });
 
     const thisService = new RskChainSyncService(mockedSyncStatusDataService, mockedRskNodeService, getInitialBlock(), 1);
@@ -303,42 +312,42 @@ describe('Service: RskChainSyncService', () => {
       hash: blockFromSync1.rskBlockHash,
       parentHash: blockFromSync1.rskBlockParentHash,
       number: blockFromSync1.rskBlockHeight,
-      transactions
+      transactions,
     };
 
     const blockFromRsk2 = {
       hash: '0x0002',
       parentHash: blockFromRsk1.hash,
       number: blockFromRsk1.number + 1,
-      transactions
+      transactions,
     };
 
     const blockFromRsk3 = {
       hash: '0x0003',
       parentHash: blockFromRsk2.hash,
       number: blockFromRsk2.number + 1,
-      transactions
+      transactions,
     };
 
     const blockFromRsk4 = {
       hash: '0x0004',
       parentHash: blockFromRsk3.hash,
       number: blockFromRsk3.number + 1,
-      transactions
+      transactions,
     };
 
     const blockFromRsk5 = {
       hash: '0x0005',
       parentHash: blockFromRsk4.hash,
       number: blockFromRsk4.number + 1,
-      transactions
+      transactions,
     };
 
     const bestBlockFromRsk = {
       hash: '0x0006',
       parentHash: blockFromRsk5.hash,
       number: blockFromRsk5.number + 1,
-      transactions
+      transactions,
     };
 
     const mockedSyncStatusDataService = mockSyncStatusDataService();
@@ -359,7 +368,7 @@ describe('Service: RskChainSyncService', () => {
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
-      blockAdded: (): void => { }
+      blockAdded: (): void => { },
     });
 
     const thisService = new RskChainSyncService(mockedSyncStatusDataService, mockedRskNodeService, getInitialBlock(), MIN_DEPTH_FOR_SYNC);

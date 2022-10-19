@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {inject} from '@loopback/core';
 import {getModelSchemaRef, post, requestBody} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
@@ -28,14 +29,16 @@ export class BroadcastController {
   })
   sendTx(
     @requestBody({schema: getModelSchemaRef(BroadcastRequest)})
-    req: BroadcastRequest,
+      req: BroadcastRequest,
   ): Promise<BroadcastResponse> {
     this.logger.debug('[sendTx] started');
     return new Promise<BroadcastResponse>((resolve, reject) => {
       this.broadcastProvider
         .broadcast(req.data)
         .then(([txStatus]) => {
-          this.logger.trace(`[sendTx] Broadcasted! txId:${txStatus.result ?? 'n/a'}. Error: ${txStatus.error ?? 'n/a'}`);
+          this.logger.trace(`[sendTx] Broadcasted! 
+            txId:${txStatus.result ?? 'n/a'}. 
+            Error: ${txStatus.error ?? 'n/a'}`);
           return resolve(
             new BroadcastResponse({
               txId: txStatus.result ?? '',

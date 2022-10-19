@@ -8,27 +8,27 @@ export class AccountBalance extends Model {
     type: 'number',
     required: true,
   })
-  legacy: number;
+    legacy: number;
 
   @property({
     type: 'number',
     required: true,
   })
-  segwit: number;
+    segwit: number;
 
   @property({
     type: 'number',
     required: true,
   })
-  nativeSegwit: number;
+    nativeSegwit: number;
 
   constructor(data?: Partial<AccountBalance>) {
     super(data);
   }
 
   public calculateWalletBalance(addressBalances: AddressBalance[]): void {
-    addressBalances.forEach(addressBalance => {
-      const utxoSatoshis = addressBalance.utxoList?.map(utxo => utxo.satoshis);
+    addressBalances.forEach((addressBalance) => {
+      const utxoSatoshis = addressBalance.utxoList?.map((utxo) => utxo.satoshis);
       if (utxoSatoshis && utxoSatoshis.length > 0) {
         const addressAmount: number = utxoSatoshis.reduce(
           (accumulator, satoshis) => satoshis + accumulator,

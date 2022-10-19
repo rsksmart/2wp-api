@@ -6,62 +6,63 @@ export class BitcoinAddress extends Model {
   @property({
     type: 'number',
   })
-  page: number;
+    page: number;
 
   @property({
     type: 'number',
   })
-  totalPages: number;
+    totalPages: number;
 
   @property({
     type: 'number',
   })
-  itemsOnPage: number;
+    itemsOnPage: number;
 
   @property({
     type: 'string',
   })
-  address: string;
+    address: string;
 
   @property({
     type: 'string',
   })
-  balance: string;
+    balance: string;
 
   @property({
     type: 'string',
   })
-  totalReceived: string;
+    totalReceived: string;
 
   @property({
     type: 'string',
   })
-  totalSent: string;
+    totalSent: string;
 
   @property({
     type: 'string',
   })
-  unconfirmedBalance: string;
+    unconfirmedBalance: string;
 
   @property({
     type: 'string',
   })
-  unconfirmedTxs: string;
+    unconfirmedTxs: string;
 
   @property({
     type: 'number',
   })
-  txs: number;
+    txs: number;
 
   @property({
     type: 'array',
     itemType: 'string',
   })
-  txids: string[];
+    txids: string[];
 
   // Define well-known properties here
 
   // Indexer property to allow additional data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;
 
   constructor() {

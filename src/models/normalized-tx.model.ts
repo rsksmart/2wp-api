@@ -9,14 +9,14 @@ export class NormalizedTx extends Model {
     itemType: 'object',
     required: true,
   })
-  inputs: TxInput[];
+    inputs: TxInput[];
 
   @property({
     type: 'array',
     itemType: 'object',
     required: true,
   })
-  outputs: TxOutput[];
+    outputs: TxOutput[];
 
   constructor(data?: Partial<NormalizedTx>) {
     super(data);

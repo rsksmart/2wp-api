@@ -1,3 +1,5 @@
+/* eslint-disable curly */
+/* eslint-disable no-param-reassign */
 import {inject} from '@loopback/core';
 import {DefaultKeyValueRepository} from '@loopback/repository';
 import {getLogger, Logger} from 'log4js';
@@ -9,6 +11,7 @@ import {BtcAddressUtils} from '../utils/btc-utils';
 export class SessionRepository extends DefaultKeyValueRepository<Session> {
 
   logger: Logger;
+
   btcAddressUtils: BtcAddressUtils = new BtcAddressUtils();
 
   constructor(@inject('datasources.Redis') dataSource: RedisDataSource) {
@@ -26,8 +29,9 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
               utxoList && this.btcAddressUtils.validateAddress(address).addressType === accountType
             )
               finalUtxoList = finalUtxoList.concat(
-                utxoList.map(utxo => Object.assign({address}, utxo)),
-              );
+                utxoList.map((utxo) => Object.assign({address}, utxo)),
+              ); 
+              
           });
           resolve(finalUtxoList);
         })
@@ -51,7 +55,7 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
     inputs: InputPerFee,
     fees: FeeAmountData,
   ): Promise<void> {
-    return this.get(sessionId).then(sessionObject => {
+    return this.get(sessionId).then((sessionObject) => {
       sessionObject.inputs = inputs;
       sessionObject.fees = fees;
       return this.set(sessionId, sessionObject);
@@ -62,8 +66,8 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
     return new Promise<void>((resolve, reject) => {
       this.get(sessionId)
         .then((sessionObject) => {
-          sessionObject.addressList = sessionObject.addressList ?
-            [...sessionObject.addressList, ...addressBalances] : addressBalances;
+          sessionObject.addressList = sessionObject.addressList
+            ? [...sessionObject.addressList, ...addressBalances] : addressBalances;
           return this.set(sessionId, sessionObject)
         })
         .then(resolve)
@@ -97,7 +101,7 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
             );
           }
         })
-        .catch(reason => {
+        .catch((reason) => {
           this.logger.warn(`[getFeeLevel] Got an error: ${reason}`);
           reject(reason);
         });

@@ -1,5 +1,5 @@
 import {Model, model, property} from '@loopback/repository';
-import {TxInput} from "./tx-input.model";
+import {TxInput} from './tx-input.model';
 
 @model()
 export class InputPerFee extends Model {
@@ -8,22 +8,21 @@ export class InputPerFee extends Model {
     itemType: 'object',
     required: true,
   })
-  fast: TxInput[];
+    fast: TxInput[];
 
   @property({
     type: 'array',
     itemType: 'object',
     required: true,
   })
-  average: TxInput[];
+    average: TxInput[];
 
   @property({
     type: 'array',
     itemType: 'object',
     required: true,
   })
-  slow: TxInput[];
-
+    slow: TxInput[];
 
   constructor(data?: Partial<InputPerFee>) {
     super(data);

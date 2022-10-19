@@ -4,8 +4,7 @@ import {config} from 'dotenv';
 
 config();
 
-const blockBookUrl =
-  process.env.BLOCKBOOK_URL ?? 'https://blockbook.trugroup.tech:19130';
+const blockBookUrl = process.env.BLOCKBOOK_URL ?? 'https://blockbook.trugroup.tech:19130';
 
 const confg = {
   name: 'txFeeProvider',
@@ -13,6 +12,7 @@ const confg = {
   options: {
     headers: {
       accept: 'application/json',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       'content-type': 'application/json',
     },
   },
@@ -37,9 +37,9 @@ const confg = {
 @lifeCycleObserver('datasource')
 export class TxFeeProviderDataSource
   extends juggler.DataSource
-  implements LifeCycleObserver
-{
+  implements LifeCycleObserver {
   static dataSourceName = 'txFeeProvider';
+
   static readonly defaultConfig = confg;
 
   constructor(

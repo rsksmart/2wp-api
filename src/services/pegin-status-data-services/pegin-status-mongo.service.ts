@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable max-len */
 import mongoose from 'mongoose';
 import {PeginStatus, PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {MongoDbDataService} from '../mongodb-data.service';
@@ -15,22 +18,25 @@ const PeginStatusSchema = new mongoose.Schema({
   rskBlockHeight: {type: Number, required: true},
   rskTxId: {type: String, required: true, unique: true},
   rskRecipient: {type: String, required: true},
-  createdOn: {type: Date, required: true}
+  createdOn: {type: Date, required: true},
 });
 
-const PeginStatusConnector = mongoose.model<PeginStatusMongoModel>("PeginStatus", PeginStatusSchema);
+const PeginStatusConnector = mongoose.model<PeginStatusMongoModel>('PeginStatus', PeginStatusSchema);
 
 export class PeginStatusMongoDbDataService extends MongoDbDataService<PeginStatusDataModel, PeginStatusMongoModel> implements PeginStatusDataService {
 
   protected getLoggerName(): string {
     return 'peginStatusMongoService';
   }
+
   protected getConnector(): mongoose.Model<PeginStatusMongoModel, {}, {}> {
     return PeginStatusConnector;
   }
+
   protected getByIdFilter(id: any) {
     return {btcTxId: id};
   }
+
   protected getManyFilter(filter?: any) {
     return filter;
   }

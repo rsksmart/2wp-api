@@ -47,7 +47,7 @@ describe('balance controller', () => {
         serializedPath: "m/84'/1'/0'/1/0",
         address: 'tb1qfuk3j0l4qn4uzstc47uwk68kedmjwuucl7avqr',
       },
-    ].map(obj => new WalletAddress(obj)),
+    ].map((obj) => new WalletAddress(obj)),
   });
   beforeEach(resetRepositories);
 

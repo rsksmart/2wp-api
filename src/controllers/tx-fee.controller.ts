@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable max-len */
+/* eslint-disable guard-for-in */
 import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
@@ -39,7 +42,7 @@ export class TxFeeController {
         },
       },
     })
-    feeRequestData: FeeRequestData,
+      feeRequestData: FeeRequestData,
   ): Promise<FeeAmountData> {
     this.logger.debug(`[getTxFee] started with session: ${feeRequestData.sessionId}`);
     return new Promise<FeeAmountData>((resolve, reject) => {
@@ -48,16 +51,16 @@ export class TxFeeController {
       const low = process.env.LOW_MINING_BLOCK ?? 12;
       let fees: FeeAmountData = new FeeAmountData({
         slow: new Fee({
-            amount: 0,
-            enoughBalance: false,
+          amount: 0,
+          enoughBalance: false,
         }),
         average: new Fee({
-            amount: 0,
-            enoughBalance: false,
+          amount: 0,
+          enoughBalance: false,
         }),
         fast: new Fee({
-            amount: 0,
-            enoughBalance: false,
+          amount: 0,
+          enoughBalance: false,
         }),
       });
       const inputsPerFee: InputPerFee = new InputPerFee({});
@@ -91,34 +94,34 @@ export class TxFeeController {
             this.logger.trace(`[getTxFee] Fee per byte Sat/byte:  Fast - ${satoshiPerByte.fast.toSatoshiString()} s/b. Average - ${satoshiPerByte.average.toSatoshiString()} s/b. Slow - ${satoshiPerByte.slow.toSatoshiString()} s/b.`);
             if (accountUtxoList.length === 0) reject(new Error('There are no utxos stored for this account type'));
             let feeLevel: 'fast' | 'average' | 'slow';
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+             
             // @ts-ignore
             for (feeLevel in fees) {
-                const {selectedInputs, enoughBalance} = this.selectOptimalInputs(
-                    accountUtxoList,
-                    +feeRequestData.amount,
-                    satoshiPerByte[feeLevel].mul(new Big(txBytes)).toNumber(),
-                    satoshiPerByte[feeLevel].mul(new Big(inputSize)).toNumber(),
-                );
-                if (selectedInputs.length === 0) reject(new Error('The required amount is not satisfied with the current utxo List'));
-                const totalBytes: SatoshiBig = new SatoshiBig((selectedInputs.length * +inputSize + txBytes).toString(), 'satoshi');
-                this.logger.trace(`[getTxFee] Total Bytes: ${totalBytes} (inputs: ${selectedInputs.length})`);
-                fees[feeLevel].amount = totalBytes.mul(satoshiPerByte[feeLevel]).toNumber();
-                fees[feeLevel].enoughBalance = enoughBalance;
-                inputsPerFee[feeLevel] = selectedInputs;
+              const {selectedInputs, enoughBalance} = this.selectOptimalInputs(
+                accountUtxoList,
+                +feeRequestData.amount,
+                satoshiPerByte[feeLevel].mul(new Big(txBytes)).toNumber(),
+                satoshiPerByte[feeLevel].mul(new Big(inputSize)).toNumber(),
+              );
+              if (selectedInputs.length === 0) reject(new Error('The required amount is not satisfied with the current utxo List'));
+              const totalBytes: SatoshiBig = new SatoshiBig((selectedInputs.length * +inputSize + txBytes).toString(), 'satoshi');
+              this.logger.trace(`[getTxFee] Total Bytes: ${totalBytes} (inputs: ${selectedInputs.length})`);
+              fees[feeLevel].amount = totalBytes.mul(satoshiPerByte[feeLevel]).toNumber();
+              fees[feeLevel].enoughBalance = enoughBalance;
+              inputsPerFee[feeLevel] = selectedInputs;
             }
             fees = TxFeeController.checkFeeBoundaries(fees);
             this.logger.trace(`[getTxFee] Calculated fees for the peg-in. fast: ${JSON.stringify(fees.fast)}. average: ${JSON.stringify(fees.average)}. slow: ${JSON.stringify(fees.slow)}`);
 
             return this.sessionRepository.setInputs(
-                feeRequestData.sessionId,
-                inputsPerFee,
-                fees,
-              );
+              feeRequestData.sessionId,
+              inputsPerFee,
+              fees,
+            );
           },
         )
         .then(() => {
-          this.logger.trace(`[getTxFee] Finished fee calculation!`);
+          this.logger.trace('[getTxFee] Finished fee calculation!');
           resolve(fees);
         })
         .catch((reason) => {
@@ -148,24 +151,24 @@ export class TxFeeController {
     });
     return {
       selectedInputs: inputs,
-      enoughBalance: remainingSatoshisToBePaid <= 0
+      enoughBalance: remainingSatoshisToBePaid <= 0,
     };
   }
 
   private static checkFeeBoundaries(fees: FeeAmountData) {
     const checkedFees: FeeAmountData = new FeeAmountData({
-        slow: new Fee({
-            amount: 0,
-            enoughBalance: false,
-        }),
-        average: new Fee({
-            amount: 0,
-            enoughBalance: false,
-        }),
-        fast: new Fee({
-            amount: 0,
-            enoughBalance: false,
-        }),
+      slow: new Fee({
+        amount: 0,
+        enoughBalance: false,
+      }),
+      average: new Fee({
+        amount: 0,
+        enoughBalance: false,
+      }),
+      fast: new Fee({
+        amount: 0,
+        enoughBalance: false,
+      }),
     });
     checkedFees.slow.amount = Math.min(Math.max(fees.slow.amount, constants.BITCOIN_MIN_SATOSHI_FEE), constants.BITCOIN_MAX_SATOSHI_FEE);
     checkedFees.average.amount = Math.min(Math.max(fees.average.amount, constants.BITCOIN_MIN_SATOSHI_FEE), constants.BITCOIN_MAX_SATOSHI_FEE);
@@ -175,9 +178,9 @@ export class TxFeeController {
   }
 
   private static getCheckedFeePerKb(feeFromService: FeePerKb): FeePerKb {
-    if (!(process.env.FEE_PER_KB_FAST_MIN &&
-      process.env.FEE_PER_KB_AVERAGE_MIN &&
-      process.env.FEE_PER_KB_SLOW_MIN)) throw new Error('Min fee per byte is not set');
+    if (!(process.env.FEE_PER_KB_FAST_MIN
+      && process.env.FEE_PER_KB_AVERAGE_MIN
+      && process.env.FEE_PER_KB_SLOW_MIN)) throw new Error('Min fee per byte is not set');
     const minFastFee = new SatoshiBig(process.env.FEE_PER_KB_FAST_MIN, 'satoshi');
     const minAverageFee = new SatoshiBig(process.env.FEE_PER_KB_AVERAGE_MIN, 'satoshi');
     const minSlowFee = new SatoshiBig(process.env.FEE_PER_KB_SLOW_MIN, 'satoshi');
