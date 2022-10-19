@@ -76,11 +76,12 @@ export class DaemonService implements iDaemonService {
     }
     const logMetrics = getMetricLogger(this.logger, 'sync');
     try {
-      this.lastSyncLog++;
+      this.lastSyncLog += 1;
       if (this.lastSyncLog >= 5) {
         this.lastSyncLog = 0;
         const bestBlock = await this.syncService.getSyncStatus();
-        this.logger.debug(`Sync status => Best block is ${bestBlock.rskBlockHeight}[${bestBlock.rskBlockHash}]`);
+        this.logger.debug(`Sync status => Best block is 
+          ${bestBlock.rskBlockHeight}[${bestBlock.rskBlockHash}]`);
       }
       await this.syncService.sync();
     } catch (error) {
@@ -127,6 +128,7 @@ export class DaemonService implements iDaemonService {
 
 }
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export interface iDaemonService {
   start(): void;
 

@@ -1,4 +1,4 @@
-import { BridgeEvent } from 'bridge-transaction-parser';
+/* eslint-disable max-len */
 import ExtendedBridgeTx from '../extended-bridge-tx';
 import { PegoutStatus, PegoutStatusDbDataModel } from '../../models/rsk/pegout-status-data-model';
 import { BRIDGE_EVENTS } from '../../utils/bridge-utils';
@@ -8,7 +8,7 @@ export class PegoutStatusBuilder {
 
     public static async fillRequestReceivedStatus(extendedBridgeTx: ExtendedBridgeTx):Promise<PegoutStatusDbDataModel> {
         const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
-        const releaseRequestReceivedEvent:ExtendedBridgeEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)!;
+        const releaseRequestReceivedEvent:ExtendedBridgeEvent = events.find((event) => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)!;
         const rskSenderAddress = <string> releaseRequestReceivedEvent!.arguments.sender;
         const btcDestinationAddress = <string> releaseRequestReceivedEvent!.arguments.btcDestinationAddress;
         const amount = <number> releaseRequestReceivedEvent!.arguments.amount;
@@ -32,7 +32,7 @@ export class PegoutStatusBuilder {
 
     public static async fillRequestRejectedStatus(extendedBridgeTx: ExtendedBridgeTx):Promise<PegoutStatusDbDataModel> {
         const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
-        const releaseRequestRejectedEvent: ExtendedBridgeEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED)!;
+        const releaseRequestRejectedEvent: ExtendedBridgeEvent = events.find((event) => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED)!;
 
         const rskSenderAddress = <string> releaseRequestRejectedEvent!.arguments.sender;
         const amount = <number> releaseRequestRejectedEvent.arguments!.amount;

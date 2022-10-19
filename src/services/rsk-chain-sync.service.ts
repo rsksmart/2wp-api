@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {ConstantsBindings, ServicesBindings} from '../dependency-injection-bindings';
@@ -48,7 +49,7 @@ export class RskChainSyncService {
       block.rskBlockHash,
       block.rskBlockParentHash
     );
-    this.subscribers.forEach(s => s.blockDeleted(deletedBlock));
+    this.subscribers.forEach((s) => s.blockDeleted(deletedBlock));
   }
 
   private async addNewBlocks(blocksToAdd: Array<RskBlock>): Promise<void> {
@@ -59,7 +60,7 @@ export class RskChainSyncService {
       this.logger.trace(`[addNewBlocks] going to add block ${blockToAdd.height} (${blockToAdd.hash})`);
       await this.syncStorageService.set(this.blockToSyncStatusDataModel(blockToAdd));
 
-      this.subscribers.forEach(s => s.blockAdded(blockToAdd));
+      this.subscribers.forEach((s) => s.blockAdded(blockToAdd));
     }
   }
 
@@ -97,7 +98,7 @@ export class RskChainSyncService {
       p.then(() => this.start());
     }
     return p.then(() => {
-      return this.syncStorageService.getBestBlock().then(result => {
+      return this.syncStorageService.getBestBlock().then((result) => {
         if (!result) {
           this.logger.debug(
             'No sync data on storage! starting from default height',
@@ -123,7 +124,7 @@ export class RskChainSyncService {
       while(countOfBlocksToRemove !== 0) {
         await this.deleteOldBlock(dbBestBlock);
         dbBestBlock = await this.syncStorageService.getById(dbBestBlock.rskBlockParentHash);
-        countOfBlocksToRemove--;
+        countOfBlocksToRemove -= 1;
       }
     }
 

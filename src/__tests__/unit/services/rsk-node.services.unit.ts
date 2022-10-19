@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+/* eslint-disable no-unused-expressions */
 import {expect, sinon} from '@loopback/testlab';
 import { BridgeEvent } from 'bridge-transaction-parser';
 import {RskBlock} from '../../../models/rsk/rsk-block.model';
@@ -12,7 +14,7 @@ describe('Service: RskNodeService', () => {
         const block = await thisService.getBlock(getInitialBlock().height, false);
         sinon.assert.match(block.number, getInitialBlock().height);
     });
-    it('Verify ${process.env.RSK_NODE_HOST} configuration', async () => {
+    it(`Verify ${process.env.RSK_NODE_HOST} configuration`, async () => {
         const nodeHost = process.env.RSK_NODE_HOST;
         sinon.assert.match(nodeHost, 'https://public-node.testnet.rsk.co');
     });
@@ -60,7 +62,7 @@ describe('Service: RskNodeService', () => {
         const simpleTransaction = "0x368cfbff365655d14eeaaba822c20fa8bb0c98fda0eef938094dee4ec7a83a66";
         const thisService = new RskNodeService();
         const txRsk = await thisService.getBridgeTransaction(simpleTransaction);
-        const releaseRequestRejectedEvent: BridgeEvent = txRsk.events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)!;
+        const releaseRequestRejectedEvent: BridgeEvent = txRsk.events.find((event) => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)!;
 
         expect(releaseRequestRejectedEvent).to.be.null;
     });

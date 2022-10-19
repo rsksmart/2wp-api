@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {getModelSchemaRef, post, requestBody} from '@loopback/rest';
@@ -44,30 +45,25 @@ export class BalanceController {
     return new Promise<AccountBalance>((resolve, reject) => {
       const {areAllValid, classifiedList} = this.checkAndClassifyAddressList(getBalance.addressList);
       if (!areAllValid) reject(new Error('Invalid address list provided, please check'));
-      const eventualUtxos = classifiedList.map((walletAddress) =>
-        Promise.all([
+      const eventualUtxos = classifiedList.map((walletAddress) => Promise.all([
           walletAddress,
           this.utxoProviderService.utxoProvider(walletAddress.address),
-        ]),
-      );
+        ]),);
       Promise.all(eventualUtxos)
-        .then((addressUtxos) =>
-          addressUtxos.map(
-            ([walletAddress, utxoList]) =>
-              new AddressBalance({
+        .then((addressUtxos) => addressUtxos.map(
+            ([walletAddress, utxoList]) => new AddressBalance({
                 address: walletAddress.address,
                 addressType: walletAddress.addressType,
-                utxoList: utxoList.map(uxto => new Utxo(uxto)),
+                utxoList: utxoList.map((uxto) => new Utxo(uxto)),
               }),
-          ),
-        )
-        .then(addressBalances => {
+          ),)
+        .then((addressBalances) => {
           return Promise.all([
             this.sessionRepository.addUxos(getBalance.sessionId, addressBalances),
             addressBalances,
           ]);
         })
-        .then(([result, addressBalances]) => {
+        .then(([, addressBalances]) => {
           const accBalance = new AccountBalance({
             segwit: 0,
             nativeSegwit: 0,
@@ -77,7 +73,7 @@ export class BalanceController {
           this.logger.trace(`[getBalance] accBalance ${accBalance}`);
           resolve(accBalance);
         })
-        .catch(reason => {
+        .catch((reason) => {
           this.logger.warn(`[getBalance] Something went wrong. error: `, reason);
           reject(reason);
         });

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {Model, model, property} from '@loopback/repository';
 
 @model({settings: {strict: false}})
@@ -30,6 +31,7 @@ export class TxOutput extends Model {
   })
   op_return_data?: string;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;
 
   constructor(data?: Partial<TxOutput>) {

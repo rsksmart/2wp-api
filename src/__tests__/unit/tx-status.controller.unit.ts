@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import {TxStatusController} from "../../controllers";
 import {PeginStatusService, PegoutStatusService} from "../../services";
 import {createStubInstance, expect, StubbedInstanceWithSinonAccessor} from "@loopback/testlab";

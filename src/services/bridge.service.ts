@@ -1,14 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-return-await */
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import {getLogger, Logger} from 'log4js';
 import Web3 from 'web3';
 import {Contract} from 'web3-eth-contract';
 import bridgeTransactionParser, {Transaction} from 'bridge-transaction-parser';
-import * as constants from '../constants';
 import { getBridgeState, BridgeState} from 'bridge-state-data-parser';
 
 export class BridgeService {
   private bridgeContract: Contract;
   private web3: Web3;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   private TOTAL_RBTC_STOCK = 21000000;
   logger: Logger;
   constructor() {
@@ -63,15 +65,14 @@ export class BridgeService {
       this.web3.eth
         .getBalance(bridge.address)
         .then((balance: string) => {
-          const amount =
-            Number(
+          const amount =            Number(
               this.web3.utils.toWei(
                 this.web3.utils.toBN(this.TOTAL_RBTC_STOCK),
               ),
             ) - Number(balance);
           resolve(amount);
         })
-        .catch(reason => {
+        .catch((reason) => {
           this.logger.warn(`[getRbtcInCirculation] Got an error: ${reason}`);
           reject(reason);
         });
@@ -89,7 +90,7 @@ export class BridgeService {
             ? Number(process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI) : Infinity;
           resolve(Math.min(availability, maxAllowed));
         })
-        .catch(reason => {
+        .catch((reason) => {
           this.logger.warn(`[getPeginAvailability] Got an error: ${reason}`);
           reject(reason);
         });

@@ -27,8 +27,8 @@ export class AccountBalance extends Model {
   }
 
   public calculateWalletBalance(addressBalances: AddressBalance[]): void {
-    addressBalances.forEach(addressBalance => {
-      const utxoSatoshis = addressBalance.utxoList?.map(utxo => utxo.satoshis);
+    addressBalances.forEach((addressBalance) => {
+      const utxoSatoshis = addressBalance.utxoList?.map((utxo) => utxo.satoshis);
       if (utxoSatoshis && utxoSatoshis.length > 0) {
         const addressAmount: number = utxoSatoshis.reduce(
           (accumulator, satoshis) => satoshis + accumulator,

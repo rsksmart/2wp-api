@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { SearchableModel } from './searchable-model';
 
+// eslint-disable-next-line no-shadow
 export enum PegoutStatus {
   RECEIVED = 'RECEIVED',
   REJECTED = 'REJECTED',
@@ -23,7 +25,7 @@ export interface PegoutStatusDataModel {
   btcRawTransaction: string;
 }
 
-export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
+export class PegoutStatusAppDataModel implements PegoutStatusDataModel {
   constructor(data?: Partial<PegoutStatusAppDataModel>) {
     Object.assign(this, data);
   }

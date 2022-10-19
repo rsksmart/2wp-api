@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable max-len */
 import mongoose from 'mongoose';
 import {PeginStatus, PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {MongoDbDataService} from '../mongodb-data.service';

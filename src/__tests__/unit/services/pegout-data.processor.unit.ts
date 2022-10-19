@@ -1,3 +1,6 @@
+/* eslint-disable no-shadow */
+/* eslint-disable max-len */
+/* eslint-disable no-unused-expressions */
 import {expect, sinon} from '@loopback/testlab';
 import { PegoutStatusDataService } from '../../../services/pegout-status-data-services/pegout-status-data.service';
 import { PegoutDataProcessor } from '../../../services/pegout-data.processor';
@@ -11,6 +14,7 @@ import { PegoutStatus, PegoutStatusDbDataModel } from '../../../models/rsk/pegou
 import { BridgeService } from '../../../services';
 import * as constants from '../../../constants';
 import { BridgeState } from 'bridge-state-data-parser';
+
 const sandbox = sinon.createSandbox();
 
 const rskTxHash = '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d660';
@@ -59,9 +63,9 @@ describe('Service: PegoutDataProcessor', () => {
     const amount = 504237;
 
     const releaseRequestReceivedEventsArgs = {
-      sender : rskSenderAddress,
-      btcDestinationAddress : btcDestinationAddress,
-      amount : amount,
+      sender: rskSenderAddress,
+      btcDestinationAddress: btcDestinationAddress,
+      amount: amount,
     };
 
 
@@ -118,8 +122,8 @@ describe('Service: PegoutDataProcessor', () => {
     const reason = '3';
 
     const releaseRequestedRejectEventsArgs = {
-      sender : rskSenderAddress,
-      reason : reason,
+      sender: rskSenderAddress,
+      reason: reason,
     };
 
     const createdOn = new Date();
@@ -193,9 +197,9 @@ describe('Service: PegoutDataProcessor', () => {
     mockedPegoutStatusDataService.getLastByOriginatingRskTxHash.withArgs(originatingRskTxHash).resolves(foundReceivedPegoutStatus);
 
     const releaseRequestedEventsArgs = {
-      rskTxHash : originatingRskTxHash,
-      btcTxHash : btcTxHash,
-      amount : amount,
+      rskTxHash: originatingRskTxHash,
+      btcTxHash: btcTxHash,
+      amount: amount,
     };
 
     const bridgeTransaction: Transaction = {
@@ -281,9 +285,9 @@ describe('Service: PegoutDataProcessor', () => {
     mockedPegoutStatusDataService.getLastByOriginatingRskTxHash.withArgs(originatingRskTxHash).resolves(foundReceivedPegoutStatus);
 
     const releaseRequestedEventsArgs = {
-      rskTxHash : originatingRskTxHash,
-      btcTxHash : btcTxHash,
-      amount : amount,
+      rskTxHash: originatingRskTxHash,
+      btcTxHash: btcTxHash,
+      amount: amount,
     };
 
     const bridgeTransaction: Transaction = {
@@ -451,7 +455,7 @@ describe('Service: PegoutDataProcessor', () => {
     mockedBridgeService.getBridgeState.resolves(bridgeState);
 
     const relaseBtcEventsArgs = {
-      btcRawTransaction : btcRawTx1,
+      btcRawTransaction: btcRawTx1,
     };
 
     const bridgeTransaction: Transaction = {

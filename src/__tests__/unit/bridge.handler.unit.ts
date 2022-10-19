@@ -1,3 +1,4 @@
+/* eslint-disable no-promise-executor-return */
 import {expect, sinon} from '@loopback/testlab';
 import {BridgeService} from '../../services';
 import bridgeTransactionParser, {Transaction} from 'bridge-transaction-parser';

@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+/* eslint-disable no-unused-expressions */
 import {expect, sinon} from '@loopback/testlab';
 import {SinonStubbedInstance} from 'sinon';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';

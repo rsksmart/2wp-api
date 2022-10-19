@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {Model, model, property} from '@loopback/repository';
 import {PeginStatus} from "./pegin-status.model";
 import {PegoutStatusDataModel} from "./rsk/pegout-status-data-model";
@@ -21,6 +22,7 @@ export class TxStatus extends Model {
   }
 }
 
+// eslint-disable-next-line no-shadow
 export enum TxStatusType {
   PEGIN = 'PEGIN',
   PEGOUT = 'PEGOUT',

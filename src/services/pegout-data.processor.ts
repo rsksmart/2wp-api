@@ -1,3 +1,6 @@
+/* eslint-disable max-len */
+/* eslint-disable no-param-reassign */
+/* eslint-disable no-return-await */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
@@ -25,7 +28,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     @inject(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
     pegoutStatusDataService: PegoutStatusDataService,
     @inject(ServicesBindings.BRIDGE_SERVICE)
-    bridgeService: BridgeService) {
+    bridgeService: BridgeService
+    ) {
     this.logger = getLogger('pegoutDataProcessor');
     this.pegoutStatusDataService = pegoutStatusDataService;
     this.bridgeService = bridgeService;
@@ -76,28 +80,28 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   private hasReleaseRequestReceivedEvent(events: BridgeEvent[]): boolean {
-    return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
+    return events.some((event) => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
   }
 
   private hasReleaseRequestRejectedEvent(events: BridgeEvent[]): boolean {
-    return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
+    return events.some((event) => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
   }
 
   private hasReleaseRequestedEvent(events: BridgeEvent[]): boolean {
-    return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
+    return events.some((event) => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
   }
 
   private hasUpdateCollectionsEvent(events: BridgeEvent[]): boolean {
-    return events.some(event => event.name === BRIDGE_EVENTS.UPDATE_COLLECTIONS);
+    return events.some((event) => event.name === BRIDGE_EVENTS.UPDATE_COLLECTIONS);
   }
 
   private hasReleaseBtcEvent(events: BridgeEvent[]): boolean {
-    return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_BTC);
+    return events.some((event) => event.name === BRIDGE_EVENTS.RELEASE_BTC);
   }
 
   private async processSignedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
     const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
-    const releaseBTCEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_BTC);
+    const releaseBTCEvent = events.find((event) => event.name === BRIDGE_EVENTS.RELEASE_BTC);
 
     if(!releaseBTCEvent) {
       return;
@@ -128,7 +132,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
     const concatenatedBtcTxInputHashes = concatenateBtcTxInputHashes(btcTx);
 
-    const correspondingDbPegoutNowSigned = dbPegouts.find(pegout => {
+    const correspondingDbPegoutNowSigned = dbPegouts.find((pegout) => {
       const dbBtcTx = bitcoin.Transaction.fromHex(pegout.btcRawTransaction);
       const dbConcatenatedBtcTxInputHashes = concatenateBtcTxInputHashes(dbBtcTx);
       return concatenatedBtcTxInputHashes === dbConcatenatedBtcTxInputHashes;
@@ -169,7 +173,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     const rskMaximumConfirmation = Number(process.env.RSK_PEGOUT_MINIMUM_CONFIRMATIONS);
     const dbPegoutsWaitingForConfirmations = await this.pegoutStatusDataService.getManyWaitingForConfirmationNewest();
     this.logger.trace(`[processWaitingForSignaturesStatus] number of dbPegoutsWaitingForConfirmations: ${dbPegoutsWaitingForConfirmations.length}`);
-    const dbPegoutsWithEnoughConfirmations: PegoutStatusDbDataModel[] = dbPegoutsWaitingForConfirmations.filter(dbPegout => {
+    const dbPegoutsWithEnoughConfirmations: PegoutStatusDbDataModel[] = dbPegoutsWaitingForConfirmations.filter((dbPegout) => {
       const blockHeightDiff = currentBlockHeight - dbPegout.rskBlockHeight;
       return blockHeightDiff >= rskMaximumConfirmation;
     });
@@ -196,7 +200,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   private async processWaitingForConfirmationStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
     const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
-    const releaseRequestedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
+    const releaseRequestedEvent = events.find((event) => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
     if(!releaseRequestedEvent) {
       return;
     }
@@ -243,7 +247,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] searching for a pegout 
       in the bridge state pegoutsWaitingForConfirmations with rskTxHash: ${rskTxHash}.`);
 
-    const pegout = bridgeState.pegoutsWaitingForConfirmations.find((pegout: any) => pegout.rskTxHash === rskTxHash);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pegout = bridgeState.pegoutsWaitingForConfirmations.find((pegoutFound: any) => pegoutFound.rskTxHash === rskTxHash);
 
     if(!pegout) {
       this.logger.debug('[addValueInSatoshisToBeReceivedAndFee] did not find then pegout in the bridge state pegoutsWaitingForConfirmations.');
@@ -252,7 +257,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
     this.logger.debug('[addValueInSatoshisToBeReceivedAndFee] found a pegout in waiting for confirmations at block: ', pegout.pegoutCreationBlockNumber);
     const parsedBtcTransaction = bitcoin.Transaction.fromHex(pegout.btcRawTx);
-    const output = parsedBtcTransaction.outs.find(out => {
+    const output = parsedBtcTransaction.outs.find((out) => {
       const parsedBtcAddress = bitcoin.address.fromOutputScript(out.script, this.getBitcoinNetwork());
       return parsedBtcAddress === pegoutStatus.btcRecipientAddress;
     });
@@ -271,7 +276,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   private async processReleaseRequestReceivedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
     const events: BridgeEvent[] = extendedBridgeTx.events;
-    const releaseRequestReceivedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
+    const releaseRequestReceivedEvent = events.find((event) => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
 
     if(!releaseRequestReceivedEvent) {
       return;
@@ -290,7 +295,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   private async processReleaseRequestRejectedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
     const events: BridgeEvent[] = extendedBridgeTx.events;
-    const releaseRequestRejectedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
+    const releaseRequestRejectedEvent = events.find((event) => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
 
     if(!releaseRequestRejectedEvent) {
       return;

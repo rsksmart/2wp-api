@@ -26,15 +26,15 @@ describe('Model: RskBlock', () => {
         };
 
         const rskBlock = RskBlock.fromWeb3BlockWithTransactions(web3Block);
-
-        new Date(Number(web3Block.timestamp) * 1000);
-
         expect(rskBlock.hash).to.equal(hash);
         expect(rskBlock.parentHash).to.equal(parentHash);
         expect(rskBlock.height).to.equal(height);
         expect(rskBlock.transactions[0].blockHash).to.equal(hash);
         expect(rskBlock.transactions[0].blockHeight).to.equal(height);
-        expect(rskBlock.transactions[0].createdOn.getTime()).to.equal(new Date(Number(web3Block.timestamp) * 1000).getTime());
+        expect(rskBlock.transactions[0].createdOn
+            .getTime()).to
+            .equal(new Date(Number(web3Block.timestamp) * 1000)
+            .getTime());
         expect(rskBlock.transactions[0].data).to.equal(input);
         expect(rskBlock.transactions[0].hash).to.equal(transactionHash);
 

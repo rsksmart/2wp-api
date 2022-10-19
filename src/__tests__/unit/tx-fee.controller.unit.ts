@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+/* eslint-disable @typescript-eslint/naming-convention */
 import {
   createStubInstance, expect,
   StubbedInstanceWithSinonAccessor,
@@ -72,17 +74,6 @@ describe('tx Fee controller', () => {
       confirmations: 3500,
     },
   ];
-  const utxos2 = [
-    {
-      address: 'address',
-      txid: 'txId1',
-      vout: 0,
-      amount: '0.0001',
-      satoshis: 100000,
-      height: 12055,
-      confirmations: 3500,
-    },
-  ]
 
   function resetRepositories() {
     feeLevelProvider = {feeProvider: sinon.stub()}

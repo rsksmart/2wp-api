@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {connect as connectToMongo, Mongoose} from 'mongoose';
@@ -40,7 +41,7 @@ export class MongoDbDataSource {
           this.mongoose = connection;
           this.logger.trace('Connected to mongodb');
         },
-        err => {
+        (err) => {
           this.logger.error('There was an error connecting to mongodb', err);
           throw err;
         }
@@ -49,8 +50,8 @@ export class MongoDbDataSource {
 
   disconnect(): Promise<void> {
     const p = Promise.resolve();
-    if (this.mongoose &&
-      this.mongoose.STATES[this.mongoose.connection.readyState] != this.mongoose.STATES.disconnected.toString()) {
+    if (this.mongoose
+      && this.mongoose.STATES[this.mongoose.connection.readyState] != this.mongoose.STATES.disconnected.toString()) {
       p.then(() => this.mongoose.disconnect());
       p.then(() => {
         this.logger.trace('Disconnected from mongodb');

@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+/* eslint-disable no-unused-expressions */
 import {expect} from '@loopback/testlab';
 import {PeginStatus, PeginStatusDataModel} from '../../../models/rsk/pegin-status-data.model';
 import {PeginDataProcessor} from '../../../services/pegin-data.processor';
@@ -25,13 +27,13 @@ const getMockedPeginBtcEvent = () => {
   const peginBtcEvent: ExtendedBridgeEvent = {
     name: 'pegin_btc',
     signature: '0x44cdc782a38244afd68336ab92a0b39f864d6c0b2a50fa1da58cafc93cd2ae5a',
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+     
     // @ts-ignore
     arguments: {
-      receiver : '0x2D623170Cb518434af6c02602334610f194818c1',
+      receiver: '0x2D623170Cb518434af6c02602334610f194818c1',
       btcTxHash,
-      amount : 504237,
-      protocolVersion :'1'
+      amount: 504237,
+      protocolVersion: '1'
     }
   };
   return peginBtcEvent;
@@ -41,13 +43,13 @@ const getMockedLockBtcEvent = () => {
   const peginBtcEvent: ExtendedBridgeEvent = {
     name: 'lock_btc',
     signature: '0xec2232bdbe54a92238ce7a6b45d53fb31f919496c6abe1554be1cc8eddb6600a',
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+     
     // @ts-ignore
     arguments: {
-      receiver : '0x2D623170Cb518434af6c02602334610f194818c1',
+      receiver: '0x2D623170Cb518434af6c02602334610f194818c1',
       senderBtcAddress: '0x413bfc1ab391bbedcfdbc45116c5a0a75e628fc4d7b955dfb99b0214d0f1be43',
       btcTxHash,
-      amount : 1000000,
+      amount: 1000000,
     }
   };
   return peginBtcEvent;
@@ -60,7 +62,7 @@ const getMockedRejectedPeginEvent = () => {
   const peginBtcEvent: ExtendedBridgeEvent = {
     name: 'rejected_pegin',
     signature: '0x708ce1ead20561c5894a93be3fee64b326b2ad6c198f8253e4bb56f1626053d6',
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+     
     // @ts-ignore
     arguments: {
       btcTxHash,
@@ -74,12 +76,12 @@ const getMockedReleaseRequestedEvent = () => {
   const peginBtcEvent: ExtendedBridgeEvent = {
     name: 'release_requested',
     signature: '0x7a7c29481528ac8c2b2e93aee658fddd4dc15304fa723a5c2b88514557bcc790',
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+     
     // @ts-ignore
     arguments: {
       btcTxHash,
       rskTxHash,
-      amount : 1000,
+      amount: 1000,
     }
   };
   return peginBtcEvent;
@@ -92,7 +94,7 @@ const getMockedUnrefundablePeginEvent = () => {
   const peginBtcEvent: ExtendedBridgeEvent = {
     name: 'unrefundable_pegin',
     signature: '0x35be155c87e408cbbcb753dc12f95fc5a242a29460a3d7189e807e63d7c185a7',
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+     
     // @ts-ignore
     arguments: {
       btcTxHash,
@@ -318,8 +320,7 @@ describe('Service: PeginDataProcessor', () => {
 
 
   it('processes pegin transaction', async () => {
-    const mockedPeginStatusDataService =
-      sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;;
+    const mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
@@ -348,8 +349,7 @@ describe('Service: PeginDataProcessor', () => {
   });
 
   it('ignores pegin transaction if found in db', async () => {
-    const mockedPeginStatusDataService =
-      sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;
+    const mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
@@ -380,8 +380,7 @@ describe('Service: PeginDataProcessor', () => {
   });
 
   it('returns early if no peginStatus can be parsed from transaction because event logs is empty', async () => {
-    const mockedPeginStatusDataService =
-      sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;
+    const mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,

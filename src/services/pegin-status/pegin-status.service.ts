@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 // @ts-ignore
@@ -36,7 +37,6 @@ export class PeginStatusService {
     this.rskNodeService = new RskNodeService();
     this.logger = getLogger('peginStatusService');
     this.rskDataService = rskDataService;
-    this.status;
   }
 
   public getPeginSatusInfo(btcTxId: string): Promise<PeginStatus> {
@@ -55,29 +55,28 @@ export class PeginStatusService {
                 peginStatusInfo.setRskPeginStatus(rskStatus);
                 this.logger.debug(`Tx: ${btcTxId} includes rsk info. RskAddress: ${rskStatus.recipientAddress} Pegin status: ${peginStatusInfo.status}`);
                 return peginStatusInfo;
-              } else {
-                const peginRskInfo = new RskPeginStatus();
-                peginRskInfo.recipientAddress = this.destinationAddress;
-                peginStatusInfo.status = Status.NOT_IN_RSK_YET;
-                this.logger.debug(`Tx: ${btcTxId} not in RSK yet. Pegin status: ${peginStatusInfo.status}`);
-                peginStatusInfo.setRskPeginStatus(peginRskInfo);
-                return peginStatusInfo;
               }
+              const peginRskInfo = new RskPeginStatus();
+              peginRskInfo.recipientAddress = this.destinationAddress;
+              peginStatusInfo.status = Status.NOT_IN_RSK_YET;
+              this.logger.debug(`Tx: ${btcTxId} not in RSK yet. Pegin status: ${peginStatusInfo.status}`);
+              peginStatusInfo.setRskPeginStatus(peginRskInfo);
+              return peginStatusInfo;
+              
             });
-        } else {
-          const peginRskInfo = new RskPeginStatus();
-          peginRskInfo.recipientAddress = this.destinationAddress;
-          peginStatusInfo.status = Status.WAITING_CONFIRMATIONS;
-          this.logger.debug(`Tx: ${btcTxId} waiting confirmations. Pegin status: ${peginStatusInfo.status}`);
-          peginStatusInfo.setRskPeginStatus(peginRskInfo);
-          return peginStatusInfo;
         }
+        const peginRskInfo = new RskPeginStatus();
+        peginRskInfo.recipientAddress = this.destinationAddress;
+        peginStatusInfo.status = Status.WAITING_CONFIRMATIONS;
+        this.logger.debug(`Tx: ${btcTxId} waiting confirmations. Pegin status: ${peginStatusInfo.status}`);
+        peginStatusInfo.setRskPeginStatus(peginRskInfo);
+        return peginStatusInfo;
       })
       .catch((e) => {
         this.logger.debug(`TxId:${btcTxId} Unexpected error trying to obtain information. Error: ${e}`);
         return new PeginStatusError(btcTxId);
       })
-  };
+  }
 
   private getBtcInfo(btcTxId: string): Promise<BtcPeginStatus> {
     return this.getBtcTxInfoFromService(btcTxId)
@@ -94,7 +93,7 @@ export class PeginStatusService {
         }
         return btcTxInformation;
       })
-  };
+  }
 
   private getBtcTxInfoFromService(btcTxId: string): Promise<BtcPeginStatus> {
     return this.bitcoinService.getTx(btcTxId)
@@ -159,7 +158,7 @@ export class PeginStatusService {
 
   private isSentToFederationAddress(federationAddress: string, vout: Vout[]): boolean {
     let found = false;
-    for (let i = 0; vout && i < vout.length && !found; i++) {
+    for (let i = 0; vout && i < vout.length && !found; i += 1) {
       if (federationAddress === vout[i].addresses[0]) {
         found = true;
       }
@@ -169,7 +168,7 @@ export class PeginStatusService {
 
   private getTxSentAmountByAddress(federationAddress: string, txId: string, vout: Vout[]): number {
     let acummulatedAmount = 0;
-    for (let i = 0; vout && i < vout.length; i++) {
+    for (let i = 0; vout && i < vout.length; i += 1) {
       if (vout[i].isAddress && federationAddress === vout[i].addresses[0]) {
         acummulatedAmount += Number(vout[i].value!);
       }
@@ -185,7 +184,7 @@ export class PeginStatusService {
     let returnValue = '';
     let foundOpReturn = false;
 
-    for (let i = 0; btcTx.vout && i < btcTx.vout.length && !foundOpReturn; i++) {
+    for (let i = 0; btcTx.vout && i < btcTx.vout.length && !foundOpReturn; i += 1) {
       const voutData = btcTx.vout[i].hex!;
 
       if (this.hasOpReturn(btcTx.txid, voutData)) {
@@ -205,7 +204,7 @@ export class PeginStatusService {
     let foundOpReturn = false;
     const utility = new BtcAddressUtils();
 
-    for (let i = 0; btcTx.vout && i < btcTx.vout.length && !foundOpReturn; i++) {
+    for (let i = 0; btcTx.vout && i < btcTx.vout.length && !foundOpReturn; i += 1) {
       const voutData = btcTx.vout[i].hex!;
       if (this.hasRefundOpReturn(btcTx.txid, voutData)) {
         returnValue = utility.getRefundAddress(voutData.substring(54, 96));
@@ -238,11 +237,11 @@ export class PeginStatusService {
       if (data.length == 96 || data.length == 54) { //Contain refund address
         this.logger.debug(`Tx contains OPT_RETURN value: ${txId}`);
         return (true);
-      } else {
-        const errorMessage = `Can not parse OP_RETURN parameter. Invalid transaction: ${txId}`;
-        this.logger.warn(errorMessage);
-        return false;  //RSK will return invalid
-      }
+      } 
+      const errorMessage = `Can not parse OP_RETURN parameter. Invalid transaction: ${txId}`;
+      this.logger.warn(errorMessage);
+      return false;  //RSK will return invalid
+      
     }
     return (false);
   }
@@ -251,7 +250,8 @@ export class PeginStatusService {
     try {
       if (peginAddressVerifier.canPegIn(peginAddressVerifier.getAddressInformation(btcTx.vin[0].addresses[0]))) {
         return true;
-      } else if (this.getxDestinationRskAddress(btcTx).length > 0) {
+      }
+      if (this.getxDestinationRskAddress(btcTx).length > 0) {
         return true;
       }
     } catch {

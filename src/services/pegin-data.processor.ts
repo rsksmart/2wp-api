@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {PeginStatus as RskPeginStatusEnum, PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
@@ -43,7 +44,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   private hasThisLog(logName: string, events: BridgeEvent[]): boolean {
-    return events.some(event => event.name === logName);
+    return events.some((event) => event.name === logName);
   }
 
   private getPeginStatus(extendedBridgeTx: ExtendedBridgeTx): PeginStatusDataModel | undefined {
@@ -68,7 +69,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
       return status;
     }
     if (this.hasThisLog(BRIDGE_EVENTS.REJECTED_PEGIN, extendedBridgeTx.events)) {
-      const rejectedPeginLog: ExtendedBridgeEvent = extendedBridgeTx.events.find(event => event.name === BRIDGE_EVENTS.REJECTED_PEGIN) as ExtendedBridgeEvent;
+      const rejectedPeginLog: ExtendedBridgeEvent = extendedBridgeTx.events.find((event) => event.name === BRIDGE_EVENTS.REJECTED_PEGIN) as ExtendedBridgeEvent;
       status.btcTxId = <string> rejectedPeginLog?.arguments.btcTxHash;
       if (this.hasThisLog(BRIDGE_EVENTS.RELEASE_REQUESTED, extendedBridgeTx.events)) {
         status.status = RskPeginStatusEnum.REJECTED_REFUND;
@@ -84,11 +85,11 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   private getPeginBtcLogIfExists(events: ExtendedBridgeEvent[]): ExtendedBridgeEvent | undefined {
-    return events.find(event => event.name === BRIDGE_EVENTS.PEGIN_BTC);
+    return events.find((event) => event.name === BRIDGE_EVENTS.PEGIN_BTC);
   }
 
   private getLockBtcLogIfExists(events: ExtendedBridgeEvent[]): ExtendedBridgeEvent | undefined {
-    return events.find(event => event.name === BRIDGE_EVENTS.LOCK_BTC);
+    return events.find((event) => event.name === BRIDGE_EVENTS.LOCK_BTC);
   }
 
   parse(extendedBridgeTx: ExtendedBridgeTx): PeginStatusDataModel | null {

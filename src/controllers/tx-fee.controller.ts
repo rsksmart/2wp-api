@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable max-len */
+/* eslint-disable guard-for-in */
 import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
@@ -91,7 +94,7 @@ export class TxFeeController {
             this.logger.trace(`[getTxFee] Fee per byte Sat/byte:  Fast - ${satoshiPerByte.fast.toSatoshiString()} s/b. Average - ${satoshiPerByte.average.toSatoshiString()} s/b. Slow - ${satoshiPerByte.slow.toSatoshiString()} s/b.`);
             if (accountUtxoList.length === 0) reject(new Error('There are no utxos stored for this account type'));
             let feeLevel: 'fast' | 'average' | 'slow';
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+             
             // @ts-ignore
             for (feeLevel in fees) {
                 const {selectedInputs, enoughBalance} = this.selectOptimalInputs(
@@ -175,9 +178,9 @@ export class TxFeeController {
   }
 
   private static getCheckedFeePerKb(feeFromService: FeePerKb): FeePerKb {
-    if (!(process.env.FEE_PER_KB_FAST_MIN &&
-      process.env.FEE_PER_KB_AVERAGE_MIN &&
-      process.env.FEE_PER_KB_SLOW_MIN)) throw new Error('Min fee per byte is not set');
+    if (!(process.env.FEE_PER_KB_FAST_MIN
+      && process.env.FEE_PER_KB_AVERAGE_MIN
+      && process.env.FEE_PER_KB_SLOW_MIN)) throw new Error('Min fee per byte is not set');
     const minFastFee = new SatoshiBig(process.env.FEE_PER_KB_FAST_MIN, 'satoshi');
     const minAverageFee = new SatoshiBig(process.env.FEE_PER_KB_AVERAGE_MIN, 'satoshi');
     const minSlowFee = new SatoshiBig(process.env.FEE_PER_KB_SLOW_MIN, 'satoshi');

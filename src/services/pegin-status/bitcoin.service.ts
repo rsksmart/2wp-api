@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
-import {AddressService, TxV2Service} from '../';
+import {AddressService, TxV2Service} from '..';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BitcoinAddress} from '../../models/bitcoin-address.model';
 import {BitcoinTx} from '../../models/bitcoin-tx.model';
@@ -40,7 +41,7 @@ export class BitcoinService {
           responseTx.hex = tx[0].hex;
           resolve(responseTx);
         })
-        .catch(reason => {
+        .catch((reason) => {
           this.logger.warn(`[getTx] Got an error: ${reason}`);
           reject(`Error getting tx ${txId}`);
         });

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable max-len */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import mongoose from 'mongoose';
@@ -45,7 +47,7 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
     return this.getConnector()
       .find(this.getManyFilter(query))
       .exec()
-      .then(result => result.map((r: any) => (<Type>r)));
+      .then((result) => result.map((r: any) => (<Type>r)));
   }
 
   set(data: Type): Promise<boolean> {

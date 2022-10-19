@@ -29,13 +29,15 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
     this.logger.debug(`[process] Processing rskBlock ${rskBlock.hash}`);
     for(const transaction of rskBlock.transactions) {
       if (transaction.to !== bridge.address) {
+        // eslint-disable-next-line no-continue
         continue;
       }
-      this.logger.trace(`Found a bridge tx ${transaction.hash} with signature ${transaction.data.substring(0, 10)}`);
+      this.logger.trace(`Found a bridge tx ${transaction.hash} 
+        with signature ${transaction.data.substring(0, 10)}`);
       const bridgeTx = await this.bridgeService.getBridgeTransactionByHash(transaction.hash);
       for(const subscriber of this.subscribers) {
         const filters = await subscriber.getFilters();
-        if (filters.length === 0 || filters.some(f => f.isMethodCall(transaction.data))) {
+        if (filters.length === 0 || filters.some((f) => f.isMethodCall(transaction.data))) {
           this.logger.debug(`[process] Tx ${transaction.hash} matches filters`);
           const extendedBridgeTx: ExtendedBridgeTx = {
             ...bridgeTx,
@@ -51,14 +53,14 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
   }
 
   addSubscriber(dataProcessorSubscriber: FilteredBridgeTransactionProcessor): void {
-    const foundSubscriber = this.subscribers.find(dps => dps === dataProcessorSubscriber);
+    const foundSubscriber = this.subscribers.find((dps) => dps === dataProcessorSubscriber);
     if(!foundSubscriber) {
       this.subscribers.push(dataProcessorSubscriber);
     }
   }
 
   removeSubscriber(dataProcessorSubscriber: FilteredBridgeTransactionProcessor): void {
-    const foundSubscriberIndex = this.subscribers.findIndex(dps => dps === dataProcessorSubscriber);
+    const foundSubscriberIndex = this.subscribers.findIndex((dps) => dps === dataProcessorSubscriber);
     if(foundSubscriberIndex !== -1) {
       this.subscribers.splice(foundSubscriberIndex, 1);
     }

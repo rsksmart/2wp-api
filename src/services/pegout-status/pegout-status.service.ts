@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import {getLogger, Logger} from "log4js";
 import {inject} from "@loopback/core";
 import {ServicesBindings} from "../../dependency-injection-bindings";
@@ -16,6 +17,7 @@ export class PegoutStatusService {
     private pegoutStatusDataService: PegoutStatusDataService;
     private web3: Web3;
     private rskNodeService:RskNodeService;
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     private ATTACH_TRANSACTION_RECEIPT = true;
 
     constructor(
@@ -84,11 +86,11 @@ export class PegoutStatusService {
     }
 
     private hasReleaseRequestReceivedEvent(events: BridgeEvent[]): boolean {
-        return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
+        return events.some((event) => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
     }
     
     private hasReleaseRequestRejectedEvent(events: BridgeEvent[]): boolean {
-        return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
+        return events.some((event) => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
     }
 
 }

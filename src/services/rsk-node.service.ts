@@ -12,6 +12,7 @@ export class RskNodeService {
   getBlock(block: string | number, withTransactions = true): Promise<BlockTransactionObject> {
     return this.web3.eth.getBlock(block, withTransactions);
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getTransactionReceipt(txHash: string): Promise<any> {
     return this.web3.eth.getTransactionReceipt(txHash);
   }

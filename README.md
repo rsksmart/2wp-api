@@ -72,13 +72,13 @@ npm run start-daemon
 ## Fix code style and formatting issues
 
 ```sh
-npm run lint
+npm run eslint
 ```
 
 To automatically fix such issues:
 
 ```sh
-npm run lint:fix
+npm run eslint:fix
 
 ```
 ## Deployment

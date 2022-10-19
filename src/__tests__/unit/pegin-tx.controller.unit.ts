@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+/* eslint-disable @typescript-eslint/naming-convention */
 import {
   createStubInstance, expect,
   StubbedInstanceWithSinonAccessor,
@@ -36,22 +38,22 @@ describe('Pegin Tx controller', () => {
   ];
   const inputs2 = [
     new TxInput({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+       
       address_n: [0],
       address: 'address1',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+       
       prev_hash: 'txId1',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+       
       prev_index: 0,
       amount: 100000,
     }),
     new TxInput({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+       
       address_n: [0],
       address: 'address2',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+       
       prev_hash: 'txId2',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+       
       prev_index: 0,
       amount: 200000,
     })
@@ -209,9 +211,9 @@ describe('Pegin Tx controller', () => {
           outputs: [
             new TxOutput({
               amount: '0',
-              // eslint-disable-next-line @typescript-eslint/naming-convention
+               
               script_type: 'PAYTOOPRETURN',
-              // eslint-disable-next-line @typescript-eslint/naming-convention
+               
               op_return_data: '52534b54010x90F8bf6A479f320ead074411a4B0e7944Ea8c9C102ce552812b37e64d8f66f919d0e4222d4244ebe3a',
             }),
             new TxOutput({
@@ -230,9 +232,9 @@ describe('Pegin Tx controller', () => {
           outputs: [
             new TxOutput({
               amount: '0',
-              // eslint-disable-next-line @typescript-eslint/naming-convention
+               
               script_type: 'PAYTOOPRETURN',
-              // eslint-disable-next-line @typescript-eslint/naming-convention
+               
               op_return_data: '52534b54010x90F8bf6A479f320ead074411a4B0e7944Ea8c9C102ce552812b37e64d8f66f919d0e4222d4244ebe3a',
             }),
             new TxOutput({

@@ -1,5 +1,6 @@
 import { RskTransaction } from './rsk-transaction.model';
 import { BlockTransactionObject } from 'web3-eth';
+
 export class RskBlock {
   readonly height: number;
   readonly hash: string;
@@ -15,7 +16,7 @@ export class RskBlock {
     this.height = height;
     this.hash = hash;
     this.parentHash = parentHash;
-    this. transactions = transactions;
+    this.transactions = transactions;
   }
 
   public toString(): string {
@@ -32,7 +33,9 @@ export class RskBlock {
   }
 
   public static fromWeb3BlockWithTransactions(web3Block: BlockTransactionObject): RskBlock {
-    const rskTransactions: RskTransaction[] = web3Block.transactions.map(tx => RskTransaction.fromWeb3Transaction(web3Block, tx));
+    const rskTransactions: RskTransaction[] = web3Block.transactions
+        .map((tx) => RskTransaction
+        .fromWeb3Transaction(web3Block, tx));
     return new RskBlock(
       web3Block.number,
       web3Block.hash,

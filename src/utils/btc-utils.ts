@@ -1,3 +1,4 @@
+/* eslint-disable no-else-return */
 import base58 from 'bs58';
 import {getLogger, Logger} from 'log4js';
 import {remove0x} from './hex-utils';
@@ -13,6 +14,7 @@ export const calculateBtcTxHash = (transaction: string) => {
   return bufferedHash.toString('hex');
 };
 
+// eslint-disable-next-line max-len
 export type AddressType = 'BITCOIN_LEGACY_ADDRESS' | 'BITCOIN_SEGWIT_ADDRESS' | 'BITCOIN_NATIVE_SEGWIT_ADDRESS' | 'BITCOIN_MULTISIGNATURE_ADDRESS';
 
 export class BtcAddressUtils {
@@ -39,8 +41,7 @@ export class BtcAddressUtils {
         const errorMessage = `Wrong refund address type. Current type: ${addressRefundType}`;
         throw new Error(errorMessage);
       }
-    }
-    catch (error) {
+    } catch (error) {
       this.logger.warn("Error parsing refund address", error.message);
     }
     return address;
@@ -74,9 +75,8 @@ export class BtcAddressUtils {
       const prefix = this.getNetPrefix(network, typeAddress);
       const dataToReview = `${prefix}${data}`;
       const checksum = doubleSha256(dataToReview).substr(0, 8);
-      return base58.encode(Buffer.from(`${dataToReview}${checksum}`, 'hex'))
-    }
-    catch (error) {
+      return base58.encode(Buffer.from(`${dataToReview}${checksum}`, 'hex'));
+    } catch (error) {
       this.logger.warn("Error getting BTC refund address");
     }
     return '';

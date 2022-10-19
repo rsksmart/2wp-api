@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 
 export const ConstantsBindings = {
   MONGO_DB_USER: 'constants.mongoDbUser',

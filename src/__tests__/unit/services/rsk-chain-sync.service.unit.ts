@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-unused-vars */
+/* eslint-disable max-len */
 import {expect, sinon} from '@loopback/testlab';
 import {RskBlock} from '../../../models/rsk/rsk-block.model';
 import {SyncStatusModel} from '../../../models/rsk/sync-status.model';
@@ -16,16 +19,16 @@ const mockSyncStatusDataService = () => {
     getBestBlock(): Promise<SyncStatusModel> {
       throw new Error('Method not implemented.');
     }
-    getById(id: any): Promise<SyncStatusModel> {
+    getById(_id: any): Promise<SyncStatusModel> {
       throw new Error('Method not implemented.');
     }
-    getMany(query?: any): Promise<SyncStatusModel[]> {
+    getMany(_query?: any): Promise<SyncStatusModel[]> {
       throw new Error('Method not implemented.');
     }
-    set(data: SyncStatusModel): Promise<boolean> {
+    set(_data: SyncStatusModel): Promise<boolean> {
       throw new Error('Method not implemented.');
     }
-    delete(id: any): Promise<boolean> {
+    delete(_id: any): Promise<boolean> {
       throw new Error('Method not implemented.');
     }
     start(): Promise<void> {
@@ -101,8 +104,8 @@ describe('Service: RskChainSyncService', () => {
 
   it('allows subscribe and unsubscribe from events', async () => {
     const subscriber = {
-      blockDeleted: (block: RskBlock): void => { },
-      blockAdded: (block: RskBlock): void => { }
+      blockDeleted: (_block: RskBlock): void => { },
+      blockAdded: (_block: RskBlock): void => { }
     };
 
     const thisService = new RskChainSyncService(mockSyncStatusDataService(), getRskNodeService(), getInitialBlock(), 1);

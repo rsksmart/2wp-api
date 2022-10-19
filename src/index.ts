@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable no-shadow */
 import {config} from 'dotenv';
 import {configure, getLogger} from 'log4js';
 import {ApplicationConfig, TwpapiApplication} from './application';
@@ -9,10 +11,10 @@ enum APP_MODE {
   API,
   DAEMON,
   ALL
-};
+}
 
 const searchAppMode = (): APP_MODE => {
-  const arg = process.argv.find(a => a.startsWith('--appmode='));
+  const arg = process.argv.find((a) => a.startsWith('--appmode='));
   if (arg) {
     const value: string = arg.split('=')[1];
     const parsedEnum = APP_MODE[value as keyof typeof APP_MODE];
@@ -84,7 +86,8 @@ if (require.main === module) {
       },
     },
   };
-  main(config).catch(err => {
+  main(config).catch((err) => {
+    // eslint-disable-next-line no-console
     console.error('Cannot start the application.', err);
     process.exit(1);
   });

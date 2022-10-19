@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {get, getModelSchemaRef, param, response,} from '@loopback/rest';
 import {PeginStatus, Status, TxStatus, TxStatusType} from '../models';
 import {PeginStatusError} from "../models/pegin-status-error.model";
@@ -42,7 +43,9 @@ export class TxStatusController {
           && peginStatus.status !== Status.ERROR_UNEXPECTED
           && peginStatus.status !== Status.NOT_IN_BTC_YET
       ) {
-        this.logger.debug(`[getTxStatus] Pegin status got for txId ${txHash} - Status: ${peginStatus.status}`);
+        this.logger.debug(`[getTxStatus] Pegin status got for 
+          txId ${txHash} - 
+          Status: ${peginStatus.status}`);
         txStatus = new TxStatus({
           type: TxStatusType.PEGIN,
           txDetails: peginStatus,
@@ -58,7 +61,8 @@ export class TxStatusController {
       this.logger.debug(`[getTxStatus] trying to get a pegout with txHash: ${txHash}`);
       const pegoutStatus = await this.pegoutStatusService.getPegoutStatusByRskTxHash(txHash);
       if (pegoutStatus.status !== PegoutStatus.NOT_FOUND) {
-        this.logger.debug(`[getTxStatus] Pegout status got for txId ${txHash} - Status: ${pegoutStatus.status}`);
+        this.logger.debug(`[getTxStatus] Pegout status got for 
+          txId ${txHash} - Status: ${pegoutStatus.status}`);
         txStatus = new TxStatus({
           type: TxStatusType.PEGOUT,
           txDetails: pegoutStatus,
@@ -87,7 +91,7 @@ export class TxStatusController {
     } catch (e) {
       this.logger.warn(`[getPeginStatus] Unexpected error: [${e}]`);
       return Promise.resolve(new PeginStatusError(txId));
-    };
+    }
   }
 
 }

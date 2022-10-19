@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {Model, model, property} from '@loopback/repository';
 import {PeginStatus as RskPeginStatusEnum} from './rsk/pegin-status-data.model';
 
@@ -129,6 +130,7 @@ export class PeginStatus extends Model {
     }
   }
 }
+// eslint-disable-next-line no-shadow
 export enum Status {
   NOT_IN_BTC_YET = 'NOT_IN_BTC_YET',
   WAITING_CONFIRMATIONS = 'WAITING_CONFIRMATIONS',

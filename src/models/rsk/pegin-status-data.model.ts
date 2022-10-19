@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {SearchableModel} from './searchable-model';
 
+// eslint-disable-next-line no-shadow
 export enum PeginStatus {
   LOCKED = 'LOCKED',
   REJECTED_NO_REFUND = 'REJECTED_NO_REFUND',

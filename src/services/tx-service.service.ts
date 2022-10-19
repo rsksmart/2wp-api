@@ -30,6 +30,7 @@ export class TxServiceProvider implements Provider<TxService> {
     // txProvider must match the name property in the datasource json file
     @inject('datasources.txProvider')
     protected dataSource: TxProviderDataSource = new TxProviderDataSource(),
+  // eslint-disable-next-line no-empty-function
   ) {}
 
   value(): Promise<TxService> {

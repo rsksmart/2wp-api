@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {inject} from '@loopback/core';
 import {getModelSchemaRef, post, requestBody} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';

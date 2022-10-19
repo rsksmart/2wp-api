@@ -8,7 +8,7 @@ export default interface ExtendedBridgeTx extends Transaction {
   to: string;
 }
 
-export class ExtendedBridgeTxModel implements ExtendedBridgeTx{
+export class ExtendedBridgeTxModel implements ExtendedBridgeTx {
   constructor(transaction: Transaction, rskTransaction:RskTransaction) {
     this.blockHash = rskTransaction.blockHash;
     this.createdOn = rskTransaction.createdOn;
