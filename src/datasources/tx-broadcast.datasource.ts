@@ -39,6 +39,7 @@ export class TxBroadcastDataSource
   extends juggler.DataSource
   implements LifeCycleObserver {
   static dataSourceName = 'txBroadcast';
+
   static readonly defaultConfig = cfg;
 
   constructor(

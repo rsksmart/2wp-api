@@ -3,15 +3,18 @@ import { BlockTransactionObject } from 'web3-eth';
 
 export class RskBlock {
   readonly height: number;
+
   readonly hash: string;
+
   readonly parentHash: string;
+
   readonly transactions: RskTransaction[];
 
   constructor(
     height: number,
     hash: string,
     parentHash: string,
-    transactions: RskTransaction[] = []
+    transactions: RskTransaction[] = [],
   ) {
     this.height = height;
     this.hash = hash;
@@ -28,21 +31,19 @@ export class RskBlock {
       web3Block.number,
       web3Block.hash,
       web3Block.parentHash,
-      []
+      [],
     );
   }
 
   public static fromWeb3BlockWithTransactions(web3Block: BlockTransactionObject): RskBlock {
     const rskTransactions: RskTransaction[] = web3Block.transactions
-        .map((tx) => RskTransaction
+      .map((tx) => RskTransaction
         .fromWeb3Transaction(web3Block, tx));
     return new RskBlock(
       web3Block.number,
       web3Block.hash,
       web3Block.parentHash,
-      rskTransactions
+      rskTransactions,
     );
   }
-
 }
-

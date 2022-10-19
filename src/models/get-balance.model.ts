@@ -7,14 +7,14 @@ export class GetBalance extends Model {
     type: 'string',
     required: true,
   })
-  sessionId: string;
+    sessionId: string;
 
   @property({
     type: 'array',
     itemType: 'object',
     required: true,
   })
-  addressList: WalletAddress[];
+    addressList: WalletAddress[];
 
   constructor(data?: Partial<GetBalance>) {
     super(data);

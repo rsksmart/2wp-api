@@ -9,10 +9,14 @@ import { getBridgeState, BridgeState} from 'bridge-state-data-parser';
 
 export class BridgeService {
   private bridgeContract: Contract;
+
   private web3: Web3;
+
   // eslint-disable-next-line @typescript-eslint/naming-convention
   private TOTAL_RBTC_STOCK = 21000000;
+
   logger: Logger;
+
   constructor() {
     this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
     this.bridgeContract = bridge.build(this.web3);
@@ -65,11 +69,11 @@ export class BridgeService {
       this.web3.eth
         .getBalance(bridge.address)
         .then((balance: string) => {
-          const amount =            Number(
-              this.web3.utils.toWei(
-                this.web3.utils.toBN(this.TOTAL_RBTC_STOCK),
-              ),
-            ) - Number(balance);
+          const amount = Number(
+            this.web3.utils.toWei(
+              this.web3.utils.toBN(this.TOTAL_RBTC_STOCK),
+            ),
+          ) - Number(balance);
           resolve(amount);
         })
         .catch((reason) => {

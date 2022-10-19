@@ -34,7 +34,7 @@ export class TxController {
       this.txService
         .txProvider(txId)
         .then(([tx]) => {
-          this.logger.trace(`[getTx] found tx!`);
+          this.logger.trace('[getTx] found tx!');
           return resolve(new Tx(tx));
         })
         .catch((reason) => {

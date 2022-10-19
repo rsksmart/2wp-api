@@ -11,31 +11,38 @@ import RskBlockProcessorPublisher from './rsk-block-processor-publisher';
 
 export class DaemonService implements iDaemonService {
   peginStatusStorageService: PeginStatusDataService;
+
   syncService: RskChainSyncService;
+
   peginDataProcessor: PeginDataProcessor;
+
   pegoutDataProcessor: PegoutDataProcessor;
+
   rskBlockProcessorPublisher: RskBlockProcessorPublisher
 
   dataFetchInterval: NodeJS.Timer;
+
   started: boolean;
+
   logger: Logger;
 
   intervalTime: number;
+
   lastSyncLog = 0;
 
   constructor(
     @inject(ServicesBindings.RSK_BLOCK_PROCESSOR_PUBLISHER)
-    rskBlockProcessorPublisher: RskBlockProcessorPublisher,
+      rskBlockProcessorPublisher: RskBlockProcessorPublisher,
     @inject(ServicesBindings.PEGIN_STATUS_DATA_SERVICE)
-    peginStatusStorageService: PeginStatusDataService,
+      peginStatusStorageService: PeginStatusDataService,
     @inject(ServicesBindings.RSK_CHAIN_SYNC_SERVICE)
-    syncService: RskChainSyncService,
+      syncService: RskChainSyncService,
     @inject(ConstantsBindings.SYNC_INTERVAL_TIME)
-    syncIntervalTime: string | undefined,
+      syncIntervalTime: string | undefined,
     @inject(ServicesBindings.PEGIN_DATA_PROCESSOR)
-    peginDataProcessor: PeginDataProcessor,
+      peginDataProcessor: PeginDataProcessor,
     @inject(ServicesBindings.PEGOUT_DATA_PROCESSOR)
-    pegoutDataProcessor: PegoutDataProcessor
+      pegoutDataProcessor: PegoutDataProcessor,
   ) {
     this.peginStatusStorageService = peginStatusStorageService;
     this.syncService = syncService;
@@ -101,7 +108,7 @@ export class DaemonService implements iDaemonService {
     await this.syncService.start();
     this.syncService.subscribe({
       blockAdded: (block) => this.handleNewBestBlock(block),
-      blockDeleted: (block) => this.handleDeleteBlock(block)
+      blockDeleted: (block) => this.handleDeleteBlock(block),
     });
 
     this.rskBlockProcessorPublisher.addSubscriber(this.peginDataProcessor);

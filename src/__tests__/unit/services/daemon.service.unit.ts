@@ -38,9 +38,9 @@ describe('Service: DaemonService', () => {
       mockedRskBlockProcessorPublisher,
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
-      "0",
+      '0',
       new PeginDataProcessor(mockedPeginStatusDataService),
-      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
+      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService),
     );
 
     await daemonService.start();
@@ -68,9 +68,9 @@ describe('Service: DaemonService', () => {
       mockedRskBlockProcessorPublisher,
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
-      "0",
+      '0',
       new PeginDataProcessor(mockedPeginStatusDataService),
-      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
+      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService),
     );
 
     clock.tick(1);
@@ -99,9 +99,9 @@ describe('Service: DaemonService', () => {
       mockedRskBridgeDataProvider,
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
-      "0",
+      '0',
       mockedPeginDataProcessor,
-      mockedPegoutDataProcessor
+      mockedPegoutDataProcessor,
     );
 
     // Daemon should have subscribed to mockedRskSyncChainService events

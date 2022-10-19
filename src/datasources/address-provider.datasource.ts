@@ -39,6 +39,7 @@ export class AddressProviderDataSource
   extends juggler.DataSource
   implements LifeCycleObserver {
   static dataSourceName = 'addressProvider';
+
   static readonly defaultConfig = confg;
 
   constructor(

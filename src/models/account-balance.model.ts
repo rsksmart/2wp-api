@@ -8,19 +8,19 @@ export class AccountBalance extends Model {
     type: 'number',
     required: true,
   })
-  legacy: number;
+    legacy: number;
 
   @property({
     type: 'number',
     required: true,
   })
-  segwit: number;
+    segwit: number;
 
   @property({
     type: 'number',
     required: true,
   })
-  nativeSegwit: number;
+    nativeSegwit: number;
 
   constructor(data?: Partial<AccountBalance>) {
     super(data);

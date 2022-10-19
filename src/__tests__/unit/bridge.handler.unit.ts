@@ -30,18 +30,18 @@ describe('Service: Bridge', () => {
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
-        arguments: new Map()
+        arguments: new Map(),
       },
       events: [
         {
           name: 'pegin_btc',
           signature: '0x44cdc782a38244afd68336ab92a0b39f864d6c0b2a50fa1da58cafc93cd2ae5a',
-          arguments: new Map()
-        }
-      ]
+          arguments: new Map(),
+        },
+      ],
     };
     const promise = new Promise<Transaction>((resolve) => resolve(bridgeTransaction));
-    sinon.stub(bridgeTransactionParser,  'getBridgeTransactionByTxHash').returns(promise);
+    sinon.stub(bridgeTransactionParser, 'getBridgeTransactionByTxHash').returns(promise);
     const response = await bridgeService.getBridgeTransactionByHash('0x0001');
     const expectedResponse = await promise;
     expect(response).to.equal(expectedResponse);

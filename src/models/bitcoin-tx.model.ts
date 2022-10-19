@@ -2,77 +2,76 @@ import {Model, model, property} from '@loopback/repository';
 import {Vin} from './vin.model';
 import {Vout} from './vout.model';
 
-
 @model({settings: {strict: false}})
 export class BitcoinTx extends Model {
 
   @property({
     type: 'string',
   })
-  txId: string;
+    txId: string;
 
   @property({
     type: 'number',
   })
-  version: number;
+    version: number;
 
   @property({
     type: 'array',
     itemType: 'object',
   })
-  vin: Vin[];
+    vin: Vin[];
 
   @property({
     type: 'array',
     itemType: 'object',
   })
-  vout: Vout[];
+    vout: Vout[];
 
   @property({
     type: 'string',
   })
-  blockHash: string;
+    blockHash: string;
 
   @property({
     type: 'number',
   })
-  blockHeight: number;
+    blockHeight: number;
 
   @property({
     type: 'number',
   })
-  confirmations: number;
+    confirmations: number;
 
   @property({
     type: 'number',
   })
-  time: number;
+    time: number;
 
   @property({
     type: 'number',
   })
-  blockTime: number;
+    blockTime: number;
 
   @property({
     type: 'string',
   })
-  valueOut?: string;
+    valueOut?: string;
 
   @property({
     type: 'string',
   })
-  valueIn?: string;
+    valueIn?: string;
 
   @property({
     type: 'number',
   })
-  fees?: number;
+    fees?: number;
 
   @property({
     type: 'string',
     required: true,
   })
-  hex: string;
+    hex: string;
 
   // Define well-known properties here
 

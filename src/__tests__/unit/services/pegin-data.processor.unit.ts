@@ -9,7 +9,7 @@ import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data
 import ExtendedBridgeTx from '../../../services/extended-bridge-tx';
 import {Transaction} from 'bridge-transaction-parser';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
-import {ExtendedBridgeEvent} from "../../../models/types/bridge-transaction-parser";
+import {ExtendedBridgeEvent} from '../../../models/types/bridge-transaction-parser';
 
 const btcTxHash = '0x1f789f91cb5cb6f76b91f19adcc89233f3447d7228d8798c4e94ef09fd6d8950';
 const rskTxHash = '0xd2852f38fedf1915978715b8a0dc0670040ac4e9065989c810a5bf29c1e006fb';
@@ -33,8 +33,8 @@ const getMockedPeginBtcEvent = () => {
       receiver: '0x2D623170Cb518434af6c02602334610f194818c1',
       btcTxHash,
       amount: 504237,
-      protocolVersion: '1'
-    }
+      protocolVersion: '1',
+    },
   };
   return peginBtcEvent;
 };
@@ -50,7 +50,7 @@ const getMockedLockBtcEvent = () => {
       senderBtcAddress: '0x413bfc1ab391bbedcfdbc45116c5a0a75e628fc4d7b955dfb99b0214d0f1be43',
       btcTxHash,
       amount: 1000000,
-    }
+    },
   };
   return peginBtcEvent;
 };
@@ -66,8 +66,8 @@ const getMockedRejectedPeginEvent = () => {
     // @ts-ignore
     arguments: {
       btcTxHash,
-      reason: '3'
-    }
+      reason: '3',
+    },
   };
   return peginBtcEvent;
 };
@@ -82,7 +82,7 @@ const getMockedReleaseRequestedEvent = () => {
       btcTxHash,
       rskTxHash,
       amount: 1000,
-    }
+    },
   };
   return peginBtcEvent;
 };
@@ -99,7 +99,7 @@ const getMockedUnrefundablePeginEvent = () => {
     arguments: {
       btcTxHash,
       reason: '1',
-    }
+    },
   };
   return peginBtcEvent;
 };
@@ -137,9 +137,9 @@ describe('Service: PeginDataProcessor', () => {
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
-        arguments: getMockedRegisterBtcTransactionMethodArgs()
+        arguments: getMockedRegisterBtcTransactionMethodArgs(),
       },
-      events: [getMockedPeginBtcEvent()]
+      events: [getMockedPeginBtcEvent()],
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -149,7 +149,7 @@ describe('Service: PeginDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
@@ -176,9 +176,9 @@ describe('Service: PeginDataProcessor', () => {
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
-        arguments: getMockedRegisterBtcTransactionMethodArgs()
+        arguments: getMockedRegisterBtcTransactionMethodArgs(),
       },
-      events: [getMockedLockBtcEvent()]
+      events: [getMockedLockBtcEvent()],
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -188,7 +188,7 @@ describe('Service: PeginDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
@@ -215,9 +215,9 @@ describe('Service: PeginDataProcessor', () => {
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
-        arguments: getMockedRegisterBtcTransactionMethodArgs()
+        arguments: getMockedRegisterBtcTransactionMethodArgs(),
       },
-      events: [getMockedRejectedPeginEvent()]
+      events: [getMockedRejectedPeginEvent()],
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -227,7 +227,7 @@ describe('Service: PeginDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
@@ -247,9 +247,9 @@ describe('Service: PeginDataProcessor', () => {
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
-        arguments: getMockedRegisterBtcTransactionMethodArgs()
+        arguments: getMockedRegisterBtcTransactionMethodArgs(),
       },
-      events: [getMockedReleaseRequestedEvent(), getMockedRejectedPeginEvent()]
+      events: [getMockedReleaseRequestedEvent(), getMockedRejectedPeginEvent()],
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -259,7 +259,7 @@ describe('Service: PeginDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
@@ -284,9 +284,9 @@ describe('Service: PeginDataProcessor', () => {
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
-        arguments: getMockedRegisterBtcTransactionMethodArgs()
+        arguments: getMockedRegisterBtcTransactionMethodArgs(),
       },
-      events: [getMockedRejectedPeginEvent(), getMockedUnrefundablePeginEvent()]
+      events: [getMockedRejectedPeginEvent(), getMockedUnrefundablePeginEvent()],
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -296,7 +296,7 @@ describe('Service: PeginDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
@@ -318,7 +318,6 @@ describe('Service: PeginDataProcessor', () => {
     expect(thisService.getFilters().length).to.equal(1);
   });
 
-
   it('processes pegin transaction', async () => {
     const mockedPeginStatusDataService = sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;
 
@@ -328,9 +327,9 @@ describe('Service: PeginDataProcessor', () => {
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
-        arguments: getMockedRegisterBtcTransactionMethodArgs()
+        arguments: getMockedRegisterBtcTransactionMethodArgs(),
       },
-      events: [getMockedRejectedPeginEvent(), getMockedReleaseRequestedEvent()]
+      events: [getMockedRejectedPeginEvent(), getMockedReleaseRequestedEvent()],
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -340,7 +339,7 @@ describe('Service: PeginDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);
@@ -357,9 +356,9 @@ describe('Service: PeginDataProcessor', () => {
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
-        arguments: getMockedRegisterBtcTransactionMethodArgs()
+        arguments: getMockedRegisterBtcTransactionMethodArgs(),
       },
-      events: [getMockedRejectedPeginEvent(), getMockedReleaseRequestedEvent()]
+      events: [getMockedRejectedPeginEvent(), getMockedReleaseRequestedEvent()],
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -369,7 +368,7 @@ describe('Service: PeginDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     const foundPegin: PeginStatusDataModel = <PeginStatusDataModel>{};
@@ -388,9 +387,9 @@ describe('Service: PeginDataProcessor', () => {
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
-        arguments: getMockedRegisterBtcTransactionMethodArgs()
+        arguments: getMockedRegisterBtcTransactionMethodArgs(),
       },
-      events: []
+      events: [],
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -400,7 +399,7 @@ describe('Service: PeginDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService);

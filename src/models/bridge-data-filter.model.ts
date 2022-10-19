@@ -2,6 +2,7 @@ import {ensure0x} from '../utils/hex-utils';
 
 export class BridgeDataFilterModel {
   abiEncodedSignature: string;
+
   // eslint-disable-next-line @typescript-eslint/naming-convention
   static EMPTY_DATA_FILTER = new BridgeDataFilterModel('0x');
 

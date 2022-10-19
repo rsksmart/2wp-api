@@ -39,7 +39,7 @@ export class PeginTxController {
         },
       },
     })
-    createPeginTxData: CreatePeginTxData,
+      createPeginTxData: CreatePeginTxData,
   ): Promise<NormalizedTx> {
     this.logger.debug(`[create] started with session: ${createPeginTxData.sessionId}`);
     return new Promise<NormalizedTx>((resolve, reject) => {
@@ -92,7 +92,7 @@ export class PeginTxController {
             createPeginTxData.changeAddress,
             createPeginTxData.amountToTransferInSatoshi,
             fee,
-            );
+          );
           const burnDustValue = Math.min(Number(process.env.BURN_DUST_VALUE ?? 2000), 30000);
           if (Number(changeOutput.amount) > burnDustValue) {
             outputs.push(changeOutput);

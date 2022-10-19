@@ -14,22 +14,28 @@ export interface RskChainSyncSubscriber {
 
 export class RskChainSyncService {
   private started: boolean;
+
   private logger: Logger;
+
   private syncStorageService: SyncStatusDataService;
+
   private rskNodeService: RskNodeService;
+
   private defaultInitialBlock: RskBlock;
+
   private subscribers: Array<RskChainSyncSubscriber>;
+
   private minDepthForSync: number;
 
   constructor(
     @inject(ServicesBindings.SYNC_STATUS_DATA_SERVICE)
-    syncStorageService: SyncStatusDataService,
+      syncStorageService: SyncStatusDataService,
     @inject(ServicesBindings.RSK_NODE_SERVICE)
-    rskNodeService: RskNodeService,
+      rskNodeService: RskNodeService,
     @inject(ConstantsBindings.INITIAL_BLOCK)
-    defaultInitialBlock: RskBlock,
+      defaultInitialBlock: RskBlock,
     @inject(ConstantsBindings.MIN_DEPTH_FOR_SYNC)
-    minDepthForSync: number
+      minDepthForSync: number,
   ) {
     this.syncStorageService = syncStorageService;
     this.rskNodeService = rskNodeService;
@@ -47,7 +53,7 @@ export class RskChainSyncService {
     const deletedBlock = new RskBlock(
       block.rskBlockHeight,
       block.rskBlockHash,
-      block.rskBlockParentHash
+      block.rskBlockParentHash,
     );
     this.subscribers.forEach((s) => s.blockDeleted(deletedBlock));
   }
@@ -102,7 +108,7 @@ export class RskChainSyncService {
         if (!result) {
           this.logger.debug(
             'No sync data on storage! starting from default height',
-            this.defaultInitialBlock.toString()
+            this.defaultInitialBlock.toString(),
           );
           // TODO: should I store this and notify subscribers?
           const syncStatusModel = this.blockToSyncStatusDataModel(this.defaultInitialBlock);
@@ -133,7 +139,7 @@ export class RskChainSyncService {
       return;
     }
 
-    this.logger.debug(`[sync] Found block(s) to sync!`);
+    this.logger.debug('[sync] Found block(s) to sync!');
 
     let nextBlock = RskBlock.fromWeb3BlockWithTransactions(await this.rskNodeService.getBlock(dbBestBlock.rskBlockHeight + 1));
     const blocksToAdd: Array<RskBlock> = [];
@@ -165,7 +171,7 @@ export class RskChainSyncService {
 
   public unsubscribe(subscriber: RskChainSyncSubscriber): void {
     const idx = this.subscribers.findIndex((s) => s === subscriber);
-    if (idx != -1) {
+    if (idx !== -1) {
       this.subscribers.splice(idx, 1);
     }
   }

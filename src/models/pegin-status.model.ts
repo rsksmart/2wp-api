@@ -7,48 +7,48 @@ export class BtcPeginStatus extends Model {
   @property({
     type: 'string',
   })
-  txId: string;
+    txId: string;
 
   @property({
     type: 'date',
-    defaultFn: 'now'
+    defaultFn: 'now',
   })
-  creationDate: Date;
+    creationDate: Date;
 
   @property({
     type: 'string',
   })
-  federationAddress: string;
+    federationAddress: string;
 
   @property({
     type: 'number',
   })
-  amountTransferred: number;
+    amountTransferred: number;
 
   @property({
     type: 'number',
   })
-  fees: number;
+    fees: number;
 
   @property({
     type: 'string',
   })
-  refundAddress: string;
+    refundAddress: string;
 
   @property({
     type: 'number',
   })
-  confirmations: number;
+    confirmations: number;
 
   @property({
     type: 'number',
   })
-  requiredConfirmation: number;
+    requiredConfirmation: number;
 
   @property({
     type: 'string',
   })
-  btcWTxId: string;
+    btcWTxId: string;
 
   constructor(btcTxId: string) {
     super();
@@ -61,22 +61,22 @@ export class RskPeginStatus extends Model {
   @property({
     type: 'string',
   })
-  recipientAddress: string;
+    recipientAddress: string;
 
   @property({
     type: 'number',
   })
-  confirmations: number;
+    confirmations: number;
 
   @property({
     type: 'Date',
   })
-  createOn: Date;
+    createOn: Date;
 
   @property({
     type: 'object',
   })
-  status: RskPeginStatusEnum;
+    status: RskPeginStatusEnum;
 
   constructor() {
     super();
@@ -89,17 +89,17 @@ export class PeginStatus extends Model {
     type: 'object',
     required: true,
   })
-  btc: BtcPeginStatus;
+    btc: BtcPeginStatus;
 
   @property({
     type: 'object',
   })
-  rsk: RskPeginStatus;
+    rsk: RskPeginStatus;
 
   @property({
     type: 'object',
   })
-  status: Status;
+    status: Status;
 
   constructor(btc: BtcPeginStatus, rsk?: RskPeginStatus) {
     super();

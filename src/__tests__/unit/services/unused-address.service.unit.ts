@@ -85,7 +85,7 @@ describe('Service: UnusedAddress', () => {
     const result = await thisService.isUnusedAddresses(request);
     expect(result).to.be.eql(new UnusedAddressResponse({
       data: expectedResponses
-        .filter((res) => request.indexOf(res.address) !== -1)
+        .filter((res) => request.indexOf(res.address) !== -1),
     }));
     sinon.assert.calledTwice(mockedBitcoinService.getAddressInfo);
   });
@@ -97,7 +97,7 @@ describe('Service: UnusedAddress', () => {
     const result = await thisService.isUnusedAddresses(request);
     expect(result).to.be.eql(new UnusedAddressResponse({
       data: expectedResponses
-        .filter((res) => request.indexOf(res.address) !== -1)
+        .filter((res) => request.indexOf(res.address) !== -1),
     }));
     sinon.assert.callCount(mockedBitcoinService.getAddressInfo, 3);
   });
@@ -109,7 +109,7 @@ describe('Service: UnusedAddress', () => {
     const result = await thisService.isUnusedAddresses(request);
     expect(result).to.be.eql(new UnusedAddressResponse({
       data: expectedResponses
-        .filter((res) => request.indexOf(res.address) !== -1)
+        .filter((res) => request.indexOf(res.address) !== -1),
     }));
     sinon.assert.callCount(mockedBitcoinService.getAddressInfo, 3);
   });
@@ -121,7 +121,7 @@ describe('Service: UnusedAddress', () => {
     const result = await thisService.isUnusedAddresses(request);
     expect(result).to.be.eql(new UnusedAddressResponse({
       data: expectedResponses
-        .filter((res) => request.indexOf(res.address) !== -1)
+        .filter((res) => request.indexOf(res.address) !== -1),
     }));
     sinon.assert.calledOnce(mockedBitcoinService.getAddressInfo);
   });
@@ -133,7 +133,7 @@ describe('Service: UnusedAddress', () => {
     const result = await thisService.isUnusedAddresses(request);
     expect(result).to.be.eql(new UnusedAddressResponse({
       data: expectedResponses
-        .filter((res) => request.indexOf(res.address) !== -1)
+        .filter((res) => request.indexOf(res.address) !== -1),
     }));
     sinon.assert.calledOnce(mockedBitcoinService.getAddressInfo);
   });

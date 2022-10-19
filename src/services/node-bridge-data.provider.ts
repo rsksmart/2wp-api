@@ -11,13 +11,16 @@ import ExtendedBridgeTx from './extended-bridge-tx';
 
 export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
   logger: Logger;
+
   filters: Array<BridgeDataFilterModel>;
+
   private subscribers: FilteredBridgeTransactionProcessor[];
+
   bridgeService: BridgeService
 
   constructor(
     @inject(ServicesBindings.BRIDGE_SERVICE)
-    bridgeService: BridgeService
+      bridgeService: BridgeService,
   ) {
     this.filters = [];
     this.logger = getLogger('nodeBridgeDataProvider');
@@ -45,7 +48,7 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
             createdOn: transaction.createdOn,
             to: <string> transaction.to,
           };
-          this.logger.debug(`[process] Informing subscriber...`);
+          this.logger.debug('[process] Informing subscriber...');
           await subscriber.process(extendedBridgeTx);
         }
       }

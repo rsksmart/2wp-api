@@ -15,10 +15,10 @@ interface SyncStatusMongoModel extends mongoose.Document, SyncStatusModel {
 const SyncStatusSchema = new mongoose.Schema({
   rskBlockHeight: {type: Number, required: true, unique: true},
   rskBlockHash: {type: String, required: true, unique: true},
-  rskBlockParentHash: {type: String, required: true, unique: true}
+  rskBlockParentHash: {type: String, required: true, unique: true},
 });
 
-const SyncStatusConnector = mongoose.model<SyncStatusMongoModel>("SyncStatus", SyncStatusSchema);
+const SyncStatusConnector = mongoose.model<SyncStatusMongoModel>('SyncStatus', SyncStatusSchema);
 
 // eslint-disable-next-line max-len
 export class SyncStatusMongoService extends MongoDbDataService<SyncStatusModel, SyncStatusMongoModel> implements SyncStatusDataService {

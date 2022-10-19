@@ -1,21 +1,20 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import {Model, model, property} from '@loopback/repository';
-import {PeginStatus} from "./pegin-status.model";
-import {PegoutStatusDataModel} from "./rsk/pegout-status-data-model";
+import {PeginStatus} from './pegin-status.model';
+import {PegoutStatusDataModel} from './rsk/pegout-status-data-model';
 
 @model()
 export class TxStatus extends Model {
   @property({
     type: 'object',
   })
-  txDetails?: PeginStatus | PegoutStatusDataModel;
+    txDetails?: PeginStatus | PegoutStatusDataModel;
 
   @property({
     type: 'string',
     required: true,
   })
-  type: TxStatusType;
-
+    type: TxStatusType;
 
   constructor(data?: Partial<TxStatus>) {
     super(data);

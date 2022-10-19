@@ -17,19 +17,21 @@ import * as constants from '../constants';
 import { remove0x } from '../utils/hex-utils';
 import { PegoutWaitingConfirmation } from 'bridge-state-data-parser';
 import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
-import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
+import {ExtendedBridgeEvent} from '../models/types/bridge-transaction-parser';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
+
   private pegoutStatusDataService: PegoutStatusDataService;
+
   private bridgeService: BridgeService;
 
   constructor(
     @inject(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
-    pegoutStatusDataService: PegoutStatusDataService,
+      pegoutStatusDataService: PegoutStatusDataService,
     @inject(ServicesBindings.BRIDGE_SERVICE)
-    bridgeService: BridgeService
-    ) {
+      bridgeService: BridgeService,
+  ) {
     this.logger = getLogger('pegoutDataProcessor');
     this.pegoutStatusDataService = pegoutStatusDataService;
     this.bridgeService = bridgeService;
@@ -41,7 +43,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.UPDATE_COLLECTIONS)),
       new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.ADD_SIGNATURE)),
       BridgeDataFilterModel.EMPTY_DATA_FILTER,
-      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.RELEASE_BTC))
+      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.RELEASE_BTC)),
     ];
   }
 
@@ -113,15 +115,15 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     const dbPegouts = [...dbPegoutStatusesWaitingForSignature, ...dbPegoutStatusesWaitingForConfirmation];
 
     if(dbPegoutStatusesWaitingForConfirmation.length === 0) {
-      this.logger.trace(`[processSignedStatus] there is no pegout waiting for confirmation in our db`);
+      this.logger.trace('[processSignedStatus] there is no pegout waiting for confirmation in our db');
     }
 
     if(dbPegoutStatusesWaitingForSignature.length === 0) {
-      this.logger.trace(`[processSignedStatus] there is no pegout waiting for signatures in our db`);
+      this.logger.trace('[processSignedStatus] there is no pegout waiting for signatures in our db');
     }
 
     if(dbPegouts.length === 0) {
-      this.logger.trace(`[processSignedStatus] there is no pegout waiting for confirmations or signatures in our db`);
+      this.logger.trace('[processSignedStatus] there is no pegout waiting for confirmations or signatures in our db');
       return;
     }
 
@@ -180,9 +182,9 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     this.logger.trace(`[processWaitingForSignaturesStatus] number of dbPegoutsWaitingForConfirmations with enough confirmations: ${dbPegoutsWithEnoughConfirmations.length}`);
     const bridgeState = await this.bridgeService.getBridgeState();
     const pegoutsWaitingForConfirmationMap = bridgeState.pegoutsWaitingForConfirmations
-        .reduce((accumulator, pegout) => accumulator.set(pegout.rskTxHash, pegout), new Map<string, PegoutWaitingConfirmation>());
+      .reduce((accumulator, pegout) => accumulator.set(pegout.rskTxHash, pegout), new Map<string, PegoutWaitingConfirmation>());
     if(pegoutsWaitingForConfirmationMap.size === 0) {
-      this.logger.trace(`[processWaitingForSignaturesStatus] no transactions in waiting for confirmation in the bridge state.`);
+      this.logger.trace('[processWaitingForSignaturesStatus] no transactions in waiting for confirmation in the bridge state.');
       // If none of the pegouts in the db waiting for confirmation are found in the bridge state,
       // it means the were already moved further. Setting them to the next status, waiting for signatures.
       return await this.saveManyAsWaitingForSignature(dbPegoutsWithEnoughConfirmations);
@@ -301,7 +303,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       return;
     }
 
-   const status = await PegoutStatusBuilder.fillRequestRejectedStatus(extendedBridgeTx);
+    const status = await PegoutStatusBuilder.fillRequestRejectedStatus(extendedBridgeTx);
 
     try {
       await this.pegoutStatusDataService.set(status);

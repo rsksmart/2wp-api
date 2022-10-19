@@ -6,27 +6,27 @@ export class WalletAddress extends Model {
     type: 'string',
     required: true,
   })
-  address: string;
+    address: string;
 
   @property({
     type: 'string',
     required: true,
   })
-  serializedPath: string;
+    serializedPath: string;
 
   @property({
     type: 'array',
     itemType: 'number',
     required: true,
   })
-  path: number[];
+    path: number[];
 
   @property({
     type: 'string',
     generated: false,
     required: false,
   })
-  addressType?: string;
+    addressType?: string;
 
   constructor(data?: Partial<WalletAddress>) {
     super(data);

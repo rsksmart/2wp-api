@@ -27,13 +27,13 @@ const bridgeState: BridgeState = {
     {
       btcRawTx: btcRawTx2,
       pegoutCreationBlockNumber: '2846747',
-      rskTxHash: '5628682b56ef179e066fd12ee25a84436def371b0a11b45cf1d8308ed06f4698'
-    }
+      rskTxHash: '5628682b56ef179e066fd12ee25a84436def371b0a11b45cf1d8308ed06f4698',
+    },
   ],
   activeFederationUtxos: [],
   pegoutRequests: [],
   pegoutsWaitingForSignatures: [],
-  nextPegoutCreationBlockNumber: 0
+  nextPegoutCreationBlockNumber: 0,
 };
 
 const NETWORK = process.env.NETWORK;
@@ -68,22 +68,20 @@ describe('Service: PegoutDataProcessor', () => {
       amount: amount,
     };
 
-
     const createdOn = new Date();
-
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
       method: {
         name: '',
         signature: '',
-        arguments: new Map()
+        arguments: new Map(),
       },
       events: [{
         name: BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED,
         signature: '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
-        arguments: releaseRequestReceivedEventsArgs
-      }]
+        arguments: releaseRequestReceivedEventsArgs,
+      }],
     }
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -93,7 +91,7 @@ describe('Service: PegoutDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     await thisService.process(extendedBridgeTx);
@@ -134,13 +132,13 @@ describe('Service: PegoutDataProcessor', () => {
       method: {
         name: '',
         signature: '',
-        arguments: new Map()
+        arguments: new Map(),
       },
       events: [{
         name: BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED,
         signature: '0xb607c3e1fbe6b38cd145b15b837f7b722b199caa60e3057b36c141adee3b75e7',
-        arguments: releaseRequestedRejectEventsArgs
-      }]
+        arguments: releaseRequestedRejectEventsArgs,
+      }],
     }
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -150,7 +148,7 @@ describe('Service: PegoutDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     await thisService.process(extendedBridgeTx);
@@ -208,13 +206,13 @@ describe('Service: PegoutDataProcessor', () => {
       method: {
         name: '',
         signature: '',
-        arguments: new Map()
+        arguments: new Map(),
       },
       events: [{
         name: BRIDGE_EVENTS.RELEASE_REQUESTED,
         signature: '0x7a7c29481528ac8c2b2e93aee658fddd4dc15304fa723a5c2b88514557bcc790',
-        arguments: releaseRequestedEventsArgs
-      }]
+        arguments: releaseRequestedEventsArgs,
+      }],
     }
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -224,7 +222,7 @@ describe('Service: PegoutDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     await thisService.process(extendedBridgeTx);
@@ -296,13 +294,13 @@ describe('Service: PegoutDataProcessor', () => {
       method: {
         name: '',
         signature: '',
-        arguments: new Map()
+        arguments: new Map(),
       },
       events: [{
         name: BRIDGE_EVENTS.RELEASE_REQUESTED,
         signature: '0x7a7c29481528ac8c2b2e93aee658fddd4dc15304fa723a5c2b88514557bcc790',
-        arguments: releaseRequestedEventsArgs
-      }]
+        arguments: releaseRequestedEventsArgs,
+      }],
     }
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -312,7 +310,7 @@ describe('Service: PegoutDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     await thisService.process(extendedBridgeTx);
@@ -382,13 +380,13 @@ describe('Service: PegoutDataProcessor', () => {
       method: {
         name: '',
         signature: '',
-        arguments: new Map()
+        arguments: new Map(),
       },
       events: [{
         name: BRIDGE_EVENTS.UPDATE_COLLECTIONS,
         signature: '0x1069152f4f916cbf155ee32a695d92258481944edb5b6fd649718fc1b43e515e',
-        arguments: updateCollectionsEventsArgs
-      }]
+        arguments: updateCollectionsEventsArgs,
+      }],
     }
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -398,7 +396,7 @@ describe('Service: PegoutDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     await thisService.process(extendedBridgeTx);
@@ -464,13 +462,13 @@ describe('Service: PegoutDataProcessor', () => {
       method: {
         name: 'addSignature',
         signature: '0xf10b9c59',
-        arguments: new Map()
+        arguments: new Map(),
       },
       events: [{
         name: BRIDGE_EVENTS.RELEASE_BTC,
         signature: '0x655929b56d5c5a24f81ee80267d5151b9d680e7e703387999922e9070bc98a02',
-        arguments: relaseBtcEventsArgs
-      }]
+        arguments: relaseBtcEventsArgs,
+      }],
     }
 
     const rskBlockHash2 = '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d662';
@@ -482,7 +480,7 @@ describe('Service: PegoutDataProcessor', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     await thisService.process(extendedBridgeTx);
@@ -505,8 +503,5 @@ describe('Service: PegoutDataProcessor', () => {
     sinon.assert.calledTwice(mockedPegoutStatusDataService.set);
     sinon.assert.calledWithMatch(mockedPegoutStatusDataService.set, dbPegoutWaitingForSignature);
     sinon.assert.calledWithMatch(mockedPegoutStatusDataService.set, pegoutWithSigned);
-
   });
-
-
 });

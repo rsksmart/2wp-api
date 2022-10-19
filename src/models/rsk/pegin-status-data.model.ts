@@ -10,16 +10,22 @@ export enum PeginStatus {
 
 export class PeginStatusDataModel implements SearchableModel {
   btcTxId: string;
+
   status: PeginStatus;
+
   rskBlockHeight: number;
+
   rskTxId: string;
+
   rskRecipient: string;
+
   createdOn: Date;
   // TODO: add value field => value: BigInt;
 
   getId() {
     return this.btcTxId;
   }
+
   getIdFieldName(): string {
     return 'btcTxId';
   }

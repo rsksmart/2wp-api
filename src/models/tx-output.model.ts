@@ -6,30 +6,30 @@ export class TxOutput extends Model {
   @property({
     type: 'string',
   })
-  address?: string;
+    address?: string;
 
   @property({
     type: 'array',
     itemType: 'number',
   })
-  address_n?: number[];
+    address_n?: number[];
 
   @property({
     type: 'string',
     required: true,
   })
-  script_type: string;
+    script_type: string;
 
   @property({
     type: 'string',
     required: true,
   })
-  amount: string;
+    amount: string;
 
   @property({
     type: 'string',
   })
-  op_return_data?: string;
+    op_return_data?: string;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;

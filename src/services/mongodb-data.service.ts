@@ -11,12 +11,16 @@ import {GenericDataService} from './generic-data-service';
 
 export abstract class MongoDbDataService<Type extends SearchableModel, T> implements GenericDataService<Type> {
   mongoDbUri: string;
+
   logger: Logger;
+
   db: mongoose.Mongoose;
+
   mongoDbDataSource: MongoDbDataSource;
+
   constructor(
     @inject(DatasourcesBindings.MONGO_DB_DATASOURCE)
-    mongoDbDataSource: MongoDbDataSource
+      mongoDbDataSource: MongoDbDataSource,
   ) {
     this.mongoDbDataSource = mongoDbDataSource;
     this.logger = getLogger(this.getLoggerName());

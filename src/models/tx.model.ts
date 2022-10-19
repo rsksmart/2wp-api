@@ -5,70 +5,70 @@ export class Tx extends Model {
   @property({
     type: 'string',
   })
-  txid?: string;
+    txid?: string;
 
   @property({
     type: 'number',
   })
-  version?: number;
+    version?: number;
 
   @property({
     type: 'array',
     itemType: 'object',
   })
-  vin?: object[];
+    vin?: object[];
 
   @property({
     type: 'array',
     itemType: 'object',
   })
-  vout?: object[];
+    vout?: object[];
 
   @property({
     type: 'string',
   })
-  blockhash?: string;
+    blockhash?: string;
 
   @property({
     type: 'number',
   })
-  blockheight?: number;
+    blockheight?: number;
 
   @property({
     type: 'number',
   })
-  confirmations?: number;
+    confirmations?: number;
 
   @property({
     type: 'number',
   })
-  time?: number;
+    time?: number;
 
   @property({
     type: 'number',
   })
-  blocktime?: number;
+    blocktime?: number;
 
   @property({
     type: 'string',
   })
-  valueOut?: string;
+    valueOut?: string;
 
   @property({
     type: 'string',
   })
-  valueIn?: string;
+    valueIn?: string;
 
   @property({
     type: 'string',
   })
-  fees?: string;
+    fees?: string;
 
   @property({
     type: 'string',
     required: true,
   })
-  hex: string;
+    hex: string;
 
   // Define well-known properties here
   // Indexer property to allow additional data

@@ -47,7 +47,7 @@ export class DependencyInjectionHandler {
       .to(new RskBlock(
         parseInt(process.env.SYNC_INITIAL_BLOCK_HEIGHT || '0'),
         process.env.SYNC_INITIAL_BLOCK_HASH || '',
-        process.env.SYNC_INITIAL_BLOCK_PREV_HASH || ''
+        process.env.SYNC_INITIAL_BLOCK_PREV_HASH || '',
       ));
 
     app
@@ -88,7 +88,7 @@ export class DependencyInjectionHandler {
       .toClass(PeginStatusMongoDbDataService)
       .inScope(BindingScope.SINGLETON);
 
-      app
+    app
       .bind(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
       .toClass(PegoutStatusMongoDbDataService)
       .inScope(BindingScope.SINGLETON);
@@ -113,7 +113,7 @@ export class DependencyInjectionHandler {
       .toClass(PeginDataProcessor)
       .inScope(BindingScope.SINGLETON);
 
-      app
+    app
       .bind(ServicesBindings.PEGOUT_DATA_PROCESSOR)
       .toClass(PegoutDataProcessor)
       .inScope(BindingScope.SINGLETON);
@@ -139,9 +139,9 @@ export class DependencyInjectionHandler {
       .inScope(BindingScope.SINGLETON);
 
     app
-        .bind(ServicesBindings.PEGOUT_STATUS_SERVICE)
-        .toClass(PegoutStatusService)
-        .inScope(BindingScope.SINGLETON);
+      .bind(ServicesBindings.PEGOUT_STATUS_SERVICE)
+      .toClass(PegoutStatusService)
+      .inScope(BindingScope.SINGLETON);
 
   }
 }

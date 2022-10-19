@@ -54,7 +54,7 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
   const appMode = searchAppMode();
 
   config();
-  if (appMode == APP_MODE.API || appMode == APP_MODE.ALL) {
+  if (appMode === APP_MODE.API || appMode === APP_MODE.ALL) {
     api = new TwpapiApplication(options);
     await api.boot();
     await api.start();
@@ -62,7 +62,7 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
     const url = api.restServer.url;
     logger.info(`Server is running at ${url}`);
   }
-  if (appMode == APP_MODE.DAEMON || appMode == APP_MODE.ALL) {
+  if (appMode === APP_MODE.DAEMON || appMode === APP_MODE.ALL) {
     daemon = new DaemonRunner();
     await daemon.start();
   }

@@ -1,4 +1,4 @@
-import {BridgeEvent} from "bridge-transaction-parser";
+import {BridgeEvent} from 'bridge-transaction-parser';
 
 export interface ExtendedBridgeEvent extends BridgeEvent{
     arguments: {

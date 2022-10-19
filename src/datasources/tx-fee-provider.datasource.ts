@@ -4,7 +4,7 @@ import {config} from 'dotenv';
 
 config();
 
-const blockBookUrl =  process.env.BLOCKBOOK_URL ?? 'https://blockbook.trugroup.tech:19130';
+const blockBookUrl = process.env.BLOCKBOOK_URL ?? 'https://blockbook.trugroup.tech:19130';
 
 const confg = {
   name: 'txFeeProvider',
@@ -39,6 +39,7 @@ export class TxFeeProviderDataSource
   extends juggler.DataSource
   implements LifeCycleObserver {
   static dataSourceName = 'txFeeProvider';
+
   static readonly defaultConfig = confg;
 
   constructor(

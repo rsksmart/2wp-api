@@ -30,19 +30,22 @@ const PegoutStatusSchema = new mongoose.Schema({
   rskBlockHash: {type: String, required: true},
 });
 
-const PegoutStatusConnector = mongoose.model<PegoutStatusMongoModel>("PegoutStatus", PegoutStatusSchema);
+const PegoutStatusConnector = mongoose.model<PegoutStatusMongoModel>('PegoutStatus', PegoutStatusSchema);
 
 export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutStatusDbDataModel, PegoutStatusMongoModel> implements PegoutStatusDataService {
 
   protected getLoggerName(): string {
     return 'pegoutStatusMongoService';
   }
+
   protected getConnector(): mongoose.Model<PegoutStatusMongoModel, {}, {}> {
     return PegoutStatusConnector;
   }
+
   protected getByIdFilter(id: any) {
     return {rskTxHash: id};
   }
+
   protected getManyFilter(filter?: any) {
     return filter;
   }
@@ -56,17 +59,17 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
 
   public getManyByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel[]> {
     return this.getConnector()
-    .find({originatingRskTxHash})
-    .exec();
+      .find({originatingRskTxHash})
+      .exec();
   }
 
   public async getLastByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel | null> {
     const pegoutDocument = await this.getConnector()
-    .find({originatingRskTxHash})
-    .sort({createdOn: -1})
-    .limit(1)
-    .exec()
-    .then((pegoutStatuses: PegoutStatusDbDataModel[]) => pegoutStatuses[0] || null);
+      .find({originatingRskTxHash})
+      .sort({createdOn: -1})
+      .limit(1)
+      .exec()
+      .then((pegoutStatuses: PegoutStatusDbDataModel[]) => pegoutStatuses[0] || null);
     if(!pegoutDocument) {
       return null;
     }
@@ -80,15 +83,15 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
 
   public async getManyWaitingForConfirmationNewest(): Promise<PegoutStatusDbDataModel[]> {
     const pegoutsDocuments = await this.getConnector()
-    .find({status: PegoutStatus.WAITING_FOR_CONFIRMATION, isNewestStatus: true})
-    .exec();
+      .find({status: PegoutStatus.WAITING_FOR_CONFIRMATION, isNewestStatus: true})
+      .exec();
     return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 
   public async getManyWaitingForSignaturesNewest(): Promise<PegoutStatusDbDataModel[]> {
-    const pegoutsDocuments = await  this.getConnector()
-    .find({status: PegoutStatus.WAITING_FOR_SIGNATURE, isNewestStatus: true})
-    .exec();
+    const pegoutsDocuments = await this.getConnector()
+      .find({status: PegoutStatus.WAITING_FOR_SIGNATURE, isNewestStatus: true})
+      .exec();
     return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 

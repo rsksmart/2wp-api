@@ -17,6 +17,7 @@ export class DbDataSource
   extends juggler.DataSource
   implements LifeCycleObserver {
   static dataSourceName = 'db';
+
   static readonly defaultConfig = config;
 
   constructor(

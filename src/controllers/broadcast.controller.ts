@@ -29,7 +29,7 @@ export class BroadcastController {
   })
   sendTx(
     @requestBody({schema: getModelSchemaRef(BroadcastRequest)})
-    req: BroadcastRequest,
+      req: BroadcastRequest,
   ): Promise<BroadcastResponse> {
     this.logger.debug('[sendTx] started');
     return new Promise<BroadcastResponse>((resolve, reject) => {

@@ -8,6 +8,7 @@ import {BitcoinTx} from '../../models/bitcoin-tx.model';
 
 export class BitcoinService {
   logger: Logger;
+
   addressService: AddressService;
 
   constructor(

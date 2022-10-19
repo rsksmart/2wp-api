@@ -3,7 +3,9 @@ import {SearchableModel} from './searchable-model';
 export class SyncStatusModel implements SearchableModel {
 
   rskBlockHash: string;
+
   rskBlockHeight: number;
+
   rskBlockParentHash: string;
 
   constructor(rskBlockHash: string, rskBlockHeight: number, rskBlockParentHash: string) {

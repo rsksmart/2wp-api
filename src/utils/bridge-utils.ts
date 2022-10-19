@@ -32,7 +32,7 @@ export function getBridgeSignature(methodOrEvent: BRIDGE_METHODS | BRIDGE_EVENTS
   // eslint-disable-next-line no-underscore-dangle
   const method = bridgeInstance._jsonInterface.find((m: any) => m.name === methodOrEvent);
   if (!method) {
-    throw new Error(methodOrEvent + " does not exist in Bridge abi");
+    throw new Error(methodOrEvent + ' does not exist in Bridge abi');
   }
   return <string>method.signature;
 }
@@ -40,7 +40,7 @@ export function getBridgeSignature(methodOrEvent: BRIDGE_METHODS | BRIDGE_EVENTS
 export function getBridgeMethodABI(method: BRIDGE_METHODS): any {
   const abi = bridge.abi.find((m: any) => m.name === method);
   if (!abi) {
-    throw new Error(method + " does not exist in Bridge abi");
+    throw new Error(method + ' does not exist in Bridge abi');
   }
   return abi;
 }
@@ -50,7 +50,7 @@ export function encodeBridgeMethodParameters(method: BRIDGE_METHODS, args: Array
 
   return web3.eth.abi.encodeParameters(
     abi.inputs,
-    args
+    args,
   );
 }
 

@@ -34,7 +34,7 @@ describe('Pegin Tx controller', () => {
       prev_hash: 'txId2',
       prev_index: 0,
       amount: 20000,
-    })
+    }),
   ];
   const inputs2 = [
     new TxInput({
@@ -56,7 +56,7 @@ describe('Pegin Tx controller', () => {
        
       prev_index: 0,
       amount: 200000,
-    })
+    }),
   ];
   const inputsPerFee = new InputPerFee({
     fast: inputs,
@@ -110,9 +110,9 @@ describe('Pegin Tx controller', () => {
           }),
           new TxOutput({
             amount: '16410',
-            address: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs'
+            address: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
           }),
-        ]
+        ],
       })));
   });
   it('should reject the creation if there is no selected inputs for this sessionId', () => {
@@ -156,7 +156,7 @@ describe('Pegin Tx controller', () => {
       feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
     });
     return expect(peginTxController.create(request))
-      .to.be.rejectedWith(`The stored input list has not enough amount`);
+      .to.be.rejectedWith('The stored input list has not enough amount');
   });
   it('should create a transaction without change output if it spends all balance', () => {
     getAccountInputs.withArgs(sessionId).resolves(inputsPerFee);
@@ -182,7 +182,7 @@ describe('Pegin Tx controller', () => {
             amount: '29500',
             address: federationAddress.toString(),
           }),
-        ]
+        ],
       })));
   });
   it('should create a transaction without burn dust value higher than 30000 Sats', () => {
@@ -206,42 +206,42 @@ describe('Pegin Tx controller', () => {
       feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
     });
     return Promise.all([peginTxController.create(requestWithoutBurnDust), new BridgeService().getFederationAddress()])
-        .then(([normalizedTx, federationAddress]) => expect(normalizedTx).to.be.eql(new NormalizedTx({
-          inputs: inputs2,
-          outputs: [
-            new TxOutput({
-              amount: '0',
+      .then(([normalizedTx, federationAddress]) => expect(normalizedTx).to.be.eql(new NormalizedTx({
+        inputs: inputs2,
+        outputs: [
+          new TxOutput({
+            amount: '0',
                
-              script_type: 'PAYTOOPRETURN',
+            script_type: 'PAYTOOPRETURN',
                
-              op_return_data: '52534b54010x90F8bf6A479f320ead074411a4B0e7944Ea8c9C102ce552812b37e64d8f66f919d0e4222d4244ebe3a',
-            }),
-            new TxOutput({
-              amount: '269499',
-              address: federationAddress.toString(),
-            }),
-            new TxOutput({
-              amount: '30001',
-              address: 'changeAddress',
-            }),
-          ]
-        })))
-        .then(() => Promise.all([peginTxController.create(requestWithBurnDust), new BridgeService().getFederationAddress()]))
-        .then(([normalizedTx, federationAddress]) => expect(normalizedTx).to.be.eql(new NormalizedTx({
-          inputs: inputs2,
-          outputs: [
-            new TxOutput({
-              amount: '0',
+            op_return_data: '52534b54010x90F8bf6A479f320ead074411a4B0e7944Ea8c9C102ce552812b37e64d8f66f919d0e4222d4244ebe3a',
+          }),
+          new TxOutput({
+            amount: '269499',
+            address: federationAddress.toString(),
+          }),
+          new TxOutput({
+            amount: '30001',
+            address: 'changeAddress',
+          }),
+        ],
+      })))
+      .then(() => Promise.all([peginTxController.create(requestWithBurnDust), new BridgeService().getFederationAddress()]))
+      .then(([normalizedTx, federationAddress]) => expect(normalizedTx).to.be.eql(new NormalizedTx({
+        inputs: inputs2,
+        outputs: [
+          new TxOutput({
+            amount: '0',
                
-              script_type: 'PAYTOOPRETURN',
+            script_type: 'PAYTOOPRETURN',
                
-              op_return_data: '52534b54010x90F8bf6A479f320ead074411a4B0e7944Ea8c9C102ce552812b37e64d8f66f919d0e4222d4244ebe3a',
-            }),
-            new TxOutput({
-              amount: '269500',
-              address: federationAddress.toString(),
-            }),
-          ]
-        })))
+            op_return_data: '52534b54010x90F8bf6A479f320ead074411a4B0e7944Ea8c9C102ce552812b37e64d8f66f919d0e4222d4244ebe3a',
+          }),
+          new TxOutput({
+            amount: '269500',
+            address: federationAddress.toString(),
+          }),
+        ],
+      })))
   });
 });

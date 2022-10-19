@@ -39,6 +39,7 @@ export class TxV2ProviderDataSource
   extends juggler.DataSource
   implements LifeCycleObserver {
   static dataSourceName = 'txV2Provider';
+
   static readonly defaultConfig = confg;
 
   constructor(

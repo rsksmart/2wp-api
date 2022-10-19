@@ -11,6 +11,7 @@ import {BtcAddressUtils} from '../utils/btc-utils';
 export class SessionRepository extends DefaultKeyValueRepository<Session> {
 
   logger: Logger;
+
   btcAddressUtils: BtcAddressUtils = new BtcAddressUtils();
 
   constructor(@inject('datasources.Redis') dataSource: RedisDataSource) {
@@ -27,9 +28,9 @@ export class SessionRepository extends DefaultKeyValueRepository<Session> {
             if (
               utxoList && this.btcAddressUtils.validateAddress(address).addressType === accountType
             )
-            finalUtxoList = finalUtxoList.concat(
+              finalUtxoList = finalUtxoList.concat(
                 utxoList.map((utxo) => Object.assign({address}, utxo)),
-            ); 
+              ); 
               
           });
           resolve(finalUtxoList);

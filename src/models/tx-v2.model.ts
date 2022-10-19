@@ -7,75 +7,75 @@ export class TxV2 extends Model {
   @property({
     type: 'string',
   })
-  txid: string;
+    txid: string;
 
   @property({
     type: 'number',
   })
-  version: number;
+    version: number;
 
   @property({
     type: 'number',
   })
-  locktime?: number;
+    locktime?: number;
 
   @property({
     type: 'array',
     itemType: 'object',
   })
-  vin: Vin[];
+    vin: Vin[];
 
   @property({
     type: 'array',
     itemType: 'object',
   })
-  vout: Vout[];
+    vout: Vout[];
 
   @property({
     type: 'string',
   })
-  blockhash?: string;
+    blockhash?: string;
 
   @property({
     type: 'number',
   })
-  blockheight: number;
+    blockheight: number;
 
   @property({
     type: 'number',
   })
-  confirmations: number;
+    confirmations: number;
 
   @property({
     type: 'number',
   })
-  blocktime: number;
+    blocktime: number;
 
   @property({
     type: 'number',
   })
-  size: number;
+    size: number;
 
   @property({
     type: 'string',
   })
-  valueOutSat: string;
+    valueOutSat: string;
 
   @property({
     type: 'string',
   })
-  valueInSat?: string;
+    valueInSat?: string;
 
   @property({
     type: 'string',
   })
-  feesSat?: string;
+    feesSat?: string;
 
   @property({
     type: 'string',
     required: true,
   })
-  hex: string;
+    hex: string;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;

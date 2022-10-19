@@ -9,13 +9,15 @@ import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-
 import {ServicesBindings} from '../dependency-injection-bindings';
 import ExtendedBridgeTx from './extended-bridge-tx';
 import {BridgeEvent} from 'bridge-transaction-parser';
-import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
+import {ExtendedBridgeEvent} from '../models/types/bridge-transaction-parser';
 
 export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
   peginStatusStorageService: PeginStatusDataService;
+
   logger: Logger;
+
   constructor(@inject(ServicesBindings.PEGIN_STATUS_DATA_SERVICE)
-  peginStatusStorageService: PeginStatusDataService,) {
+    peginStatusStorageService: PeginStatusDataService) {
     this.logger = getLogger('peginDataProcessor');
     this.peginStatusStorageService = peginStatusStorageService;
   }
@@ -94,7 +96,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
 
   parse(extendedBridgeTx: ExtendedBridgeTx): PeginStatusDataModel | null {
     if (!extendedBridgeTx || !extendedBridgeTx.events || !extendedBridgeTx.events.length) {
-      this.logger.warn(`[parse] This transaction doesn't have the data required to be parsed`);
+      this.logger.warn('[parse] This transaction doesn\'t have the data required to be parsed');
       return null;
     }
     const result = this.getPeginStatus(extendedBridgeTx);

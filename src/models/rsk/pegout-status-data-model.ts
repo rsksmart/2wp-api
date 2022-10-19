@@ -54,39 +54,67 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel {
       btcRawTransaction,
     });
   }
+
   rskTxHash: string;
+
   rskSenderAddress: string;
+
   btcRecipientAddress: string;
+
   valueRequestedInSatoshis: number;
+
   valueInSatoshisToBeReceived: number;
+
   feeInSatoshisToBePaid: number;
+
   status: PegoutStatus;
+
   btcRawTransaction: string;
+
   originatingRskTxHash: string;
+
   createdOn: Date;
 }
 
 export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDataModel {
   rskTxHash: string;
+
   rskSenderAddress: string;
+
   btcRecipientAddress: string;
+
   valueRequestedInSatoshis: number;
+
   valueInSatoshisToBeReceived: number;
+
   feeInSatoshisToBePaid: number;
+
   status: PegoutStatus;
+
   btcRawTransaction: string;
+
   originatingRskTxHash: string; // First pegout rskTxHash, the one the user should have.
+
   rskBlockHeight: number;
+
   reason: string;
+
   createdOn: Date;
+
   btcTxHash: string;
+
   originatingRskBlockHeight: number;
+
   isNewestStatus: boolean;
+
   originatingRskBlockHash: string;
+
   rskBlockHash: string;
+
   getId() {
     return this.rskTxHash;
   }
+
   getIdFieldName(): string {
     return 'rskTxHash';
   }
