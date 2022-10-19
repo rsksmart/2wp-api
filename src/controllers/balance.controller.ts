@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {inject} from '@loopback/core';
 import {repository} from '@loopback/repository';
 import {getModelSchemaRef, post, requestBody} from '@loopback/rest';
@@ -6,7 +7,7 @@ import {
   AccountBalance,
   AddressBalance,
   GetBalance,
-  Utxo, WalletAddress
+  Utxo, WalletAddress,
 } from '../models';
 import {SessionRepository} from '../repositories';
 import {UtxoProvider} from '../services';
@@ -14,7 +15,9 @@ import {BtcAddressUtils} from '../utils/btc-utils';
 
 export class BalanceController {
   btcAddressUtils: BtcAddressUtils = new BtcAddressUtils();
+
   logger: Logger;
+
   constructor(
     @inject('services.UtxoProvider')
     protected utxoProviderService: UtxoProvider,
@@ -38,36 +41,31 @@ export class BalanceController {
   })
   async getBalance(
     @requestBody({schema: getModelSchemaRef(GetBalance)})
-    getBalance: GetBalance,
+      getBalance: GetBalance,
   ): Promise<AccountBalance> {
     this.logger.debug(`[getBalance] Started with getBalance ${getBalance}`);
     return new Promise<AccountBalance>((resolve, reject) => {
       const {areAllValid, classifiedList} = this.checkAndClassifyAddressList(getBalance.addressList);
       if (!areAllValid) reject(new Error('Invalid address list provided, please check'));
-      const eventualUtxos = classifiedList.map((walletAddress) =>
-        Promise.all([
-          walletAddress,
-          this.utxoProviderService.utxoProvider(walletAddress.address),
-        ]),
-      );
+      const eventualUtxos = classifiedList.map((walletAddress) => Promise.all([
+        walletAddress,
+        this.utxoProviderService.utxoProvider(walletAddress.address),
+      ]));
       Promise.all(eventualUtxos)
-        .then((addressUtxos) =>
-          addressUtxos.map(
-            ([walletAddress, utxoList]) =>
-              new AddressBalance({
-                address: walletAddress.address,
-                addressType: walletAddress.addressType,
-                utxoList: utxoList.map(uxto => new Utxo(uxto)),
-              }),
-          ),
-        )
-        .then(addressBalances => {
+        .then((addressUtxos) => addressUtxos.map(
+          ([walletAddress, utxoList]) => new AddressBalance({
+            address: walletAddress.address,
+            addressType: walletAddress.addressType,
+            utxoList: utxoList.map((uxto) => new Utxo(uxto)),
+          }),
+        ))
+        .then((addressBalances) => {
           return Promise.all([
             this.sessionRepository.addUxos(getBalance.sessionId, addressBalances),
             addressBalances,
           ]);
         })
-        .then(([result, addressBalances]) => {
+        .then(([, addressBalances]) => {
           const accBalance = new AccountBalance({
             segwit: 0,
             nativeSegwit: 0,
@@ -77,8 +75,8 @@ export class BalanceController {
           this.logger.trace(`[getBalance] accBalance ${accBalance}`);
           resolve(accBalance);
         })
-        .catch(reason => {
-          this.logger.warn(`[getBalance] Something went wrong. error: `, reason);
+        .catch((reason) => {
+          this.logger.warn('[getBalance] Something went wrong. error: ', reason);
           reject(reason);
         });
     });

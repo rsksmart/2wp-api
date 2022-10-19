@@ -17,7 +17,8 @@ async function exportOpenApiSpec(): Promise<void> {
   await app.exportOpenApiSpec(outFile);
 }
 
-exportOpenApiSpec().catch(err => {
+exportOpenApiSpec().catch((err) => {
+  // eslint-disable-next-line no-console
   console.error('Fail to export OpenAPI spec from the application.', err);
   process.exit(1);
 });

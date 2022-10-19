@@ -1,6 +1,6 @@
 import { BridgeMethod, Transaction} from 'bridge-transaction-parser';
 import { RskTransaction } from '../models/rsk/rsk-transaction.model';
-import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
+import {ExtendedBridgeEvent} from '../models/types/bridge-transaction-parser';
 
 export default interface ExtendedBridgeTx extends Transaction {
   blockHash: string;
@@ -8,7 +8,7 @@ export default interface ExtendedBridgeTx extends Transaction {
   to: string;
 }
 
-export class ExtendedBridgeTxModel implements ExtendedBridgeTx{
+export class ExtendedBridgeTxModel implements ExtendedBridgeTx {
   constructor(transaction: Transaction, rskTransaction:RskTransaction) {
     this.blockHash = rskTransaction.blockHash;
     this.createdOn = rskTransaction.createdOn;
@@ -20,10 +20,16 @@ export class ExtendedBridgeTxModel implements ExtendedBridgeTx{
   }
 
   blockHash: string;
+
   createdOn: Date;
+
   to: string;
+
   txHash: string;
+
   method: BridgeMethod;
+
   events: ExtendedBridgeEvent[];
+
   blockNumber: number;
 }

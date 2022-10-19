@@ -8,11 +8,9 @@ export class UnusedAddressResponse extends Model {
     itemType: 'object',
     required: true,
   })
-  data: AddressUsedStatus[];
-
+    data: AddressUsedStatus[];
 
   constructor(data?: Partial<UnusedAddressResponse>) {
     super(data);
   }
 }
-

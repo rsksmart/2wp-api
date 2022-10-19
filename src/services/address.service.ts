@@ -1,3 +1,4 @@
+/* eslint-disable no-empty-function */
 import {inject, Provider} from '@loopback/core';
 import {getService} from '@loopback/service-proxy';
 import {AddressProviderDataSource} from '../datasources/address-provider.datasource';
@@ -17,7 +18,6 @@ export class AddressServiceProvider implements Provider<AddressService> {
   constructor(
     // addressProvider must match the name property in the datasource json file
     @inject('datasources.addressProvider')
-
     protected dataSource: AddressProviderDataSource = new AddressProviderDataSource(),
   ) { }
 

@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+/* eslint-disable no-unused-expressions */
 import {expect} from '@loopback/testlab';
 import sinon, {SinonStubbedInstance} from 'sinon';
 import {BitcoinTx} from '../../../models/bitcoin-tx.model';
@@ -21,7 +23,7 @@ const getBitcoinTx = (btcTxId: string, from: string, amount: number, confirmatio
   const toInformation: Vout = new Vout();
   toInformation.isAddress = true;
   toInformation.value = amount;
-  toInformation.addresses = [to ? to : federationAddress];
+  toInformation.addresses = [to || federationAddress];
   toInformation.hex = 'a91457f76bf3ab818811c740929ac7a5e3ef8c7a34b987';
   btcTx.vout = [toInformation];
   btcTx.hex = '020000000001019b42ab3e8e2f29173cc440544b6d8bdcd7d46ff6197035f06ce38ae92fbd89260100000000fdffffff02b00400000000000017a91457f76bf3ab818811c740929ac7a5e3ef8c7a34b98714a6130000000000160014438ba205a91b42778afc09ada1ad567596fdb1990247304402202149f5201c13d0b33d5dfc8af09d1b95920b409f6c05056eac70a79c202d92e2022031bebf341c45dd64166219f21c49de4c45357657bfc2fdd78f11336af53cc366012103284708827bfced592524611c7a3963a8ae634088d9265a32d6ccc12cbc16b111277f1f00';
@@ -51,18 +53,16 @@ const getRskInfo = (btcTxId: string) => {
 const getPeginStatusServiceWithMockedEnvironment = (
   btcTransaction: BitcoinTx | undefined,
   minPeginValue: number,
-  rskTransaction?: PeginStatusDataModel
+  rskTransaction?: PeginStatusDataModel,
 ): PeginStatusService => {
-  const mockedBitcoinService =
-    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+  const mockedBitcoinService = sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
   if (btcTransaction) {
     mockedBitcoinService.getTx.resolves(btcTransaction);
   } else {
     mockedBitcoinService.getTx.rejects();
   }
 
-  const mockedBridgeService =
-    sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
+  const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
   mockedBridgeService.getMinPeginValue.resolves(minPeginValue);
   mockedBridgeService.getFederationAddress.resolves(federationAddress);
 
@@ -72,7 +72,7 @@ const getPeginStatusServiceWithMockedEnvironment = (
   return new PeginStatusService(
     mockedBitcoinService,
     mockedPeginStatusMongoDbDataService,
-    mockedBridgeService
+    mockedBridgeService,
   );
 }
 
@@ -114,7 +114,7 @@ describe('function: getPeginSatusInfo', () => {
       '2N69faB9UEHB7QyiAiQv3n2GsMM9xXnFE5W',
       1000000,
       200,
-      '2N69faB9UEHB7QyiAiQv3n2GsMM9xXnFE5W'  //Not the powpeg address
+      '2N69faB9UEHB7QyiAiQv3n2GsMM9xXnFE5W', //Not the powpeg address
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5);
@@ -131,7 +131,7 @@ describe('function: getPeginSatusInfo', () => {
       btcTxId,
       '2N69faB9UEHB7QyiAiQv3n2GsMM9xXnFE5W',
       1,
-      200
+      200,
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 500);
@@ -152,7 +152,7 @@ describe('function: getPeginSatusInfo', () => {
       btcTxId,
       '2N69faB9UEHB7QyiAiQv3n2GsMM9xXnFE5W',
       1000000,
-      200
+      200,
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, getRskInfo(btcTxId));
@@ -172,7 +172,7 @@ describe('function: getPeginSatusInfo', () => {
       btcTxId,
       '2N69faB9UEHB7QyiAiQv3n2GsMM9xXnFE5W',
       1000000,
-      200
+      200,
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5);
@@ -190,7 +190,7 @@ describe('function: getPeginSatusInfo', () => {
       btcTxId,
       'tb1qupcsaeakafua4cjwtpnyjegjjrq4ut42fut44h',
       1000000,
-      200
+      200,
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5);
@@ -207,7 +207,7 @@ describe('function: getPeginSatusInfo', () => {
       btcTxId,
       'tb1qupcsaeakafua4cjwtpnyjegjjrq4ut42fut44h',
       1000000,
-      200
+      200,
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 200);
@@ -227,7 +227,7 @@ describe('function: getPeginSatusInfo', () => {
       btcTxId,
       'tb1qupcsaeakafua4cjwtpnyjegjjrq4ut42fut44h',
       1000000,
-      200
+      200,
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, getRskInfo(btcTxId));
@@ -247,7 +247,7 @@ describe('function: getPeginSatusInfo', () => {
       btcTxId,
       '2N69faB9UEHB7QyiAiQv3n2GsMM9xXnFE5W',
       1000000,
-      5
+      5,
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5);

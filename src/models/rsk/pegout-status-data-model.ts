@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { SearchableModel } from './searchable-model';
 
+// eslint-disable-next-line no-shadow
 export enum PegoutStatus {
   RECEIVED = 'RECEIVED',
   REJECTED = 'REJECTED',
@@ -23,7 +25,7 @@ export interface PegoutStatusDataModel {
   btcRawTransaction: string;
 }
 
-export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
+export class PegoutStatusAppDataModel implements PegoutStatusDataModel {
   constructor(data?: Partial<PegoutStatusAppDataModel>) {
     Object.assign(this, data);
   }
@@ -52,39 +54,67 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
       btcRawTransaction,
     });
   }
+
   rskTxHash: string;
+
   rskSenderAddress: string;
+
   btcRecipientAddress: string;
+
   valueRequestedInSatoshis: number;
+
   valueInSatoshisToBeReceived: number;
+
   feeInSatoshisToBePaid: number;
+
   status: PegoutStatus;
+
   btcRawTransaction: string;
+
   originatingRskTxHash: string;
+
   createdOn: Date;
 }
 
 export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDataModel {
   rskTxHash: string;
+
   rskSenderAddress: string;
+
   btcRecipientAddress: string;
+
   valueRequestedInSatoshis: number;
+
   valueInSatoshisToBeReceived: number;
+
   feeInSatoshisToBePaid: number;
+
   status: PegoutStatus;
+
   btcRawTransaction: string;
+
   originatingRskTxHash: string; // First pegout rskTxHash, the one the user should have.
+
   rskBlockHeight: number;
+
   reason: string;
+
   createdOn: Date;
+
   btcTxHash: string;
+
   originatingRskBlockHeight: number;
+
   isNewestStatus: boolean;
+
   originatingRskBlockHash: string;
+
   rskBlockHash: string;
+
   getId() {
     return this.rskTxHash;
   }
+
   getIdFieldName(): string {
     return 'rskTxHash';
   }

@@ -5,69 +5,69 @@ export class Vout extends Model {
   @property({
     type: 'number',
   })
-  valueSat?: number;
+    valueSat?: number;
 
   @property({
     type: 'number',
   })
-  n: number;
+    n: number;
 
   @property({
     type: 'boolean',
   })
-  spent?: boolean;
+    spent?: boolean;
 
   @property({
     type: 'string',
   })
-  spentTxID: string;
+    spentTxID: string;
 
   @property({
     type: 'number',
   })
-  spentIndex?: number;
+    spentIndex?: number;
 
   @property({
     type: 'number',
   })
-  spentHeight?: number;
+    spentHeight?: number;
 
   @property({
     type: 'string',
     required: true,
   })
-  hex?: string;
+    hex?: string;
 
   @property({
     type: 'string',
     required: true,
   })
-  asm?: string;
+    asm?: string;
 
   @property({
     type: 'string',
   })
-  addrDesc?: string;
+    addrDesc?: string;
 
   @property({
     type: 'array',
     itemType: 'string',
   })
-  addresses: string[];
+    addresses: string[];
 
   @property({
     type: 'boolean',
   })
-  isAddress: boolean;
+    isAddress: boolean;
 
   @property({
     type: 'string',
   })
-  type?: string;
-
+    type?: string;
 
   // Define well-known properties here
   // Indexer property to allow additional data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;
 
   constructor(data?: Partial<Vout>) {

@@ -6,7 +6,7 @@ export class BroadcastRequest extends Model {
     type: 'string',
     required: true,
   })
-  data: string;
+    data: string;
 
   constructor(data?: Partial<BroadcastRequest>) {
     super(data);

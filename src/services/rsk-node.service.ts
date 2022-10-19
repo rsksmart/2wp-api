@@ -9,18 +9,24 @@ export class RskNodeService {
   constructor() {
     this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
   }
+
   getBlock(block: string | number, withTransactions = true): Promise<BlockTransactionObject> {
     return this.web3.eth.getBlock(block, withTransactions);
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getTransactionReceipt(txHash: string): Promise<any> {
     return this.web3.eth.getTransactionReceipt(txHash);
   }
+
   getBlockNumber(): Promise<number> {
     return this.web3.eth.getBlockNumber();
   }
+
   getBridgeTransaction(txHash: string): Promise<Transaction> {
     return getBridgeTransactionByTxHash(this.web3, txHash);
   }
+
   getTransaction(txHash: string, includeReceipt = false): Promise<RskTransaction> {
     const rskTx = new RskTransaction();
     return new Promise<RskTransaction>((resolve, reject) => {

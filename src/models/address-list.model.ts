@@ -8,7 +8,7 @@ export class AddressList extends Model {
     itemType: 'string',
     required: true,
   })
-  addressList: string[];
+    addressList: string[];
 
   constructor(data?: Partial<AddressList>) {
     super(data);

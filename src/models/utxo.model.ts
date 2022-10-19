@@ -5,43 +5,43 @@ export class Utxo extends Model {
   @property({
     type: 'string',
   })
-  address?: string;
+    address?: string;
 
   @property({
     type: 'string',
     required: true,
   })
-  txid: string;
+    txid: string;
 
   @property({
     type: 'number',
     required: true,
   })
-  vout: number;
+    vout: number;
 
   @property({
     type: 'string',
     required: true,
   })
-  amount: string;
+    amount: string;
 
   @property({
     type: 'number',
     required: true,
   })
-  satoshis: number;
+    satoshis: number;
 
   @property({
     type: 'number',
     required: true,
   })
-  height: number;
+    height: number;
 
   @property({
     type: 'number',
     required: true,
   })
-  confirmations: number;
+    confirmations: number;
 
   constructor(data?: Partial<Utxo>) {
     super(data);

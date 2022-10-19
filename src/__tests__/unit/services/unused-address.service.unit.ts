@@ -12,8 +12,8 @@ describe('Service: UnusedAddress', () => {
 
   const mockBitcoinService = () => {
 
-    const mockedBitcoinService =
-      sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+    // eslint-disable-next-line max-len
+    const mockedBitcoinService = sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
 
     const addressA: BitcoinAddress = new BitcoinAddress();
     addressA.address = 'a';
@@ -71,11 +71,11 @@ describe('Service: UnusedAddress', () => {
   ];
 
   it('isUnusedAddresses empty list', async () => {
-    const mockedBitcoinService
-      = sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+    // eslint-disable-next-line max-len
+    const mockedBitcoinService = sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
     const thisService = new UnusedAddressService(mockedBitcoinService);
     const result = await thisService.isUnusedAddresses([]);
-    expect(result).to.be.eql(new UnusedAddressResponse({ data : []}));
+    expect(result).to.be.eql(new UnusedAddressResponse({ data: []}));
     sinon.assert.neverCalledWith(mockedBitcoinService.getAddressInfo);
   });
   it('getPeginSatusInfo list unused addresses ', async () => {
@@ -85,7 +85,7 @@ describe('Service: UnusedAddress', () => {
     const result = await thisService.isUnusedAddresses(request);
     expect(result).to.be.eql(new UnusedAddressResponse({
       data: expectedResponses
-        .filter((res) => request.indexOf(res.address) !== -1)
+        .filter((res) => request.indexOf(res.address) !== -1),
     }));
     sinon.assert.calledTwice(mockedBitcoinService.getAddressInfo);
   });
@@ -97,7 +97,7 @@ describe('Service: UnusedAddress', () => {
     const result = await thisService.isUnusedAddresses(request);
     expect(result).to.be.eql(new UnusedAddressResponse({
       data: expectedResponses
-        .filter((res) => request.indexOf(res.address) !== -1)
+        .filter((res) => request.indexOf(res.address) !== -1),
     }));
     sinon.assert.callCount(mockedBitcoinService.getAddressInfo, 3);
   });
@@ -109,7 +109,7 @@ describe('Service: UnusedAddress', () => {
     const result = await thisService.isUnusedAddresses(request);
     expect(result).to.be.eql(new UnusedAddressResponse({
       data: expectedResponses
-        .filter((res) => request.indexOf(res.address) !== -1)
+        .filter((res) => request.indexOf(res.address) !== -1),
     }));
     sinon.assert.callCount(mockedBitcoinService.getAddressInfo, 3);
   });
@@ -121,7 +121,7 @@ describe('Service: UnusedAddress', () => {
     const result = await thisService.isUnusedAddresses(request);
     expect(result).to.be.eql(new UnusedAddressResponse({
       data: expectedResponses
-        .filter((res) => request.indexOf(res.address) !== -1)
+        .filter((res) => request.indexOf(res.address) !== -1),
     }));
     sinon.assert.calledOnce(mockedBitcoinService.getAddressInfo);
   });
@@ -133,7 +133,7 @@ describe('Service: UnusedAddress', () => {
     const result = await thisService.isUnusedAddresses(request);
     expect(result).to.be.eql(new UnusedAddressResponse({
       data: expectedResponses
-        .filter((res) => request.indexOf(res.address) !== -1)
+        .filter((res) => request.indexOf(res.address) !== -1),
     }));
     sinon.assert.calledOnce(mockedBitcoinService.getAddressInfo);
   });

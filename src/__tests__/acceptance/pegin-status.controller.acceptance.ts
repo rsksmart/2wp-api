@@ -14,10 +14,10 @@ describe('Pegin Status Controller', () => {
     await app.stop();
   });
 
-  it('invokes GET /get-pegin-status with a txId', async () => {
+  it('invokes GET /tx-status with a txId', async () => {
     const txId = '73be84f8b6fe2875d5988614aad7ba9c976e37c64a9af2099633a25f119f41f4';
     return client
-      .get(`/pegin-status?txId=${txId}`)
+      .get(`/tx-status/${txId}`)
       .expect(200);
-  });
+  }).timeout(15000);
 });

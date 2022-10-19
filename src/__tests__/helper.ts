@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {randomBytes} from 'crypto';
 import {PeginConfiguration, TxInput, Utxo, WalletAddress} from '../models';
 import {ensure0x} from '../utils/hex-utils';

@@ -1,3 +1,4 @@
+/* eslint-disable no-empty-function */
 import {inject, Provider} from '@loopback/core';
 import {getService} from '@loopback/service-proxy';
 import {TxFeeProviderDataSource} from '../datasources';

@@ -6,13 +6,14 @@ export class Fee extends Model {
     type: 'number',
     required: true,
   })
-  amount: number;
+    amount: number;
 
   @property({
     type: 'boolean',
     required: true,
   })
-  enoughBalance: boolean;
+    enoughBalance: boolean;
+
   constructor(data?: Partial<Fee>) {
     super(data);
   }
@@ -24,19 +25,19 @@ export class FeeAmountData extends Model {
     type: 'Object',
     required: true,
   })
-  slow: Fee;
+    slow: Fee;
 
   @property({
     type: 'Object',
     required: true,
   })
-  average: Fee;
+    average: Fee;
 
   @property({
     type: 'Object',
     required: true,
   })
-  fast: Fee;
+    fast: Fee;
 
   constructor(data?: Partial<FeeAmountData>) {
     super(data);

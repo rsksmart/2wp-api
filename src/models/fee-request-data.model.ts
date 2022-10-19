@@ -6,19 +6,19 @@ export class FeeRequestData extends Model {
     type: 'string',
     required: true,
   })
-  sessionId: string;
+    sessionId: string;
 
   @property({
     type: 'number',
     required: true,
   })
-  amount: number;
+    amount: number;
 
   @property({
     type: 'string',
     required: true,
   })
-  accountType: string;
+    accountType: string;
 
   constructor(data?: Partial<FeeRequestData>) {
     super(data);

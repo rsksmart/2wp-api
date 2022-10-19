@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+/* eslint-disable no-unused-expressions */
 import {expect, sinon} from '@loopback/testlab';
 import {SinonStubbedInstance} from 'sinon';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
@@ -142,7 +144,7 @@ describe('Service: NodeBridgeDataProvider', () => {
       createdOn,
       blockHeight: 1,
       to: bridge.address,
-      receipt: null
+      receipt: null,
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
@@ -152,7 +154,7 @@ describe('Service: NodeBridgeDataProvider', () => {
       height: 1,
       hash: blockHash,
       parentHash: '0x00001',
-      transactions: [transaction]
+      transactions: [transaction],
     };
 
     const bridgeTransaction: Transaction = {
@@ -161,13 +163,13 @@ describe('Service: NodeBridgeDataProvider', () => {
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
-        arguments: getMockedLockPeginBtcMethodArgs()
+        arguments: getMockedLockPeginBtcMethodArgs(),
       },
       events: [{
         name: 'pegin_btc',
         signature: '0x44cdc782a38244afd68336ab92a0b39f864d6c0b2a50fa1da58cafc93cd2ae5a',
-        arguments: getMockedLockBtcEventsArgs()
-      }]
+        arguments: getMockedLockBtcEventsArgs(),
+      }],
     }
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -177,7 +179,7 @@ describe('Service: NodeBridgeDataProvider', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     bridgeService.getBridgeTransactionByHash.resolves(bridgeTransaction);
@@ -207,7 +209,7 @@ describe('Service: NodeBridgeDataProvider', () => {
       createdOn: new Date(),
       blockHeight: 1,
       to: bridge.address,
-      receipt: null
+      receipt: null,
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
@@ -217,7 +219,7 @@ describe('Service: NodeBridgeDataProvider', () => {
       height: 1,
       hash: blockHash,
       parentHash: '0x00001',
-      transactions: [transaction]
+      transactions: [transaction],
     };
 
     await thisService.process(rskBlock);
@@ -251,7 +253,7 @@ describe('Service: NodeBridgeDataProvider', () => {
       createdOn,
       blockHeight: 1,
       to: bridge.address,
-      receipt: null
+      receipt: null,
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
@@ -262,7 +264,7 @@ describe('Service: NodeBridgeDataProvider', () => {
       height: 1,
       hash: blockHash,
       parentHash: '0x00001',
-      transactions: [transaction]
+      transactions: [transaction],
     };
 
     const bridgeTransaction: Transaction = {
@@ -271,13 +273,13 @@ describe('Service: NodeBridgeDataProvider', () => {
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
-        arguments: getMockedLockPeginBtcMethodArgs()
+        arguments: getMockedLockPeginBtcMethodArgs(),
       },
       events: [{
         name: 'pegin_btc',
         signature: '0x44cdc782a38244afd68336ab92a0b39f864d6c0b2a50fa1da58cafc93cd2ae5a',
-        arguments: getMockedPeginBtcEventsArgs()
-      }]
+        arguments: getMockedPeginBtcEventsArgs(),
+      }],
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -287,7 +289,7 @@ describe('Service: NodeBridgeDataProvider', () => {
       blockNumber: bridgeTransaction.blockNumber,
       to: bridge.address,
       method: bridgeTransaction.method,
-      events: bridgeTransaction.events
+      events: bridgeTransaction.events,
     };
 
     bridgeService.getBridgeTransactionByHash.resolves(bridgeTransaction);
@@ -319,7 +321,7 @@ describe('Service: NodeBridgeDataProvider', () => {
       createdOn: new Date(),
       blockHeight: 1,
       to: '0x123',
-      receipt: null
+      receipt: null,
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
@@ -329,7 +331,7 @@ describe('Service: NodeBridgeDataProvider', () => {
       height: 1,
       hash: blockHash,
       parentHash: '0x00001',
-      transactions: [transaction]
+      transactions: [transaction],
     };
 
     await thisService.process(rskBlock);

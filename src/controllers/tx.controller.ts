@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {inject} from '@loopback/core';
 import {get, getModelSchemaRef} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
@@ -33,7 +34,7 @@ export class TxController {
       this.txService
         .txProvider(txId)
         .then(([tx]) => {
-          this.logger.trace(`[getTx] found tx!`);
+          this.logger.trace('[getTx] found tx!');
           return resolve(new Tx(tx));
         })
         .catch((reason) => {

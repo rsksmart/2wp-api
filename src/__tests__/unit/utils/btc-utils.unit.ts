@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import {expect} from '@loopback/testlab';
 import {BtcAddressUtils, calculateBtcTxHash} from '../../../utils/btc-utils';
 import {

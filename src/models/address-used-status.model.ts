@@ -6,17 +6,15 @@ export class AddressUsedStatus extends Model {
     type: 'string',
     required: true,
   })
-  address: string;
+    address: string;
 
   @property({
     type: 'boolean',
     required: true,
   })
-  unused: boolean;
-
+    unused: boolean;
 
   constructor(data?: Partial<AddressUsedStatus>) {
     super(data);
   }
 }
-

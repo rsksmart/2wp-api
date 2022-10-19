@@ -1,12 +1,18 @@
-import { BlockTransactionObject, Transaction, TransactionReceipt  } from 'web3-eth';
+import { BlockTransactionObject, Transaction, TransactionReceipt } from 'web3-eth';
 
 export class RskTransaction {
   hash: string;
+
   blockHash: string;
+
   blockHeight: number;
+
   data: string;
+
   createdOn: Date;
+
   to: string;
+
   receipt: TransactionReceipt | null;
 
   public static fromWeb3Transaction(web3Block: BlockTransactionObject, web3Tx: Transaction): RskTransaction {

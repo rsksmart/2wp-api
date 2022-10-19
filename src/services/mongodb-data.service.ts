@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable max-len */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import mongoose from 'mongoose';
@@ -9,12 +11,16 @@ import {GenericDataService} from './generic-data-service';
 
 export abstract class MongoDbDataService<Type extends SearchableModel, T> implements GenericDataService<Type> {
   mongoDbUri: string;
+
   logger: Logger;
+
   db: mongoose.Mongoose;
+
   mongoDbDataSource: MongoDbDataSource;
+
   constructor(
     @inject(DatasourcesBindings.MONGO_DB_DATASOURCE)
-    mongoDbDataSource: MongoDbDataSource
+      mongoDbDataSource: MongoDbDataSource,
   ) {
     this.mongoDbDataSource = mongoDbDataSource;
     this.logger = getLogger(this.getLoggerName());
@@ -45,7 +51,7 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
     return this.getConnector()
       .find(this.getManyFilter(query))
       .exec()
-      .then(result => result.map((r: any) => (<Type>r)));
+      .then((result) => result.map((r: any) => (<Type>r)));
   }
 
   set(data: Type): Promise<boolean> {

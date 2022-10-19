@@ -1,3 +1,4 @@
+/* eslint-disable no-else-return */
 import base58 from 'bs58';
 import {getLogger, Logger} from 'log4js';
 import {remove0x} from './hex-utils';
@@ -13,6 +14,7 @@ export const calculateBtcTxHash = (transaction: string) => {
   return bufferedHash.toString('hex');
 };
 
+// eslint-disable-next-line max-len
 export type AddressType = 'BITCOIN_LEGACY_ADDRESS' | 'BITCOIN_SEGWIT_ADDRESS' | 'BITCOIN_NATIVE_SEGWIT_ADDRESS' | 'BITCOIN_MULTISIGNATURE_ADDRESS';
 
 export class BtcAddressUtils {
@@ -25,38 +27,36 @@ export class BtcAddressUtils {
   public getRefundAddress(addressRefundInfo: string): string {
     let addressRefundData;
     let addressRefundType;
-    let address = "";
+    let address = '';
     try {
       addressRefundType = Number(addressRefundInfo.substring(0, 2));
       addressRefundData = addressRefundInfo.substring(2, 42);
 
-
-      if (addressRefundType == 1) { //P2PKH_ADDRESS_TYPE
+      if (addressRefundType === 1) { //P2PKH_ADDRESS_TYPE
         address = this.getAddress(addressRefundData, 'P2PKH');
-      } else if (addressRefundType == 2) { //P2SH_ADDRESS_TYPE
+      } else if (addressRefundType === 2) { //P2SH_ADDRESS_TYPE
         address = this.getAddress(addressRefundData, 'P2SH');
       } else {
         const errorMessage = `Wrong refund address type. Current type: ${addressRefundType}`;
         throw new Error(errorMessage);
       }
-    }
-    catch (error) {
-      this.logger.warn("Error parsing refund address", error.message);
+    } catch (error) {
+      this.logger.warn('Error parsing refund address', error.message);
     }
     return address;
   }
 
   private getNetPrefix(netName: string, type: string) {
-    if (netName == 'mainnet') {
-      if (type == 'P2PKH') {
+    if (netName === 'mainnet') {
+      if (type === 'P2PKH') {
         return '00';
-      } else if (type == 'P2SH') {
+      } else if (type === 'P2SH') {
         return '05';
       }
-    } else if (netName == 'testnet') {
-      if (type == 'P2PKH') {
+    } else if (netName === 'testnet') {
+      if (type === 'P2PKH') {
         return '6F';
-      } else if (type == 'P2SH') {
+      } else if (type === 'P2SH') {
         return 'C4';
       }
     }
@@ -64,8 +64,8 @@ export class BtcAddressUtils {
   }
 
   private getAddress(data: string, typeAddress: string): string {
-    if (data.length != 40) {
-      this.logger.warn("Wrong size for script getting BTC refund address");
+    if (data.length !== 40) {
+      this.logger.warn('Wrong size for script getting BTC refund address');
       return '';
     }
 
@@ -74,10 +74,9 @@ export class BtcAddressUtils {
       const prefix = this.getNetPrefix(network, typeAddress);
       const dataToReview = `${prefix}${data}`;
       const checksum = doubleSha256(dataToReview).substr(0, 8);
-      return base58.encode(Buffer.from(`${dataToReview}${checksum}`, 'hex'))
-    }
-    catch (error) {
-      this.logger.warn("Error getting BTC refund address");
+      return base58.encode(Buffer.from(`${dataToReview}${checksum}`, 'hex'));
+    } catch (error) {
+      this.logger.warn('Error getting BTC refund address');
     }
     return '';
   }

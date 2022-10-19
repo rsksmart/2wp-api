@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {connect as connectToMongo, Mongoose} from 'mongoose';
@@ -5,8 +6,11 @@ import {ConstantsBindings} from '../dependency-injection-bindings';
 
 export class MongoDbDataSource {
   mongoDbUri: string;
+
   mongoose: Mongoose;
+
   logger: Logger;
+
   constructor(
     @inject(ConstantsBindings.MONGO_DB_USER)
       mongoDbUser: string,
@@ -19,7 +23,7 @@ export class MongoDbDataSource {
     @inject(ConstantsBindings.MONGO_DB_DATABASE)
       mongoDbDatabase: string,
     @inject(ConstantsBindings.MONGO_DB_AUTH_SOURCE)
-      mongoDbAuthSource: string
+      mongoDbAuthSource: string,
   ) {
     this.mongoDbUri = `mongodb://${encodeURIComponent(mongoDbUser)}:${encodeURIComponent(mongoDbPassword)}@${mongoDbHost}:${mongoDbPort}/${mongoDbDatabase}?authSource=${mongoDbAuthSource}`;
     this.logger = getLogger('MongoDb');
@@ -40,17 +44,17 @@ export class MongoDbDataSource {
           this.mongoose = connection;
           this.logger.trace('Connected to mongodb');
         },
-        err => {
+        (err) => {
           this.logger.error('There was an error connecting to mongodb', err);
           throw err;
-        }
+        },
       );
   }
 
   disconnect(): Promise<void> {
     const p = Promise.resolve();
-    if (this.mongoose &&
-      this.mongoose.STATES[this.mongoose.connection.readyState] != this.mongoose.STATES.disconnected.toString()) {
+    if (this.mongoose
+      && this.mongoose.STATES[this.mongoose.connection.readyState] !== this.mongoose.STATES.disconnected.toString()) {
       p.then(() => this.mongoose.disconnect());
       p.then(() => {
         this.logger.trace('Disconnected from mongodb');
