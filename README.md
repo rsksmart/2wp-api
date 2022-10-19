@@ -47,6 +47,10 @@ docker-compose up -d
 
 For some reason passing `--env-file` argument to docker-compose doesn't seem to be working fine. That's why we need to copy the `.env` file here too.
 
+## Environment Variables
+
+To verify all environment variables, please click [here](./ENV_VARIABLES.md) for environment variables details.
+
 ## Using npm to run the application
 If you want to start the API alongside the daemon run:
 ```sh
@@ -77,7 +81,7 @@ To automatically fix such issues:
 npm run lint:fix
 
 ```
-## Depĺoyment
+## Deployment
 In the root directory run:
 ```shell
 docker-compose up

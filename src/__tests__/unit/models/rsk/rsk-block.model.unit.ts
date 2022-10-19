@@ -37,7 +37,6 @@ describe('Model: RskBlock', () => {
         expect(rskBlock.transactions[0].createdOn.getTime()).to.equal(new Date(Number(web3Block.timestamp) * 1000).getTime());
         expect(rskBlock.transactions[0].data).to.equal(input);
         expect(rskBlock.transactions[0].hash).to.equal(transactionHash);
-        expect(rskBlock.transactions[0].logs).to.be.empty();
 
     });
 

@@ -7,7 +7,7 @@ import {PeginTxController} from '../../controllers';
 import {config} from 'dotenv';
 import {sinon} from '@loopback/testlab/dist/sinon';
 import * as constants from '../../constants';
-import {CreatePeginTxData, NormalizedTx, TxInput, TxOutput} from '../../models';
+import {CreatePeginTxData, InputPerFee, NormalizedTx, TxInput, TxOutput} from '../../models';
 import {BridgeService} from '../../services';
 
 config();
@@ -34,7 +34,47 @@ describe('Pegin Tx controller', () => {
       amount: 20000,
     })
   ];
+  const inputs2 = [
+    new TxInput({
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      address_n: [0],
+      address: 'address1',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      prev_hash: 'txId1',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      prev_index: 0,
+      amount: 100000,
+    }),
+    new TxInput({
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      address_n: [0],
+      address: 'address2',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      prev_hash: 'txId2',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      prev_index: 0,
+      amount: 200000,
+    })
+  ];
+  const inputsPerFee = new InputPerFee({
+    fast: inputs,
+    average: inputs,
+    slow: inputs,
+  });
+  const inputsPerFee2 = new InputPerFee({
+    fast: inputs2,
+    average: inputs2,
+    slow: inputs2,
+  });
+  const env = process.env;
   beforeEach(resetRepositories);
+  const setDustEnv = (dustValue: string) => {
+    process.env.BURN_DUST_VALUE = dustValue;
+  }
+  const resetEnv = () => {
+    process.env = env;
+  }
+  after(resetEnv);
 
   function resetRepositories() {
     sessionRepository = createStubInstance(SessionRepository);
@@ -43,7 +83,7 @@ describe('Pegin Tx controller', () => {
     peginTxController = new PeginTxController(sessionRepository)
   }
   it('Should create a pegin Tx', () => {
-    getAccountInputs.withArgs(sessionId).resolves(inputs);
+    getAccountInputs.withArgs(sessionId).resolves(inputsPerFee);
     getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(2590);
     const request = new CreatePeginTxData({
       amountToTransferInSatoshi: 11000,
@@ -74,7 +114,7 @@ describe('Pegin Tx controller', () => {
       })));
   });
   it('should reject the creation if there is no selected inputs for this sessionId', () => {
-    getAccountInputs.withArgs(sessionId).resolves([]);
+    getAccountInputs.withArgs(sessionId).resolves({fast: [], average: [], slow: []});
     getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(2590);
     const request = new CreatePeginTxData({
       amountToTransferInSatoshi: 11000,
@@ -89,7 +129,7 @@ describe('Pegin Tx controller', () => {
   });
   it('should reject the creation if the refundAddress are invalid (bech32)', () => {
     const refundAddress = 'tb1qkfcu7q7q6y7xmfe5glp9amsm45x0um59rwwmsmsmd355g32';
-    getAccountInputs.withArgs(sessionId).resolves(inputs);
+    getAccountInputs.withArgs(sessionId).resolves(inputsPerFee);
     getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(2590);
     const request = new CreatePeginTxData({
       amountToTransferInSatoshi: 11000,
@@ -103,7 +143,7 @@ describe('Pegin Tx controller', () => {
       .to.be.rejectedWith(`Invalid Refund Address provided ${refundAddress} for network testnet`);
   });
   it('should reject the creation if the required amount + fee is no satisfied with the selected inputs', () => {
-    getAccountInputs.withArgs(sessionId).resolves(inputs);
+    getAccountInputs.withArgs(sessionId).resolves(inputsPerFee);
     getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(550);
     const request = new CreatePeginTxData({
       amountToTransferInSatoshi: 29500,
@@ -117,7 +157,7 @@ describe('Pegin Tx controller', () => {
       .to.be.rejectedWith(`The stored input list has not enough amount`);
   });
   it('should create a transaction without change output if it spends all balance', () => {
-    getAccountInputs.withArgs(sessionId).resolves(inputs);
+    getAccountInputs.withArgs(sessionId).resolves(inputsPerFee);
     getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(500);
     const request = new CreatePeginTxData({
       amountToTransferInSatoshi: 29500,
@@ -142,5 +182,64 @@ describe('Pegin Tx controller', () => {
           }),
         ]
       })));
+  });
+  it('should create a transaction without burn dust value higher than 30000 Sats', () => {
+    setDustEnv('40000');
+    getAccountInputs.withArgs(sessionId).resolves(inputsPerFee2);
+    getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(500);
+    const requestWithoutBurnDust = new CreatePeginTxData({
+      amountToTransferInSatoshi: 269499,
+      refundAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
+      changeAddress: 'changeAddress',
+      recipient: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
+      sessionId,
+      feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
+    });
+    const requestWithBurnDust = new CreatePeginTxData({
+      amountToTransferInSatoshi: 269500,
+      refundAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
+      changeAddress: 'changeAddress',
+      recipient: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
+      sessionId,
+      feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
+    });
+    return Promise.all([peginTxController.create(requestWithoutBurnDust), new BridgeService().getFederationAddress()])
+        .then(([normalizedTx, federationAddress]) => expect(normalizedTx).to.be.eql(new NormalizedTx({
+          inputs: inputs2,
+          outputs: [
+            new TxOutput({
+              amount: '0',
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              script_type: 'PAYTOOPRETURN',
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              op_return_data: '52534b54010x90F8bf6A479f320ead074411a4B0e7944Ea8c9C102ce552812b37e64d8f66f919d0e4222d4244ebe3a',
+            }),
+            new TxOutput({
+              amount: '269499',
+              address: federationAddress.toString(),
+            }),
+            new TxOutput({
+              amount: '30001',
+              address: 'changeAddress',
+            }),
+          ]
+        })))
+        .then(() => Promise.all([peginTxController.create(requestWithBurnDust), new BridgeService().getFederationAddress()]))
+        .then(([normalizedTx, federationAddress]) => expect(normalizedTx).to.be.eql(new NormalizedTx({
+          inputs: inputs2,
+          outputs: [
+            new TxOutput({
+              amount: '0',
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              script_type: 'PAYTOOPRETURN',
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              op_return_data: '52534b54010x90F8bf6A479f320ead074411a4B0e7944Ea8c9C102ce552812b37e64d8f66f919d0e4222d4244ebe3a',
+            }),
+            new TxOutput({
+              amount: '269500',
+              address: federationAddress.toString(),
+            }),
+          ]
+        })))
   });
 });

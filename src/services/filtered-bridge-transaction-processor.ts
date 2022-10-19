@@ -1,7 +1,7 @@
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
-import {RskTransaction} from '../models/rsk/rsk-transaction.model';
+import ExtendedBridgeTx from './extended-bridge-tx';
 
 export default interface FilteredBridgeTransactionProcessor {
-    process(transaction: RskTransaction): Promise<void>;
+    process(transaction: ExtendedBridgeTx): Promise<void>;
     getFilters(): BridgeDataFilterModel[];
 }

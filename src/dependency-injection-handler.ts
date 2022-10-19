@@ -3,15 +3,16 @@ import {TxV2ProviderDataSource} from './datasources';
 import {MongoDbDataSource} from './datasources/mongodb.datasource';
 import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from './dependency-injection-bindings';
 import {RskBlock} from './models/rsk/rsk-block.model';
-import {BitcoinService, BridgeService, PeginStatusService} from './services';
+import {BitcoinService, BridgeService, PeginStatusService, PegoutStatusService, UnusedAddressService} from './services';
 import {DaemonService} from './services/daemon.service';
 import {NodeBridgeDataProvider} from './services/node-bridge-data.provider';
 import {PeginStatusMongoDbDataService} from './services/pegin-status-data-services/pegin-status-mongo.service';
+import {PegoutStatusMongoDbDataService} from './services/pegout-status-data-services/pegout-status-mongo.service';
 import {PeginDataProcessor} from './services/pegin-data.processor';
 import {RskChainSyncService} from './services/rsk-chain-sync.service';
 import {RskNodeService} from './services/rsk-node.service';
 import {SyncStatusMongoService} from './services/sync-status-mongo.service';
-import {UnusedAddressService} from './services/unused-address.service';
+import { PegoutDataProcessor } from './services/pegout-data.processor';
 
 export class DependencyInjectionHandler {
   public static configureDependencies(app: Application): void {
@@ -86,6 +87,11 @@ export class DependencyInjectionHandler {
       .toClass(PeginStatusMongoDbDataService)
       .inScope(BindingScope.SINGLETON);
 
+      app
+      .bind(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
+      .toClass(PegoutStatusMongoDbDataService)
+      .inScope(BindingScope.SINGLETON);
+
     app
       .bind(ServicesBindings.PEGIN_STATUS_SERVICE)
       .toClass(PeginStatusService)
@@ -106,6 +112,11 @@ export class DependencyInjectionHandler {
       .toClass(PeginDataProcessor)
       .inScope(BindingScope.SINGLETON);
 
+      app
+      .bind(ServicesBindings.PEGOUT_DATA_PROCESSOR)
+      .toClass(PegoutDataProcessor)
+      .inScope(BindingScope.SINGLETON);
+
     app
       .bind(ServicesBindings.DAEMON_SERVICE)
       .toClass(DaemonService)
@@ -121,10 +132,15 @@ export class DependencyInjectionHandler {
       .toClass(UnusedAddressService)
       .inScope(BindingScope.SINGLETON);
 
-      app
+    app
       .bind(ServicesBindings.RSK_BLOCK_PROCESSOR_PUBLISHER)
       .toClass(NodeBridgeDataProvider)
       .inScope(BindingScope.SINGLETON);
+
+    app
+        .bind(ServicesBindings.PEGOUT_STATUS_SERVICE)
+        .toClass(PegoutStatusService)
+        .inScope(BindingScope.SINGLETON);
 
   }
 }

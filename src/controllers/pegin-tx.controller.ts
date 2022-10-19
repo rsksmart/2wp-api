@@ -2,6 +2,7 @@ import {repository} from '@loopback/repository';
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
 import {config} from 'dotenv';
 import {getLogger, Logger} from 'log4js';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
 import {CreatePeginTxData, NormalizedTx, TxInput, TxOutput} from '../models';
@@ -49,7 +50,7 @@ export class PeginTxController {
       const validAddress = addressInfo
         ? peginAddressVerifier.canPegIn(addressInfo)
         : false;
-      if (!validAddress)
+      if (createPeginTxData.refundAddress && !validAddress)
         reject(
           new Error(`Invalid Refund Address provided ${createPeginTxData.refundAddress} for network ${network}`),
         );
@@ -62,9 +63,10 @@ export class PeginTxController {
         bridgeService.getFederationAddress(),
       ])
         .then(([inputs, fee, federationAddress]) => {
-          if (!inputs.length) reject(new Error(`There are no inputs selected for this sessionId ${createPeginTxData.sessionId}`))
+          if (!inputs.fast.length) reject(new Error(`There are no inputs selected for this sessionId ${createPeginTxData.sessionId}`));
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
-          const inputsAmount = inputs.reduce((acc, curr) => ({amount: acc.amount + curr.amount}));
+          const inputsAmount = inputs.fast.reduce((acc, curr) => ({amount: acc.amount + curr.amount}));
           if (inputsAmount.amount - (createPeginTxData.amountToTransferInSatoshi + fee) < 0) {
             return reject(new Error('The stored input list has not enough amount'));
           }
@@ -81,19 +83,19 @@ export class PeginTxController {
             ),
           );
           const changeOutput: TxOutput = this.getChangeOutput(
-            inputs,
+            inputs.fast,
             createPeginTxData.changeAddress,
             createPeginTxData.amountToTransferInSatoshi,
             fee,
             );
-          const burnDustValue = Number(process.env.BURN_DUST_VALUE) ?? 2000;
+          const burnDustValue = Math.min(Number(process.env.BURN_DUST_VALUE ?? 2000), 30000);
           if (Number(changeOutput.amount) > burnDustValue ) {
             outputs.push(changeOutput);
           }
           this.logger.trace('[create] Created pegin successfully!');
           resolve(
             new NormalizedTx({
-              inputs,
+              inputs: inputs.fast,
               outputs,
             }),
           );
@@ -108,19 +110,23 @@ export class PeginTxController {
   getRSKOutput(recipient: string, refundAddress: string): TxOutput {
     const output: TxOutput = new TxOutput({
       amount: '0',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       script_type: 'PAYTOOPRETURN',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       op_return_data: '52534b5401',
     });
     output.op_return_data += recipient;
-    const addressInfo =
-      peginAddressVerifier.getAddressInformation(refundAddress);
-    switch (addressInfo.type) {
-      case 'p2pkh':
-        output.op_return_data += `01${addressInfo.scriptPubKey}`;
-        break;
-      case 'p2sh':
-        output.op_return_data += `02${addressInfo.scriptHash}`;
-        break;
+    if (refundAddress) {
+      const addressInfo =
+          peginAddressVerifier.getAddressInformation(refundAddress);
+      switch (addressInfo.type) {
+        case 'p2pkh':
+          output.op_return_data += `01${addressInfo.scriptPubKey}`;
+          break;
+        case 'p2sh':
+          output.op_return_data += `02${addressInfo.scriptHash}`;
+          break;
+      }
     }
     return output;
   }

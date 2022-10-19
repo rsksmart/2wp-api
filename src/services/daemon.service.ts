@@ -5,6 +5,7 @@ import {RskBlock} from '../models/rsk/rsk-block.model';
 import {getMetricLogger} from '../utils/metric-logger';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {PeginDataProcessor} from './pegin-data.processor';
+import {PegoutDataProcessor} from './pegout-data.processor';
 import {RskChainSyncService} from './rsk-chain-sync.service';
 import RskBlockProcessorPublisher from './rsk-block-processor-publisher';
 
@@ -12,6 +13,7 @@ export class DaemonService implements iDaemonService {
   peginStatusStorageService: PeginStatusDataService;
   syncService: RskChainSyncService;
   peginDataProcessor: PeginDataProcessor;
+  pegoutDataProcessor: PegoutDataProcessor;
   rskBlockProcessorPublisher: RskBlockProcessorPublisher
 
   dataFetchInterval: NodeJS.Timer;
@@ -31,11 +33,14 @@ export class DaemonService implements iDaemonService {
     @inject(ConstantsBindings.SYNC_INTERVAL_TIME)
     syncIntervalTime: string | undefined,
     @inject(ServicesBindings.PEGIN_DATA_PROCESSOR)
-    peginDataProcessor: PeginDataProcessor
+    peginDataProcessor: PeginDataProcessor,
+    @inject(ServicesBindings.PEGOUT_DATA_PROCESSOR)
+    pegoutDataProcessor: PegoutDataProcessor
   ) {
     this.peginStatusStorageService = peginStatusStorageService;
     this.syncService = syncService;
     this.peginDataProcessor = peginDataProcessor;
+    this.pegoutDataProcessor = pegoutDataProcessor;
     this.rskBlockProcessorPublisher = rskBlockProcessorPublisher;
     this.started = false;
     this.logger = getLogger('daemon-service');
@@ -53,6 +58,7 @@ export class DaemonService implements iDaemonService {
   private async handleDeleteBlock(block: RskBlock): Promise<void> {
     try {
       await this.peginStatusStorageService.deleteByRskBlockHeight(block.height);
+      await this.pegoutDataProcessor.deleteByRskBlockHeight(block.height);
     } catch (e) {
       this.logger.warn('There was a problem handling the deleted block', e);
     }
@@ -98,6 +104,7 @@ export class DaemonService implements iDaemonService {
     });
 
     this.rskBlockProcessorPublisher.addSubscriber(this.peginDataProcessor);
+    this.rskBlockProcessorPublisher.addSubscriber(this.pegoutDataProcessor);
 
     this.logger.debug('Started');
     this.started = true;

@@ -1,30 +1,42 @@
 import {Model, model, property} from '@loopback/repository';
 
 @model()
-export class FeeAmountData extends Model {
+export class Fee extends Model {
   @property({
     type: 'number',
     required: true,
   })
-  slow: number;
-
-  @property({
-    type: 'number',
-    required: true,
-  })
-  average: number;
-
-  @property({
-    type: 'number',
-    required: true,
-  })
-  fast: number;
+  amount: number;
 
   @property({
     type: 'boolean',
     required: true,
   })
-  wereInputsStored: boolean;
+  enoughBalance: boolean;
+  constructor(data?: Partial<Fee>) {
+    super(data);
+  }
+}
+
+@model()
+export class FeeAmountData extends Model {
+  @property({
+    type: 'Object',
+    required: true,
+  })
+  slow: Fee;
+
+  @property({
+    type: 'Object',
+    required: true,
+  })
+  average: Fee;
+
+  @property({
+    type: 'Object',
+    required: true,
+  })
+  fast: Fee;
 
   constructor(data?: Partial<FeeAmountData>) {
     super(data);
