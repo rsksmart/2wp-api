@@ -321,7 +321,7 @@ describe('tx Fee controller', () => {
         amount: totalBytes.mul(minFastFee).toNumber(),
         enoughBalance: false,
       }),
-    }))).to.be.true();
+    }))).to.be.false();
   });
   it('Should ensure the change output has a higher value than dust environment variable ', async () => {
     const dustValue = process.env.BURN_DUST_VALUE ?? 2000;
@@ -380,7 +380,7 @@ describe('tx Fee controller', () => {
         amount: totalBytes.mul(minFastFee).toNumber(),
         enoughBalance: false,
       }),
-    }))).to.be.true();
+    }))).to.be.false();
     expect(changeAmount >= dustValue).to.be.true();
   });
 });
