@@ -43,5 +43,4 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           recreate: true
-           message: |
-                    Tests in ${{ github.sha }} ended successfully.
+           message: ```Tests in ${{ github.sha }} ended successfully.```
