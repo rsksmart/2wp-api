@@ -57,7 +57,7 @@
     "@loopback/core": "^2.13.1",
     "@loopback/repository": "^3.3.0",
     "@loopback/rest": "^9.1.1",
-    "@loopback/rest-explorer": "^3.0.5",
+    "@loopback/rest-explorer": "^5.0.4",
     "@loopback/service-proxy": "^3.0.5",
     "@rsksmart/rsk-precompiled-abis": "https://github.com/rsksmart/precompiled-abis",
     "@types/mongoose": "^5.11.97",
