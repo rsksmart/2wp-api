@@ -142,7 +142,7 @@ describe('Pegin Tx controller', () => {
       feeLevel: constants.BITCOIN_FAST_FEE_LEVEL,
     });
     return expect(peginTxController.create(request))
-      .to.be.rejectedWith(`Invalid Refund Address provided ${refundAddress} for network testnet`);
+      .to.be.rejected();
   });
   it('should reject the creation if the required amount + fee is no satisfied with the selected inputs', () => {
     getAccountInputs.withArgs(sessionId).resolves(inputsPerFee);
