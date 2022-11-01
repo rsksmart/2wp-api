@@ -23,7 +23,6 @@ jobs:
         run: |
           npm ci
           npm run eslint
-          npm run unit-test
           npm run coverage
 
       - name: Code Coverage Report
