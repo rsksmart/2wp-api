@@ -19,13 +19,7 @@ export class UnusedAddressService {
     this.logger = getLogger('unused-address');
   }
 
-  public isUnusedAddresses(addresses: string[]): Promise<UnusedAddressResponse> {
-    this.logger.debug("[isUnusedAddresses] starting to analyse addresses");
-    const response: UnusedAddressResponse =  new UnusedAddressResponse({ data: [] });
-    const addressInfoPromises = [];
-    for (const address of addresses) {
-       addressInfoPromises.push(this.bitcoinService.getAddressInfo(address));
-       public async isUnusedAddresses(addresses: string[]): Promise<UnusedAddressResponse> {
+  public async isUnusedAddresses(addresses: string[]): Promise<UnusedAddressResponse> {
         this.logger.debug("[isUnusedAddresses] starting to analyse addresses");
         const response: UnusedAddressResponse =  new UnusedAddressResponse({ data: [] });
         const addressInfoPromises = [];
