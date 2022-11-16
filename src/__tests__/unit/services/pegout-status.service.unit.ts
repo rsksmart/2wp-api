@@ -7,7 +7,6 @@ import {
     PegoutStatusAppDataModel,
 } from "../../../models/rsk/pegout-status-data-model";
 import { RskNodeService } from '../../../services/rsk-node.service';
-import { PegoutDataProcessor } from '../../../services/pegout-data.processor';
 
 describe('Pegout Status Service:', () => {
     let pegoutStatusService: PegoutStatusService;
@@ -47,6 +46,8 @@ describe('Pegout Status Service:', () => {
                 originatingRskTxHash: 'RskTestTxId',
                 rskBlockHeight: 3158962,
                 lastUpdatedOn: Date.now(),
+                federationSignatures: ['fed1'],
+                federationTotalSignaturesRequired: 1,
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
         const expectedResponse = new PegoutStatusAppDataModel({
@@ -59,6 +60,8 @@ describe('Pegout Status Service:', () => {
             feeInSatoshisToBePaid: 5000,
             status: PegoutStatus.RECEIVED,
             btcRawTransaction: 'testBtcRawTx',
+            federationSignatures: ['fed1'],
+            federationTotalSignaturesRequired: 1,
         });
         expect(pegoutStatus).to.be.deepEqual(expectedResponse);
     });
@@ -77,6 +80,8 @@ describe('Pegout Status Service:', () => {
                 originatingRskTxHash: 'RskTestTxId',
                 rskBlockHeight: 3158962,
                 lastUpdatedOn: Date.now(),
+                federationSignatures: ['fed1'],
+                federationTotalSignaturesRequired: 1,
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
         const expectedResponse = new PegoutStatusAppDataModel({
@@ -99,6 +104,8 @@ describe('Pegout Status Service:', () => {
                 originatingRskTxHash: 'RskTestTxId',
                 rskBlockHeight: 3158962,
                 lastUpdatedOn: Date.now(),
+                federationSignatures: ['fed1'],
+                federationTotalSignaturesRequired: 1,
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
         const expectedResponse = new PegoutStatusAppDataModel({
@@ -111,6 +118,8 @@ describe('Pegout Status Service:', () => {
             feeInSatoshisToBePaid: 5000,
             status: PegoutStatus.WAITING_FOR_CONFIRMATION,
             btcRawTransaction: 'testBtcRawTx',
+            federationSignatures: ['fed1'],
+            federationTotalSignaturesRequired: 1,
         });
         expect(pegoutStatus).to.be.deepEqual(expectedResponse);
     });
@@ -129,6 +138,8 @@ describe('Pegout Status Service:', () => {
                 originatingRskTxHash: 'RskTestTxId',
                 rskBlockHeight: 3158962,
                 lastUpdatedOn: Date.now(),
+                federationSignatures: ['fed1'],
+                federationTotalSignaturesRequired: 1,
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
         const expectedResponse = new PegoutStatusAppDataModel({
@@ -141,6 +152,8 @@ describe('Pegout Status Service:', () => {
             feeInSatoshisToBePaid: 5000,
             status: PegoutStatus.WAITING_FOR_SIGNATURE,
             btcRawTransaction: 'testBtcRawTx',
+            federationSignatures: ['fed1'],
+            federationTotalSignaturesRequired: 1,
         });
         expect(pegoutStatus).to.be.deepEqual(expectedResponse);
     });
@@ -159,6 +172,8 @@ describe('Pegout Status Service:', () => {
                 originatingRskTxHash: 'RskTestTxId',
                 rskBlockHeight: 3158962,
                 lastUpdatedOn: Date.now(),
+                federationSignatures: ['fed1'],
+                federationTotalSignaturesRequired: 1,
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
         const expectedResponse = new PegoutStatusAppDataModel({
@@ -171,6 +186,8 @@ describe('Pegout Status Service:', () => {
             feeInSatoshisToBePaid: 5000,
             status: PegoutStatus.SIGNED,
             btcRawTransaction: 'testBtcRawTx',
+            federationSignatures: ['fed1'],
+            federationTotalSignaturesRequired: 1,
         });
         expect(pegoutStatus).to.be.deepEqual(expectedResponse);
     });

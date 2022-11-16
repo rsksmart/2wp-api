@@ -28,6 +28,8 @@ const PegoutStatusSchema = new mongoose.Schema({
   btcRawTxInputsHash: {type: String},
   batchPegoutIndex: {type: String},
   batchPegoutRskTxHash: {type: Number},
+  federationTotalSignaturesRequired: {type: Number, required: false},
+  federationSignatures: [{ type: String, required: false}],
 });
 
 const PegoutStatusConnector = mongoose.model<PegoutStatusMongoModel>("PegoutStatus", PegoutStatusSchema);

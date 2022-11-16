@@ -21,6 +21,8 @@ export interface PegoutStatusDataModel {
   feeInSatoshisToBePaid: number;
   status: PegoutStatus;
   btcRawTransaction: string;
+  federationTotalSignaturesRequired: number;
+  federationSignatures: string[];
 }
 
 export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
@@ -39,6 +41,8 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
       feeInSatoshisToBePaid,
       status,
       btcRawTransaction,
+      federationTotalSignaturesRequired,
+      federationSignatures,
     } = model;
     return new PegoutStatusAppDataModel({
       originatingRskTxHash,
@@ -50,6 +54,8 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
       feeInSatoshisToBePaid,
       status,
       btcRawTransaction,
+      federationTotalSignaturesRequired,
+      federationSignatures,
     });
   }
   rskTxHash: string;
@@ -62,6 +68,8 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
   btcRawTransaction: string;
   originatingRskTxHash: string;
   createdOn: Date;
+  federationTotalSignaturesRequired: number;
+  federationSignatures: string[];
 }
 
 export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDataModel {
@@ -85,6 +93,8 @@ export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDat
   btcRawTxInputsHash: string;
   batchPegoutIndex: number;
   batchPegoutRskTxHash: string;
+  federationTotalSignaturesRequired: number;
+  federationSignatures: string[];
 
   getId() {
     return this.rskTxHash;
@@ -112,6 +122,8 @@ export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDat
     pegoutStatusInstance.feeInSatoshisToBePaid = pegoutStatus.feeInSatoshisToBePaid;
     pegoutStatusInstance.originatingRskBlockHash = pegoutStatus.originatingRskBlockHash;
     pegoutStatusInstance.rskBlockHash = pegoutStatus.rskBlockHash;
+    pegoutStatusInstance.federationTotalSignaturesRequired = pegoutStatus.federationTotalSignaturesRequired;
+    pegoutStatusInstance.federationSignatures = pegoutStatus.federationSignatures;
     return pegoutStatusInstance;
   }
 
