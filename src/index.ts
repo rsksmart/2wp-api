@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-shadow */
+/* eslint-disable eqeqeq */
+/* eslint-disable @typescript-eslint/naming-convention */
 import {config} from 'dotenv';
 import {configure, getLogger} from 'log4js';
 import {ApplicationConfig, TwpapiApplication} from './application';

@@ -1,13 +1,13 @@
 import {get, getModelSchemaRef} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
 import {ApiInformation} from '../models';
+
 const packageJson = require('../../package.json');
 
 export class ApiInformationController {
   logger: Logger;
 
-  constructor(
-  ) {
+  constructor() {
     this.logger = getLogger('api-information-controller');
   }
 
