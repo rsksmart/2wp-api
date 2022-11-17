@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-floating-promises */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {ConstantsBindings, ServicesBindings} from '../dependency-injection-bindings';
@@ -164,7 +165,7 @@ export class RskChainSyncService {
 
   public unsubscribe(subscriber: RskChainSyncSubscriber): void {
     const idx = this.subscribers.findIndex((s) => s === subscriber);
-    if (idx != -1) {
+    if (idx !== -1) {
       this.subscribers.splice(idx, 1);
     }
   }
