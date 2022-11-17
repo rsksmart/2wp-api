@@ -22,8 +22,9 @@ jobs:
       - name: Build & test project
         run: |
           npm ci
+          npm run unit-test
           npm run eslint
-          npm run coverage
+          npm run only-cobertura
 
       - name: Code Coverage Report
         uses: irongut/CodeCoverageSummary@v1.3.0
