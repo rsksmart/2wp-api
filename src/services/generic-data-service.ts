@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {SearchableModel} from '../models/rsk/searchable-model';
 
 export interface GenericDataService<Type extends SearchableModel> {

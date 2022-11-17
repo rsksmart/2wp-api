@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { getBridgeTransactionByTxHash, Transaction } from 'bridge-transaction-parser';
 import Web3 from 'web3';
 import { BlockTransactionObject } from 'web3-eth';
