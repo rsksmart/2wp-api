@@ -1,4 +1,3 @@
-import { BridgeEvent } from 'bridge-transaction-parser';
 import ExtendedBridgeTx from '../extended-bridge-tx';
 import { PegoutStatus, PegoutStatusDbDataModel } from '../../models/rsk/pegout-status-data-model';
 import { BRIDGE_EVENTS } from '../../utils/bridge-utils';

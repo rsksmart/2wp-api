@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-shadow */
+/* eslint-disable @typescript-eslint/return-await */
+/* eslint-disable @typescript-eslint/no-floating-promises */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
@@ -43,42 +47,45 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   async process(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
-    this.logger.debug(`[process] Got tx ${extendedBridgeTx.txHash}`);
+    try {
+      this.logger.debug(`[process] Got tx ${extendedBridgeTx.txHash}`);
 
-    const events: BridgeEvent[] = extendedBridgeTx.events;
+      const events: BridgeEvent[] = extendedBridgeTx.events;
 
-    if(this.hasReleaseBtcEvent(events)) {
-      this.logger.trace('[process] found a release_btc event. Processing...');
-      return await this.processSignedStatus(extendedBridgeTx);
+      if(this.hasReleaseBtcEvent(events)) {
+        this.logger.trace('[process] found a release_btc event. Processing...');
+        return await this.processSignedStatus(extendedBridgeTx);
+      }
+
+      if(this.hasBatchPegoutEvent(events)) {
+        this.logger.trace('[process] found a batch_pegout_created event. Processing...');
+        return await this.processBatchPegouts(extendedBridgeTx);
+      }
+
+      if(this.hasReleaseRequestedEvent(events)) {
+        this.logger.trace('[process] found a release_requested event. Processing...');
+        return await this.processWaitingForConfirmationStatus(extendedBridgeTx);
+      }
+
+      if(this.hasReleaseRequestReceivedEvent(events)) {
+        this.logger.trace('[process] found a release_request_received event. Processing...');
+        return await this.processReleaseRequestReceivedStatus(extendedBridgeTx);
+      }
+
+      if(this.hasReleaseRequestRejectedEvent(events)) {
+        this.logger.trace('[process] found a release_request_rejected event. Processing...');
+        return await this.processReleaseRequestRejectedStatus(extendedBridgeTx);
+      }
+
+      if(this.hasUpdateCollectionsEvent(events)) {
+        this.logger.trace('[process] Processing waiting for signature using the update collections event.');
+        return await this.processWaitingForSignaturesStatus(extendedBridgeTx);
+      }
+
+      this.logger.warn('[process] other statuses processing not yet implemented.');
+    } catch (e) {
+      this.logger.error(`[process] error processing pegout: ${e}`);
     }
-
-    if(this.hasBatchPegoutEvent(events)) {
-      this.logger.trace('[process] found a batch_pegout_created event. Processing...');
-      return await this.processBatchPegouts(extendedBridgeTx);
-    }
-
-    if(this.hasReleaseRequestedEvent(events)) {
-      this.logger.trace('[process] found a release_requested event. Processing...');
-      return await this.processWaitingForConfirmationStatus(extendedBridgeTx);
-    }
-
-    if(this.hasReleaseRequestReceivedEvent(events)) {
-      this.logger.trace('[process] found a release_request_received event. Processing...');
-      return await this.processReleaseRequestReceivedStatus(extendedBridgeTx);
-    }
-
-    if(this.hasReleaseRequestRejectedEvent(events)) {
-      this.logger.trace('[process] found a release_request_rejected event. Processing...');
-      return await this.processReleaseRequestRejectedStatus(extendedBridgeTx);
-    }
-
-    if(this.hasUpdateCollectionsEvent(events)) {
-      this.logger.trace('[process] Processing waiting for signature using the update collections event.');
-      return await this.processWaitingForSignaturesStatus(extendedBridgeTx);
-    }
-
-    this.logger.warn('[process] other statuses processing not yet implemented.');
-
   }
 
   private hasReleaseRequestReceivedEvent(events: BridgeEvent[]): boolean {

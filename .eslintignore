@@ -2,3 +2,9 @@ node_modules/
 dist/
 coverage/
 .eslintrc.js
+__tests__/
+src/datasources/
+src/models/
+src/repositories/
+src/utils/
+src/controllers/
