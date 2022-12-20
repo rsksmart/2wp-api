@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import {Application, BindingScope} from '@loopback/core';
 import {TxV2ProviderDataSource} from './datasources';
 import {MongoDbDataSource} from './datasources/mongodb.datasource';
