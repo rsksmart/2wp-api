@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {getLogger, Logger} from 'log4js';
 import mongoose from 'mongoose';
 import {SyncStatusModel} from '../models/rsk/sync-status.model';
