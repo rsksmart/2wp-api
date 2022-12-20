@@ -34,7 +34,6 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
       this.logger.trace(`Found a bridge tx ${transaction.hash} with signature ${transaction.data.substring(0, 10)}`);
       const bridgeTx = await this.bridgeService.getBridgeTransactionByHash(transaction.hash);
       for(const subscriber of this.subscribers) {
-        // eslint-disable-next-line @typescript-eslint/await-thenable
         const filters = await subscriber.getFilters();
         if (filters.length === 0 || filters.some(f => f.isMethodCall(transaction.data))) {
           this.logger.debug(`[process] Tx ${transaction.hash} matches filters`);

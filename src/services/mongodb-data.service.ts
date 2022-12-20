@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-floating-promises */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import mongoose from 'mongoose';

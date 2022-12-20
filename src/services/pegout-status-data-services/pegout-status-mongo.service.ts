@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import mongoose from 'mongoose';
 import {PegoutStatus, PegoutStatusDbDataModel} from '../../models/rsk/pegout-status-data-model';
 import {MongoDbDataService} from '../mongodb-data.service';
