@@ -38,7 +38,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.UPDATE_COLLECTIONS)),
       new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.ADD_SIGNATURE)),
       BridgeDataFilterModel.EMPTY_DATA_FILTER,
-      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.RELEASE_BTC))
+      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.RELEASE_BTC)),
+      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION)),
     ];
   }
 
@@ -77,8 +78,25 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       return await this.processWaitingForSignaturesStatus(extendedBridgeTx);
     }
 
+    if(this.hasAddSignatureEvent(events)) {
+      this.logger.trace('[process] found a add_signature event. Processing...');
+      return await this.processAddSignatureStatus(extendedBridgeTx);
+    }
+
+    this.logEventsNotImplemented(events);
     this.logger.warn('[process] other statuses processing not yet implemented.');
 
+  }
+
+  private logEventsNotImplemented(events: BridgeEvent[]) {
+    this.logger.warn('===============================================');
+    this.logger.warn(`These events are not implemented yet ${events}`);
+    events.forEach(console.log);
+    this.logger.warn('===============================================');
+  }
+  
+  private hasAddSignatureEvent(events: BridgeEvent[]) {
+    return events.some(event => event.name === BRIDGE_EVENTS.ADD_SIGNATURE);
   }
 
   private hasReleaseRequestReceivedEvent(events: BridgeEvent[]): boolean {
@@ -103,6 +121,28 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   private hasBatchPegoutEvent(events: BridgeEvent[]): boolean  {
     return events.some(event => event.name === BRIDGE_EVENTS.BATCH_PEGOUT_CREATED);
+  }
+
+  private async processAddSignatureStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
+    const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
+    const addSignatureEvent = events.find(event => event.name === BRIDGE_EVENTS.ADD_SIGNATURE);
+
+    if(!addSignatureEvent) {
+      return;
+    }
+
+    const originatingRskTxHash = <string> addSignatureEvent.arguments.releaseRskTxHash;
+    const foundPegoutStatuses:PegoutStatusDbDataModel[]  = await this.pegoutStatusDataService.getManyByOriginatingRskTxHash(originatingRskTxHash);
+    
+    if(!foundPegoutStatuses || foundPegoutStatuses.length === 0) {
+      return this.logger.warn(`[processAddSignatureStatus] could not find a pegout status record
+       in the db for this transaction '${extendedBridgeTx.txHash}' `);
+    }
+
+    this.logger.trace(`[processBatchPegouts] found ${foundPegoutStatuses.length} pegouts in the db
+      for the batch pegout ${extendedBridgeTx.txHash}`);
+
+
   }
 
   private async processSignedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {

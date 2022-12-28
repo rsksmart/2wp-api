@@ -21,6 +21,10 @@ describe('Service: Bridge', () => {
     const lockingCap = await bridgeService.getLockingCapAmount();
     expect(lockingCap).to.be.Number();
   });
+  it('return the Threshold from bridge', async () => {
+    const lockingCap = await bridgeService.getFederationThreshold();
+    expect(lockingCap).to.be.Number();
+  });
 
   it('returns bridge transaction by hash', async () => {
     const bridgeTransaction: Transaction = {

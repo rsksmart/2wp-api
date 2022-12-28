@@ -4,7 +4,7 @@ import Web3 from 'web3';
 import {Contract} from 'web3-eth-contract';
 import bridgeTransactionParser, {Transaction} from 'bridge-transaction-parser';
 import * as constants from '../constants';
-import { getBridgeState, BridgeState} from 'bridge-state-data-parser';
+import { getBridgeState, BridgeState, FederationSignatureInfo} from 'bridge-state-data-parser';
 
 export class BridgeService {
   private bridgeContract: Contract;
@@ -102,6 +102,19 @@ export class BridgeService {
 
   public async getBridgeState(): Promise<BridgeState> {
     return await getBridgeState(this.web3);
+  }
+
+  public async getFederationThreshold(): Promise<number> {
+    return new Promise<number>((resolve, reject) => {
+      this.bridgeContract.methods
+        .getFederationThreshold()
+        .call()
+        .then((threshold: string) => resolve(Number(threshold)))
+        .catch((reason: any) => {
+          this.logger.warn(`[getFederationThreshold] Got an error: ${reason}`);
+          reject(reason);
+        });
+    });
   }
 
 }

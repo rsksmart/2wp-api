@@ -13,5 +13,6 @@ export interface ExtendedBridgeEvent extends BridgeEvent{
         protocolVersion: string;
         senderBtcAddress: string;
         releaseRskTxHashes: string;
+        releaseRskTxHash: string;
     };
 }
