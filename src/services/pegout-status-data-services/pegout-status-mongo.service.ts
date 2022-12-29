@@ -25,6 +25,9 @@ const PegoutStatusSchema = new mongoose.Schema({
   isNewestStatus: {type: Boolean, required: true},
   originatingRskBlockHash: {type: String, required: true},
   rskBlockHash: {type: String, required: true},
+  btcRawTxInputsHash: {type: String},
+  batchPegoutIndex: {type: String},
+  batchPegoutRskTxHash: {type: Number},
 });
 
 const PegoutStatusConnector = mongoose.model<PegoutStatusMongoModel>("PegoutStatus", PegoutStatusSchema);
@@ -51,10 +54,11 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
       .then(() => true);
   }
 
-  public getManyByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel[]> {
-    return this.getConnector()
+  public async getManyByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel[]> {
+    const pegoutsDocuments = await this.getConnector()
     .find({originatingRskTxHash})
     .exec();
+    return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 
   public async getLastByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel | null> {
@@ -85,6 +89,20 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
   public async getManyWaitingForSignaturesNewest(): Promise<PegoutStatusDbDataModel[]> {
     const pegoutsDocuments = await  this.getConnector()
     .find({status: PegoutStatus.WAITING_FOR_SIGNATURE, isNewestStatus: true})
+    .exec();
+    return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
+  }
+
+  public async getManyByRskTxHashes(rskTxHashes: Array<string>): Promise<PegoutStatusDbDataModel[]> {
+    const pegoutsDocuments = await  this.getConnector()
+    .find({rskTxHash: { $in: rskTxHashes }})
+    .exec();
+    return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
+  }
+
+  public async getManyByBtcRawTxInputsHashNewest(btcRawTxInputsHash: string): Promise<PegoutStatusDbDataModel[]> {
+    const pegoutsDocuments = await  this.getConnector()
+    .find({btcRawTxInputsHash, isNewestStatus: true})
     .exec();
     return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }

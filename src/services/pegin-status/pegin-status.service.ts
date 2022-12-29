@@ -37,7 +37,6 @@ export class PeginStatusService {
     this.rskNodeService = new RskNodeService();
     this.logger = getLogger('peginStatusService');
     this.rskDataService = rskDataService;
-    this.status;
   }
 
   public getPeginSatusInfo(btcTxId: string): Promise<PeginStatus> {
@@ -83,7 +82,7 @@ export class PeginStatusService {
   private getBtcInfo(btcTxId: string): Promise<BtcPeginStatus> {
     return this.getBtcTxInfoFromService(btcTxId)
       .then(async (btcTxInformation) => {
-        if (this.status != Status.ERROR_NOT_A_PEGIN) {
+        if (this.status !== Status.ERROR_NOT_A_PEGIN) {
           const minPeginValue = await this.bridgeService.getMinPeginValue();
           if (this.fromSatoshiToBtc(minPeginValue) > btcTxInformation.amountTransferred) {
             const errorMessage = `Amount transferred is less than minimum pegin value.
@@ -175,7 +174,7 @@ export class PeginStatusService {
         acummulatedAmount += Number(vout[i].value!);
       }
     }
-    if (acummulatedAmount == 0) {
+    if (acummulatedAmount === 0) {
       const errorMessage = `Can not get set amount for address: ${federationAddress} in tx: ${txId}`;
       this.logger.error(errorMessage);
     }
@@ -223,7 +222,7 @@ export class PeginStatusService {
 
   private hasRefundOpReturn(txId: string, data: string): boolean {
     if (this.hasOpReturn(txId, data)) { // Includes version 01 in the same if
-      if (data.length == 96) { //Contain refund address
+      if (data.length === 96) { //Contain refund address
         return (true);
       }
     }
@@ -232,7 +231,7 @@ export class PeginStatusService {
 
   private hasOpReturn(txId: string, data: string): boolean {
     if (data.startsWith('6a') && data.substr(4, 10).startsWith('52534b5401')) { // Includes version 01 in the same if
-      if (data.length == 96 || data.length == 54) { //Contain refund address
+      if (data.length === 96 || data.length === 54) { //Contain refund address
         this.logger.debug(`Tx contains OPT_RETURN value: ${txId}`);
         return (true);
       } else {

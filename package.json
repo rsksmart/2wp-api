@@ -1,6 +1,6 @@
 {
   "name": "2wp-api",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Two Way Peg API",
   "keywords": [
     "loopback-application",
@@ -14,7 +14,10 @@
   "scripts": {
     "build": "lb-tsc",
     "build:watch": "lb-tsc --watch",
-    "lint": "npm run prettier:check && npm run eslint",
+    "lint": "npm run eslint",
+    "coverage": "npm run pretest && lb-nyc mocha --recursive 'dist/__tests__/**/*.unit.js' --timeout 10000 && lb-nyc report --reporter=cobertura",
+    "only-cobertura": "lb-nyc report --reporter=cobertura",
+    "coverage:ci": "lb-nyc report --reporter=cobertura | coveralls",
     "lint:fix": "npm run eslint:fix && npm run prettier:fix",
     "prettier:cli": "lb-prettier \"**/*.ts\" \"**/*.js\"",
     "prettier:check": "npm run prettier:cli -- -l",
@@ -27,8 +30,6 @@
     "posttest": "npm run lint",
     "test:dev": "lb-nyc mocha --allow-console-logs dist/__tests__/**/*.js && npm run posttest",
     "precoverage": "npm test",
-    "coverage": "open-cli coverage/index.html",
-    "coverage:ci": "lb-nyc report --reporter=text-lcov | coveralls",
     "premigrate": "npm run build",
     "migrate": "node ./dist/migrate",
     "preopenapi-spec": "npm run build",
@@ -87,10 +88,14 @@
     "@types/big.js": "^6.1.2",
     "@types/bs58": "^4.0.1",
     "@types/node": "^10.17.48",
-    "eslint": "^7.15.0",
     "sinon": "^11.1.2",
     "sonarqube-scanner": "^2.8.0",
     "source-map-support": "^0.5.19",
-    "typescript": "~4.1.2"
+    "typescript": "~4.1.2",
+    "@typescript-eslint/eslint-plugin": "^5.30.5",
+    "@typescript-eslint/parser": "^5.30.5",
+    "eslint": "^8.19.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.26.0"
   }
 }
