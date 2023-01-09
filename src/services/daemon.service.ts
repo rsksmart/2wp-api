@@ -6,6 +6,7 @@ import {getMetricLogger} from '../utils/metric-logger';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {PeginDataProcessor} from './pegin-data.processor';
 import {PegoutDataProcessor} from './pegout-data.processor';
+import {PegnatoriesDataProcessor} from './pegnatories-data.processor';
 import {RskChainSyncService} from './rsk-chain-sync.service';
 import RskBlockProcessorPublisher from './rsk-block-processor-publisher';
 
@@ -14,7 +15,8 @@ export class DaemonService implements iDaemonService {
   syncService: RskChainSyncService;
   peginDataProcessor: PeginDataProcessor;
   pegoutDataProcessor: PegoutDataProcessor;
-  rskBlockProcessorPublisher: RskBlockProcessorPublisher
+  rskBlockProcessorPublisher: RskBlockProcessorPublisher;
+  pegnatoriesDataProcessor: PegnatoriesDataProcessor;
 
   dataFetchInterval: NodeJS.Timer;
   started: boolean;
@@ -35,12 +37,15 @@ export class DaemonService implements iDaemonService {
     @inject(ServicesBindings.PEGIN_DATA_PROCESSOR)
     peginDataProcessor: PeginDataProcessor,
     @inject(ServicesBindings.PEGOUT_DATA_PROCESSOR)
-    pegoutDataProcessor: PegoutDataProcessor
+    pegoutDataProcessor: PegoutDataProcessor,
+    @inject(ServicesBindings.PEGNATORIES_DATA_PROCESSOR)
+    pegnatoriesDataProcessor: PegnatoriesDataProcessor,
   ) {
     this.peginStatusStorageService = peginStatusStorageService;
     this.syncService = syncService;
     this.peginDataProcessor = peginDataProcessor;
     this.pegoutDataProcessor = pegoutDataProcessor;
+    this.pegnatoriesDataProcessor = pegnatoriesDataProcessor;
     this.rskBlockProcessorPublisher = rskBlockProcessorPublisher;
     this.started = false;
     this.logger = getLogger('daemon-service');
@@ -105,6 +110,7 @@ export class DaemonService implements iDaemonService {
 
     this.rskBlockProcessorPublisher.addSubscriber(this.peginDataProcessor);
     this.rskBlockProcessorPublisher.addSubscriber(this.pegoutDataProcessor);
+    this.rskBlockProcessorPublisher.addSubscriber(this.pegnatoriesDataProcessor);
 
     this.logger.debug('Started');
     this.started = true;

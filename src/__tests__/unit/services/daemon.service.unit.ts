@@ -9,6 +9,7 @@ import {BridgeService} from '../../../services/bridge.service';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
 import {PeginDataProcessor} from '../../../services/pegin-data.processor';
 import {PegoutDataProcessor} from '../../../services/pegout-data.processor';
+import {PegnatoriesDataProcessor} from '../../../services/pegnatories-data.processor';
 import RskBlockProcessorPublisher from '../../../services/rsk-block-processor-publisher';
 import {RskChainSyncService, RskChainSyncSubscriber} from '../../../services/rsk-chain-sync.service';
 import {getRandomHash} from '../../helper';
@@ -40,7 +41,8 @@ describe('Service: DaemonService', () => {
       mockedRskSyncChainService,
       "0",
       new PeginDataProcessor(mockedPeginStatusDataService),
-      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
+      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService),
+      new PegnatoriesDataProcessor()
     );
 
     await daemonService.start();
@@ -72,7 +74,8 @@ describe('Service: DaemonService', () => {
       mockedRskSyncChainService,
       "0",
       new PeginDataProcessor(mockedPeginStatusDataService),
-      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
+      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService),
+      new PegnatoriesDataProcessor()
     );
 
     clock.tick(1);
@@ -96,7 +99,7 @@ describe('Service: DaemonService', () => {
       sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<PeginDataProcessor> & PeginDataProcessor;
     
     const mockedPegoutDataProcessor = sinon.createStubInstance(PegoutDataProcessor) as SinonStubbedInstance<PegoutDataProcessor> & PegoutDataProcessor;
-  
+    const mockedPegnatoriesDataProcessor = sinon.createStubInstance(PegnatoriesDataProcessor) as SinonStubbedInstance<PegnatoriesDataProcessor> & PegnatoriesDataProcessor;
     const deletedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
 
     const daemonService = new DaemonService(
@@ -105,7 +108,8 @@ describe('Service: DaemonService', () => {
       mockedRskSyncChainService,
       "0",
       mockedPeginDataProcessor,
-      mockedPegoutDataProcessor
+      mockedPegoutDataProcessor,
+      mockedPegnatoriesDataProcessor
     );
 
     // Daemon should have subscribed to mockedRskSyncChainService events

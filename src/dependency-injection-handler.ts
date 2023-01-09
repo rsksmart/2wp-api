@@ -13,6 +13,7 @@ import {RskChainSyncService} from './services/rsk-chain-sync.service';
 import {RskNodeService} from './services/rsk-node.service';
 import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 import { PegoutDataProcessor } from './services/pegout-data.processor';
+import {PegnatoriesDataProcessor} from './services/pegnatories-data.processor';
 
 export class DependencyInjectionHandler {
   public static configureDependencies(app: Application): void {
@@ -115,6 +116,11 @@ export class DependencyInjectionHandler {
       app
       .bind(ServicesBindings.PEGOUT_DATA_PROCESSOR)
       .toClass(PegoutDataProcessor)
+      .inScope(BindingScope.SINGLETON);
+
+    app
+      .bind(ServicesBindings.PEGNATORIES_DATA_PROCESSOR)
+      .toClass(PegnatoriesDataProcessor)
       .inScope(BindingScope.SINGLETON);
 
     app

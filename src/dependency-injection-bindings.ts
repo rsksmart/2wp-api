@@ -26,6 +26,7 @@ export const ServicesBindings = {
   RSK_CHAIN_SYNC_SERVICE: 'services.RskChainSyncService',
   PEGIN_DATA_PROCESSOR: 'services.PeginDataProcessor',
   PEGOUT_DATA_PROCESSOR: 'services.PegoutDataProcessor',
+  PEGNATORIES_DATA_PROCESSOR: 'services.PegnatoriesDataProcessor',
   DAEMON_SERVICE: 'services.DaemonService',
   BRIDGE_SERVICE: 'services.BridgeService',
   ADDRESS_SERVICE: 'services.AddressService',
