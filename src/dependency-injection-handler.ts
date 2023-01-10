@@ -8,7 +8,7 @@ import {DaemonService} from './services/daemon.service';
 import {NodeBridgeDataProvider} from './services/node-bridge-data.provider';
 import {PeginStatusMongoDbDataService} from './services/pegin-status-data-services/pegin-status-mongo.service';
 import {PegoutStatusMongoDbDataService} from './services/pegout-status-data-services/pegout-status-mongo.service';
-import {PegnatoriesStatusMongoDbDataService} from './services/pegnatories-status-data-services/pegnatories-status-mongo.service'
+import {PegnatoriesStatusMongoDbDataService} from './services/pegnatories-status-data-services/pegnatories-status-mongo.service';
 import {PeginDataProcessor} from './services/pegin-data.processor';
 import {RskChainSyncService} from './services/rsk-chain-sync.service';
 import {RskNodeService} from './services/rsk-node.service';
@@ -46,8 +46,8 @@ export class DependencyInjectionHandler {
     app
       .bind(ConstantsBindings.INITIAL_BLOCK)
       .to(new RskBlock(
-        parseInt(process.env.SYNC_INITIAL_BLOCK_HEIGHT || '0'),
-        process.env.SYNC_INITIAL_BLOCK_HASH || '',
+          parseInt(process.env.SYNC_INITIAL_BLOCK_HEIGHT || '0'),
+          process.env.SYNC_INITIAL_BLOCK_HASH || '',
         process.env.SYNC_INITIAL_BLOCK_PREV_HASH || ''
       ));
 
@@ -89,12 +89,12 @@ export class DependencyInjectionHandler {
       .toClass(PeginStatusMongoDbDataService)
       .inScope(BindingScope.SINGLETON);
 
-      app
+    app
       .bind(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
       .toClass(PegoutStatusMongoDbDataService)
       .inScope(BindingScope.SINGLETON);
 
-      app
+    app
       .bind(ServicesBindings.PEGNATORIES_STATUS_DATA_SERVICE)
       .toClass(PegnatoriesStatusMongoDbDataService)
       .inScope(BindingScope.SINGLETON);
@@ -119,7 +119,7 @@ export class DependencyInjectionHandler {
       .toClass(PeginDataProcessor)
       .inScope(BindingScope.SINGLETON);
 
-      app
+    app
       .bind(ServicesBindings.PEGOUT_DATA_PROCESSOR)
       .toClass(PegoutDataProcessor)
       .inScope(BindingScope.SINGLETON);
@@ -150,9 +150,9 @@ export class DependencyInjectionHandler {
       .inScope(BindingScope.SINGLETON);
 
     app
-        .bind(ServicesBindings.PEGOUT_STATUS_SERVICE)
-        .toClass(PegoutStatusService)
-        .inScope(BindingScope.SINGLETON);
+      .bind(ServicesBindings.PEGOUT_STATUS_SERVICE)
+      .toClass(PegoutStatusService)
+      .inScope(BindingScope.SINGLETON);
 
   }
 }

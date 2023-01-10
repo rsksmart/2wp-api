@@ -34,11 +34,4 @@ export class PegnatoriesStatusMongoDbDataService extends MongoDbDataService<Pegn
   protected getManyFilter(filter?: any) {
     return filter;
   }
-
-  // public deleteByRskBlockHeight(rskBlockHeight: number): Promise<boolean> {
-  //   return this.getConnector()
-  //     .deleteMany({rskBlockHeight: rskBlockHeight})
-  //     .exec()
-  //     .then(() => true);
-  // }
 }
