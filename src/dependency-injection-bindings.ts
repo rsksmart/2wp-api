@@ -21,6 +21,7 @@ export const ServicesBindings = {
   RSK_NODE_SERVICE: 'services.RskNodeService',
   PEGIN_STATUS_DATA_SERVICE: 'services.PeginStatusDataService',
   PEGOUT_STATUS_DATA_SERVICE: 'services.PegoutStatusDataService',
+  PEGNATORIES_STATUS_DATA_SERVICE: 'services.PegnatoriesStatusDataService',
   PEGIN_STATUS_SERVICE: 'services.PeginStatusService',
   SYNC_STATUS_DATA_SERVICE: 'services.SyncStatusDataService',
   RSK_CHAIN_SYNC_SERVICE: 'services.RskChainSyncService',

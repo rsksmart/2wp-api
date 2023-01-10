@@ -13,6 +13,7 @@ import {PegnatoriesDataProcessor} from '../../../services/pegnatories-data.proce
 import RskBlockProcessorPublisher from '../../../services/rsk-block-processor-publisher';
 import {RskChainSyncService, RskChainSyncSubscriber} from '../../../services/rsk-chain-sync.service';
 import {getRandomHash} from '../../helper';
+import { PegnatoriesStatusDataService } from '../../../services/pegnatories-status-data-services/pegnatories-status-data.service';
 
 describe('Service: DaemonService', () => {
   let clock: sinon.SinonFakeTimers;
@@ -30,6 +31,7 @@ describe('Service: DaemonService', () => {
       sinon.createStubInstance(NodeBridgeDataProvider) as SinonStubbedInstance<RskBlockProcessorPublisher>;
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
+    const mockedPegnatoriesStatusDataService = <PegnatoriesStatusDataService>{};
     const bridgeService: BridgeService = <BridgeService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
@@ -42,7 +44,7 @@ describe('Service: DaemonService', () => {
       "0",
       new PeginDataProcessor(mockedPeginStatusDataService),
       new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService),
-      new PegnatoriesDataProcessor()
+      new PegnatoriesDataProcessor(mockedPegnatoriesStatusDataService)
     );
 
     await daemonService.start();
@@ -65,6 +67,7 @@ describe('Service: DaemonService', () => {
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
     const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
+    const mockedPegnatoriesStatusDataService = <PegnatoriesStatusDataService>{};
     const bridgeService: BridgeService = <BridgeService>{};
     const mockedRskSyncChainService =
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
@@ -75,7 +78,7 @@ describe('Service: DaemonService', () => {
       "0",
       new PeginDataProcessor(mockedPeginStatusDataService),
       new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService),
-      new PegnatoriesDataProcessor()
+      new PegnatoriesDataProcessor(mockedPegnatoriesStatusDataService)
     );
 
     clock.tick(1);
