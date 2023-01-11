@@ -13,6 +13,10 @@ import {ExtendedBridgeEvent} from '../../../models/types/bridge-transaction-pars
 const blockHash =
   '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d660';
 
+const rskTxHash =
+  '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d660';
+
+
 describe('Pegnatories data processor', async () => {
   it('returns filters', () => {
     const mockedPegnatoriesStatusDataService = <PegnatoriesStatusDataService>{};
@@ -24,6 +28,61 @@ describe('Pegnatories data processor', async () => {
     expect(thisService.getFilters()).to.not.be.empty;
     expect(thisService.getFilters().length).to.equal(2);
   });
+
+
+  
+  it('event = updateCollections', async() => {
+    const mockedPegnatoriesStatusDataService = sinon.createStubInstance(
+      PegnatoriesStatusMongoDbDataService,
+    ) as SinonStubbedInstance<PegnatoriesStatusDataService>;
+
+    const thisService = new PegnatoriesDataProcessor(
+      mockedPegnatoriesStatusDataService,
+    );
+
+    const rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
+    const btcDestinationAddress = 'mreuQThm58CrYL4WCuY4SmDqiAQzWSy9GR';
+    const amount = 504237;
+
+    const releaseRequestReceivedEventsArgs = {
+      sender : rskSenderAddress,
+      btcDestinationAddress : btcDestinationAddress,
+      amount : amount,
+    };
+
+    const createdOn = new Date();
+
+    const bridgeTransaction: Transaction = {
+      txHash: rskTxHash,
+      blockNumber: 1,
+      method: {
+        name: '',
+        signature: '',
+        arguments: new Map()
+      },
+      events: [{
+        name: BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED,
+        signature: '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
+        arguments: releaseRequestReceivedEventsArgs
+      }]
+    }
+
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash,
+      txHash: bridgeTransaction.txHash,
+      createdOn,
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+
+    const events = extendedBridgeTx.events as ExtendedBridgeEvent[];
+
+    expect(thisService.process(extendedBridgeTx)).throwError;
+
+  });
+
 
   it('Persisting data', async () => {
     const mockedPegnatoriesStatusDataService = sinon.createStubInstance(

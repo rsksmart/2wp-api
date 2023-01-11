@@ -49,11 +49,13 @@ describe('Service: DaemonService', () => {
 
     await daemonService.start();
     await daemonService.start();
+    await daemonService.start();
 
     expect(daemonService.started).to.be.true;
 
     sinon.assert.calledOnce(mockedRskSyncChainService.start);
-    sinon.assert.calledTwice(mockedRskBlockProcessorPublisher.addSubscriber);
+    sinon.assert.calledThrice(mockedRskBlockProcessorPublisher.addSubscriber);
+  
 
     await daemonService.stop();
 
@@ -88,7 +90,7 @@ describe('Service: DaemonService', () => {
     await daemonService.start();
 
     clock.tick(1);
-    sinon.assert.calledTwice(mockedRskBlockProcessorPublisher.addSubscriber);
+    sinon.assert.calledThrice(mockedRskBlockProcessorPublisher.addSubscriber);
     expect(mockedRskSyncChainService.sync.called).to.be.true;
 
   });
