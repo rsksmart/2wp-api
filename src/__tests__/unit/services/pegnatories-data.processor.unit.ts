@@ -109,7 +109,7 @@ describe('Pegnatories data processor', async () => {
           name: BRIDGE_EVENTS.UPDATE_COLLECTIONS,
           signature:
             '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
-          arguments: {sender: 'JC'},
+          arguments: {sender: 'sender'},
         },
       ],
     };
@@ -128,7 +128,7 @@ describe('Pegnatories data processor', async () => {
 
     await thisService.process(extendedBridgeTx);
 
-    const status: PegnatoriesStatusDataModel = new PegnatoriesStatusDataModel(
+    const data: PegnatoriesStatusDataModel = new PegnatoriesStatusDataModel(
       extendedBridgeTx.txHash,
       extendedBridgeTx.blockNumber,
       extendedBridgeTx.blockHash,
@@ -139,7 +139,7 @@ describe('Pegnatories data processor', async () => {
 
     sinon.assert.calledOnceWithMatch(
       mockedPegnatoriesStatusDataService.set,
-      status,
+      data,
     );
   });
 });
