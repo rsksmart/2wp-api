@@ -50,37 +50,37 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
     if(this.hasReleaseBtcEvent(events)) {
       this.logger.trace('[process] found a release_btc event. Processing...');
-      return await this.processSignedStatus(extendedBridgeTx);
+      await this.processSignedStatus(extendedBridgeTx);
     }
 
     if(this.hasBatchPegoutEvent(events)) {
       this.logger.trace('[process] found a batch_pegout_created event. Processing...');
-      return await this.processBatchPegouts(extendedBridgeTx);
+      await this.processBatchPegouts(extendedBridgeTx);
     }
 
     if(this.hasReleaseRequestedEvent(events)) {
       this.logger.trace('[process] found a release_requested event. Processing...');
-      return await this.processWaitingForConfirmationStatus(extendedBridgeTx);
+      await this.processWaitingForConfirmationStatus(extendedBridgeTx);
     }
 
     if(this.hasReleaseRequestReceivedEvent(events)) {
       this.logger.trace('[process] found a release_request_received event. Processing...');
-      return await this.processReleaseRequestReceivedStatus(extendedBridgeTx);
+      await this.processReleaseRequestReceivedStatus(extendedBridgeTx);
     }
 
     if(this.hasReleaseRequestRejectedEvent(events)) {
       this.logger.trace('[process] found a release_request_rejected event. Processing...');
-      return await this.processReleaseRequestRejectedStatus(extendedBridgeTx);
+      await this.processReleaseRequestRejectedStatus(extendedBridgeTx);
     }
 
     if(this.hasUpdateCollectionsEvent(events)) {
       this.logger.trace('[process] Processing waiting for signature using the update collections event.');
-      return await this.processWaitingForSignaturesStatus(extendedBridgeTx);
+      await this.processWaitingForSignaturesStatus(extendedBridgeTx);
     }
 
     if(this.hasAddSignatureEvent(events)) {
       this.logger.trace('[process] found a add_signature event. Processing...');
-      return await this.processAddSignatureStatus(extendedBridgeTx);
+      await this.processAddSignatureStatus(extendedBridgeTx);
     }
 
     this.logEventsNotImplemented(events);
