@@ -159,15 +159,15 @@ export class TxFeeController {
     const checkedFees: FeeAmountData = new FeeAmountData({
         slow: new Fee({
             amount: 0,
-            enoughBalance: false,
+            enoughBalance: fees.slow.enoughBalance,
         }),
         average: new Fee({
             amount: 0,
-            enoughBalance: false,
+            enoughBalance: fees.average.enoughBalance,
         }),
         fast: new Fee({
             amount: 0,
-            enoughBalance: false,
+            enoughBalance: fees.fast.enoughBalance,
         }),
     });
     checkedFees.slow.amount = Math.min(Math.max(fees.slow.amount, constants.BITCOIN_MIN_SATOSHI_FEE), constants.BITCOIN_MAX_SATOSHI_FEE);

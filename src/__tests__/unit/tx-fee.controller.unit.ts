@@ -134,15 +134,15 @@ describe('tx Fee controller', () => {
     }), new FeeAmountData({
       slow: new Fee({
         amount: totalBytes.mul(lowAmount.div(1000)).toNumber(),
-        enoughBalance: false,
+        enoughBalance: true,
       }),
       average: new Fee({
         amount: totalBytes.mul(averageAmount.div(1000)).toNumber(),
-        enoughBalance: false,
+        enoughBalance: true,
       }),
       fast: new Fee({
         amount: totalBytes.mul(fastAmount.div(1000)).toNumber(),
-        enoughBalance: false,
+        enoughBalance: true,
       }),
     }))).to.be.true();
   });
@@ -184,15 +184,15 @@ describe('tx Fee controller', () => {
     }), new FeeAmountData({
       slow: new Fee({
         amount: totalBytes.mul(lowAmount.div(1000)).toNumber(),
-        enoughBalance: false,
+        enoughBalance: true,
       }),
       average: new Fee({
         amount: totalBytes.mul(averageAmount.div(1000)).toNumber(),
-        enoughBalance: false,
+        enoughBalance: true,
       }),
       fast: new Fee({
         amount: totalBytes.mul(fastAmount.div(1000)).toNumber(),
-        enoughBalance: false,
+        enoughBalance: true,
       }),
     }))).to.be.true();
   });
@@ -311,15 +311,15 @@ describe('tx Fee controller', () => {
     }) , new FeeAmountData({
       slow: new Fee({
         amount: totalBytes.mul(minSlowFee).toNumber(),
-        enoughBalance: false,
+        enoughBalance: true,
       }),
       average: new Fee({
         amount: totalBytes.mul(minAverageFee).toNumber(),
-        enoughBalance: false,
+        enoughBalance: true,
       }),
       fast: new Fee({
         amount: totalBytes.mul(minFastFee).toNumber(),
-        enoughBalance: false,
+        enoughBalance: true,
       }),
     }))).to.be.true();
   });
@@ -370,15 +370,15 @@ describe('tx Fee controller', () => {
     }), new FeeAmountData({
       slow: new Fee({
         amount: totalBytes.mul(minSlowFee).toNumber(),
-        enoughBalance: false,
+        enoughBalance: true,
       }),
       average: new Fee({
         amount: totalBytes.mul(minAverageFee).toNumber(),
-        enoughBalance: false,
+        enoughBalance: true,
       }),
       fast: new Fee({
         amount: totalBytes.mul(minFastFee).toNumber(),
-        enoughBalance: false,
+        enoughBalance: true,
       }),
     }))).to.be.true();
     expect(changeAmount >= dustValue).to.be.true();
