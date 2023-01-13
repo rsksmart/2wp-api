@@ -14,6 +14,7 @@ src/services/daemon.service.ts
 src/services/rsk-node.service.ts
 src/dependency-injection-handler.ts
 src/services/pegin-data.processor.ts
+src/services/pegnatories-data.processor.ts
 src/services/generic-data-service.ts
 src/services/mongodb-data.service.ts
 src/services/pegout-data.processor.ts
@@ -23,3 +24,4 @@ src/services/sync-status-mongo.service.ts
 src/services/pegin-status/bitcoin.service.ts
 src/services/pegin-status-data-services/pegin-status-mongo.service.ts
 src/services/pegout-status-data-services/pegout-status-mongo.service.ts
+src/services/pegnatories-status-data-services/pegnatories-status-mongo.service.ts
