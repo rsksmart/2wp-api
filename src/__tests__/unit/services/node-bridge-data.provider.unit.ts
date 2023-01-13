@@ -7,6 +7,7 @@ import ExtendedBridgeTx from '../../../services/extended-bridge-tx'
 import FilteredBridgeTransactionProcessor from '../../../services/filtered-bridge-transaction-processor';
 import {BRIDGE_METHODS, getBridgeSignature} from '../../../utils/bridge-utils';
 import { PeginDataProcessor } from '../../../services/pegin-data.processor';
+import { PegnatoriesDataProcessor } from '../../../services/pegnatories-data.processor';
 import { RskBlock } from '../../../models/rsk/rsk-block.model';
 import { RskTransaction } from '../../../models/rsk/rsk-transaction.model';
 import { PeginStatusDataService } from '../../../services/pegin-status-data-services/pegin-status-data.service';
@@ -226,6 +227,46 @@ describe('Service: NodeBridgeDataProvider', () => {
 
   });
 
+
+  it('does not inform pegnatories subscriber if no matching filter', async () => {
+
+    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
+    const thisService = new NodeBridgeDataProvider(bridgeService);
+    const mockedPegnatoriesDataProcessorSubscriber = sinon.createStubInstance(PegnatoriesDataProcessor) as SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
+
+    // Adds one subscribers
+    thisService.addSubscriber(mockedPegnatoriesDataProcessorSubscriber);
+
+    const noBridgeData = '0x0000005';
+    const blockHash = '0x00002';
+
+    const transaction: RskTransaction = {
+      blockHash,
+      hash: rskTxHash,
+      data: noBridgeData,
+      createdOn: new Date(),
+      blockHeight: 1,
+      to: bridge.address,
+      receipt: null
+    };
+
+    const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
+    mockedPegnatoriesDataProcessorSubscriber.getFilters.resolves(mockedFilters);
+
+    const rskBlock: RskBlock = {
+      height: 1,
+      hash: blockHash,
+      parentHash: '0x00001',
+      transactions: [transaction]
+    };
+
+    await thisService.process(rskBlock);
+
+    sinon.assert.neverCalledWith(mockedPegnatoriesDataProcessorSubscriber.process);
+
+  });
+
+  
   it('requests bridge tx once if more than 1 subscribers share the same transaction', async () => {
 
     const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;

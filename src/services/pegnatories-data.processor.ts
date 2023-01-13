@@ -23,8 +23,7 @@ export class PegnatoriesDataProcessor implements FilteredBridgeTransactionProces
 
   getFilters(): BridgeDataFilterModel[] {
     return [
-      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.UPDATE_COLLECTIONS)),
-      BridgeDataFilterModel.EMPTY_DATA_FILTER,
+      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.UPDATE_COLLECTIONS))
     ];
   }
 
