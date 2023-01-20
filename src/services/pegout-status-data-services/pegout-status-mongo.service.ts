@@ -38,6 +38,7 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
     return 'pegoutStatusMongoService';
   }
   protected getConnector(): mongoose.Model<PegoutStatusMongoModel, {}, {}> {
+    this.getConnection();
     return PegoutStatusConnector;
   }
   protected getByIdFilter(id: any) {
@@ -62,12 +63,14 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
   }
 
   public async getLastByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel | null> {
-    const pegoutDocument = await this.getConnector()
+    const connector = this.getConnector();
+    const pegoutDocument = await connector
     .find({originatingRskTxHash})
     .sort({createdOn: -1})
     .limit(1)
     .exec()
     .then((pegoutStatuses: PegoutStatusDbDataModel[]) => pegoutStatuses[0] || null);
+
     if(!pegoutDocument) {
       return null;
     }

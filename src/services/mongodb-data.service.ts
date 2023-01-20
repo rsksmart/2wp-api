@@ -28,6 +28,12 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
 
   protected abstract getManyFilter(filter?: any): any;
 
+  async getConnection() {
+    if (!this.db) {
+      await this.start();
+    }
+  }
+
   getById(id: any): Promise<Type> {
     const p = Promise.resolve();
     if (!this.db) {
