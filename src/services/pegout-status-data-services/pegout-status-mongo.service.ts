@@ -38,7 +38,11 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
     return 'pegoutStatusMongoService';
   }
   protected getConnector(): mongoose.Model<PegoutStatusMongoModel, {}, {}> {
+    this.verifyAndCreateConnectionIfIsNecessary();
     return PegoutStatusConnector;
+  }
+  async verifyAndCreateConnectionIfIsNecessary() {
+    await this.ensureConnection();
   }
   protected getByIdFilter(id: any) {
     return {rskTxHash: id};

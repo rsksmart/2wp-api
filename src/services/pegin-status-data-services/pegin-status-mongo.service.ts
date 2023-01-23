@@ -26,7 +26,11 @@ export class PeginStatusMongoDbDataService extends MongoDbDataService<PeginStatu
     return 'peginStatusMongoService';
   }
   protected getConnector(): mongoose.Model<PeginStatusMongoModel, {}, {}> {
+    this.verifyAndCreateConnectionIfIsNecessary();
     return PeginStatusConnector;
+  }
+  async verifyAndCreateConnectionIfIsNecessary() {
+    await this.ensureConnection();
   }
   protected getByIdFilter(id: any) {
     return {btcTxId: id};
