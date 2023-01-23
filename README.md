@@ -1,3 +1,5 @@
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rsksmart_2wp-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=rsksmart_2wp-api)
+
 # 2wp-api
 
 This is the API component for 2-Way-Peg solution.
