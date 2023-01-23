@@ -28,17 +28,19 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
 
   protected abstract getManyFilter(filter?: any): any;
 
-  getById(id: any): Promise<Type> {
+  async ensureConnection(): Promise<void> {
     const p = Promise.resolve();
     if (!this.db) {
       p.then(() => this.start());
     }
-    return p.then(() => {
-      return this.getConnector()
-        .findOne(this.getByIdFilter(id))
-        .exec()
-        .then((result: any) => (<Type>result)); // The db model matches the DTO model so parsing it should do the trick
-    });
+    return p;
+  }
+
+  getById(id: any): Promise<Type> {
+    return this.getConnector()
+      .findOne(this.getByIdFilter(id))
+      .exec()
+      .then((result: any) => (<Type>result)); // The db model matches the DTO model so parsing it should do the trick
   }
 
   getMany(query?: any): Promise<Type[]> {
@@ -50,30 +52,24 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
 
   set(data: Type): Promise<boolean> {
     const metricLogger = getMetricLogger(this.logger, 'set');
-    const p = Promise.resolve();
-    if (!this.db) {
-      p.then(() => this.start());
-    }
-    return p.then(() => {
-      return new Promise((resolve, reject) => {
-        if (!data) {
-          const err = 'Data was not provided';
-          this.logger.debug(err);
+    return new Promise((resolve, reject) => {
+      if (!data) {
+        const err = 'Data was not provided';
+        this.logger.debug(err);
+        reject(err);
+      }
+      const connector = this.getConnector();
+      const filter: any = {};
+      filter[data.getIdFieldName()] = data.getId();
+      connector.findOneAndUpdate(filter, <any>data, {upsert: true}, (err: any) => {
+        metricLogger();
+        if (err) {
+          this.logger.debug('There was an error trying to save data', err);
           reject(err);
+        } else {
+          resolve(true);
         }
-        const connector = this.getConnector();
-        const filter: any = {};
-        filter[data.getIdFieldName()] = data.getId();
-        connector.findOneAndUpdate(filter, <any>data, {upsert: true}, (err: any) => {
-          metricLogger();
-          if (err) {
-            this.logger.debug('There was an error trying to save data', err);
-            reject(err);
-          } else {
-            resolve(true);
-          }
-        })
-      });
+      })
     });
   }
 
