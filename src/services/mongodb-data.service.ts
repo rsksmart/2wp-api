@@ -37,17 +37,17 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
   }
 
   getById(id: any): Promise<Type> {
-      return this.getConnector()
+    return this.getConnector()
       .findOne(this.getByIdFilter(id))
       .exec()
       .then((result: any) => (<Type>result)); // The db model matches the DTO model so parsing it should do the trick
   }
 
   getMany(query?: any): Promise<Type[]> {
-      return this.getConnector()
-        .find(this.getManyFilter(query))
-        .exec()
-        .then(result => result.map((r: any) => (<Type>r)));
+    return this.getConnector()
+      .find(this.getManyFilter(query))
+      .exec()
+      .then(result => result.map((r: any) => (<Type>r)));
   }
 
   set(data: Type): Promise<boolean> {
