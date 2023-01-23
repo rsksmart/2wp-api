@@ -36,12 +36,5 @@ jobs:
           hide_branch_rate: false
           hide_complexity: true
           indicators: true
-          output: both
+          output: console
           thresholds: '70 90'
-
-      - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2
-        if: github.event_name == 'pull_request'
-        with:
-          recreate: true
-          path: code-coverage-results.md
