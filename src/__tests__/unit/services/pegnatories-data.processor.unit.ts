@@ -13,9 +13,6 @@ import {ExtendedBridgeEvent} from '../../../models/types/bridge-transaction-pars
 const blockHash =
   '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d660';
 
-const rskTxHash =
-  '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d660';
-
 describe('Service: PegnatoriesDataProcessor', async () => {
   it('returns filters', () => {
     const mockedPegnatoriesStatusDataService = <PegnatoriesStatusDataService>{};
@@ -79,8 +76,11 @@ describe('Service: PegnatoriesDataProcessor', async () => {
       events[0].arguments.sender,
       events[0].signature,
       createdOn,
-      );
-      
-    sinon.assert.calledOnceWithMatch(mockedPegnatoriesStatusDataService.set, data);
+    );
+
+    sinon.assert.calledOnceWithMatch(
+      mockedPegnatoriesStatusDataService.set,
+      data,
+    );
   });
 });
