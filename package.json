@@ -12,34 +12,40 @@
     "node": ">=10.16"
   },
   "scripts": {
+    "clean": "lb-clean dist *.tsbuildinfo .eslintcache",
+
     "build": "lb-tsc",
     "build:watch": "lb-tsc --watch",
+    "rebuild": "npm run clean && npm run build",
+
     "lint": "npm run eslint",
-    "coverage": "npm run pretest && lb-nyc mocha --recursive 'dist/__tests__/**/*.unit.js' --timeout 10000 && lb-nyc report --reporter=cobertura",
-    "only-cobertura": "lb-nyc report --reporter=cobertura",
-    "coverage:ci": "lb-nyc report --reporter=cobertura | coveralls",
     "lint:fix": "npm run eslint:fix && npm run prettier:fix",
+    "eslint": "lb-eslint --report-unused-disable-directives .",
+    "eslint:fix": "npm run eslint -- --fix",
     "prettier:cli": "lb-prettier \"**/*.ts\" \"**/*.js\"",
     "prettier:check": "npm run prettier:cli -- -l",
     "prettier:fix": "npm run prettier:cli -- --write",
-    "eslint": "lb-eslint --report-unused-disable-directives .",
-    "eslint:fix": "npm run eslint -- --fix",
-    "unit-test": "npm run pretest && lb-nyc mocha --recursive 'dist/__tests__/**/*.unit.js' --timeout 10000",
-    "pretest": "npm run clean && npm run build",
+
+    "precoverage": "npm run unit-test",
+    "coverage": "lb-nyc report --reporter=text --reporter=lcov",
+    "only-coverage": "lb-nyc report --reporter=lcov",
+
+    "pretest": "npm run rebuild",
     "test": "lb-nyc mocha --recursive 'dist/__tests__/**/*.js' --timeout 10000",
     "posttest": "npm run lint",
     "test:dev": "lb-nyc mocha --allow-console-logs dist/__tests__/**/*.js && npm run posttest",
-    "precoverage": "npm test",
-    "premigrate": "npm run build",
+    "unit-test": "npm run pretest && lb-nyc mocha --recursive 'dist/__tests__/**/*.unit.js' --timeout 10000",
+
+    "premigrate": "npm run rebuild",
     "migrate": "node ./dist/migrate",
-    "preopenapi-spec": "npm run build",
+
+    "preopenapi-spec": "npm run rebuild",
     "openapi-spec": "node ./dist/openapi-spec",
-    "rebuild": "npm run clean && npm run build",
+
     "prestart": "npm run rebuild",
     "start": "node -r source-map-support/register .",
-    "start-daemon": "npm run prestart && node -r source-map-support/register . --appmode=DAEMON",
-    "start-api": "npm run prestart && node -r source-map-support/register . --appmode=API",
-    "clean": "lb-clean dist *.tsbuildinfo .eslintcache"
+    "start-api": "npm run start -- --appmode=API",
+    "start-daemon": "npm run start -- --appmode=DAEMON"
   },
   "repository": {
     "type": "git",
