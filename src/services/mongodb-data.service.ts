@@ -37,26 +37,21 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
   }
 
   getById(id: any): Promise<Type> {
-    return this.ensureConnection().then(() => {
       return this.getConnector()
       .findOne(this.getByIdFilter(id))
       .exec()
       .then((result: any) => (<Type>result)); // The db model matches the DTO model so parsing it should do the trick
-    });
   }
 
   getMany(query?: any): Promise<Type[]> {
-    return this.ensureConnection().then(() => {
       return this.getConnector()
         .find(this.getManyFilter(query))
         .exec()
         .then(result => result.map((r: any) => (<Type>r)));
-    });
   }
 
   set(data: Type): Promise<boolean> {
     const metricLogger = getMetricLogger(this.logger, 'set');
-    return this.ensureConnection().then(() => {
       return new Promise((resolve, reject) => {
         if (!data) {
           const err = 'Data was not provided';
@@ -76,7 +71,6 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
           }
         })
       });
-    });
   }
 
   delete(id: any): Promise<boolean> {
