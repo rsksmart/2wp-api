@@ -28,39 +28,35 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
 
   protected abstract getManyFilter(filter?: any): any;
 
-  async getConnection() {
-    if (!this.db) {
-      await this.start();
-    }
-  }
-
-  getById(id: any): Promise<Type> {
+  async ensureConnection(): Promise<void> {
     const p = Promise.resolve();
     if (!this.db) {
       p.then(() => this.start());
     }
-    return p.then(() => {
+    return p;
+  }
+
+  getById(id: any): Promise<Type> {
+    return this.ensureConnection().then(() => {
       return this.getConnector()
-        .findOne(this.getByIdFilter(id))
-        .exec()
-        .then((result: any) => (<Type>result)); // The db model matches the DTO model so parsing it should do the trick
+      .findOne(this.getByIdFilter(id))
+      .exec()
+      .then((result: any) => (<Type>result)); // The db model matches the DTO model so parsing it should do the trick
     });
   }
 
   getMany(query?: any): Promise<Type[]> {
-    return this.getConnector()
-      .find(this.getManyFilter(query))
-      .exec()
-      .then(result => result.map((r: any) => (<Type>r)));
+    return this.ensureConnection().then(() => {
+      return this.getConnector()
+        .find(this.getManyFilter(query))
+        .exec()
+        .then(result => result.map((r: any) => (<Type>r)));
+    });
   }
 
   set(data: Type): Promise<boolean> {
     const metricLogger = getMetricLogger(this.logger, 'set');
-    const p = Promise.resolve();
-    if (!this.db) {
-      p.then(() => this.start());
-    }
-    return p.then(() => {
+    return this.ensureConnection().then(() => {
       return new Promise((resolve, reject) => {
         if (!data) {
           const err = 'Data was not provided';
