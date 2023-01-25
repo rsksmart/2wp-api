@@ -1,7 +1,7 @@
 import { HealthInformationChecks } from "./health-information-checks.model";
 
 export class HealthInformation {
-    status?: string;
+    up?: boolean;
     check: Array<HealthInformationChecks>;
 }
   

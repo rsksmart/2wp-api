@@ -13,7 +13,8 @@ export const ConstantsBindings = {
 
 export const DatasourcesBindings = {
   MONGO_DB_DATASOURCE: 'datasources.MongoDbDataSource',
-  TX_V2_PROVIDER: 'datasources.txV2Provider'
+  TX_V2_PROVIDER: 'datasources.txV2Provider',
+  BTC_LAST_BLOCK_PROVIDER: 'datasources.lastBlockProvider'
 };
 
 export const ServicesBindings = {
@@ -29,6 +30,7 @@ export const ServicesBindings = {
   DAEMON_SERVICE: 'services.DaemonService',
   BRIDGE_SERVICE: 'services.BridgeService',
   ADDRESS_SERVICE: 'services.AddressService',
+  BTC_LAST_BLOCK_SERVICE: 'services.LastBlockService',
   UNUSED_ADDRESS_SERVICE: 'services.UnusedAddressService',
   RSK_BLOCK_PROCESSOR_PUBLISHER: 'services.RskBlockProcessorPublisher',
   PEGOUT_STATUS_SERVICE: 'services.PegoutStatusService',
