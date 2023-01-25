@@ -3,7 +3,7 @@ import {
     expect,
   } from '@loopback/testlab';
 import {HealthCheckController} from '../../controllers';
-import {BitcoinService, BridgeService, UtxoProvider, SyncStatusDataService, RskNodeService} from '../../services';
+import {BitcoinService, BridgeService, SyncStatusDataService, RskNodeService} from '../../services';
 import {sinon} from '@loopback/testlab/dist/sinon';
   
   describe('health check controller', () => {
@@ -13,7 +13,7 @@ import {sinon} from '@loopback/testlab/dist/sinon';
     let bitcoinService: BitcoinService;
     let bridgeService: BridgeService;
     let rskNodeService: RskNodeService;
-    let syncStorageService: SyncStatusDataService;
+    let theSyncStorageService: SyncStatusDataService;
     let getBestBlock: sinon.SinonStub;
     let getBlockNumber: sinon.SinonStub;
     let getFederationAddress: sinon.SinonStub;
@@ -27,14 +27,14 @@ import {sinon} from '@loopback/testlab/dist/sinon';
       getLastBlock = bitcoinService.getLastBlock as sinon.SinonStub;
       getBlockNumber = rskNodeService.getBlockNumber as sinon.SinonStub;
       getFederationAddress = bridgeService.getFederationAddress as sinon.SinonStub;
-      syncStorageService = {getBestBlock: sinon.stub(), getById: sinon.stub(), getMany: sinon.stub(), set: sinon.stub(), delete: sinon.stub(), start: sinon.stub(), stop: sinon.stub()};
-      getBestBlock = syncStorageService.getBestBlock as sinon.SinonStub;
+      theSyncStorageService = {getBestBlock: sinon.stub(), getById: sinon.stub(), getMany: sinon.stub(), set: sinon.stub(), delete: sinon.stub(), start: sinon.stub(), stop: sinon.stub()};
+      getBestBlock = theSyncStorageService.getBestBlock as sinon.SinonStub;
 
       controller = new HealthCheckController(
-        bitcoinService = bitcoinService,
-        bridgeService = bridgeService,
-        rskNodeService = rskNodeService,
-        syncStorageService = syncStorageService,
+        bitcoinService,
+        bridgeService,
+        rskNodeService,
+        theSyncStorageService
       );
 
       getBestBlock.resolves([
