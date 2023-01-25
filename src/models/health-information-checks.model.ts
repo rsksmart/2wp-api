@@ -1,7 +1,11 @@
 
 export class HealthInformationChecks {
-    name?: string;
-    status: string;
-    info: string;
-  }
+    name: string;
+    up?: boolean;
+    info?: string;
+
+    constructor(name:string) {
+        this.name = name
+    }
+}
   
