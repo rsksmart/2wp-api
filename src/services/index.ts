@@ -10,4 +10,8 @@ export * from './tx-v2-service.service';
 export * from './unused-address.service';
 export * from './utxo-provider.service';
 export * from './pegout-status/pegout-status.service';
+export * from './rsk-chain-sync.service';
+export * from './btc-last-block.service';
+export * from './sync-status-data.service';
+export * from './rsk-node.service';
 
