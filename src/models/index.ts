@@ -22,3 +22,5 @@ export * from './unused-address-response.model';
 export * from './api-information.model';
 export * from './tx-status.model';
 export * from './input-per-fee.model';
+export * from '../models/rsk/sync-status.model';
+export *from '../models/btc-last-block.model';

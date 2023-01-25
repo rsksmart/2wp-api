@@ -4,19 +4,25 @@ import {AddressService, TxV2Service} from '../';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BitcoinAddress} from '../../models/bitcoin-address.model';
 import {BitcoinTx} from '../../models/bitcoin-tx.model';
+import {LastBlockService} from '../btc-last-block.service';
+import {LastBlockInfo} from '../../models/btc-last-block.model';
 
 export class BitcoinService {
   logger: Logger;
   addressService: AddressService;
+  lastBlockService: LastBlockService
 
   constructor(
     @inject('services.TxV2Service')
     protected txV2Service: TxV2Service,
     @inject(ServicesBindings.ADDRESS_SERVICE)
     addressService: AddressService,
+    @inject(ServicesBindings.BTC_LAST_BLOCK_SERVICE)
+    lastBlockService: LastBlockService,
   ) {
     this.logger = getLogger('bitcoin-service');
     this.addressService = addressService;
+    this.lastBlockService = lastBlockService;
   }
 
   getTx(txId: string): Promise<BitcoinTx> {
@@ -69,6 +75,26 @@ export class BitcoinService {
         })
         .catch(() => {
           reject(`Error getting address ${address}`);
+        });
+    });
+  }
+
+  getLastBlock(): Promise<LastBlockInfo> {
+    return new Promise<LastBlockInfo>((resolve, reject) => {
+      this.lastBlockService.lastBlockProvider()
+        .then((lbir: any) => {
+          const lastBlockInfo = new LastBlockInfo();
+          lastBlockInfo.bestBlockHash = lbir[0].backend.bestBlockHash;
+          lastBlockInfo.bestHeight = lbir[0].blockbook.bestHeight;
+          lastBlockInfo.blocks = lbir[0].backend.blocks;
+          lastBlockInfo.chain = lbir[0].backend.chain;
+          lastBlockInfo.coin = lbir[0].blockbook.coin;
+          lastBlockInfo.inSync = lbir[0].blockbook.inSync;
+          lastBlockInfo.syncMode = lbir[0].blockbook.syncMode;
+          resolve(lastBlockInfo);
+        })
+        .catch((e) => {
+          reject(`Error getting last block ${e}`);
         });
     });
   }

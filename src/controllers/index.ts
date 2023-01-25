@@ -5,5 +5,6 @@ export * from './pegin-tx.controller';
 export * from './tx-fee.controller';
 export * from './tx.controller';
 export * from './unused-address.controller';
-
+export * from './health-check.controller';
 export * from './tx-status.controller';
+export * from './health-check.controller';
