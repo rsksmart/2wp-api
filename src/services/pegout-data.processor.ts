@@ -11,7 +11,7 @@ import { ServicesBindings } from '../dependency-injection-bindings';
 import * as bitcoin from 'bitcoinjs-lib';
 import {BridgeService} from './bridge.service';
 import * as constants from '../constants';
-import { remove0x } from '../utils/hex-utils';
+import { ensure0x, remove0x } from '../utils/hex-utils';
 import { PegoutWaitingConfirmation } from 'bridge-state-data-parser';
 import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
@@ -45,40 +45,54 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   async process(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
     try {
       this.logger.debug(`[process] Got tx ${extendedBridgeTx.txHash}`);
-
       const events: BridgeEvent[] = extendedBridgeTx.events;
+      const acceptedMethods = [
+        '',
+        BRIDGE_METHODS.UPDATE_COLLECTIONS,
+        BRIDGE_METHODS.ADD_SIGNATURE,
+        BRIDGE_METHODS.RELEASE_BTC
+      ];
 
+      if (!acceptedMethods.some(am => am == extendedBridgeTx.method.name)) {
+        return this.logger.warn('[process] Received a method not accepted');
+      }
+
+      // Pegout request accepted
+      if(this.hasReleaseRequestReceivedEvent(events)) {
+        this.logger.trace('[process] found a release_request_received event. Processing...');
+        await this.processReleaseRequestReceivedStatus(extendedBridgeTx);
+      }
+
+      // Pegout request rejected
+      if(this.hasReleaseRequestRejectedEvent(events)) {
+        this.logger.trace('[process] found a release_request_rejected event. Processing...');
+        await this.processReleaseRequestRejectedStatus(extendedBridgeTx);
+      }
+
+      // Pegout created (batched pegout)
+      if(this.hasBatchPegoutEvent(events)) {
+        this.logger.trace('[process] found a batch_pegout_created event. Processing...');
+        await this.processBatchPegouts(extendedBridgeTx);
+      }
+
+      // Pegout created
+      if(this.hasReleaseRequestedEvent(events)) {
+        this.logger.trace('[process] found a release_requested event. Processing...');
+        await this.processIndividualPegout(extendedBridgeTx);
+      }
+
+      // Pegout fully processed
       if(this.hasReleaseBtcEvent(events)) {
         this.logger.trace('[process] found a release_btc event. Processing...');
         return await this.processSignedStatus(extendedBridgeTx);
       }
 
-      if(this.hasBatchPegoutEvent(events)) {
-        this.logger.trace('[process] found a batch_pegout_created event. Processing...');
-        return await this.processBatchPegouts(extendedBridgeTx);
-      }
-
-      if(this.hasReleaseRequestedEvent(events)) {
-        this.logger.trace('[process] found a release_requested event. Processing...');
-        return await this.processWaitingForConfirmationStatus(extendedBridgeTx);
-      }
-
-      if(this.hasReleaseRequestReceivedEvent(events)) {
-        this.logger.trace('[process] found a release_request_received event. Processing...');
-        return await this.processReleaseRequestReceivedStatus(extendedBridgeTx);
-      }
-
-      if(this.hasReleaseRequestRejectedEvent(events)) {
-        this.logger.trace('[process] found a release_request_rejected event. Processing...');
-        return await this.processReleaseRequestRejectedStatus(extendedBridgeTx);
-      }
-
+      // Update collections is used  as a trigger for pegouts that may have been confirmed and should now be waiting for signatures
       if(this.hasUpdateCollectionsEvent(events)) {
         this.logger.trace('[process] Processing waiting for signature using the update collections event.');
-        return await this.processWaitingForSignaturesStatus(extendedBridgeTx);
+        await this.processWaitingForSignaturesStatus(extendedBridgeTx);
       }
 
-      this.logger.warn('[process] other statuses processing not yet implemented.');
     } catch (e) {
       this.logger.error(`[process] error processing pegout: ${e}`);
     }
@@ -177,73 +191,82 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   private async processBatchPegouts(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
-    const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];;
+    this.logger.trace(`[processBatchPegouts] Started [rsktxhash:${extendedBridgeTx.txHash}]`);
+    const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
     const batchPegoutsEvent = events.find(event => event.name === BRIDGE_EVENTS.BATCH_PEGOUT_CREATED);
 
     if(!batchPegoutsEvent) {
       return;
     }
 
-    const originatingRskTxHash = <string> batchPegoutsEvent.arguments.releaseRskTxHashes;
     const btcTxHash = <string> batchPegoutsEvent.arguments.btcTxHash;
+    /**
+     * RSKIP271 - Pegout batching defines the event batch_pegout_created
+     * It also establishes that the argument releaseRskTxHashes is a concatenation of all the originating Rootstock tx hashes of the pegout requests.
+     * Slice the releaseRskTxHashes argument every 64 characters to get the originating tx hash and process them individually
+     **/
+    let eventData = remove0x(batchPegoutsEvent.arguments.releaseRskTxHashes);
+    let index = 0;
+    while(eventData != '') {
+      const originatingRskTxHash = ensure0x(eventData.slice(0, 64));
+      this.logger.trace(`[processBatchPegouts] Processing individual pegout creation in batch. [rsktxhash:${extendedBridgeTx.txHash}] [originatingRskTxHash:${originatingRskTxHash}]`);
 
-    const foundPegoutStatuses:PegoutStatusDbDataModel[]  = await this.pegoutStatusDataService.getManyByOriginatingRskTxHash(originatingRskTxHash);
-    
-    if(!foundPegoutStatuses || foundPegoutStatuses.length === 0) {
-      return this.logger.warn(`[processWaitingForConfirmationStatus] could not find a pegout status record
-       in the db for this transaction '${extendedBridgeTx.txHash}' with 'release_requested' event.`);
-    }
+      const foundPegoutStatus  = await this.pegoutStatusDataService.getLastByOriginatingRskTxHash(originatingRskTxHash);
+      
+      if(!foundPegoutStatus) {
+        this.logger.warn(`[processBatchPegouts] could not find a pegout status record in the db. [originatingRskTxHash:${originatingRskTxHash}]`);
+        break;
+      }
 
-    this.logger.trace(`[processBatchPegouts] found ${foundPegoutStatuses.length} pegouts in the db
-      for the batch pegout ${extendedBridgeTx.txHash}`);
+      this.logger.trace(`[processBatchPegouts] Got the pegout previous state from the db`);
 
-      const newClonedPegoutStatuses:PegoutStatusDbDataModel[] = foundPegoutStatuses.map((foundPegoutStatus, index) => {
-        const newPegoutStatus: PegoutStatusDbDataModel = PegoutStatusDbDataModel.clonePegoutStatusInstance(foundPegoutStatus);
-        newPegoutStatus.btcRecipientAddress = foundPegoutStatus.btcRecipientAddress;
+        const newClonedPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(foundPegoutStatus);
+        newClonedPegoutStatus.btcRecipientAddress = foundPegoutStatus.btcRecipientAddress;
         // Many pegouts with HOP will share the same rskTxHash, so, appending the index to differentiate them
         // and make each have a unique rskTxHash that includes to which btc tx output index each pegout belongs
-        newPegoutStatus.rskTxHash = `${extendedBridgeTx.txHash}_${index}`;
-        newPegoutStatus.rskBlockHeight = extendedBridgeTx.blockNumber;
-        newPegoutStatus.createdOn = extendedBridgeTx.createdOn;
-        newPegoutStatus.btcTxHash = btcTxHash;
-        newPegoutStatus.rskBlockHash = extendedBridgeTx.blockHash;
-        newPegoutStatus.isNewestStatus = true;
-        newPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
-        newPegoutStatus.batchPegoutIndex = index;
-        newPegoutStatus.batchPegoutRskTxHash = extendedBridgeTx.txHash;
-        return newPegoutStatus;
-      });
+        newClonedPegoutStatus.rskTxHash = `${extendedBridgeTx.txHash}_${index}`;
+        newClonedPegoutStatus.rskBlockHeight = extendedBridgeTx.blockNumber;
+        newClonedPegoutStatus.createdOn = extendedBridgeTx.createdOn;
+        newClonedPegoutStatus.btcTxHash = btcTxHash;
+        newClonedPegoutStatus.rskBlockHash = extendedBridgeTx.blockHash;
+        newClonedPegoutStatus.isNewestStatus = true;
+        newClonedPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
+        newClonedPegoutStatus.batchPegoutIndex = index;
+        newClonedPegoutStatus.batchPegoutRskTxHash = extendedBridgeTx.txHash;
 
-    await this.addBatchValueInSatoshisToBeReceivedAndFee(newClonedPegoutStatuses, extendedBridgeTx.txHash);
+      await this.addBatchValueInSatoshisToBeReceivedAndFee(newClonedPegoutStatus, extendedBridgeTx.txHash);
 
-    try {
-      foundPegoutStatuses.forEach(pegout => pegout.isNewestStatus = false);
-      const allPegouts = [...foundPegoutStatuses, ...newClonedPegoutStatuses];
-      await this.saveMany(allPegouts);
-      this.logger.trace(`[processBatchPegouts] ${allPegouts.length} pegouts was updated.`);
-    } catch(e) {
-      this.logger.warn('[processBatchPegouts] There was a problem with the storage', e);
+      try {
+        // Update previous status as outdated
+        foundPegoutStatus.isNewestStatus = false;
+        const allPegouts = [foundPegoutStatus, newClonedPegoutStatus];
+        await this.saveMany(allPegouts);
+        this.logger.trace(`[processBatchPegouts] ${allPegouts.length} pegouts were updated.`);
+      } catch(e) {
+        this.logger.warn('[processBatchPegouts] There was a problem with the storage', e);
+      }
+      index++;
     }
+
   }
 
-  private async addBatchValueInSatoshisToBeReceivedAndFee(pegoutStatuses: PegoutStatusDbDataModel[], rskTxHash: string): Promise<void> {
+  private async addBatchValueInSatoshisToBeReceivedAndFee(pegoutStatus: PegoutStatusDbDataModel, rskTxHash: string): Promise<void> {
     const bridgeState = await this.bridgeService.getBridgeState();
     const batchedPegout = bridgeState.pegoutsWaitingForConfirmations.find(pegout => pegout.rskTxHash === rskTxHash);
 
     if(!batchedPegout) {
-      this.logger.debug('[addValueInSatoshisToBeReceivedAndFee] did not find then batched pegout in the bridge state pegoutsWaitingForConfirmations.');
+      this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] did not find the batched pegout in the bridge state pegoutsWaitingForConfirmations. [rsktxhash: ${rskTxHash}][originatingRskTxHash:${pegoutStatus.originatingRskTxHash}]`);
       return;
     }
+    this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] Got the batched pegout in the bridge state pegoutsWaitingForConfirmations. [rsktxhash: ${rskTxHash}][originatingRskTxHash:${pegoutStatus.originatingRskTxHash}]`);
 
     const parsedBtcTransaction = bitcoin.Transaction.fromHex(batchedPegout.btcRawTx);
 
-    pegoutStatuses.forEach((pegout, index) => {
-          const output = parsedBtcTransaction.outs[index];
-          pegout.valueInSatoshisToBeReceived = output.value;
-          pegout.feeInSatoshisToBePaid = pegout.valueRequestedInSatoshis - pegout.valueInSatoshisToBeReceived;
-          pegout.btcRawTransaction = batchedPegout.btcRawTx;
-          pegout.btcRawTxInputsHash = this.getInputsHash(parsedBtcTransaction);
-    });
+    const output = parsedBtcTransaction.outs[pegoutStatus.batchPegoutIndex];
+    pegoutStatus.valueInSatoshisToBeReceived = output.value;
+    pegoutStatus.feeInSatoshisToBePaid = pegoutStatus.valueRequestedInSatoshis - pegoutStatus.valueInSatoshisToBeReceived;
+    pegoutStatus.btcRawTransaction = batchedPegout.btcRawTx;
+    pegoutStatus.btcRawTxInputsHash = this.getInputsHash(parsedBtcTransaction);
   }
 
   private getInputsHash(btcTx: bitcoin.Transaction) {
@@ -282,9 +305,12 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     await this.saveManyAsWaitingForSignature(pegoutsWaitingForSignatures);
   }
 
-  private async processWaitingForConfirmationStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
+  private async processIndividualPegout(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
     const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
     const releaseRequestedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
+    
+    this.logger.trace(`[processIndividualPegout] Started. [rsktxhash:${extendedBridgeTx.txHash}]`);
+    
     if(!releaseRequestedEvent) {
       return;
     }
@@ -292,10 +318,10 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     const originatingRskTxHash = <string> releaseRequestedEvent.arguments.rskTxHash;
     const btcTxHash = <string> releaseRequestedEvent.arguments.btcTxHash;
 
+    // TODO: Every pegout after HOP will fail to be found in this way. Consider removing this logic.
     const foundPegoutStatus = await this.pegoutStatusDataService.getLastByOriginatingRskTxHash(originatingRskTxHash);
     if(!foundPegoutStatus) {
-      return this.logger.warn(`[processWaitingForConfirmationStatus] could not find a pegout status record
-       in the db for this transaction '${extendedBridgeTx.txHash}' with 'release_requested' event.`);
+      return this.logger.warn(`[processIndividualPegout] Pegout request for this pegout creation not found (most likely migration or pegin rejection). Processor will not store this pegout. [originatingRskTxHash:${originatingRskTxHash}]`);
     }
 
     const newPegoutStatus: PegoutStatusDbDataModel = PegoutStatusDbDataModel.clonePegoutStatusInstance(foundPegoutStatus);
@@ -308,21 +334,15 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     newPegoutStatus.rskBlockHash = extendedBridgeTx.blockHash;
     newPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
 
-    await this.persistPegout(newPegoutStatus, foundPegoutStatus);
-  }
-
-  private async persistPegout(newPegoutStatus: PegoutStatusDbDataModel, oldPegoutStatus:PegoutStatusDbDataModel) {
     newPegoutStatus.isNewestStatus = true;
     await this.addValueInSatoshisToBeReceivedAndFee(newPegoutStatus);
 
     try {
-      oldPegoutStatus.isNewestStatus = false;
-      await this.pegoutStatusDataService.set(oldPegoutStatus);
-      this.logger.trace(`[processWaitingForConfirmationStatus] pegout status for ${oldPegoutStatus.btcTxHash} updated.`);
-      await this.pegoutStatusDataService.set(newPegoutStatus);
-      this.logger.trace(`[processWaitingForConfirmationStatus] pegout status for ${newPegoutStatus.originatingRskTxHash} updated.`);
+      foundPegoutStatus.isNewestStatus = false;
+      await this.save(foundPegoutStatus);
+      await this.save(newPegoutStatus);
     } catch(e) {
-      this.logger.warn('[processWaitingForConfirmationStatus] There was a problem with the storage', e);
+      this.logger.warn('[processIndividualPegout] There was a problem with the storage', e);
     }
   }
 
@@ -370,7 +390,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     const status = await PegoutStatusBuilder.fillRequestReceivedStatus(extendedBridgeTx);
 
     try {
-      await this.pegoutStatusDataService.set(status);
+      await this.save(status);
       this.logger.trace(`[processReleaseRequestReceivedStatus] ${extendedBridgeTx.txHash} registered`);
     } catch(e) {
       this.logger.warn('[processReleaseRequestReceivedStatus] There was a problem with the storage', e);
@@ -388,7 +408,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
    const status = await PegoutStatusBuilder.fillRequestRejectedStatus(extendedBridgeTx);
 
     try {
-      await this.pegoutStatusDataService.set(status);
+      await this.save(status);
       this.logger.trace(`[processReleaseRequestRejectedStatus] ${extendedBridgeTx.txHash} registered`);
     } catch(e) {
       this.logger.warn('[processReleaseRequestRejectedStatus] There was a problem with the storage', e);
@@ -406,8 +426,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   private async saveMany(pegouts: PegoutStatusDbDataModel[]) {
       for (const pegout of pegouts) {
-        const saved = await this.pegoutStatusDataService.set(pegout);
-        this.logger.warn('[saveMany] Pegout saved on the storage', saved);
+        await this.save(pegout);
       }
  }
 
@@ -417,6 +436,15 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       const saved = await this.pegoutStatusDataService.set(pegout);
       this.logger.warn('[saveMany] Pegout saved on the storage', saved);
     };
+  }
+
+  private async save(pegout: PegoutStatusDbDataModel): Promise<Boolean> {
+    this.logger.info(`[save] Pegout saved on the storage. ${this.getLoggerContextInformation(pegout)}`);
+    return this.pegoutStatusDataService.set(pegout);
+  }
+
+  private getLoggerContextInformation(pegout: PegoutStatusDbDataModel): string {
+    return `[rskTxHash:${pegout.rskTxHash}][originatingRskTxHash:${pegout.originatingRskTxHash}][status:${pegout.status}]${pegout.btcTxHash? '[btctxhash:' + pegout.btcTxHash + ']':''}`;
   }
 
   public async deleteByRskBlockHeight(rskBlockHeight: number) {
