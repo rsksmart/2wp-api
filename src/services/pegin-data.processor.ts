@@ -23,7 +23,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
     this.logger.debug(`[process] Got tx ${extendedBridgeTx.txHash}`);
     const peginStatus = this.parse(extendedBridgeTx);
     if (!peginStatus) {
-      this.logger.debug('[process] Transaction is not a registerBtcTransaction or has not registered the peg-in');
+      this.logger.debug('[process] Transaction is not a registerBtcTransaction or fails to register the peg-in');
       return;
     }
     try {
@@ -32,7 +32,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
         return this.logger.debug(`[process] ${extendedBridgeTx.txHash} already registered`);
       }
       await this.peginStatusStorageService.set(peginStatus);
-      this.logger.trace(`[process] ${extendedBridgeTx.txHash} registered`);
+      this.logger.info(`[process] ${extendedBridgeTx.txHash} registered. data: [btctxid:${peginStatus.btcTxId}] [status${peginStatus.status}]`);
     } catch (e) {
       this.logger.warn('[process] There was a problem with the storage', e);
     }
@@ -47,7 +47,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   private getPeginStatus(extendedBridgeTx: ExtendedBridgeTx): PeginStatusDataModel | undefined {
-    this.logger.debug(`[getPeginStatus] Started with transaction ${extendedBridgeTx}`);
+    this.logger.debug(`[getPeginStatus] Started with transaction ${extendedBridgeTx.txHash}`);
     const status = new PeginStatusDataModel();
     if (this.hasThisLog(BRIDGE_EVENTS.LOCK_BTC, extendedBridgeTx.events)) {
       const lockBtcLog = this.getLockBtcLogIfExists(extendedBridgeTx.events as ExtendedBridgeEvent[]);
@@ -78,7 +78,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
         status.status = RskPeginStatusEnum.REJECTED_NO_REFUND;
         return status;
       }
-      // TODO: THIS SHOULD NOT HAPPEN, LOG IT IF IT EVER DOES
+      this.logger.warn(`[getPeginStatus] Call to RegisterBtcTransaction with invalid data! [rsktxid:${extendedBridgeTx.txHash}]`);
     }
 
   }
@@ -93,7 +93,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
 
   parse(extendedBridgeTx: ExtendedBridgeTx): PeginStatusDataModel | null {
     if (!extendedBridgeTx || !extendedBridgeTx.events || !extendedBridgeTx.events.length) {
-      this.logger.warn(`[parse] This transaction doesn't have the data required to be parsed`);
+      this.logger.debug(`[parse] This transaction doesn't have the data required to be parsed`);
       return null;
     }
     const result = this.getPeginStatus(extendedBridgeTx);
