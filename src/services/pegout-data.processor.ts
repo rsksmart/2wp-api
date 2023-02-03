@@ -69,14 +69,12 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
         await this.processReleaseRequestRejectedStatus(extendedBridgeTx);
       }
 
-      // Pegout created (batched pegout)
       if(this.hasBatchPegoutEvent(events)) {
+        // Pegout created (batched pegout)
         this.logger.trace('[process] found a batch_pegout_created event. Processing...');
         await this.processBatchPegouts(extendedBridgeTx);
-      }
-
-      // Pegout created
-      if(this.hasReleaseRequestedEvent(events)) {
+      } else  if(this.hasReleaseRequestedEvent(events)) {
+        // Pegout created (individual pegout) [pre HOP]
         this.logger.trace('[process] found a release_requested event. Processing...');
         await this.processIndividualPegout(extendedBridgeTx);
       }
@@ -129,6 +127,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     if(!releaseBTCEvent) {
       return;
     }
+    this.logger.trace(`[processSignedStatus] Started. [rskTxHash:${extendedBridgeTx.txHash}]`);
 
     const dbPegoutStatusesWaitingForSignature = await this.pegoutStatusDataService.getManyWaitingForSignaturesNewest();
     const dbPegoutStatusesWaitingForConfirmation = await this.pegoutStatusDataService.getManyWaitingForConfirmationNewest();
@@ -162,28 +161,22 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     });
 
     if(!correspondingDbPegoutNowSigned) {
-      this.logger.trace(`[processSignedStatus] could not find a corresponding pegout in db waiting for signature 
-      for this signed transaction: ${extendedBridgeTx.txHash}`);
+      this.logger.trace(`[processSignedStatus] could not find a corresponding pegout in db waiting for signature for this signed transaction: ${extendedBridgeTx.txHash}`);
       return;
     }
+    this.logger.trace(`[processSignedStatus] Got a pegout waiting signatures. ${this.getLoggerContextInformation(correspondingDbPegoutNowSigned)}`);
 
     const newPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(correspondingDbPegoutNowSigned);
-
+    newPegoutStatus.setRskTxInformation(extendedBridgeTx);
     newPegoutStatus.btcRawTransaction = btcRawTx;
-    newPegoutStatus.createdOn = extendedBridgeTx.createdOn;
     newPegoutStatus.btcTxHash = btcTx.getHash().toString('hex');
-    newPegoutStatus.rskBlockHeight = extendedBridgeTx.blockNumber;
-    newPegoutStatus.rskBlockHash = extendedBridgeTx.blockHash;
-    newPegoutStatus.rskTxHash = extendedBridgeTx.txHash;
     newPegoutStatus.isNewestStatus = true;
     newPegoutStatus.status = PegoutStatus.SIGNED;
 
     try {
       correspondingDbPegoutNowSigned.isNewestStatus = false;
-      this.pegoutStatusDataService.set(correspondingDbPegoutNowSigned);
-      this.logger.trace(`[processSignedStatus] pegout status for ${correspondingDbPegoutNowSigned.rskTxHash} updated.`);
-      this.pegoutStatusDataService.set(newPegoutStatus);
-      this.logger.trace(`[processSignedStatus] pegout status for ${newPegoutStatus.rskTxHash} updated.`);
+      await this.save(correspondingDbPegoutNowSigned);
+      await this.save(newPegoutStatus);
     } catch(e) {
       this.logger.warn('[processSignedStatus] There was a problem with the storage', e);
     }
@@ -221,16 +214,14 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       this.logger.trace(`[processBatchPegouts] Got the pegout previous state from the db`);
 
         const newClonedPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(foundPegoutStatus);
-        newClonedPegoutStatus.btcRecipientAddress = foundPegoutStatus.btcRecipientAddress;
+        newClonedPegoutStatus.setRskTxInformation(extendedBridgeTx);
+        newClonedPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
+        newClonedPegoutStatus.isNewestStatus = true;
         // Many pegouts with HOP will share the same rskTxHash, so, appending the index to differentiate them
         // and make each have a unique rskTxHash that includes to which btc tx output index each pegout belongs
         newClonedPegoutStatus.rskTxHash = `${extendedBridgeTx.txHash}_${index}`;
-        newClonedPegoutStatus.rskBlockHeight = extendedBridgeTx.blockNumber;
-        newClonedPegoutStatus.createdOn = extendedBridgeTx.createdOn;
         newClonedPegoutStatus.btcTxHash = btcTxHash;
-        newClonedPegoutStatus.rskBlockHash = extendedBridgeTx.blockHash;
-        newClonedPegoutStatus.isNewestStatus = true;
-        newClonedPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
+        newClonedPegoutStatus.btcRecipientAddress = foundPegoutStatus.btcRecipientAddress;
         newClonedPegoutStatus.batchPegoutIndex = index;
         newClonedPegoutStatus.batchPegoutRskTxHash = extendedBridgeTx.txHash;
 
@@ -276,33 +267,51 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   private async processWaitingForSignaturesStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
     const currentBlockHeight = extendedBridgeTx.blockNumber;
-    this.logger.trace(`[processWaitingForSignaturesStatus] currentBlockHeight: ${currentBlockHeight}`);
     const rskMaximumConfirmation = Number(process.env.RSK_PEGOUT_MINIMUM_CONFIRMATIONS);
+
+    this.logger.trace(`[processWaitingForSignaturesStatus] currentBlockHeight: ${currentBlockHeight}`);
+
     const dbPegoutsWaitingForConfirmations = await this.pegoutStatusDataService.getManyWaitingForConfirmationNewest();
-    this.logger.trace(`[processWaitingForSignaturesStatus] number of dbPegoutsWaitingForConfirmations: ${dbPegoutsWaitingForConfirmations.length}`);
+    this.logger.trace(`[processWaitingForSignaturesStatus] number of pegouts waiting for confirmations: ${dbPegoutsWaitingForConfirmations.length}`);
+    
     const dbPegoutsWithEnoughConfirmations: PegoutStatusDbDataModel[] = dbPegoutsWaitingForConfirmations.filter(dbPegout => {
       const blockHeightDiff = currentBlockHeight - dbPegout.rskBlockHeight;
       return blockHeightDiff >= rskMaximumConfirmation;
     });
-    this.logger.trace(`[processWaitingForSignaturesStatus] number of dbPegoutsWaitingForConfirmations with enough confirmations: ${dbPegoutsWithEnoughConfirmations.length}`);
-    const bridgeState = await this.bridgeService.getBridgeState();
-    const pegoutsWaitingForConfirmationMap = bridgeState.pegoutsWaitingForConfirmations
-        .reduce((accumulator, pegout) => accumulator.set(pegout.rskTxHash, pegout), new Map<string, PegoutWaitingConfirmation>());
-    if(pegoutsWaitingForConfirmationMap.size === 0) {
-      this.logger.trace(`[processWaitingForSignaturesStatus] no transactions in waiting for confirmation in the bridge state.`);
-      // If none of the pegouts in the db waiting for confirmation are found in the bridge state,
-      // it means the were already moved further. Setting them to the next status, waiting for signatures.
-      return await this.saveManyAsWaitingForSignature(dbPegoutsWithEnoughConfirmations);
-    }
-    const pegoutsWaitingForSignatures = dbPegoutsWithEnoughConfirmations.reduce((accumulator: Array<PegoutStatusDbDataModel>, dbPegoutWaitingForSignature: PegoutStatusDbDataModel) => {
-      const rskTxHash = remove0x(dbPegoutWaitingForSignature.rskTxHash);
-      const pegoutStillInWaitingForConfirmation = pegoutsWaitingForConfirmationMap.get(rskTxHash);
-      if(!pegoutStillInWaitingForConfirmation) {
-        accumulator.push(dbPegoutWaitingForSignature);
+    this.logger.trace(`[processWaitingForSignaturesStatus] number of pegouts confirmed: ${dbPegoutsWithEnoughConfirmations.length}`);
+    
+    // TODO: this is most likely incorrect. The processor is syncing so the state up to this point is what we get from the tx itself
+
+    // const bridgeState = await this.bridgeService.getBridgeState();
+    // const pegoutsWaitingForConfirmationMap = bridgeState.pegoutsWaitingForConfirmations
+    //     .reduce((accumulator, pegout) => accumulator.set(pegout.rskTxHash, pegout), new Map<string, PegoutWaitingConfirmation>());
+    // if(pegoutsWaitingForConfirmationMap.size === 0) {
+    //   this.logger.trace(`[processWaitingForSignaturesStatus] no transactions in waiting for confirmation in the bridge state.`);
+    //   // If none of the pegouts in the db waiting for confirmation are found in the bridge state,
+    //   // it means the were already moved further. Setting them to the next status, waiting for signatures.
+    //   return await this.saveManyAsWaitingForSignature(dbPegoutsWithEnoughConfirmations);
+    // }
+    // const pegoutsWaitingForSignatures = dbPegoutsWithEnoughConfirmations.reduce((accumulator: Array<PegoutStatusDbDataModel>, dbPegoutWaitingForSignature: PegoutStatusDbDataModel) => {
+    //   const rskTxHash = remove0x(dbPegoutWaitingForSignature.rskTxHash);
+    //   const pegoutStillInWaitingForConfirmation = pegoutsWaitingForConfirmationMap.get(rskTxHash);
+    //   if(!pegoutStillInWaitingForConfirmation) {
+    //     accumulator.push(dbPegoutWaitingForSignature);
+    //   }
+    //   return accumulator;
+    // }, []);
+    try {
+      for (let pegoutToConfirm of dbPegoutsWaitingForConfirmations) {
+        const confirmedPegout: PegoutStatusDbDataModel = PegoutStatusDbDataModel.clonePegoutStatusInstance(pegoutToConfirm);
+        confirmedPegout.setRskTxInformation(extendedBridgeTx);
+        confirmedPegout.isNewestStatus = true;
+        confirmedPegout.status = PegoutStatus.WAITING_FOR_SIGNATURE;
+        pegoutToConfirm.isNewestStatus = false;
+        await this.save(pegoutToConfirm);
+        await this.save(confirmedPegout);
       }
-      return accumulator;
-    }, []);
-    await this.saveManyAsWaitingForSignature(pegoutsWaitingForSignatures);
+    } catch (e) {
+      this.logger.warn(`[processWaitingForSignaturesStatus] Error writing to storage`);
+    }
   }
 
   private async processIndividualPegout(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
@@ -325,13 +334,9 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
     const newPegoutStatus: PegoutStatusDbDataModel = PegoutStatusDbDataModel.clonePegoutStatusInstance(foundPegoutStatus);
-    newPegoutStatus.btcRecipientAddress = foundPegoutStatus.btcRecipientAddress;
+    newPegoutStatus.setRskTxInformation(extendedBridgeTx);
     newPegoutStatus.originatingRskTxHash = originatingRskTxHash;
-    newPegoutStatus.rskTxHash = extendedBridgeTx.txHash;
-    newPegoutStatus.rskBlockHeight = extendedBridgeTx.blockNumber;
-    newPegoutStatus.createdOn = extendedBridgeTx.createdOn;
     newPegoutStatus.btcTxHash = btcTxHash;
-    newPegoutStatus.rskBlockHash = extendedBridgeTx.blockHash;
     newPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
 
     newPegoutStatus.isNewestStatus = true;
@@ -429,14 +434,6 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
         await this.save(pegout);
       }
  }
-
-  private async saveManyAsWaitingForSignature(pegouts: PegoutStatusDbDataModel[]) {
-    for (const pegout of pegouts) {
-      pegout.status = PegoutStatus.WAITING_FOR_SIGNATURE;
-      const saved = await this.pegoutStatusDataService.set(pegout);
-      this.logger.warn('[saveMany] Pegout saved on the storage', saved);
-    };
-  }
 
   private async save(pegout: PegoutStatusDbDataModel): Promise<Boolean> {
     this.logger.info(`[save] Pegout saved on the storage. ${this.getLoggerContextInformation(pegout)}`);
