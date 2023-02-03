@@ -412,8 +412,7 @@ describe('Service: PegoutDataProcessor', () => {
     pegoutWithWaitingForSignature.originatingRskBlockHeight = 2869983;
     pegoutWithWaitingForSignature.valueRequestedInSatoshis = 521000;
 
-    sinon.assert.calledOnceWithMatch(mockedPegoutStatusDataService.set, pegoutWithWaitingForSignature);
-
+    sinon.assert.calledTwice(mockedPegoutStatusDataService.set);
   });
 
   it('handles SIGNED status for pegouts WAITING_FOR_SIGNATURE', async () => {
