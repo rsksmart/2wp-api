@@ -12,7 +12,6 @@ import * as bitcoin from 'bitcoinjs-lib';
 import {BridgeService} from './bridge.service';
 import * as constants from '../constants';
 import { ensure0x, remove0x } from '../utils/hex-utils';
-import { PegoutWaitingConfirmation } from 'bridge-state-data-parser';
 import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 import { sha256 } from '../utils/sha256-utils';
@@ -201,7 +200,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     let eventData = remove0x(batchPegoutsEvent.arguments.releaseRskTxHashes);
     let index = 0;
     while(eventData != '') {
-      const originatingRskTxHash = ensure0x(eventData.slice(0, 64));
+      const hashData = eventData.slice(0, 64);
+      const originatingRskTxHash = ensure0x(hashData);
       this.logger.trace(`[processBatchPegouts] Processing individual pegout creation in batch. [rsktxhash:${extendedBridgeTx.txHash}] [originatingRskTxHash:${originatingRskTxHash}]`);
 
       const foundPegoutStatus  = await this.pegoutStatusDataService.getLastByOriginatingRskTxHash(originatingRskTxHash);
@@ -213,17 +213,17 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
       this.logger.trace(`[processBatchPegouts] Got the pegout previous state from the db`);
 
-        const newClonedPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(foundPegoutStatus);
-        newClonedPegoutStatus.setRskTxInformation(extendedBridgeTx);
-        newClonedPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
-        newClonedPegoutStatus.isNewestStatus = true;
-        // Many pegouts with HOP will share the same rskTxHash, so, appending the index to differentiate them
-        // and make each have a unique rskTxHash that includes to which btc tx output index each pegout belongs
-        newClonedPegoutStatus.rskTxHash = `${extendedBridgeTx.txHash}_${index}`;
-        newClonedPegoutStatus.btcTxHash = btcTxHash;
-        newClonedPegoutStatus.btcRecipientAddress = foundPegoutStatus.btcRecipientAddress;
-        newClonedPegoutStatus.batchPegoutIndex = index;
-        newClonedPegoutStatus.batchPegoutRskTxHash = extendedBridgeTx.txHash;
+      const newClonedPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(foundPegoutStatus);
+      newClonedPegoutStatus.setRskTxInformation(extendedBridgeTx);
+      newClonedPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
+      newClonedPegoutStatus.isNewestStatus = true;
+      // Many pegouts with HOP will share the same rskTxHash, so, appending the index to differentiate them
+      // and make each have a unique rskTxHash that includes to which btc tx output index each pegout belongs
+      newClonedPegoutStatus.rskTxHash = `${extendedBridgeTx.txHash}_${index}`;
+      newClonedPegoutStatus.btcTxHash = btcTxHash;
+      newClonedPegoutStatus.btcRecipientAddress = foundPegoutStatus.btcRecipientAddress;
+      newClonedPegoutStatus.batchPegoutIndex = index;
+      newClonedPegoutStatus.batchPegoutRskTxHash = extendedBridgeTx.txHash;
 
       await this.addBatchValueInSatoshisToBeReceivedAndFee(newClonedPegoutStatus, extendedBridgeTx.txHash);
 
@@ -236,6 +236,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       } catch(e) {
         this.logger.warn('[processBatchPegouts] There was a problem with the storage', e);
       }
+      eventData = eventData.replace(hashData, '');
       index++;
     }
 
