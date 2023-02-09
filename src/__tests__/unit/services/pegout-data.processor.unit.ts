@@ -1,7 +1,7 @@
 import {expect, sinon} from '@loopback/testlab';
 import { PegoutStatusDataService } from '../../../services/pegout-status-data-services/pegout-status-data.service';
 import { PegoutDataProcessor } from '../../../services/pegout-data.processor';
-import Sinon, { SinonStubbedInstance } from 'sinon';
+import { SinonStubbedInstance } from 'sinon';
 import { PegoutStatusMongoDbDataService } from '../../../services/pegout-status-data-services/pegout-status-mongo.service';
 import ExtendedBridgeTx from '../../../services/extended-bridge-tx';
 import {Transaction} from 'bridge-transaction-parser';
@@ -620,13 +620,12 @@ describe('Service: PegoutDataProcessor', () => {
       reason: '',
       btcRawTxInputsHash: '',
       getId: function (): string {
-        throw new Error('Function not implemented.');
+        return '';
       },
       getIdFieldName: function (): string {
-        throw new Error('Function not implemented.');
+        return '';
       },
-      setRskTxInformation: function (extendedBridgeTx: ExtendedBridgeTx): void {
-        throw new Error('Function not implemented.');
+      setRskTxInformation: function (_extendedBridgeTx: ExtendedBridgeTx): void {
       }
     }
     var spy = sinon.spy();
