@@ -46,6 +46,11 @@ export class TxInput extends Model {
   })
   amount: number;
 
+  @property({
+    type: 'string',
+  })
+  prevRawTx: string;
+
   constructor(data?: Partial<TxInput>) {
     super(data);
   }
