@@ -45,14 +45,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     try {
       this.logger.debug(`[process] Got tx ${extendedBridgeTx.txHash}`);
       const events: BridgeEvent[] = extendedBridgeTx.events;
-      const acceptedMethods = [
-        '',
-        BRIDGE_METHODS.UPDATE_COLLECTIONS,
-        BRIDGE_METHODS.ADD_SIGNATURE,
-        BRIDGE_METHODS.RELEASE_BTC
-      ];
 
-      if (!acceptedMethods.some(am => am == extendedBridgeTx.method.name)) {
+      if (!this.isMethodAccepted(extendedBridgeTx)) {
         return this.logger.warn('[process] Received a method not accepted');
       }
 
@@ -447,6 +441,17 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   public async deleteByRskBlockHeight(rskBlockHeight: number) {
     await this.pegoutStatusDataService.deleteByRskBlockHeight(rskBlockHeight);
+  }
+
+  public isMethodAccepted(extendedBridgeTx: ExtendedBridgeTx) {
+    const acceptedMethods = [
+      '',
+      BRIDGE_METHODS.UPDATE_COLLECTIONS,
+      BRIDGE_METHODS.ADD_SIGNATURE,
+      BRIDGE_METHODS.RELEASE_BTC
+    ];
+    const name = extendedBridgeTx.method.name ? extendedBridgeTx.method.name : extendedBridgeTx.method as unknown as string;
+    return acceptedMethods.some(am => am == name);
   }
 
 }

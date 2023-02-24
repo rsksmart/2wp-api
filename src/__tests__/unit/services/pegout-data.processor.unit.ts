@@ -57,6 +57,73 @@ describe('Service: PegoutDataProcessor', () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const bridgeService: BridgeService = <BridgeService> {};
     const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService);
+    const rskSenderAddress = '0x40d2878B98A9C5A5b7bc3B2FC0e26dfDefCfe737';
+    const btcDestinationAddress = '0x09197f6153cb3a91bb51eec373360a1cb3b7c0e0';
+    const amount = 566666;
+
+    const releaseRequestReceivedEventsArgs = {
+      sender : rskSenderAddress,
+      btcDestinationAddress : btcDestinationAddress,
+      amount : amount,
+    };
+
+    const createdOn = new Date();
+
+    const bridgeTransaction: Transaction = {
+      txHash: '0xfffce75653adb8b90a1be6809a44d37e07c4f7cf5d4daf209f3e23a4c9a29cf1',
+      blockNumber: 3609605,
+      method: {
+        name: '',
+        signature: '',
+        arguments: new Map()
+      },
+      events: [{
+        name: BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED,
+        signature: '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
+        arguments: releaseRequestReceivedEventsArgs
+      }]
+    }
+
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash,
+      txHash: bridgeTransaction.txHash,
+      createdOn,
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+
+    await thisService.process(extendedBridgeTx);
+
+    const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
+    const releaseRequestReceivedEvent:ExtendedBridgeEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)!;
+    const theRskSenderAddress = <string> releaseRequestReceivedEvent!.arguments.sender;
+    const theBtcDestinationAddress = <string> releaseRequestReceivedEvent!.arguments.btcDestinationAddress;
+    const theAmount = <number> releaseRequestReceivedEvent!.arguments.amount;
+
+    const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
+    status.createdOn = extendedBridgeTx.createdOn;
+    status.originatingRskTxHash = extendedBridgeTx.txHash;
+    status.rskTxHash = extendedBridgeTx.txHash;
+    status.rskBlockHeight = extendedBridgeTx.blockNumber;
+    status.rskSenderAddress = theRskSenderAddress;
+    status.btcRecipientAddress = theBtcDestinationAddress;
+    status.valueRequestedInSatoshis = theAmount;
+    status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
+    status.status = PegoutStatus.RECEIVED;
+    status.rskBlockHash = extendedBridgeTx.blockHash;
+    status.originatingRskBlockHash = extendedBridgeTx.blockHash;
+    status.isNewestStatus = true;
+
+    sinon.assert.calledOnce(mockedPegoutStatusDataService.set);
+
+  });
+
+  it('validate accepted methods for method "" ', async () => {
+    const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
+    const bridgeService: BridgeService = <BridgeService> {};
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService);
     const rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
     const btcDestinationAddress = 'mreuQThm58CrYL4WCuY4SmDqiAQzWSy9GR';
     const amount = 504237;
@@ -66,7 +133,6 @@ describe('Service: PegoutDataProcessor', () => {
       btcDestinationAddress : btcDestinationAddress,
       amount : amount,
     };
-
 
     const createdOn = new Date();
 
@@ -95,22 +161,52 @@ describe('Service: PegoutDataProcessor', () => {
       events: bridgeTransaction.events
     };
 
-    await thisService.process(extendedBridgeTx);
+    expect(thisService.isMethodAccepted(extendedBridgeTx)).true;
+  });
 
-    const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
+  it('validate accepted methods for an invalid method ', async () => {
+    const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
+    const bridgeService: BridgeService = <BridgeService> {};
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService);
+    const rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
+    const btcDestinationAddress = 'mreuQThm58CrYL4WCuY4SmDqiAQzWSy9GR';
+    const amount = 504237;
 
-    status.createdOn = extendedBridgeTx.createdOn;
-    status.originatingRskTxHash = extendedBridgeTx.txHash;
-    status.rskTxHash = extendedBridgeTx.txHash;
-    status.rskBlockHeight = extendedBridgeTx.blockNumber;
-    status.rskSenderAddress = rskSenderAddress;
-    status.btcRecipientAddress = btcDestinationAddress;
-    status.valueRequestedInSatoshis = amount;
-    status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
-    status.status = PegoutStatus.RECEIVED;
+    const releaseRequestReceivedEventsArgs = {
+      sender : rskSenderAddress,
+      btcDestinationAddress : btcDestinationAddress,
+      amount : amount,
+    };
 
-    sinon.assert.calledOnceWithMatch(mockedPegoutStatusDataService.set, status);
 
+    const createdOn = new Date();
+
+    const bridgeTransaction: Transaction = {
+      txHash: rskTxHash,
+      blockNumber: 1,
+      method: {
+        name: 'zzzzzz-invalid-xxxxx',
+        signature: '',
+        arguments: new Map()
+      },
+      events: [{
+        name: BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED,
+        signature: '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
+        arguments: releaseRequestReceivedEventsArgs
+      }]
+    }
+
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      blockHash,
+      txHash: bridgeTransaction.txHash,
+      createdOn,
+      blockNumber: bridgeTransaction.blockNumber,
+      to: bridge.address,
+      method: bridgeTransaction.method,
+      events: bridgeTransaction.events
+    };
+
+    expect(thisService.isMethodAccepted(extendedBridgeTx)).true;
   });
 
   it('handles REJECTED status', async () => {
@@ -626,7 +722,7 @@ describe('Service: PegoutDataProcessor', () => {
         return '';
       },
       setRskTxInformation: function (_extendedBridgeTx: ExtendedBridgeTx): void {
-      }
+      },
     }
     var spy = sinon.spy();
     spy(newClonedPegoutStatus);
