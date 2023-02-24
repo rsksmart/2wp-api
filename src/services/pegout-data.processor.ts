@@ -450,7 +450,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       BRIDGE_METHODS.ADD_SIGNATURE,
       BRIDGE_METHODS.RELEASE_BTC
     ];
-    const name = extendedBridgeTx.method.name ? extendedBridgeTx.method.name : extendedBridgeTx.method as unknown as string;
+    const name = (extendedBridgeTx.method.name || extendedBridgeTx.method.name === '') ? extendedBridgeTx.method.name : extendedBridgeTx.method as unknown as string;
     return acceptedMethods.some(am => am == name);
   }
 
