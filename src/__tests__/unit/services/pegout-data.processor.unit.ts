@@ -342,8 +342,8 @@ describe('Service: PegoutDataProcessor', () => {
       events: [{
         name: BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED,
         signature: '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
-        arguments: releaseRequestReceivedEventsArgs
-      }]
+        arguments: releaseRequestReceivedEventsArgs,
+      },]
     }
 
     const extendedBridgeTx: ExtendedBridgeTx = {
