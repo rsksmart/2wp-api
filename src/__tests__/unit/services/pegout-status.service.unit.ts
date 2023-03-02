@@ -80,7 +80,11 @@ describe('Pegout Status Service:', () => {
             });
         const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
         const expectedResponse = new PegoutStatusAppDataModel({
+            rskTxHash: 'RskTestTxId',
+            rskSenderAddress: 'testSenderAddress',
+            valueRequestedInSatoshis: 0,
             status: PegoutStatus.REJECTED,
+            originatingRskTxHash: 'RskTestTxId',
         });
         expect(pegoutStatus).to.be.deepEqual(expectedResponse);
     });

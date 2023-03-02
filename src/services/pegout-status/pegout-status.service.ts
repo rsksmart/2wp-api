@@ -54,7 +54,7 @@ export class PegoutStatusService {
                         }
 
                     } else if (pegoutStatusDbDataModel.status === PegoutStatus.REJECTED) {
-                        pegoutStatus.status = PegoutStatus.REJECTED;
+                        pegoutStatus = PegoutStatusAppDataModel.fromPegoutStatusDataModelRejected(pegoutStatusDbDataModel);
                     } else {
                         pegoutStatus = PegoutStatusAppDataModel.fromPegoutStatusDataModel(pegoutStatusDbDataModel);
                     }
