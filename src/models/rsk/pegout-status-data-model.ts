@@ -52,6 +52,22 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
       btcRawTransaction,
     });
   }
+  static fromPegoutStatusDataModelRejected(model: PegoutStatusDataModel):PegoutStatusAppDataModel {
+    const {
+      originatingRskTxHash,
+      rskTxHash,
+      rskSenderAddress,
+      valueRequestedInSatoshis,
+      status,
+    } = model;
+    return new PegoutStatusAppDataModel({
+      originatingRskTxHash,
+      rskTxHash,
+      rskSenderAddress,
+      valueRequestedInSatoshis,
+      status,
+    });
+  }
   rskTxHash: string;
   rskSenderAddress: string;
   btcRecipientAddress: string;
