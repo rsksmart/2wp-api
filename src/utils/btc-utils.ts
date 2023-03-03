@@ -6,12 +6,18 @@ import * as constants from '../constants';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
+import * as bitcoin from 'bitcoinjs-lib';
 
 export const calculateBtcTxHash = (transaction: string) => {
   const hash = doubleSha256(remove0x(transaction));
   const bufferedHash = Buffer.from(hash, 'hex');
   bufferedHash.reverse();
   return bufferedHash.toString('hex');
+};
+
+export const calculateBtcTxHashSegWitAndNonSegwit = (raw: string) => {
+  const tx:string = bitcoin.Transaction.fromHex(raw).getId();
+  return tx;
 };
 
 export type AddressType = 'BITCOIN_LEGACY_ADDRESS' | 'BITCOIN_SEGWIT_ADDRESS' | 'BITCOIN_NATIVE_SEGWIT_ADDRESS' | 'BITCOIN_MULTISIGNATURE_ADDRESS';
