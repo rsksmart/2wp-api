@@ -49,7 +49,7 @@ export class PeginStatusService {
           return peginStatusInfo;
         }
         if (btcStatus.requiredConfirmation <= btcStatus.confirmations) {
-          return this.getRskInfo(btcStatus.btcWTxId)
+          return this.getRskInfo(btcTxId)
             .then((rskStatus) => {
               if (rskStatus.status !== undefined) {
                 peginStatusInfo.setRskPeginStatus(rskStatus);
@@ -125,7 +125,6 @@ export class PeginStatusService {
               btcTx.vout
             ));
 
-            btcStatus.btcWTxId = ensure0x(calculateBtcTxHash(btcTx.hex));
             btcStatus.fees = btcTx.fees ? this.fromSatoshiToBtc(btcTx.fees) : 0;
             btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
             btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;
