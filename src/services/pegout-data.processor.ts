@@ -204,7 +204,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     const originatingRskTxHash = <string> releaseRequestedEvent.arguments.rskTxHash;
     const btcTxHash = <string> releaseRequestedEvent.arguments.btcTxHash;
 
-    const foundPegoutStatus = await this.pegoutStatusDataService.getLastByOriginatingRskTxHash(originatingRskTxHash);
+    const foundPegoutStatus = await this.pegoutStatusDataService.getLastByOriginatingRskTxHashNewest(originatingRskTxHash);
     if(!foundPegoutStatus) {
       return this.logger.warn(`[processWaitingForConfirmationStatus] could not find a pegout status record
        in the db for this transaction '${extendedBridgeTx.txHash}' with 'release_requested' event.`);

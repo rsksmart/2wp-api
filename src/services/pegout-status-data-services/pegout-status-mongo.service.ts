@@ -75,6 +75,24 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
     return PegoutStatusDbDataModel.clonePegoutStatusInstance(pegoutDocument);
   }
 
+  public async getLastByOriginatingRskTxHashNewest(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel | null> {
+    const pegoutDocument = await this.getConnector()
+    .find({originatingRskTxHash, isNewestStatus: true})
+    .sort({createdOn: -1})
+    .limit(1)
+    .exec()
+    .then((pegoutStatuses: PegoutStatusDbDataModel[]) => pegoutStatuses[0] || null);
+    if(!pegoutDocument) {
+      return null;
+    }
+    // Getting the pegout status from the db does not create a PegoutStatusDataModel instance.
+    // So the data that the db returns does not have the 'getIdFieldName' method,
+    // which is needed to be able to update and safe the pegout status.
+    // That's why we need to 'clone' it here, to create an actual PegoutStatusDataModel instance and have what we need.
+    // Same for the other uses of this clone method in this file.
+    return PegoutStatusDbDataModel.clonePegoutStatusInstance(pegoutDocument);
+  }
+
   public async getManyWaitingForConfirmationNewest(): Promise<PegoutStatusDbDataModel[]> {
     const pegoutsDocuments = await this.getConnector()
     .find({status: PegoutStatus.WAITING_FOR_CONFIRMATION, isNewestStatus: true})
