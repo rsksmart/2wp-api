@@ -31,6 +31,7 @@ describe('Controller: Tx Status', () => {
       btcPeginStatus.confirmations = 60;
       btcPeginStatus.refundAddress = testBtcRefundAddress;
       btcPeginStatus.amountTransferred = 256893000
+      btcPeginStatus.btcWTxId = mockedTxId;
       btcPeginStatus.creationDate = new Date(1653532992634);
       btcPeginStatus.fees = 5000;
       const peginStatus = new PeginStatus(btcPeginStatus);
