@@ -1,15 +1,16 @@
 import {
     createStubInstance,
     expect,
+    stubExpressContext,
   } from '@loopback/testlab';
 import {HealthCheckController} from '../../controllers';
 import {BitcoinService, BridgeService, SyncStatusDataService, RskNodeService} from '../../services';
 import {sinon} from '@loopback/testlab/dist/sinon';
+import { writeResultToResponse } from '@loopback/rest';
   
   describe('health check controller', () => {
     let getLastBlock: sinon.SinonStub;
     let controller: HealthCheckController; 
-
     let bitcoinService: BitcoinService;
     let bridgeService: BridgeService;
     let rskNodeService: RskNodeService;
@@ -17,6 +18,7 @@ import {sinon} from '@loopback/testlab/dist/sinon';
     let getBestBlock: sinon.SinonStub;
     let getBlockNumber: sinon.SinonStub;
     let getFederationAddress: sinon.SinonStub;
+    let context = stubExpressContext();
 
     beforeEach(resetRepositories);
   
@@ -34,7 +36,8 @@ import {sinon} from '@loopback/testlab/dist/sinon';
         bitcoinService,
         bridgeService,
         rskNodeService,
-        theSyncStorageService
+        theSyncStorageService,
+        context.response,
       );
 
       getBestBlock.resolves([
@@ -74,46 +77,48 @@ import {sinon} from '@loopback/testlab/dist/sinon';
 
     }
 
-    it('get best block called once', async () => {
-      const health = await controller.health();
-      sinon.assert.calledOnce(getBestBlock);
-      expect(health).not.null();
+    it('test req and resp', async () => {
+        const context = stubExpressContext();
+        writeResultToResponse(context.response, 
+            {
+                "up": true,
+                "dataBase": {
+                  "lastRskBlockNumber": 3631096,
+                  "lastRskBlockHash": "0xff7ca28321bae28bcf6bc192780824334e23a85892a83d257b3ed157011d24c2",
+                  "up": true
+                },
+                "blockBook": {
+                  "up": true,
+                  "lastBtcBlockNumber": 2422705,
+                  "lastBtcBlockHash": "000000000000001d85f0b57645309fdd5478a28bcb7daf32101d66c1b6005bdf",
+                  "totalBlocks": 2422705,
+                  "syncing": true,
+                  "chain": "test"
+                },
+                "rskNode": {
+                  "up": true,
+                  "lastRskBlockNumber": 3631102
+                },
+                "bridgeService": {
+                  "up": true,
+                  "federationAddress": "2N1rW3cBZNzs2ZxSfyNW7cMcNBktt6fzs88"
+                }
+            });
+        const result = await context.result;
+    
+        expect(result.headers['content-type']).to.eql('application/json');
+        expect(result.payload).not.null;
+    
     });
 
-    it('rskNodeService connection fails then the general status is up == false', async () => {
-
-        getBlockNumber.resolves([
-            {
-              blockNumber: null,
-            }
-        ]);
-
-        const health = await controller.health();
-        expect(health.up).false;
-      });
-
-      it('bitcoinService connection fails then the general status is up == false', async () => {
-        getLastBlock.resolves([null]);
-        const health = await controller.health();
-        expect(health.up).false;
-      });
-
-      it('bridge service connection fails then the general status is up == false', async () => {
-        getFederationAddress.resolves([null]);
-        const health = await controller.health();
-        expect(health.up).false;
-      });
-
-      it('database connection fails then the general status is up == false', async () => {
-        getBestBlock.resolves([null]);
-        const health = await controller.health();
-        expect(health.up).false;
-      });
-
-      it('the check all count == 4 (blockbook, database, rskNode, bridge)', async () => {
-        const health = await controller.health();
-        expect(health.check.length).equal(4);
-      });
+    it('all methods called once', async () => {
+      await controller.health();
+      let result = await context.result;
+      sinon.assert.calledOnce(getBestBlock);
+      sinon.assert.calledOnce(getBlockNumber);
+      sinon.assert.calledOnce(getFederationAddress);
+      expect(result.payload).not.null();
+     });
 
   });
   

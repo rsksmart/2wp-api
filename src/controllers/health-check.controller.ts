@@ -1,14 +1,14 @@
-import { get, getModelSchemaRef } from '@loopback/rest';
+import { RestBindings, get, getModelSchemaRef, Response } from '@loopback/rest';
 import { getLogger, Logger } from 'log4js';
-import { inject } from '@loopback/core';
 import { BitcoinService, BridgeService } from '../services';
 import { ServicesBindings } from "../dependency-injection-bindings";
 import { HealthInformation } from '../models/health-information.model';
-import { HealthInformationChecks } from '../models/health-information-checks.model';
+import { BlockBoock, Federation, HealthInformationChecks } from '../models/health-information-checks.model';
 import { RskNodeService } from '../services/rsk-node.service';
 import { SyncStatusDataService } from '../services/sync-status-data.service';
 import { SyncStatusModel } from '../models/rsk/sync-status.model';
 import { LastBlockInfo } from '../models/btc-last-block.model';
+import { inject } from '@loopback/core';
 
 const packageJson = require('../../package.json');
 
@@ -28,6 +28,7 @@ export class HealthCheckController {
     rskNodeService: RskNodeService,
     @inject(ServicesBindings.SYNC_STATUS_DATA_SERVICE)
     syncStorageService: SyncStatusDataService,
+    @inject(RestBindings.Http.RESPONSE) private response: Response
   ) {
     this.logger = getLogger('health-check-controller');
     this.syncStorageService = syncStorageService;
@@ -48,56 +49,64 @@ export class HealthCheckController {
       },
     },
   })
-  async health(): Promise<HealthInformation> {
+  async health(): Promise<Response> {
     const version = packageJson.version;
     this.logger.debug(`[healthCheckController] current version : ${version}`);
     const health = new HealthInformation();
     health.up = true;
-    health.check = [];
+    health.apiVersion = version;
 
-    let dataBase: HealthInformationChecks =  await this.getDataBaseInfo(health);
-    let blockBook: HealthInformationChecks = await this.getBlockBookInfo(health);
+    let dataBase: HealthInformationChecks = await this.getDataBaseInfo(health);
+    let blockBook: BlockBoock = await this.getBlockBookInfo(health);
     let rskNode: HealthInformationChecks = await this.getRskNodeInfo(health);
     let bridgeService: HealthInformationChecks = await this.getBridgeInfo(health);
 
-    health.check.push(dataBase);
-    health.check.push(blockBook);
-    health.check.push(rskNode);
-    health.check.push(bridgeService);
+    health.dataBase = dataBase;
+    health.blockBook = blockBook;
+    health.rskNode = rskNode;
+    health.bridgeService = bridgeService;
+
+    this.response.contentType('application/json').status(health.up!! ? 200 : 500).send(
+      health
+    );
     
-    return health;
+    return this.response;
   }
 
   private async getBridgeInfo(health: HealthInformation): Promise<HealthInformationChecks> {
-    let bridgeService = this.createNewType("bridgeService");
+    let bridgeService = new Federation();
     return this.bridgeService.getFederationAddress().then((address: any) => {
       if(address) {
         bridgeService.up = true;
-        bridgeService.info = `{FEDERATION_ADDRESS=${address}}`;
+        bridgeService.federationAddress = address;
         return bridgeService;
       } else {
         throw new Error("Error searching Bridge State");
       }
     }).catch((e) => {
-      this.logger.debug(`[healthCheckController] error : ${e}`);
+      this.logger.error(`[healthCheckController-BridgeError] error : ${e}`);
       bridgeService.up = false;
       health.up = false;
       return bridgeService;
     });
   }
 
-  private async getBlockBookInfo(health: HealthInformation): Promise<HealthInformationChecks> {
-    let blockBook = this.createNewType("blockBook");
+  private async getBlockBookInfo(health: HealthInformation): Promise<BlockBoock> {
+    let blockBook = new BlockBoock();
     return this.bitcoinService.getLastBlock().then((info: LastBlockInfo) => {
       if (info) {
         blockBook.up = true;
-        blockBook.info = `{LAST_BTC_BLOCK=${info.bestHeight},LAST_BTC_HASH=${info.bestBlockHash},TOTAL_BLOCKS=${info.blocks},CHAIN=${info.chain}, syncing=${info.inSync} }`;
+        blockBook.lastBtcBlockNumber = info.bestHeight;
+        blockBook.lastBtcBlockHash = info.bestBlockHash;
+        blockBook.totalBlocks = info.blocks;
+        blockBook.syncing = info.inSync;
+        blockBook.chain = info.chain;
         return blockBook;
       } else {
         throw new Error("Error searching BTC Block Number");
       }
     }).catch((e) => {
-      this.logger.debug(`[healthCheckController] error : ${e}`);
+      this.logger.error(`[healthCheckController-BlockBook] error : ${e}`);
       blockBook.up = false;
       health.up = false;
       return blockBook;
@@ -105,17 +114,17 @@ export class HealthCheckController {
   }
   
   private async getRskNodeInfo(health: HealthInformation): Promise<HealthInformationChecks> {
-    let rskNode = this.createNewType("rskNode");
+    let rskNode = this.createNewType();
     return this.rskNodeService.getBlockNumber().then((blockNumber:number) => {
       if(blockNumber) {
         rskNode.up = true;
-        rskNode.info = `{LAST_BLOCK=${blockNumber}}`;
+        rskNode.lastRskBlockNumber = blockNumber;
         return rskNode;
       } else {
         throw new Error("Error searching block number");
       }
     }).catch((e) => {
-      this.logger.debug(`[healthCheckController] error : ${e}`);
+      this.logger.error(`[healthCheckController-RskNodeInfoError] error : ${e}`);
       rskNode.up = false;
       health.up = false;
       return rskNode;
@@ -123,25 +132,26 @@ export class HealthCheckController {
   }
 
   private async getDataBaseInfo(health: HealthInformation): Promise<HealthInformationChecks> {
-    let dataBase = this.createNewType("dataBase");
+    let dataBase = this.createNewType();
     return this.syncStorageService.getBestBlock().then((syncStatusModel: SyncStatusModel | undefined) => {
       if(syncStatusModel) {
-        dataBase.info = `{LAST_BLOCK=${syncStatusModel.rskBlockHeight},PARENT_BLOCK=${syncStatusModel.rskBlockParentHash}}`;
+        dataBase.lastRskBlockNumber = syncStatusModel.rskBlockHeight;
+        dataBase.lastRskBlockHash = syncStatusModel.rskBlockHash;
         dataBase.up = true;
         return dataBase;
       } else {
-        throw new Error("Block info not found");
+        throw new Error("[healthCheckController-DataBaseError] - Block info not found");
       }
     }).catch((e) => {
-      this.logger.debug(`[healthCheckController] error : ${e}`);
+      this.logger.error(`[healthCheckController-DataBaseError] error : ${e}`);
       health.up = false;
       dataBase.up = false;
       return dataBase;
     });
   }
 
-  createNewType(name: string) {
-    return new HealthInformationChecks(name);
+  createNewType() {
+    return new HealthInformationChecks();
   }
 
 }
