@@ -20,8 +20,12 @@ const SyncStatusConnector = mongoose.model<SyncStatusMongoModel>("SyncStatus", S
 
 export class SyncStatusMongoService extends MongoDbDataService<SyncStatusModel, SyncStatusMongoModel> implements SyncStatusDataService {
   logger: Logger = getLogger('syncStatusMongoService');
+  async verifyAndCreateConnectionIfIsNecessary() {
+    await this.ensureConnection();
+  }
 
   protected getConnector(): mongoose.Model<SyncStatusMongoModel, {}, {}> {
+    this.verifyAndCreateConnectionIfIsNecessary();
     return SyncStatusConnector;
   }
 

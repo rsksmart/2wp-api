@@ -1,11 +1,20 @@
 
 export class HealthInformationChecks {
-    name: string;
     up?: boolean;
     info?: string;
+    lastBtcBlockNumber: number;
+    lastBtcBlockHash: string;
+    lastRskBlockNumber: number;
+    lastRskBlockHash: string;
+}
 
-    constructor(name:string) {
-        this.name = name
-    }
+export class BlockBoock extends HealthInformationChecks {
+    totalBlocks: number;
+    chain: string;
+    syncing: boolean;
+}
+
+export class Federation extends HealthInformationChecks {
+    federationAddress: string;
 }
   
