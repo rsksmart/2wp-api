@@ -83,6 +83,19 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
     return PegoutStatusDbDataModel.clonePegoutStatusInstance(pegoutDocument);
   }
 
+  public async getLastByOriginatingRskTxHashNewest(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel | null> {
+    const pegoutDocument = await this.getConnector()
+    .find({originatingRskTxHash, isNewestStatus: true})
+    .sort({createdOn: -1})
+    .limit(1)
+    .exec()
+    .then((pegoutStatuses: PegoutStatusDbDataModel[]) => pegoutStatuses[0] || null);
+    if(!pegoutDocument) {
+      return null;
+    }
+    return PegoutStatusDbDataModel.clonePegoutStatusInstance(pegoutDocument);
+  }
+
   public async getManyWaitingForConfirmationNewest(): Promise<PegoutStatusDbDataModel[]> {
     const pegoutsDocuments = await this.getConnector()
     .find({status: PegoutStatus.WAITING_FOR_CONFIRMATION, isNewestStatus: true})

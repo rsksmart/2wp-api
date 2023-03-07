@@ -759,6 +759,7 @@ describe('Service: PegoutDataProcessor', () => {
         deleteByRskBlockHeight: sinon.stub(),
         getManyByOriginatingRskTxHash: sinon.stub(),
         getLastByOriginatingRskTxHash: sinon.stub(),
+        getLastByOriginatingRskTxHashNewest: sinon.stub(),
         set: sinon.stub(),
         getManyWaitingForConfirmationNewest: sinon.stub(),
         getManyWaitingForSignaturesNewest: sinon.stub(),
@@ -775,7 +776,7 @@ describe('Service: PegoutDataProcessor', () => {
     const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
     const createdOn = new Date();
     mockedBridgeService.getBridgeState.resolves(bridgeState);
-    const getLastByOriginatingRskTxHash = mockedPegoutStatusDataService.getLastByOriginatingRskTxHash as sinon.SinonStub;
+    const getLastByOriginatingRskTxHash = mockedPegoutStatusDataService.getLastByOriginatingRskTxHashNewest as sinon.SinonStub;
     const set = mockedPegoutStatusDataService.set as sinon.SinonStub;
 
     const extendedBridgeTx: ExtendedBridgeTx = {
@@ -826,7 +827,7 @@ describe('Service: PegoutDataProcessor', () => {
     expect(batchPegoutsEvent).not.null;
 
     const foundPegoutStatus: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
-    foundPegoutStatus.isNewestStatus = false;
+    foundPegoutStatus.isNewestStatus = true;
     foundPegoutStatus.btcRecipientAddress = 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55';
 
     let allPegoutTxs = remove0x(batchPegoutsEvent!.arguments.releaseRskTxHashes);

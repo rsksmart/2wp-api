@@ -198,7 +198,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       const originatingRskTxHash = ensure0x(hashData);
       this.logger.trace(`[processBatchPegouts] Processing individual pegout creation in batch. [rsktxhash:${extendedBridgeTx.txHash}] [originatingRskTxHash:${originatingRskTxHash}]`);
 
-      const foundPegoutStatus  = await this.pegoutStatusDataService.getLastByOriginatingRskTxHash(originatingRskTxHash);
+      const foundPegoutStatus  = await this.pegoutStatusDataService.getLastByOriginatingRskTxHashNewest(originatingRskTxHash);
       
       if(!foundPegoutStatus) {
         this.logger.warn(`[processBatchPegouts] could not find a pegout status record in the db. [originatingRskTxHash:${originatingRskTxHash}]`);
