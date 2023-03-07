@@ -33,7 +33,7 @@ export class PegoutStatusService {
     public getPegoutStatusByRskTxHash(rskTxHash: string): Promise<PegoutStatusAppDataModel> {
         return new Promise<PegoutStatusAppDataModel>((resolve, reject) => {
             let pegoutStatus: PegoutStatusAppDataModel = new PegoutStatusAppDataModel();
-            this.pegoutStatusDataService.getLastByOriginatingRskTxHash(rskTxHash)
+            this.pegoutStatusDataService.getLastByOriginatingRskTxHashNewest(rskTxHash)
                 .then(async (pegoutStatusDbDataModel) => {
                     if (!pegoutStatusDbDataModel) {
 
