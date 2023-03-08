@@ -7,7 +7,6 @@ import {
     PegoutStatusAppDataModel,
 } from "../../../models/rsk/pegout-status-data-model";
 import { RskNodeService } from '../../../services/rsk-node.service';
-import { PegoutDataProcessor } from '../../../services/pegout-data.processor';
 
 describe('Pegout Status Service:', () => {
     let pegoutStatusService: PegoutStatusService;
@@ -17,7 +16,7 @@ describe('Pegout Status Service:', () => {
     beforeEach(() => {
         pegoutStatusDataService = createStubInstance(PegoutStatusMongoDbDataService);
         rskNodeService = createStubInstance(RskNodeService);
-        getLastByOriginatingRskTxHash = pegoutStatusDataService.getLastByOriginatingRskTxHash as sinon.SinonStub;
+        getLastByOriginatingRskTxHash = pegoutStatusDataService.getLastByOriginatingRskTxHashNewest as sinon.SinonStub;
 
         pegoutStatusService = new PegoutStatusService(pegoutStatusDataService, rskNodeService);
         
