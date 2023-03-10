@@ -59,7 +59,7 @@ export class PegoutStatusService {
                         pegoutStatus = PegoutStatusAppDataModel.fromPegoutStatusDataModel(pegoutStatusDbDataModel);
                     }
                     this.logger.debug(`TxId:${rskTxHash} Pegout Status: ${pegoutStatus.status}`);
-                    resolve(pegoutStatus);
+                    resolve(this.sanitizePegout(pegoutStatus));
                 })
                 .catch((e) => {
                     this.logger.debug(`TxId:${rskTxHash} Unexpected error trying to obtain information. Error: ${e}`);
@@ -89,6 +89,11 @@ export class PegoutStatusService {
     
     private hasReleaseRequestRejectedEvent(events: BridgeEvent[]): boolean {
         return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
+    }
+
+    private sanitizePegout(pegoutStatus: PegoutStatusAppDataModel): PegoutStatusAppDataModel {
+        pegoutStatus.rskTxHash = pegoutStatus.rskTxHash.substring(0, pegoutStatus.rskTxHash.indexOf('_'));
+        return pegoutStatus;
     }
 
 }
