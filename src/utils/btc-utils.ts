@@ -53,6 +53,31 @@ export class BtcAddressUtils {
     return address;
   }
 
+  public getBtcAddressFromHash(hash160: string): string {
+    try{
+      let hash = remove0x(hash160);
+      const OP_DUP = '76';
+      const OP_HASH160 = 'a9';
+      const BYTES_TO_PUSH = '14';
+      const OP_EQUALVERIFY = '88';
+      const OP_CHECKSIG = 'ac';
+      const script = OP_DUP + OP_HASH160 + BYTES_TO_PUSH + hash + OP_EQUALVERIFY + OP_CHECKSIG;
+      const bufferFrom = Buffer.from(script, 'hex');
+      let btcNetwork = bitcoin.networks.testnet;
+      const network = process.env.NETWORK ?? constants.NETWORK_TESTNET;
+
+      if(network === constants.NETWORK_MAINNET){
+        btcNetwork = bitcoin.networks.bitcoin;
+      }
+
+      const address = (bitcoin.address.fromOutputScript(bufferFrom, btcNetwork));
+      return address;
+    } catch (e) {
+      this.logger.warn("Error getBtcAddressFromHash ", e.message);
+      return hash160;
+    }
+  }
+
   private getNetPrefix(netName: string, type: string) {
     if (netName == 'mainnet') {
       if (type == 'P2PKH') {

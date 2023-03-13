@@ -9,7 +9,8 @@ export enum PegoutStatus {
   SIGNED = 'SIGNED',
   NOT_FOUND = 'NOT_FOUND',
   PENDING = 'PENDING',
-  NOT_PEGOUT_TX = 'NOT_PEGOUT_TX'
+  NOT_PEGOUT_TX = 'NOT_PEGOUT_TX',
+  RELEASE_BTC = 'RELEASE_BTC'
 }
 
 export interface PegoutStatusDataModel {
@@ -22,6 +23,7 @@ export interface PegoutStatusDataModel {
   feeInSatoshisToBePaid: number;
   status: PegoutStatus;
   btcRawTransaction: string;
+  changedByEvent: string;
 }
 
 export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
@@ -40,6 +42,7 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
       feeInSatoshisToBePaid,
       status,
       btcRawTransaction,
+      changedByEvent,
     } = model;
     return new PegoutStatusAppDataModel({
       originatingRskTxHash,
@@ -51,6 +54,7 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
       feeInSatoshisToBePaid,
       status,
       btcRawTransaction,
+      changedByEvent,
     });
   }
   rskTxHash: string;
@@ -63,6 +67,7 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
   btcRawTransaction: string;
   originatingRskTxHash: string;
   createdOn: Date;
+  changedByEvent: string;
 }
 
 export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDataModel {
@@ -86,6 +91,7 @@ export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDat
   btcRawTxInputsHash: string;
   batchPegoutIndex: number;
   batchPegoutRskTxHash: string;
+  changedByEvent: string;
 
   getId() {
     return this.rskTxHash;
