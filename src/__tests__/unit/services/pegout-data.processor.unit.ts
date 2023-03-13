@@ -760,6 +760,7 @@ describe('Service: PegoutDataProcessor', () => {
         getManyByOriginatingRskTxHash: sinon.stub(),
         getLastByOriginatingRskTxHash: sinon.stub(),
         getLastByOriginatingRskTxHashNewest: sinon.stub(),
+        getAllNotFinishedByBtcRecipientAddress: sinon.stub(),
         set: sinon.stub(),
         getManyWaitingForConfirmationNewest: sinon.stub(),
         getManyWaitingForSignaturesNewest: sinon.stub(),
@@ -865,6 +866,7 @@ describe('Service: PegoutDataProcessor', () => {
       valueInSatoshisToBeReceived: 0,
       feeInSatoshisToBePaid: 0,
       reason: '',
+      changedByEvent: '',
       btcRawTxInputsHash: '',
       getId: function (): string {
         return '';

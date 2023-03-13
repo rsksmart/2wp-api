@@ -28,6 +28,7 @@ const PegoutStatusSchema = new mongoose.Schema({
   btcRawTxInputsHash: {type: String},
   batchPegoutIndex: {type: String},
   batchPegoutRskTxHash: {type: Number},
+  changedByEvent: {type: String},
 });
 
 const PegoutStatusConnector = mongoose.model<PegoutStatusMongoModel>("PegoutStatus", PegoutStatusSchema);
@@ -94,6 +95,13 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
       return null;
     }
     return PegoutStatusDbDataModel.clonePegoutStatusInstance(pegoutDocument);
+  }
+
+  public async getAllNotFinishedByBtcRecipientAddress(btcRecipientAddress: string): Promise<PegoutStatusDbDataModel[]> {
+    const pegoutDocuments = await this.getConnector()
+    .find({status: {$ne: PegoutStatus.RELEASE_BTC}, btcRecipientAddress})
+    .exec();
+    return pegoutDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 
   public async getManyWaitingForConfirmationNewest(): Promise<PegoutStatusDbDataModel[]> {
