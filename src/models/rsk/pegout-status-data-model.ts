@@ -23,7 +23,6 @@ export interface PegoutStatusDataModel {
   feeInSatoshisToBePaid: number;
   status: PegoutStatus;
   btcRawTransaction: string;
-  changedByEvent: string;
 }
 
 export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
@@ -42,7 +41,6 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
       feeInSatoshisToBePaid,
       status,
       btcRawTransaction,
-      changedByEvent,
     } = model;
     return new PegoutStatusAppDataModel({
       originatingRskTxHash,
@@ -54,7 +52,6 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
       feeInSatoshisToBePaid,
       status,
       btcRawTransaction,
-      changedByEvent,
     });
   }
   rskTxHash: string;
@@ -67,7 +64,6 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
   btcRawTransaction: string;
   originatingRskTxHash: string;
   createdOn: Date;
-  changedByEvent: string;
 }
 
 export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDataModel {
@@ -91,7 +87,6 @@ export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDat
   btcRawTxInputsHash: string;
   batchPegoutIndex: number;
   batchPegoutRskTxHash: string;
-  changedByEvent: string;
 
   getId() {
     return this.rskTxHash;
@@ -111,7 +106,6 @@ export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDat
     pegoutStatusInstance.rskTxHash = pegoutStatus.rskTxHash;
     pegoutStatusInstance.rskSenderAddress = pegoutStatus.rskSenderAddress;
     pegoutStatusInstance.btcRecipientAddress = pegoutStatus.btcRecipientAddress; 
-    pegoutStatusInstance.originatingRskTxHash = pegoutStatus.originatingRskTxHash;
     pegoutStatusInstance.valueRequestedInSatoshis = pegoutStatus.valueRequestedInSatoshis;
     pegoutStatusInstance.valueInSatoshisToBeReceived = pegoutStatus.valueInSatoshisToBeReceived;
     pegoutStatusInstance.feeInSatoshisToBePaid = pegoutStatus.feeInSatoshisToBePaid;
@@ -129,7 +123,6 @@ export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDat
     pegoutStatusInstance.btcRawTxInputsHash = pegoutStatus.btcRawTxInputsHash;
     pegoutStatusInstance.batchPegoutIndex = pegoutStatus.batchPegoutIndex;
     pegoutStatusInstance.batchPegoutRskTxHash = pegoutStatus.batchPegoutRskTxHash;
-
     return pegoutStatusInstance;
   }
 
