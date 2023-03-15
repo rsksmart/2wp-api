@@ -1,0 +1,50 @@
+---
+platform: linux
+image_resource:
+  type: registry-image
+  source:
+    repository: alpine
+    tag: 3
+
+inputs:
+- name: repo-iac-ng
+
+outputs:
+- name: out
+
+params:
+  SOPS_KEY: ((sops-staging-testnet-key))
+  SSH_DEPLOY_KEY: ((ssh-deploy))
+  TWOWP_API_SSH_KEY: ((ssh-ro-frail-cache))
+  ANSIBLE_HOST_KEY_CHECKING: false
+
+run:
+  path: sh
+  args:
+  - -ceux
+  - |
+    out_message_file=$(pwd)/out/message.txt
+
+    echo "2wp-api: Branch: main - deployment to staging-testnet" > $out_message_file
+
+    sops_keyfile=$(pwd)/sops_key
+    ssh_deploy_keyfile=$(pwd)/ssh_deploy_key
+    twowp_api_ssh_keyfile=$(pwd)/twowp_api_ssh_key
+
+    umask 077
+    echo "$SOPS_KEY" > $sops_keyfile
+    echo "$SSH_DEPLOY_KEY" > $ssh_deploy_keyfile
+    echo "$TWOWP_API_SSH_KEY" > $twowp_api_ssh_keyfile
+    umask 022
+
+    apk add -q --no-progress openssh ansible gnupg git
+    wget --quiet https://github.com/mozilla/sops/releases/download/v3.7.3/sops-v3.7.3.linux.amd64 -O /usr/bin/sops
+    chmod +x /usr/bin/sops
+
+    gpg --import $sops_keyfile
+    eval $(ssh-agent)
+    ssh-add $ssh_deploy_keyfile $twowp_api_ssh_keyfile
+
+    cd repo-iac-ng/ansible
+
+    ansible-playbook -i inventory -e ansible_ssh_extra_args=-oForwardAgent=yes -l twowp_app_api_staging_testnet --extra-vars="twowp_api_api_version=main" deploy-2wp-app-api.yml --check
