@@ -18,9 +18,7 @@ describe('Pegout Status Service:', () => {
         pegoutStatusDataService = createStubInstance(PegoutStatusMongoDbDataService);
         rskNodeService = createStubInstance(RskNodeService);
         getLastByOriginatingRskTxHash = pegoutStatusDataService.getLastByOriginatingRskTxHash as sinon.SinonStub;
-
         pegoutStatusService = new PegoutStatusService(pegoutStatusDataService, rskNodeService);
-        
     });
     it('should return a valid Pegout Status if there is no record on database', async () => {
         getLastByOriginatingRskTxHash
@@ -184,5 +182,40 @@ describe('Pegout Status Service:', () => {
             .rejects(new Error('Unexpected Database error'));
         return expect(pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId'))
             .to.be.rejectedWith(new Error('Unexpected Database error'));
+    });
+    it('verify sanitize method', async () => {
+        const expectedResponse = new PegoutStatusAppDataModel({
+            originatingRskTxHash: 'RskTestTxId',
+            rskTxHash: '123___123',
+            rskSenderAddress: 'testSenderAddress',
+            btcRecipientAddress: 'testBtcRecipientAddress',
+            valueRequestedInSatoshis: 500000,
+            valueInSatoshisToBeReceived: 495000,
+            feeInSatoshisToBePaid: 5000,
+            status: PegoutStatus.SIGNED,
+            btcRawTransaction: 'testBtcRawTx',
+        });
+
+        const pegoutStatus = await pegoutStatusService.sanitizePegout(expectedResponse);
+        return expect(pegoutStatus.rskTxHash)
+            .to.be.equal('123');
+    });
+
+    it('verify sanitize method when rskTxHash has no _ ', async () => {
+        const expectedResponse = new PegoutStatusAppDataModel({
+            originatingRskTxHash: 'RskTestTxId',
+            rskTxHash: '123',
+            rskSenderAddress: 'testSenderAddress',
+            btcRecipientAddress: 'testBtcRecipientAddress',
+            valueRequestedInSatoshis: 500000,
+            valueInSatoshisToBeReceived: 495000,
+            feeInSatoshisToBePaid: 5000,
+            status: PegoutStatus.SIGNED,
+            btcRawTransaction: 'testBtcRawTx',
+        });
+
+        const pegoutStatus = await pegoutStatusService.sanitizePegout(expectedResponse);
+        return expect(pegoutStatus.rskTxHash)
+            .to.be.equal('123');
     });
 });

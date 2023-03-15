@@ -91,8 +91,13 @@ export class PegoutStatusService {
         return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
     }
 
-    private sanitizePegout(pegoutStatus: PegoutStatusAppDataModel): PegoutStatusAppDataModel {
-        pegoutStatus.rskTxHash = pegoutStatus.rskTxHash.substring(0, pegoutStatus.rskTxHash.indexOf('_'));
+    public sanitizePegout(pegoutStatus: PegoutStatusAppDataModel): PegoutStatusAppDataModel {
+        if(pegoutStatus?.rskTxHash){
+            const indexOf = pegoutStatus.rskTxHash.indexOf('_');
+            if(indexOf > 0){
+                pegoutStatus.rskTxHash = pegoutStatus.rskTxHash.substring(0, indexOf);
+            }
+        }
         return pegoutStatus;
     }
 
