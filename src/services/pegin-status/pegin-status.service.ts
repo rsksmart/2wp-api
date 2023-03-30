@@ -74,7 +74,7 @@ export class PeginStatusService {
         }
       })
       .catch((e) => {
-        this.logger.debug(`TxId:${btcTxId} Unexpected error trying to obtain information. Error: ${e}`);
+        this.logger.warn(`TxId:${btcTxId} Unexpected error trying to obtain information. Error: ${e}`);
         return new PeginStatusError(btcTxId);
       })
   };
