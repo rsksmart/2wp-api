@@ -62,7 +62,7 @@ export class PegoutStatusService {
                     resolve(this.sanitizePegout(pegoutStatus));
                 })
                 .catch((e) => {
-                    this.logger.debug(`TxId:${rskTxHash} Unexpected error trying to obtain information. Error: ${e}`);
+                    this.logger.warn(`TxId:${rskTxHash} Unexpected error trying to obtain information. Error: ${e}`);
                     reject(e);
                 });
         });
