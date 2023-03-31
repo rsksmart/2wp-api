@@ -13,11 +13,9 @@
   },
   "scripts": {
     "clean": "lb-clean dist *.tsbuildinfo .eslintcache",
-
     "build": "lb-tsc",
     "build:watch": "lb-tsc --watch",
     "rebuild": "npm run clean && npm run build",
-
     "lint": "npm run eslint",
     "lint:fix": "npm run eslint:fix && npm run prettier:fix",
     "eslint": "lb-eslint --report-unused-disable-directives .",
@@ -25,23 +23,18 @@
     "prettier:cli": "lb-prettier \"**/*.ts\" \"**/*.js\"",
     "prettier:check": "npm run prettier:cli -- -l",
     "prettier:fix": "npm run prettier:cli -- --write",
-
     "precoverage": "npm run unit-test",
     "coverage": "lb-nyc report --reporter=text --reporter=lcov",
     "only-coverage": "lb-nyc report --reporter=lcov",
-
     "pretest": "npm run rebuild",
     "test": "lb-nyc mocha --recursive 'dist/__tests__/**/*.js' --timeout 10000",
     "posttest": "npm run lint",
     "test:dev": "lb-nyc mocha --allow-console-logs dist/__tests__/**/*.js && npm run posttest",
     "unit-test": "npm run pretest && lb-nyc mocha --recursive 'dist/__tests__/**/*.unit.js' --timeout 10000",
-
     "premigrate": "npm run rebuild",
     "migrate": "node ./dist/migrate",
-
     "preopenapi-spec": "npm run rebuild",
     "openapi-spec": "node ./dist/openapi-spec",
-
     "prestart": "npm run rebuild",
     "start": "node -r source-map-support/register .",
     "start-api": "npm run start -- --appmode=API",
@@ -70,8 +63,8 @@
     "@types/mongoose": "^5.11.97",
     "big.js": "^6.1.1",
     "bitcoinjs-lib": "^6.0.1",
-    "bridge-transaction-parser": "https://github.com/rsksmart/bridge-transaction-parser#0.3.1-beta",
     "bridge-state-data-parser": "https://github.com/rsksmart/bridge-state-data-parser#v1.0.0",
+    "bridge-transaction-parser": "https://github.com/rsksmart/bridge-transaction-parser#0.3.1-beta",
     "dotenv": "^8.6.0",
     "jssha": "^3.2.0",
     "log4js": "^6.6.1",
@@ -79,7 +72,7 @@
     "loopback-connector-mongodb": "^5.5.0",
     "loopback-connector-redis": "^3.0.0",
     "loopback-connector-rest": "^3.7.0",
-    "mongoose": "^5.13.2",
+    "mongoose": "^5.13.16",
     "pegin-address-verificator": "https://git@github.com/rsksmart/pegin-address-verifier#0.3.0",
     "pegin-cap-evaluator": "https://git@github.com/rsksmart/pegin-cap-evaluator#1.0.0",
     "tslib": "^2.0.0",
