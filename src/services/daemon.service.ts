@@ -121,6 +121,7 @@ export class DaemonService implements iDaemonService {
       await this.peginStatusStorageService.stop()
       await this.syncService.stop();
       this.rskBlockProcessorPublisher.removeSubscriber(this.peginDataProcessor);
+      this.rskBlockProcessorPublisher.removeSubscriber(this.pegoutDataProcessor);
       this.logger.debug('Stopped');
     }
   }
