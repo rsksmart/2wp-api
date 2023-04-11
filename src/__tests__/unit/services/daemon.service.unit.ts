@@ -122,4 +122,28 @@ describe('Service: DaemonService', () => {
 
   });
 
+  it('removes subscribers when service stops', async () => {
+    const mockedRskBlockProcessorPublisher = sinon.createStubInstance(NodeBridgeDataProvider) as SinonStubbedInstance<RskBlockProcessorPublisher>;
+    const mockedPeginStatusDataService = <PeginStatusDataService>{};
+    const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
+    const bridgeService: BridgeService = <BridgeService>{};
+    mockedPeginStatusDataService.start = sinon.stub();
+    mockedPeginStatusDataService.stop = sinon.stub();
+    const mockedRskSyncChainService = sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
+    const daemonService = new DaemonService(
+      mockedRskBlockProcessorPublisher,
+      mockedPeginStatusDataService,
+      mockedRskSyncChainService,
+      "0",
+      new PeginDataProcessor(mockedPeginStatusDataService),
+      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
+    );
+
+    await daemonService.start();
+    await daemonService.stop();
+    
+    sinon.assert.calledTwice(mockedRskBlockProcessorPublisher.removeSubscriber);
+    expect(daemonService.rskBlockProcessorPublisher.getSubscribers).to.be.lengthOf(0);
+  })
+
 });
