@@ -112,6 +112,14 @@ npm run eslint:fix
 
 ```
 
+## Build & test project
+```
+npm ci
+npm run unit-test
+npm run eslint
+npm run only-coverage
+```
+
 ## Deployment
 
 In the root directory run:
@@ -124,11 +132,6 @@ docker-compose up
 
 - `npm run openapi-spec`: Generate OpenAPI spec into a file
 
-## Tests
-
-```sh
-npm run test
-```
 
 [![LoopBack](<https://github.com/strongloop/loopback-next/raw/master/docs/site/imgs/branding/Powered-by-LoopBack-Badge-(blue)-@2x.png>)](http://loopback.io/)
 
