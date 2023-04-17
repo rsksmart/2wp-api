@@ -48,10 +48,14 @@ const getRskInfo = (btcTxId: string) => {
   return data;
 }
 
+
+// not sure if have to change some errors tests and set
+// isTxProcessed to false (or true)
 const getPeginStatusServiceWithMockedEnvironment = (
   btcTransaction: BitcoinTx | undefined,
   minPeginValue: number,
-  rskTransaction?: PeginStatusDataModel
+  rskTransaction?: PeginStatusDataModel,
+  isTxProcessed?: boolean
 ): PeginStatusService => {
   const mockedBitcoinService =
     sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
@@ -65,6 +69,7 @@ const getPeginStatusServiceWithMockedEnvironment = (
     sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
   mockedBridgeService.getMinPeginValue.resolves(minPeginValue);
   mockedBridgeService.getFederationAddress.resolves(federationAddress);
+  mockedBridgeService.isBtcTxHashAlreadyProcessed.resolves(isTxProcessed);
 
   const mockedPeginStatusMongoDbDataService = sinon.createStubInstance(PeginStatusMongoDbDataService);
   mockedPeginStatusMongoDbDataService.getById.resolves(rskTransaction);
@@ -88,7 +93,7 @@ describe('function: getPeginSatusInfo', () => {
     const thisService = getPeginStatusServiceWithMockedEnvironment(undefined, 5);
 
     const result = await thisService.getPeginSatusInfo(btcTxId);
-
+    
     expect(result.btc.txId).to.be.equal(btcTxId);
     expect(result.btc.confirmations).to.be.empty;
     expect(result.rsk).to.be.empty;
@@ -134,7 +139,7 @@ describe('function: getPeginSatusInfo', () => {
       200
     );
 
-    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 500);
+    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 500, undefined, true);
     const result = await thisService.getPeginSatusInfo(btcTxId);
 
     expect(result.btc.txId).to.be.equal(btcTxId);
@@ -155,7 +160,7 @@ describe('function: getPeginSatusInfo', () => {
       200
     );
 
-    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, getRskInfo(btcTxId));
+    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, getRskInfo(btcTxId), true);
     const result = await thisService.getPeginSatusInfo(btcTxId);
 
     expect(result.btc.txId).to.be.equal(btcTxId);
@@ -175,8 +180,9 @@ describe('function: getPeginSatusInfo', () => {
       200
     );
 
-    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5);
+    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, undefined, true);
     const result = await thisService.getPeginSatusInfo(btcTxId);
+
     expect(result.btc.txId).equal(btcTxId);
     expect(result.btc.amountTransferred).to.be.equal(0.01);
     expect(result.btc.federationAddress).to.be.equal(federationAddress);
@@ -185,6 +191,7 @@ describe('function: getPeginSatusInfo', () => {
   })
 
   it('getPeginSatusInfo bech32 without OP_RETURNS return NOT_A_PEGIN error', async () => {
+    // dont know what this test means, so dont know if it needs to be modified
     const btcTxId = 'txId5';
     const randomTransaction: BitcoinTx = getBitcoinTx(
       btcTxId,
@@ -210,7 +217,7 @@ describe('function: getPeginSatusInfo', () => {
       200
     );
 
-    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 200);
+    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 200, undefined, true);
     const result = await thisService.getPeginSatusInfo(btcTxId);
 
     expect(result.btc.txId).equal(btcTxId);
@@ -230,7 +237,7 @@ describe('function: getPeginSatusInfo', () => {
       200
     );
 
-    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, getRskInfo(btcTxId));
+    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, getRskInfo(btcTxId), true);
     const result = await thisService.getPeginSatusInfo(btcTxId);
 
     expect(result.btc.txId).equal(btcTxId);
@@ -250,7 +257,7 @@ describe('function: getPeginSatusInfo', () => {
       5
     );
 
-    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5);
+    const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, undefined, true);
     const result = await thisService.getPeginSatusInfo(btcTxId);
 
     expect(result.btc.txId).equal(btcTxId);
