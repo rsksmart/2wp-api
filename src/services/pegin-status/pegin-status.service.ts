@@ -110,10 +110,12 @@ export class PeginStatusService {
           this.logger.debug(errorMessage);
           this.status = Status.ERROR_NOT_A_PEGIN;
         } else {
+
           const federationAddress = await this.bridgeService.getFederationAddress();
-          if (!this.isSentToFederationAddress(federationAddress, btcTx.vout)) {
-            //TODO: Comparing with the last federation. Need to include to comparing federation during the creation of the tx
-            const errorMessage = `Is not a pegin. Tx is not sending to Powpeg Address: ${federationAddress}`;
+          const txIsProcessed = await this.bridgeService.isBtcTxHashAlreadyProcessed(btcTxId);
+          
+          if (!txIsProcessed) {
+            const errorMessage = `Is not a pegin. Tx was not processed in Bitcoin network.`;
             this.logger.debug(errorMessage);
             this.status = Status.ERROR_NOT_A_PEGIN;
           } else {
@@ -155,15 +157,18 @@ export class PeginStatusService {
     return (btcValue / 100000000);
   }
 
-  private isSentToFederationAddress(federationAddress: string, vout: Vout[]): boolean {
-    let found = false;
-    for (let i = 0; vout && i < vout.length && !found; i++) {
-      if (federationAddress === vout[i].addresses[0]) {
-        found = true;
-      }
-    }
-    return found;
-  }
+  
+  // this function is not used any more. maybe should be deleted.
+
+  // private isSentToFederationAddress(federationAddress: string, vout: Vout[]): boolean {
+  //   let found = false;
+  //   for (let i = 0; vout && i < vout.length && !found; i++) {
+  //     if (federationAddress === vout[i].addresses[0]) {
+  //       found = true;
+  //     }
+  //   }
+  //   return found;
+  // }
 
   private getTxSentAmountByAddress(federationAddress: string, txId: string, vout: Vout[]): number {
     let acummulatedAmount = 0;
