@@ -3,6 +3,8 @@ import {BridgeService} from '../../services';
 import bridgeTransactionParser, {Transaction} from 'bridge-transaction-parser';
 
 const rskTxHash = '0xd2852f38fedf1915978715b8a0dc0670040ac4e9065989c810a5bf29c1e006fb';
+const btcValidTxHash = '7006c53b81e644367bf736e07456af8a1ce487174fc6b5e398f6fa7b8d069daa';
+const btcInvalidTxHash = '1234c53b81e644367bf736e07456af8a1ce487174fc6b5e398f6fa7b8d069daa';
 
 describe('Service: Bridge', () => {
   const bridgeService = new BridgeService();
@@ -21,6 +23,15 @@ describe('Service: Bridge', () => {
     const lockingCap = await bridgeService.getLockingCapAmount();
     expect(lockingCap).to.be.Number();
   });
+
+  it('returns true if tx hash was processed by bridge, false if not', async () => {
+    const txProcessed = await bridgeService.isBtcTxHashAlreadyProcessed(btcValidTxHash);
+    const txNotProcessed = await bridgeService.isBtcTxHashAlreadyProcessed(btcInvalidTxHash);
+
+    expect(txProcessed).to.be.true();
+    expect(txNotProcessed).to.be.false();
+
+  })
 
   it('returns bridge transaction by hash', async () => {
     const bridgeTransaction: Transaction = {
