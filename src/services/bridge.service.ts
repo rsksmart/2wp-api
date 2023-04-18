@@ -95,12 +95,12 @@ export class BridgeService {
     });
   }
 
-  public async isBtcTxHashAlreadyProcessed(txHash: string): Promise<Boolean> {
-    return new Promise<Boolean>((resolve, reject) => {
+  public async isBtcTxHashAlreadyProcessed(txHash: string): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
       this.bridgeContract.methods
         .isBtcTxHashAlreadyProcessed(txHash)
         .call()
-        .then((isProcessed: Boolean) => resolve(isProcessed))
+        .then((isProcessed: boolean) => resolve(isProcessed))
         .catch((reason: any) => {
           this.logger.warn(`[isBtcTxHashAlreadyProcessed] Got an error: ${reason}`);
           reject(reason);

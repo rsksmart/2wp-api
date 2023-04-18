@@ -111,7 +111,6 @@ export class PeginStatusService {
           this.status = Status.ERROR_NOT_A_PEGIN;
         } else {
 
-          const federationAddress = await this.bridgeService.getFederationAddress();
           const txIsProcessed = await this.bridgeService.isBtcTxHashAlreadyProcessed(btcTxId);
           
           if (!txIsProcessed) {
@@ -120,6 +119,7 @@ export class PeginStatusService {
             this.status = Status.ERROR_NOT_A_PEGIN;
           } else {
             const time = btcTx.time ?? btcTx.blocktime;
+            const federationAddress = await this.bridgeService.getFederationAddress();
             btcStatus.creationDate = new Date(time * 1000); // We get Timestamp in seconds
             btcStatus.amountTransferred = this.fromSatoshiToBtc(this.getTxSentAmountByAddress(
               federationAddress,
@@ -158,19 +158,6 @@ export class PeginStatusService {
   private fromSatoshiToBtc(btcValue: number): number {
     return (btcValue / 100000000);
   }
-
-  
-  // this function is not used any more. maybe should be deleted.
-
-  // private isSentToFederationAddress(federationAddress: string, vout: Vout[]): boolean {
-  //   let found = false;
-  //   for (let i = 0; vout && i < vout.length && !found; i++) {
-  //     if (federationAddress === vout[i].addresses[0]) {
-  //       found = true;
-  //     }
-  //   }
-  //   return found;
-  // }
 
   private getTxSentAmountByAddress(federationAddress: string, txId: string, vout: Vout[]): number {
     let acummulatedAmount = 0;
