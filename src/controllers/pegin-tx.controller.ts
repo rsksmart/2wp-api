@@ -7,8 +7,9 @@ import {getLogger, Logger} from 'log4js';
 import peginAddressVerifier from 'pegin-address-verificator';
 import {CreatePeginTxData, NormalizedTx, TxInput, TxOutput} from '../models';
 import {SessionRepository} from '../repositories';
-import {BridgeService} from '../services';
+import {BridgeService, TxService} from '../services';
 import SatoshiBig from '../utils/SatoshiBig';
+import {inject} from '@loopback/core';
 
 config();
 
@@ -18,6 +19,8 @@ export class PeginTxController {
   constructor(
     @repository(SessionRepository)
     public sessionRepository: SessionRepository,
+    @inject('services.TxService')
+    protected txService: TxService,
   ) {
     this.logger = getLogger('tx-fee-controller');
   }
@@ -62,7 +65,7 @@ export class PeginTxController {
         ),
         bridgeService.getFederationAddress(),
       ])
-        .then(([inputs, fee, federationAddress]) => {
+        .then(async ([inputs, fee, federationAddress]) => {
           if (!inputs.fast.length) reject(new Error(`There are no inputs selected for this sessionId ${createPeginTxData.sessionId}`));
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
@@ -87,15 +90,22 @@ export class PeginTxController {
             createPeginTxData.changeAddress,
             createPeginTxData.amountToTransferInSatoshi,
             fee,
-            );
+          );
           const burnDustValue = Math.min(Number(process.env.BURN_DUST_VALUE ?? 2000), 30000);
-          if (Number(changeOutput.amount) > burnDustValue ) {
+          if (Number(changeOutput.amount) > burnDustValue) {
             outputs.push(changeOutput);
           }
           this.logger.trace('[create] Created pegin successfully!');
+          const inputsToResolve = inputs.fast;
+          // eslint-disable-next-line @typescript-eslint/prefer-for-of
+          for (let idx = 0; idx < inputsToResolve.length; idx ++) {
+            const input = inputsToResolve[idx];
+            const [tx] = await this.txService.txProvider(input.prev_hash);
+            input.prevRawTx = tx.hex;
+          }
           resolve(
             new NormalizedTx({
-              inputs: inputs.fast,
+              inputs: inputsToResolve,
               outputs,
             }),
           );

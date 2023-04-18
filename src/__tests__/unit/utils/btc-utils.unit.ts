@@ -16,6 +16,12 @@ describe('function: getPeginSatusInfo', () => {
     expect(result).to.be.equal('2MxKEf2su6FGAUfCEAHreGFQvEYrfYNHvL7');
   });
 
+  it('hash160ToBtcAddress valid', async () => {
+    const utility = new BtcAddressUtils();
+    const result = utility.getBtcAddressFromHash('0x09197f6153cb3a91bb51eec373360a1cb3b7c0e0');
+    expect(result).to.be.equal('mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8');
+  });
+
   it('getRefundAddress P2PKH valid', async () => {
     const utility = new BtcAddressUtils();
     const result = utility.getRefundAddress('01ccc198c15d8344c73da67a75509a85a8f4226636');
