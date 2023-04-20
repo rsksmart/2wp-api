@@ -17,4 +17,3 @@ export class BlockBoock extends HealthInformationChecks {
 export class Federation extends HealthInformationChecks {
     federationAddress: string;
 }
-  

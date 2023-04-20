@@ -1,6 +1,7 @@
 import ExtendedBridgeTx from '../extended-bridge-tx';
 import { PegoutStatus, PegoutStatusDbDataModel } from '../../models/rsk/pegout-status-data-model';
 import { BRIDGE_EVENTS } from '../../utils/bridge-utils';
+import { BtcAddressUtils } from '../../utils/btc-utils';
 import {ExtendedBridgeEvent} from "../../models/types/bridge-transaction-parser";
 
 export class PegoutStatusBuilder {
@@ -9,7 +10,9 @@ export class PegoutStatusBuilder {
         const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
         const releaseRequestReceivedEvent:ExtendedBridgeEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)!;
         const rskSenderAddress = <string> releaseRequestReceivedEvent!.arguments.sender;
-        const btcDestinationAddress = <string> releaseRequestReceivedEvent!.arguments.btcDestinationAddress;
+        const btcDestinationAddressHash160 = <string> releaseRequestReceivedEvent!.arguments.btcDestinationAddress;
+        const utility = new BtcAddressUtils();
+        const btcDestinationAddress = utility.getBtcAddressFromHash(btcDestinationAddressHash160);
         const amount = <number> releaseRequestReceivedEvent!.arguments.amount;
 
         const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();

@@ -28,6 +28,8 @@ const PegoutStatusSchema = new mongoose.Schema({
   btcRawTxInputsHash: {type: String},
   batchPegoutIndex: {type: String},
   batchPegoutRskTxHash: {type: Number},
+  changedByEvent: {type: String},
+  updatedAt: {type: Date},
 });
 
 const PegoutStatusConnector = mongoose.model<PegoutStatusMongoModel>("PegoutStatus", PegoutStatusSchema);
@@ -81,6 +83,27 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
     // That's why we need to 'clone' it here, to create an actual PegoutStatusDataModel instance and have what we need.
     // Same for the other uses of this clone method in this file.
     return PegoutStatusDbDataModel.clonePegoutStatusInstance(pegoutDocument);
+  }
+
+  public async getLastByOriginatingRskTxHashNewest(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel | null> {
+    const pegoutDocument = await this.getConnector()
+    .find({originatingRskTxHash, isNewestStatus: true})
+    .sort({createdOn: -1})
+    .limit(1)
+    .exec()
+    .then((pegoutStatuses: PegoutStatusDbDataModel[]) => pegoutStatuses[0] || null);
+    if(!pegoutDocument) {
+      return null;
+    }
+    return PegoutStatusDbDataModel.clonePegoutStatusInstance(pegoutDocument);
+  }
+
+  public async getAllNotFinishedByBtcRecipientAddress(btcRecipientAddress: string): Promise<PegoutStatusDbDataModel[]> {
+    const isNewestStatus = true;
+    const pegoutDocuments = await this.getConnector()
+    .find({status: {$ne: PegoutStatus.RELEASE_BTC}, isNewestStatus, btcRecipientAddress})
+    .exec();
+    return pegoutDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 
   public async getManyWaitingForConfirmationNewest(): Promise<PegoutStatusDbDataModel[]> {

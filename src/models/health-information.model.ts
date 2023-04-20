@@ -8,4 +8,3 @@ export class HealthInformation {
     bridgeService: HealthInformationChecks;
     apiVersion: string;
 }
-  

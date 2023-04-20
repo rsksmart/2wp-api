@@ -7,10 +7,10 @@ import {HealthCheckController} from '../../controllers';
 import {BitcoinService, BridgeService, SyncStatusDataService, RskNodeService} from '../../services';
 import {sinon} from '@loopback/testlab/dist/sinon';
 import { writeResultToResponse } from '@loopback/rest';
-  
+
   describe('health check controller', () => {
     let getLastBlock: sinon.SinonStub;
-    let controller: HealthCheckController; 
+    let controller: HealthCheckController;
     let bitcoinService: BitcoinService;
     let bridgeService: BridgeService;
     let rskNodeService: RskNodeService;
@@ -21,7 +21,7 @@ import { writeResultToResponse } from '@loopback/rest';
     let context = stubExpressContext();
 
     beforeEach(resetRepositories);
-  
+
     function resetRepositories() {
       bitcoinService = createStubInstance(BitcoinService);
       rskNodeService = createStubInstance(RskNodeService);
@@ -79,7 +79,7 @@ import { writeResultToResponse } from '@loopback/rest';
 
     it('test req and resp', async () => {
         const context = stubExpressContext();
-        writeResultToResponse(context.response, 
+        writeResultToResponse(context.response,
             {
                 "up": true,
                 "dataBase": {
@@ -105,10 +105,10 @@ import { writeResultToResponse } from '@loopback/rest';
                 }
             });
         const result = await context.result;
-    
+
         expect(result.headers['content-type']).to.eql('application/json');
         expect(result.payload).not.null;
-    
+
     });
 
     it('all methods called once', async () => {
@@ -121,4 +121,3 @@ import { writeResultToResponse } from '@loopback/rest';
      });
 
   });
-  

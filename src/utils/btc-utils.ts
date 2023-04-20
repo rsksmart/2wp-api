@@ -6,12 +6,18 @@ import * as constants from '../constants';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
+import * as bitcoin from 'bitcoinjs-lib';
 
 export const calculateBtcTxHash = (transaction: string) => {
   const hash = doubleSha256(remove0x(transaction));
   const bufferedHash = Buffer.from(hash, 'hex');
   bufferedHash.reverse();
   return bufferedHash.toString('hex');
+};
+
+export const calculateBtcTxHashSegWitAndNonSegwit = (raw: string) => {
+  const tx:string = bitcoin.Transaction.fromHex(raw).getId();
+  return tx;
 };
 
 export type AddressType = 'BITCOIN_LEGACY_ADDRESS' | 'BITCOIN_SEGWIT_ADDRESS' | 'BITCOIN_NATIVE_SEGWIT_ADDRESS' | 'BITCOIN_MULTISIGNATURE_ADDRESS';
@@ -45,6 +51,31 @@ export class BtcAddressUtils {
       this.logger.warn("Error parsing refund address", error.message);
     }
     return address;
+  }
+
+  public getBtcAddressFromHash(hash160: string): string {
+    try{
+      let hash = remove0x(hash160);
+      const OP_DUP = '76';
+      const OP_HASH160 = 'a9';
+      const BYTES_TO_PUSH = '14';
+      const OP_EQUALVERIFY = '88';
+      const OP_CHECKSIG = 'ac';
+      const script = OP_DUP + OP_HASH160 + BYTES_TO_PUSH + hash + OP_EQUALVERIFY + OP_CHECKSIG;
+      const bufferFrom = Buffer.from(script, 'hex');
+      let btcNetwork = bitcoin.networks.testnet;
+      const network = process.env.NETWORK ?? constants.NETWORK_TESTNET;
+
+      if(network === constants.NETWORK_MAINNET){
+        btcNetwork = bitcoin.networks.bitcoin;
+      }
+
+      const address = (bitcoin.address.fromOutputScript(bufferFrom, btcNetwork));
+      return address;
+    } catch (e) {
+      this.logger.warn("Error getBtcAddressFromHash ", e.message);
+      return hash160;
+    }
   }
 
   private getNetPrefix(netName: string, type: string) {

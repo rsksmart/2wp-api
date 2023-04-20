@@ -8,7 +8,7 @@ import {config} from 'dotenv';
 import {sinon} from '@loopback/testlab/dist/sinon';
 import * as constants from '../../constants';
 import {CreatePeginTxData, InputPerFee, NormalizedTx, TxInput, TxOutput} from '../../models';
-import {BridgeService} from '../../services';
+import {BridgeService, TxService} from '../../services';
 
 config();
 
@@ -16,6 +16,8 @@ describe('Pegin Tx controller', () => {
   let getFeeLevel : sinon.SinonStub;
   let getAccountInputs : sinon.SinonStub;
   let sessionRepository: StubbedInstanceWithSinonAccessor<SessionRepository>;
+  let txService: TxService;
+  let txProvider: sinon.SinonStub;
   let peginTxController: PeginTxController;
   const sessionId = 'sessionId';
   const inputs = [
@@ -84,13 +86,16 @@ describe('Pegin Tx controller', () => {
 
   function resetRepositories() {
     sessionRepository = createStubInstance(SessionRepository);
+    txService = {txProvider: sinon.stub()};
+    txProvider = txService.txProvider as sinon.SinonStub;
     getAccountInputs = sessionRepository.getAccountInputs as sinon.SinonStub;
     getFeeLevel = sessionRepository.getFeeLevel as sinon.SinonStub;
-    peginTxController = new PeginTxController(sessionRepository)
+    peginTxController = new PeginTxController(sessionRepository, txService);
   }
   it('Should create a pegin Tx', () => {
     getAccountInputs.withArgs(sessionId).resolves(inputsPerFee);
     getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(2590);
+    txProvider.resolves([{ hex: 'testTx'}]);
     const request = new CreatePeginTxData({
       amountToTransferInSatoshi: 11000,
       refundAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
@@ -124,6 +129,7 @@ describe('Pegin Tx controller', () => {
   it('should reject the creation if there is no selected inputs for this sessionId', () => {
     getAccountInputs.withArgs(sessionId).resolves({fast: [], average: [], slow: []});
     getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(2590);
+    txProvider.resolves([{ hex: 'testTx'}]);
     const request = new CreatePeginTxData({
       amountToTransferInSatoshi: 11000,
       refundAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
@@ -139,6 +145,7 @@ describe('Pegin Tx controller', () => {
     const refundAddress = 'tb1qkfcu7q7q6y7xmfe5glp9amsm45x0um59rwwmsmsmd355g32';
     getAccountInputs.withArgs(sessionId).resolves(inputsPerFee);
     getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(2590);
+    txProvider.resolves([{ hex: 'testTx'}]);
     const request = new CreatePeginTxData({
       amountToTransferInSatoshi: 11000,
       refundAddress,
@@ -153,6 +160,7 @@ describe('Pegin Tx controller', () => {
   it('should reject the creation if the required amount + fee is no satisfied with the selected inputs', () => {
     getAccountInputs.withArgs(sessionId).resolves(inputsPerFee);
     getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(550);
+    txProvider.resolves([{ hex: 'testTx'}]);
     const request = new CreatePeginTxData({
       amountToTransferInSatoshi: 29500,
       refundAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
@@ -167,6 +175,7 @@ describe('Pegin Tx controller', () => {
   it('should create a transaction without change output if it spends all balance', () => {
     getAccountInputs.withArgs(sessionId).resolves(inputsPerFee);
     getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(500);
+    txProvider.resolves([{ hex: 'testTx'}]);
     const request = new CreatePeginTxData({
       amountToTransferInSatoshi: 29500,
       refundAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
@@ -197,6 +206,7 @@ describe('Pegin Tx controller', () => {
     setDustEnv('40000');
     getAccountInputs.withArgs(sessionId).resolves(inputsPerFee2);
     getFeeLevel.withArgs(sessionId, constants.BITCOIN_FAST_FEE_LEVEL).resolves(500);
+    txProvider.resolves([{ hex: 'testTx'}]);
     const requestWithoutBurnDust = new CreatePeginTxData({
       amountToTransferInSatoshi: 269499,
       refundAddress: '2NC4DCae9HdL6vjWMDbQwTkYEAB22MF3TPs',
