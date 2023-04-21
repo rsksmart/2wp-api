@@ -38,20 +38,26 @@ export class PegoutStatusService {
                     if (!pegoutStatusDbDataModel) {
 
                         //TODO Change it when bridgeTransactionParser return PENDING transaction (tx on mempool)
-                        const rskTransaction:RskTransaction = await this.rskNodeService.getTransaction(rskTxHash, this.ATTACH_TRANSACTION_RECEIPT);
-                        
-                        if(rskTransaction) {
-                            const receipt = rskTransaction.receipt;
-                            if(receipt) {
-                                const transaction:Transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
-                                const extendedModel: ExtendedBridgeTxModel = new ExtendedBridgeTxModel(transaction, rskTransaction);
-                                pegoutStatus = await this.processTransaction(extendedModel);
+                        try {
+                            const rskTransaction: RskTransaction = await this.rskNodeService.getTransaction(rskTxHash, this.ATTACH_TRANSACTION_RECEIPT);
+                            if(rskTransaction) {
+                                const receipt = rskTransaction.receipt;
+                                if(receipt) {
+                                    const transaction: Transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
+                                    const extendedModel: ExtendedBridgeTxModel = new ExtendedBridgeTxModel(transaction, rskTransaction);
+                                    pegoutStatus = await this.processTransaction(extendedModel);
+                                } else {
+                                    pegoutStatus.status = PegoutStatus.PENDING;
+                                }
                             } else {
-                                pegoutStatus.status = PegoutStatus.PENDING;
+                                pegoutStatus.status = PegoutStatus.NOT_FOUND;
                             }
-                        } else {
+                        }
+                        catch(e) {
+                            this.logger.error(`[getPegoutStatusByRskTxHash] - not found tx ${e}`);
                             pegoutStatus.status = PegoutStatus.NOT_FOUND;
                         }
+                        this.logger.trace(pegoutStatus.status)
 
                     } else if (pegoutStatusDbDataModel.status === PegoutStatus.REJECTED) {
                         pegoutStatus = PegoutStatusAppDataModel.fromPegoutStatusDataModelRejected(pegoutStatusDbDataModel);
