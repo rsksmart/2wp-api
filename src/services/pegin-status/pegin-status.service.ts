@@ -14,6 +14,7 @@ import {BtcAddressUtils, calculateBtcTxHashSegWitAndNonSegwit} from '../../utils
 import {ensure0x} from '../../utils/hex-utils';
 import {GenericDataService} from '../generic-data-service';
 import {RskNodeService} from '../rsk-node.service';
+import { isAFedAddress } from '../../utils/federation-addresses';
 
 export class PeginStatusService {
   private logger: Logger;
@@ -111,7 +112,6 @@ export class PeginStatusService {
           this.status = Status.ERROR_NOT_A_PEGIN;
         } else {
 
-          const federationAddress = await this.bridgeService.getFederationAddress();
           const txIsProcessed = await this.bridgeService.isBtcTxHashAlreadyProcessed(btcTxId);
           
           if (!txIsProcessed) {
@@ -119,17 +119,19 @@ export class PeginStatusService {
             this.logger.debug(errorMessage);
             this.status = Status.ERROR_NOT_A_PEGIN;
           } else {
+            const vout = btcTx.vout;
+            const fedDestinationAddress = await this.getTxDestinationFedAddress(vout);
             const time = btcTx.time ?? btcTx.blocktime;
             btcStatus.creationDate = new Date(time * 1000); // We get Timestamp in seconds
             btcStatus.amountTransferred = this.fromSatoshiToBtc(this.getTxSentAmountByAddress(
-              federationAddress,
+              fedDestinationAddress,
               btcTxId,
               btcTx.vout
             ));
             btcStatus.btcWTxId = ensure0x(calculateBtcTxHashSegWitAndNonSegwit(btcTx.hex));            btcStatus.fees = btcTx.fees ? this.fromSatoshiToBtc(btcTx.fees) : 0;
             btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
             btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;
-            btcStatus.federationAddress = federationAddress;
+            btcStatus.federationAddress = fedDestinationAddress;
             btcStatus.refundAddress = this.getTxRefundAddress(btcTx);
             this.destinationAddress = this.getxDestinationRskAddress(btcTx);
           }
@@ -157,28 +159,33 @@ export class PeginStatusService {
     return (btcValue / 100000000);
   }
 
-  
-  // this function is not used any more. maybe should be deleted.
+  private getTxDestinationFedAddress = async(vout: Vout[]): Promise<string> => {
+    let fedDestinationAddress = '';
 
-  // private isSentToFederationAddress(federationAddress: string, vout: Vout[]): boolean {
-  //   let found = false;
-  //   for (let i = 0; vout && i < vout.length && !found; i++) {
-  //     if (federationAddress === vout[i].addresses[0]) {
-  //       found = true;
-  //     }
-  //   }
-  //   return found;
-  // }
-
-  private getTxSentAmountByAddress(federationAddress: string, txId: string, vout: Vout[]): number {
-    let acummulatedAmount = 0;
+    // i guess we can modify this to have a "break" after the first if = true,
+    // since the fedDestAddress is just one.
     for (let i = 0; vout && i < vout.length; i++) {
-      if (vout[i].isAddress && federationAddress === vout[i].addresses[0]) {
+      if (vout[i].isAddress && await isAFedAddress(vout[i].addresses[0])) {
+        fedDestinationAddress = vout[i].addresses[0];
+      }
+    }
+    return fedDestinationAddress;
+  }
+
+  private getTxSentAmountByAddress(fedDestinationAddress: string, txId: string, vout: Vout[]): number {
+    let acummulatedAmount = 0;
+
+    // i guess we can modify this to have a "break" after have founding the fedAddress,
+    // since the fedDestAddress is just one. as it say, the accumulatedAmount
+    // will be modified for one time most.
+
+    for (let i = 0; vout && i < vout.length; i++) {
+      if (vout[i].isAddress && fedDestinationAddress === vout[i].addresses[0]) {
         acummulatedAmount += Number(vout[i].value!);
       }
     }
     if (acummulatedAmount === 0) {
-      const errorMessage = `Can not get set amount for address: ${federationAddress} in tx: ${txId}`;
+      const errorMessage = `Can not get set amount for address: ${fedDestinationAddress} in tx: ${txId}`;
       this.logger.error(errorMessage);
     }
     return acummulatedAmount;
