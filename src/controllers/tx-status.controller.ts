@@ -7,6 +7,7 @@ import {ServicesBindings} from "../dependency-injection-bindings";
 import {PeginStatusService, PegoutStatusService} from "../services";
 import {PegoutStatus} from "../models/rsk/pegout-status-data-model";
 import { ensure0x, remove0x } from '../utils/hex-utils';
+import { isValidTxId } from '../utils/tx-validator';
 
 export class TxStatusController {
   private logger: Logger;
@@ -33,6 +34,15 @@ export class TxStatusController {
     @param.path.string('txId') txId: string,
   ): Promise<TxStatus> {
     let txStatus:TxStatus;
+    
+    if (!isValidTxId(txId)) {
+      this.logger.warn(`[getTxStatus] the provided tx id: ${txId} is invalid`);
+      txStatus = new TxStatus({
+        type: TxStatusType.INVALID_DATA,
+      });
+      return txStatus;
+    }
+
     try {
       const txHash = remove0x(txId);
       this.logger.debug(`[getTxStatus] trying to get a pegin with txHash: ${txHash}`);
