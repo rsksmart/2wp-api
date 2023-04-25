@@ -83,7 +83,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       }
 
     } catch (e) {
-      this.logger.error(`[process] error processing pegout: ${e}`);
+      this.logger.error(`[process] in tx ${extendedBridgeTx.txHash} error processing pegout: ${e}`);
     }
   }
 
@@ -230,6 +230,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     newPegoutStatus.btcTxHash = btcTx.getHash().toString('hex');
     newPegoutStatus.isNewestStatus = true;
     newPegoutStatus.status = PegoutStatus.SIGNED;
+
+    this.logger.trace(`[processSignedStatus] New PegOut signed.`)
 
     try {
       correspondingDbPegoutNowSigned.isNewestStatus = false;
@@ -411,6 +413,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     newPegoutStatus.isNewestStatus = true;
     await this.addValueInSatoshisToBeReceivedAndFee(newPegoutStatus);
 
+    this.logger.trace(`[processWaitingForConfirmationStatus] New PegOut waiting for confirmation.`)
+
     try {
       await this.save(oldPegoutStatus);
       await this.save(newPegoutStatus);
@@ -452,7 +456,9 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   private async processReleaseRequestReceivedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
-    const events: BridgeEvent[] = extendedBridgeTx.events;
+    //TODO: Refine the conversion of ExtendedBridgeEvent to a specific event type, as releaseRequestReceivedEvent
+    // does not contain all the arguments present in ExtendedBridgeEvent, although "amount" is included.
+    const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
     const releaseRequestReceivedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED);
 
     if(!releaseRequestReceivedEvent) {
@@ -460,6 +466,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
     const status = await PegoutStatusBuilder.fillRequestReceivedStatus(extendedBridgeTx);
+    this.logger.trace(`[processReleaseRequestReceivedStatus] New PegOut received with amount: ${releaseRequestReceivedEvent.arguments.amount} `)
 
     try {
       await this.save(status);
@@ -478,6 +485,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
    const status = await PegoutStatusBuilder.fillRequestRejectedStatus(extendedBridgeTx);
+   this.logger.trace(`[processReleaseRequestRejectedStatus] New PegOut rejected.`)
 
     try {
       await this.save(status);
@@ -506,6 +514,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     this.logger.info(`[save] Pegout saved on the storage. ${this.getLoggerContextInformation(pegout)}`);
     return this.pegoutStatusDataService.set(pegout);
   }
+
 
   private getLoggerContextInformation(pegout: PegoutStatusDbDataModel): string {
     return `[rskTxHash:${pegout.rskTxHash}][originatingRskTxHash:${pegout.originatingRskTxHash}][status:${pegout.status}]${pegout.btcTxHash? '[btctxhash:' + pegout.btcTxHash + ']':''}`;
