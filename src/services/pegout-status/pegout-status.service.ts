@@ -57,7 +57,7 @@ export class PegoutStatusService {
                             this.logger.error(`[getPegoutStatusByRskTxHash] - not found tx ${e}`);
                             pegoutStatus.status = PegoutStatus.NOT_FOUND;
                         }
-                        this.logger.trace(pegoutStatus.status)
+                        this.logger.trace(pegoutStatus.status);
 
                     } else if (pegoutStatusDbDataModel.status === PegoutStatus.REJECTED) {
                         pegoutStatus = PegoutStatusAppDataModel.fromPegoutStatusDataModelRejected(pegoutStatusDbDataModel);
