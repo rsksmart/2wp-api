@@ -11,6 +11,7 @@ import { RskBlock } from '../../../models/rsk/rsk-block.model';
 import { RskTransaction } from '../../../models/rsk/rsk-transaction.model';
 import { PeginStatusDataService } from '../../../services/pegin-status-data-services/pegin-status-data.service';
 import { BridgeService } from '../../../services';
+import { BitcoinService } from '../../../services';
 import {Transaction} from 'bridge-transaction-parser';
 
 const rskTxHash = '0xd2852f38fedf1915978715b8a0dc0670040ac4e9065989c810a5bf29c1e006fb';
@@ -48,9 +49,12 @@ describe('Service: NodeBridgeDataProvider', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService);
-    const peginDataProcessorSubscriber = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
+    const mockedBitcoinService =
+    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+    const mockedBridgeService =
+    sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
+    const thisService = new NodeBridgeDataProvider(mockedBridgeService);
+    const peginDataProcessorSubscriber = new PeginDataProcessor(mockedPeginStatusDataService, mockedBitcoinService, mockedBridgeService) as FilteredBridgeTransactionProcessor;
     expect(thisService.getSubscribers()).to.be.empty;
 
     // Adds a subscriber
@@ -69,9 +73,12 @@ describe('Service: NodeBridgeDataProvider', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService);
-    const peginDataProcessorSubscriber = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
+    const mockedBitcoinService =
+    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+    const mockedBridgeService =
+    sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
+    const thisService = new NodeBridgeDataProvider(mockedBridgeService);
+    const peginDataProcessorSubscriber = new PeginDataProcessor(mockedPeginStatusDataService, mockedBitcoinService, mockedBridgeService) as FilteredBridgeTransactionProcessor;
     expect(thisService.getSubscribers()).to.be.empty;
 
     // Adds the same subscriber multiple times
@@ -96,11 +103,14 @@ describe('Service: NodeBridgeDataProvider', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService);
+    const mockedBitcoinService =
+    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+    const mockedBridgeService =
+    sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
+    const thisService = new NodeBridgeDataProvider(mockedBridgeService);
     
-    const peginDataProcessorSubscriber1 = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
-    const peginDataProcessorSubscriber2 = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
+    const peginDataProcessorSubscriber1 = new PeginDataProcessor(mockedPeginStatusDataService, mockedBitcoinService, mockedBridgeService) as FilteredBridgeTransactionProcessor;
+    const peginDataProcessorSubscriber2 = new PeginDataProcessor(mockedPeginStatusDataService, mockedBitcoinService, mockedBridgeService) as FilteredBridgeTransactionProcessor;
 
     expect(thisService.getSubscribers()).to.be.empty;
 
