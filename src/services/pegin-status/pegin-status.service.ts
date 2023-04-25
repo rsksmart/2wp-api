@@ -14,6 +14,7 @@ import {BtcAddressUtils, calculateBtcTxHash} from '../../utils/btc-utils';
 import {ensure0x} from '../../utils/hex-utils';
 import {GenericDataService} from '../generic-data-service';
 import {RskNodeService} from '../rsk-node.service';
+import { getTxSentAmountByAddress } from '../../utils/btc-utils';
 
 export class PeginStatusService {
   private logger: Logger;
@@ -119,12 +120,14 @@ export class PeginStatusService {
           } else {
             const time = btcTx.time ?? btcTx.blocktime;
             btcStatus.creationDate = new Date(time * 1000); // We get Timestamp in seconds
-            btcStatus.amountTransferred = this.fromSatoshiToBtc(this.getTxSentAmountByAddress(
+            btcStatus.amountTransferred = this.fromSatoshiToBtc(getTxSentAmountByAddress(
               federationAddress,
-              btcTxId,
               btcTx.vout
             ));
-
+            if ( btcStatus.amountTransferred === 0) {
+              const errorMessage = `Can not get set amount for address: ${federationAddress} in tx: ${btcTx.txId}`;
+              this.logger.error(errorMessage);
+            }
             btcStatus.btcWTxId = ensure0x(calculateBtcTxHash(btcTx.hex));
             btcStatus.fees = btcTx.fees ? this.fromSatoshiToBtc(btcTx.fees) : 0;
             btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
@@ -165,20 +168,6 @@ export class PeginStatusService {
       }
     }
     return found;
-  }
-
-  private getTxSentAmountByAddress(federationAddress: string, txId: string, vout: Vout[]): number {
-    let acummulatedAmount = 0;
-    for (let i = 0; vout && i < vout.length; i++) {
-      if (vout[i].isAddress && federationAddress === vout[i].addresses[0]) {
-        acummulatedAmount += Number(vout[i].value!);
-      }
-    }
-    if (acummulatedAmount === 0) {
-      const errorMessage = `Can not get set amount for address: ${federationAddress} in tx: ${txId}`;
-      this.logger.error(errorMessage);
-    }
-    return acummulatedAmount;
   }
 
   private getxDestinationRskAddress(btcTx: BitcoinTx): string {
