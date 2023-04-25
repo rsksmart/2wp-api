@@ -6,6 +6,7 @@ import {NodeBridgeDataProvider} from '../../../services/node-bridge-data.provide
 import {PeginStatusDataService} from '../../../services/pegin-status-data-services/pegin-status-data.service';
 import {PegoutStatusDataService} from '../../../services/pegout-status-data-services/pegout-status-data.service';
 import {BridgeService} from '../../../services/bridge.service';
+import { BitcoinService } from '../../../services';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
 import {PeginDataProcessor} from '../../../services/pegin-data.processor';
 import {PegoutDataProcessor} from '../../../services/pegout-data.processor';
@@ -27,6 +28,10 @@ describe('Service: DaemonService', () => {
   it('starts and stops', async () => {
     const mockedRskBlockProcessorPublisher =
       sinon.createStubInstance(NodeBridgeDataProvider) as SinonStubbedInstance<RskBlockProcessorPublisher>;
+    const mockedBitcoinService =
+    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+    const mockedBridgeService =
+    sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
     const bridgeService: BridgeService = <BridgeService>{};
@@ -39,7 +44,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor(mockedPeginStatusDataService),
+      new PeginDataProcessor(mockedPeginStatusDataService, mockedBitcoinService, mockedBridgeService),
       new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
     );
 
@@ -59,6 +64,10 @@ describe('Service: DaemonService', () => {
   it('sync starts when service is started', async () => {
     const mockedRskBlockProcessorPublisher =
       sinon.createStubInstance(NodeBridgeDataProvider) as SinonStubbedInstance<RskBlockProcessorPublisher>;
+      const mockedBitcoinService =
+      sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+      const mockedBridgeService =
+      sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
@@ -71,7 +80,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor(mockedPeginStatusDataService),
+      new PeginDataProcessor(mockedPeginStatusDataService, mockedBitcoinService, mockedBridgeService),
       new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
     );
 
