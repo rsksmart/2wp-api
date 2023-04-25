@@ -3,6 +3,7 @@ import {getLogger, Logger} from 'log4js';
 import {remove0x} from './hex-utils';
 import {doubleSha256} from './sha256-utils';
 import * as constants from '../constants';
+import {Vout} from '../models/vout.model';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
@@ -19,6 +20,15 @@ export const calculateBtcTxHashSegWitAndNonSegwit = (raw: string) => {
   const tx:string = bitcoin.Transaction.fromHex(raw).getId();
   return tx;
 };
+export const getTxSentAmountByAddress = (federationAddress: string, vout: Vout[]): number => {
+  let acummulatedAmount = 0;
+  for (let i = 0; vout && i < vout.length; i++) {
+    if (vout[i].isAddress && federationAddress === vout[i].addresses[0]) {
+      acummulatedAmount += Number(vout[i].value!);
+    }
+  }
+  return acummulatedAmount;
+}
 
 export type AddressType = 'BITCOIN_LEGACY_ADDRESS' | 'BITCOIN_SEGWIT_ADDRESS' | 'BITCOIN_NATIVE_SEGWIT_ADDRESS' | 'BITCOIN_MULTISIGNATURE_ADDRESS';
 
