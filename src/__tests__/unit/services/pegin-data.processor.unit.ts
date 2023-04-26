@@ -129,15 +129,15 @@ const getBitcoinTx = (btcTxId: string, from: string, amount: number, confirmatio
 
 describe('Service: PeginDataProcessor', () => {
 
+  const mockedBitcoinService =
+  sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+  const mockedBridgeService =
+  sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
   it('parses a transaction with no event logs as null', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
     const extendedBridgeTx: ExtendedBridgeTx = <ExtendedBridgeTx> {};
-    const mockedBitcoinService =
-    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
-    const mockedBridgeService =
-    sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService, mockedBitcoinService, mockedBridgeService);
     const result = thisService.parse(extendedBridgeTx);
     expect(result).to.be.null;
@@ -148,10 +148,6 @@ describe('Service: PeginDataProcessor', () => {
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
     const extendedBridgeTx: ExtendedBridgeTx = <ExtendedBridgeTx> <unknown> {events: [{name: 'random'}]};
-    const mockedBitcoinService =
-    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
-    const mockedBridgeService =
-    sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService, mockedBitcoinService, mockedBridgeService);
     const result = thisService.parse(extendedBridgeTx);
     expect(result).to.be.null;
@@ -161,10 +157,6 @@ describe('Service: PeginDataProcessor', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const mockedBitcoinService =
-    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
-    const mockedBridgeService =
-    sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
@@ -203,10 +195,6 @@ describe('Service: PeginDataProcessor', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const mockedBitcoinService =
-    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
-    const mockedBridgeService =
-    sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
@@ -246,10 +234,6 @@ describe('Service: PeginDataProcessor', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const mockedBitcoinService =
-    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
-    const mockedBridgeService =
-    sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
@@ -282,10 +266,6 @@ describe('Service: PeginDataProcessor', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const mockedBitcoinService =
-      sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
-    const mockedBridgeService =
-      sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
 
     mockedBitcoinService.getTx.resolves(getBitcoinTx('txRejectedPegin', 'tb1qq8m8tjnskjzlldqcvg6czfnfxawvzyx8744cec', 0.05, 10, federationAddress))
 
@@ -327,10 +307,6 @@ describe('Service: PeginDataProcessor', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const mockedBitcoinService =
-    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
-    const mockedBridgeService =
-    sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
 
     mockedBitcoinService.getTx.resolves(getBitcoinTx('txRejectedPegin', 'tb1qq8m8tjnskjzlldqcvg6czfnfxawvzyx8744cec', 0.05, 10, federationAddress))
 
@@ -368,10 +344,6 @@ describe('Service: PeginDataProcessor', () => {
 
   it('returns filters', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
-    const mockedBitcoinService =
-    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
-    const mockedBridgeService =
-    sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService, mockedBitcoinService, mockedBridgeService);
     expect(thisService.getFilters()).to.be.Array;
     expect(thisService.getFilters()).to.not.be.empty;
@@ -382,10 +354,6 @@ describe('Service: PeginDataProcessor', () => {
   it('processes pegin transaction', async () => {
     const mockedPeginStatusDataService =
       sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;
-    const mockedBitcoinService =
-      sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
-    const mockedBridgeService =
-      sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
 
     mockedBitcoinService.getTx.resolves(getBitcoinTx('txRejectedPegin', 'tb1qq8m8tjnskjzlldqcvg6czfnfxawvzyx8744cec', 0.05, 10, federationAddress))
 
@@ -418,10 +386,6 @@ describe('Service: PeginDataProcessor', () => {
   it('ignores pegin transaction if found in db', async () => {
     const mockedPeginStatusDataService =
       sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;
-    const mockedBitcoinService =
-      sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
-    const mockedBridgeService =
-      sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
@@ -454,10 +418,6 @@ describe('Service: PeginDataProcessor', () => {
   it('returns early if no peginStatus can be parsed from transaction because event logs is empty', async () => {
     const mockedPeginStatusDataService =
       sinon.createStubInstance(PeginStatusMongoDbDataService) as SinonStubbedInstance<PeginStatusDataService>;
-    const mockedBitcoinService =
-      sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
-    const mockedBridgeService =
-      sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,

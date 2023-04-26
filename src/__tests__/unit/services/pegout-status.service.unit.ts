@@ -7,7 +7,6 @@ import {
     PegoutStatusAppDataModel,
 } from "../../../models/rsk/pegout-status-data-model";
 import { RskNodeService } from '../../../services/rsk-node.service';
-import { PegoutDataProcessor } from '../../../services/pegout-data.processor';
 
 describe('Pegout Status Service:', () => {
     let pegoutStatusService: PegoutStatusService;

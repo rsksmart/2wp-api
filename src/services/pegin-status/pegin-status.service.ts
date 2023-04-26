@@ -10,11 +10,10 @@ import {BitcoinTx} from '../../models/bitcoin-tx.model';
 import {PeginStatusError} from '../../models/pegin-status-error.model';
 import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {Vout} from '../../models/vout.model';
-import {BtcAddressUtils, calculateBtcTxHash} from '../../utils/btc-utils';
+import {BtcAddressUtils, calculateBtcTxHash, getTxSentAmountByAddress} from '../../utils/btc-utils';
 import {ensure0x} from '../../utils/hex-utils';
 import {GenericDataService} from '../generic-data-service';
 import {RskNodeService} from '../rsk-node.service';
-import { getTxSentAmountByAddress } from '../../utils/btc-utils';
 
 export class PeginStatusService {
   private logger: Logger;
