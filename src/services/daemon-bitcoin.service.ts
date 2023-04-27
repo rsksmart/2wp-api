@@ -15,6 +15,7 @@ export class DaemonBitcoinService {
   getTx(txId: string): Promise<BitcoinTx> {
     return new Promise<BitcoinTx>((resolve, reject) => {
       axios.get(`${this.blockBookUrl}/api/v2/tx/${txId}`)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .then((tx: any) => {
           const responseTx = new BitcoinTx();
           responseTx.txid = tx[0].txid;

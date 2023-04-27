@@ -10,7 +10,7 @@ import { PeginDataProcessor } from '../../../services/pegin-data.processor';
 import { RskBlock } from '../../../models/rsk/rsk-block.model';
 import { RskTransaction } from '../../../models/rsk/rsk-transaction.model';
 import { PeginStatusDataService } from '../../../services/pegin-status-data-services/pegin-status-data.service';
-import { BridgeService, BitcoinService } from '../../../services';
+import { BridgeService } from '../../../services';
 import {Transaction} from 'bridge-transaction-parser';
 import {DaemonBitcoinService} from '../../../services/daemon-bitcoin.service';
 

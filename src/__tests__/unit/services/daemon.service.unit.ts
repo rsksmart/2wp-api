@@ -6,7 +6,6 @@ import {NodeBridgeDataProvider} from '../../../services/node-bridge-data.provide
 import {PeginStatusDataService} from '../../../services/pegin-status-data-services/pegin-status-data.service';
 import {PegoutStatusDataService} from '../../../services/pegout-status-data-services/pegout-status-data.service';
 import {BridgeService} from '../../../services/bridge.service';
-import { BitcoinService } from '../../../services';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
 import {PeginDataProcessor} from '../../../services/pegin-data.processor';
 import {PegoutDataProcessor} from '../../../services/pegout-data.processor';

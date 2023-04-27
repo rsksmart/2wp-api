@@ -235,7 +235,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     newPegoutStatus.isNewestStatus = true;
     newPegoutStatus.status = PegoutStatus.SIGNED;
 
-    this.logger.trace(`[processSignedStatus] New PegOut signed.`)
+    this.logger.trace(`[processSignedStatus] New PegOut signed.`);
 
     try {
       correspondingDbPegoutNowSigned.isNewestStatus = false;

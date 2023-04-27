@@ -2,7 +2,7 @@ import {expect} from '@loopback/testlab';
 import {PeginStatus, PeginStatusDataModel} from '../../../models/rsk/pegin-status-data.model';
 import {PeginDataProcessor} from '../../../services/pegin-data.processor';
 import {PeginStatusDataService} from '../../../services/pegin-status-data-services/pegin-status-data.service';
-import { BitcoinService, BridgeService } from '../../../services';
+import { BridgeService } from '../../../services';
 import sinon, {SinonStubbedInstance} from 'sinon';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
 import ExtendedBridgeTx from '../../../services/extended-bridge-tx';
@@ -268,7 +268,7 @@ describe('Service: PeginDataProcessor', () => {
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
 
-    mockedBitcoinService.getTx.resolves(getBitcoinTx('txRejectedPegin', 'tb1qq8m8tjnskjzlldqcvg6czfnfxawvzyx8744cec', 0.05, 10, federationAddress))
+    mockedBitcoinService.getTx.resolves(getBitcoinTx('txRejectedPegin', 'tb1qq8m8tjnskjzlldqcvg6czfnfxawvzyx8744cec', 0.05, 10, federationAddress));
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
@@ -309,7 +309,7 @@ describe('Service: PeginDataProcessor', () => {
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
 
-    mockedBitcoinService.getTx.resolves(getBitcoinTx('txRejectedPegin', 'tb1qq8m8tjnskjzlldqcvg6czfnfxawvzyx8744cec', 0.05, 10, federationAddress))
+    mockedBitcoinService.getTx.resolves(getBitcoinTx('txRejectedPegin', 'tb1qq8m8tjnskjzlldqcvg6czfnfxawvzyx8744cec', 0.05, 10, federationAddress));
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,

@@ -1,4 +1,4 @@
-import { BlockTransactionObject, Transaction, TransactionReceipt  } from 'web3-eth';
+import { Transaction  } from 'web3-eth';
 
 export class FullRskTransaction {
   hash: string;
