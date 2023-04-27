@@ -134,6 +134,8 @@ describe('Service: DaemonService', () => {
   it('removes subscribers when service stops', async () => {
     const mockedRskBlockProcessorPublisher = sinon.createStubInstance(NodeBridgeDataProvider) as SinonStubbedInstance<RskBlockProcessorPublisher>;
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
+    const mockedBitcoinService =
+    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
     const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
     const bridgeService: BridgeService = <BridgeService>{};
     mockedPeginStatusDataService.start = sinon.stub();
@@ -144,7 +146,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor(mockedPeginStatusDataService),
+      new PeginDataProcessor(mockedPeginStatusDataService, mockedBitcoinService, bridgeService),
       new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
     );
 
