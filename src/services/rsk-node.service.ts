@@ -26,30 +26,28 @@ export class RskNodeService {
     return new Promise<RskTransaction>((resolve, reject) => {
       this.web3.eth.getTransaction(txHash)
         .then((web3Tx) => {
-          if (web3Tx) {
-            rskTx.blockHash = <string> web3Tx.blockHash;
-            rskTx.hash = <string> web3Tx.hash;
-            rskTx.data = <string> web3Tx.input;
-            rskTx.to = <string> web3Tx.to;
-            
-            if(!web3Tx.blockHash || !web3Tx.blockNumber) return resolve(rskTx);
+          if (!web3Tx) return reject(new Error('Tx not found in RSK node.'));
 
-            if(includeReceipt) {
-              this.getTransactionReceipt(rskTx.hash)
-              .then((receipt) => {
-                if(receipt) {
-                  rskTx.receipt = receipt;
-                  return resolve(rskTx);
-                }
-              })
-              .catch((reason) => {
-                return reject(reason);
-              });
-            } else {
-              return resolve(rskTx);
-            }
+          rskTx.blockHash = <string> web3Tx.blockHash;
+          rskTx.hash = <string> web3Tx.hash;
+          rskTx.data = <string> web3Tx.input;
+          rskTx.to = <string> web3Tx.to;
+          
+          if(!web3Tx.blockHash || !web3Tx.blockNumber) return resolve(rskTx);
+
+          if(includeReceipt) {
+            this.getTransactionReceipt(rskTx.hash)
+            .then((receipt) => {
+              if(receipt) {
+                rskTx.receipt = receipt;
+                return resolve(rskTx);
+              }
+            })
+            .catch((reason) => {
+              return reject(reason);
+            });
           } else {
-            return reject(new Error('Tx not found in RSK node.'))
+            return resolve(rskTx);
           }
           })
           .catch((reason) => {
