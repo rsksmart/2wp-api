@@ -40,17 +40,15 @@ export class PegoutStatusService {
                         //TODO Change it when bridgeTransactionParser return PENDING transaction (tx on mempool)
                         try {
                             const rskTransaction: RskTransaction = await this.rskNodeService.getTransaction(rskTxHash, this.ATTACH_TRANSACTION_RECEIPT);
-                            if(rskTransaction) {
-                                const receipt = rskTransaction.receipt;
-                                if(receipt) {
-                                    const transaction: Transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
-                                    const extendedModel: ExtendedBridgeTxModel = new ExtendedBridgeTxModel(transaction, rskTransaction);
-                                    pegoutStatus = await this.processTransaction(extendedModel);
-                                } else {
-                                    pegoutStatus.status = PegoutStatus.PENDING;
-                                }
-                            } else {
+                            if (!rskTransaction) {
                                 pegoutStatus.status = PegoutStatus.NOT_FOUND;
+                            }
+                            if(rskTransaction.receipt) {
+                                const transaction: Transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
+                                const extendedModel: ExtendedBridgeTxModel = new ExtendedBridgeTxModel(transaction, rskTransaction);
+                                pegoutStatus = await this.processTransaction(extendedModel);
+                            } else {
+                                pegoutStatus.status = PegoutStatus.PENDING;
                             }
                         }
                         catch(e) {
