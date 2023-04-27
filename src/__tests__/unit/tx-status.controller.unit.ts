@@ -182,5 +182,12 @@ describe('Controller: Tx Status', () => {
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.calledOnce).to.be.true();
          expect(status.type).to.be.eql(TxStatusType.INVALID_DATA);
       });
+      it('should resolve a txStatus: INVALID_DATA if it is not a valid txId', async () => {
+         const invalidTxId = 'invalid-tx-id'
+         const status = await txStatusController.getTxStatus(invalidTxId);
+         expect(peginStatusService.stubs.getPeginSatusInfo.notCalled).to.be.true();
+         expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.notCalled).to.be.true();
+         expect(status.type).to.be.eql(TxStatusType.INVALID_DATA);
+      });
    });
 });
