@@ -2,24 +2,27 @@ import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
 import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-transaction-processor';
-import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
-import { PegoutStatusDataService } from './pegout-status-data-services/pegout-status-data.service';
+import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
+import {PegoutStatusDataService} from './pegout-status-data-services/pegout-status-data.service';
 import ExtendedBridgeTx from './extended-bridge-tx';
-import { PegoutStatus, PegoutStatusDbDataModel } from '../models/rsk/pegout-status-data-model';
-import { BridgeEvent } from 'bridge-transaction-parser';
-import { ServicesBindings } from '../dependency-injection-bindings';
+import {PegoutStatus, PegoutStatusDbDataModel} from '../models/rsk/pegout-status-data-model';
+import {BridgeEvent} from 'bridge-transaction-parser';
+import {ServicesBindings} from '../dependency-injection-bindings';
 import * as bitcoin from 'bitcoinjs-lib';
 import {BridgeService} from './bridge.service';
 import * as constants from '../constants';
-import { ensure0x, remove0x } from '../utils/hex-utils';
-import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
-import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
-import { sha256 } from '../utils/sha256-utils';
+import {ensure0x, remove0x} from '../utils/hex-utils';
+import {PegoutStatusBuilder} from './pegout-status/pegout-status-builder';
+import {ExtendedBridgeEvent} from '../models/types/bridge-transaction-parser';
+import {sha256} from '../utils/sha256-utils';
+import Web3 from 'web3';
+import {FullRskTransaction} from '../models';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
   private pegoutStatusDataService: PegoutStatusDataService;
   private bridgeService: BridgeService;
+  private web3:Web3;
 
   constructor(
     @inject(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
@@ -29,6 +32,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     this.logger = getLogger('pegoutDataProcessor');
     this.pegoutStatusDataService = pegoutStatusDataService;
     this.bridgeService = bridgeService;
+    this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
   }
 
   getFilters(): BridgeDataFilterModel[] {
@@ -286,6 +290,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       newClonedPegoutStatus.batchPegoutIndex = index;
       newClonedPegoutStatus.batchPegoutRskTxHash = extendedBridgeTx.txHash;
 
+      const fullRSkTx = await this.getTxFromRskTransaction(originatingRskTxHash);
+      this.logger.trace(`[processBatchPegouts] New PegOut waiting for confirmation with amount: ${fullRSkTx.valueInWeis}.`);
       await this.addBatchValueInSatoshisToBeReceivedAndFee(newClonedPegoutStatus, extendedBridgeTx.txHash);
 
       try {
@@ -346,25 +352,6 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     });
     this.logger.trace(`[processWaitingForSignaturesStatus] number of pegouts confirmed: ${dbPegoutsWithEnoughConfirmations.length}`);
 
-    // TODO: this is most likely incorrect. The processor is syncing so the state up to this point is what we get from the tx itself
-
-    // const bridgeState = await this.bridgeService.getBridgeState();
-    // const pegoutsWaitingForConfirmationMap = bridgeState.pegoutsWaitingForConfirmations
-    //     .reduce((accumulator, pegout) => accumulator.set(pegout.rskTxHash, pegout), new Map<string, PegoutWaitingConfirmation>());
-    // if(pegoutsWaitingForConfirmationMap.size === 0) {
-    //   this.logger.trace(`[processWaitingForSignaturesStatus] no transactions in waiting for confirmation in the bridge state.`);
-    //   // If none of the pegouts in the db waiting for confirmation are found in the bridge state,
-    //   // it means the were already moved further. Setting them to the next status, waiting for signatures.
-    //   return await this.saveManyAsWaitingForSignature(dbPegoutsWithEnoughConfirmations);
-    // }
-    // const pegoutsWaitingForSignatures = dbPegoutsWithEnoughConfirmations.reduce((accumulator: Array<PegoutStatusDbDataModel>, dbPegoutWaitingForSignature: PegoutStatusDbDataModel) => {
-    //   const rskTxHash = remove0x(dbPegoutWaitingForSignature.rskTxHash);
-    //   const pegoutStillInWaitingForConfirmation = pegoutsWaitingForConfirmationMap.get(rskTxHash);
-    //   if(!pegoutStillInWaitingForConfirmation) {
-    //     accumulator.push(dbPegoutWaitingForSignature);
-    //   }
-    //   return accumulator;
-    // }, []);
     try {
       let index = 0;
       for (let oldPegoutStatus of dbPegoutsWaitingForConfirmations) {
@@ -413,7 +400,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     newPegoutStatus.isNewestStatus = true;
     await this.addValueInSatoshisToBeReceivedAndFee(newPegoutStatus);
 
-    this.logger.trace(`[processWaitingForConfirmationStatus] New PegOut waiting for confirmation.`)
+    const fullRSkTx = await this.getTxFromRskTransaction(originatingRskTxHash);
+    this.logger.trace(`[processIndividualPegout] New PegOut waiting for confirmation with amount: ${fullRSkTx.valueInWeis}.`);
 
     try {
       await this.save(oldPegoutStatus);
@@ -477,7 +465,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   private async processReleaseRequestRejectedStatus(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
-    const events: BridgeEvent[] = extendedBridgeTx.events;
+    const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
     const releaseRequestRejectedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
 
     if(!releaseRequestRejectedEvent) {
@@ -485,7 +473,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
    const status = await PegoutStatusBuilder.fillRequestRejectedStatus(extendedBridgeTx);
-   this.logger.trace(`[processReleaseRequestRejectedStatus] New PegOut rejected.`)
+   this.logger.trace(`[processReleaseRequestRejectedStatus] New PegOut rejected with amount: ${releaseRequestRejectedEvent.arguments.amount}.`)
 
     try {
       await this.save(status);
@@ -533,6 +521,11 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     ];
     const name = (extendedBridgeTx.method.name || extendedBridgeTx.method.name === '') ? extendedBridgeTx.method.name : extendedBridgeTx.method as unknown as string;
     return acceptedMethods.some(am => am == name);
+  }
+
+  private async getTxFromRskTransaction(rskTxHash: string): Promise<FullRskTransaction> {
+    const web3Tx = await this.web3.eth.getTransaction(rskTxHash);
+    return FullRskTransaction.fromWeb3TransactionWithValue(web3Tx);
   }
 
 }

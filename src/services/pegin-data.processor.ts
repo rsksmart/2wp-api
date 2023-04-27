@@ -5,21 +5,21 @@ import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge
 import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-transaction-processor';
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
-import {BitcoinService} from './pegin-status/bitcoin.service'
 import { BridgeService } from './bridge.service';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import ExtendedBridgeTx from './extended-bridge-tx';
 import {BridgeEvent} from 'bridge-transaction-parser';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 import { getTxSentAmountByAddress } from '../utils/btc-utils';
+import {DaemonBitcoinService} from './daemon-bitcoin.service';
 
 export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
   peginStatusStorageService: PeginStatusDataService;
   logger: Logger;
-  bitcoinService: BitcoinService;
+  bitcoinService: DaemonBitcoinService;
   bridgeService: BridgeService;
   constructor(@inject(ServicesBindings.PEGIN_STATUS_DATA_SERVICE) peginStatusStorageService: PeginStatusDataService,
-              @inject(ServicesBindings.BITCOIN_SERVICE) bitcoinService: BitcoinService,
+              @inject(ServicesBindings.DAEMON_BITCOIN_SERVICE) bitcoinService: DaemonBitcoinService,
               @inject(ServicesBindings.BRIDGE_SERVICE) bridgeService: BridgeService,
   ) {
     this.logger = getLogger('peginDataProcessor');

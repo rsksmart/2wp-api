@@ -13,6 +13,7 @@ import {RskChainSyncService} from './services/rsk-chain-sync.service';
 import {RskNodeService} from './services/rsk-node.service';
 import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 import { PegoutDataProcessor } from './services/pegout-data.processor';
+import {DaemonBitcoinService} from './services/daemon-bitcoin.service';
 
 export class DependencyInjectionHandler {
   public static configureDependencies(app: Application): void {
@@ -142,5 +143,9 @@ export class DependencyInjectionHandler {
         .toClass(PegoutStatusService)
         .inScope(BindingScope.SINGLETON);
 
+    app
+      .bind(ServicesBindings.DAEMON_BITCOIN_SERVICE)
+      .toClass(DaemonBitcoinService)
+      .inScope(BindingScope.SINGLETON);
   }
 }

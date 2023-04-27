@@ -13,6 +13,7 @@ import {PegoutDataProcessor} from '../../../services/pegout-data.processor';
 import RskBlockProcessorPublisher from '../../../services/rsk-block-processor-publisher';
 import {RskChainSyncService, RskChainSyncSubscriber} from '../../../services/rsk-chain-sync.service';
 import {getRandomHash} from '../../helper';
+import {DaemonBitcoinService} from '../../../services/daemon-bitcoin.service';
 
 describe('Service: DaemonService', () => {
   let clock: sinon.SinonFakeTimers;
@@ -29,7 +30,7 @@ describe('Service: DaemonService', () => {
     const mockedRskBlockProcessorPublisher =
       sinon.createStubInstance(NodeBridgeDataProvider) as SinonStubbedInstance<RskBlockProcessorPublisher>;
     const mockedBitcoinService =
-    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+    sinon.createStubInstance(DaemonBitcoinService) as SinonStubbedInstance<DaemonBitcoinService> & DaemonBitcoinService;
     const mockedBridgeService =
     sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
@@ -65,7 +66,7 @@ describe('Service: DaemonService', () => {
     const mockedRskBlockProcessorPublisher =
       sinon.createStubInstance(NodeBridgeDataProvider) as SinonStubbedInstance<RskBlockProcessorPublisher>;
       const mockedBitcoinService =
-      sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+      sinon.createStubInstance(DaemonBitcoinService) as SinonStubbedInstance<DaemonBitcoinService> & DaemonBitcoinService;
       const mockedBridgeService =
       sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
@@ -103,9 +104,9 @@ describe('Service: DaemonService', () => {
       sinon.createStubInstance(RskChainSyncService) as SinonStubbedInstance<RskChainSyncService> & RskChainSyncService;
     const mockedPeginDataProcessor =
       sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<PeginDataProcessor> & PeginDataProcessor;
-    
+
     const mockedPegoutDataProcessor = sinon.createStubInstance(PegoutDataProcessor) as SinonStubbedInstance<PegoutDataProcessor> & PegoutDataProcessor;
-  
+
     const deletedBlock = new RskBlock(1, getRandomHash(), getRandomHash());
 
     const daemonService = new DaemonService(
@@ -135,7 +136,7 @@ describe('Service: DaemonService', () => {
     const mockedRskBlockProcessorPublisher = sinon.createStubInstance(NodeBridgeDataProvider) as SinonStubbedInstance<RskBlockProcessorPublisher>;
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     const mockedBitcoinService =
-    sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+    sinon.createStubInstance(DaemonBitcoinService) as SinonStubbedInstance<DaemonBitcoinService> & DaemonBitcoinService;
     const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
     const bridgeService: BridgeService = <BridgeService>{};
     mockedPeginStatusDataService.start = sinon.stub();
@@ -152,7 +153,7 @@ describe('Service: DaemonService', () => {
 
     await daemonService.start();
     await daemonService.stop();
-    
+
     sinon.assert.calledTwice(mockedRskBlockProcessorPublisher.removeSubscriber);
     expect(daemonService.rskBlockProcessorPublisher.getSubscribers).to.be.lengthOf(0);
   })

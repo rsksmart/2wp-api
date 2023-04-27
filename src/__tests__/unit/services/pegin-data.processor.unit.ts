@@ -12,6 +12,7 @@ import {ExtendedBridgeEvent} from "../../../models/types/bridge-transaction-pars
 import { BitcoinTx } from '../../../models/bitcoin-tx.model';
 import { Vout } from '../../../models/vout.model';
 import { Vin } from '../../../models/vin.model';
+import {DaemonBitcoinService} from '../../../services/daemon-bitcoin.service';
 
 const btcTxHash = '0x1f789f91cb5cb6f76b91f19adcc89233f3447d7228d8798c4e94ef09fd6d8950';
 const rskTxHash = '0xd2852f38fedf1915978715b8a0dc0670040ac4e9065989c810a5bf29c1e006fb';
@@ -130,7 +131,7 @@ const getBitcoinTx = (btcTxId: string, from: string, amount: number, confirmatio
 describe('Service: PeginDataProcessor', () => {
 
   const mockedBitcoinService =
-  sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
+  sinon.createStubInstance(DaemonBitcoinService) as SinonStubbedInstance<DaemonBitcoinService> & DaemonBitcoinService;
   const mockedBridgeService =
   sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
   it('parses a transaction with no event logs as null', () => {
