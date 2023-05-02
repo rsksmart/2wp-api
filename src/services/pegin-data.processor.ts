@@ -58,13 +58,17 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
       }
       //
       status.status = RskPeginStatusEnum.LOCKED;
+
+      this.getLoggerContextInformation(status);
       this.logger.trace(`[getPeginStatus] New PegIn locked with amount: ${lockBtcLog?.arguments.amount}.`);
-      // this two lines shouldnt be inside the "if" condition?
+      // 60 & 63 lines shouldnt be inside the "if" condition?
       
       return status;
     }
     const peginBtcLog = this.getPeginBtcLogIfExists(extendedBridgeTx.events as ExtendedBridgeEvent[]);
     if (peginBtcLog) {
+
+      // we should modify this log to be reachable by grafana since it is not reachable from getLoggerContextInformation.
       this.logger.trace(`[getPeginStatus] New PegIn received with amount: ${peginBtcLog.arguments.amount}.`);
       
       const rskReceiver = <string> peginBtcLog.arguments.receiver;
@@ -72,6 +76,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
       status.btcTxId = <string> peginBtcLog.arguments.btcTxHash;
       status.status = RskPeginStatusEnum.LOCKED;
 
+      this.getLoggerContextInformation(status);
       this.logger.trace(`[getPeginStatus] New PegIn locked with amount: ${peginBtcLog.arguments.amount}.`);
       
       return status;
@@ -81,17 +86,20 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
       status.btcTxId = <string> rejectedPeginLog?.arguments.btcTxHash;
 
       // TODO: this.logger.trace(`[getPeginStatus] New PegIn rejected with amount: ${amount}.`);
+      this.getLoggerContextInformation(status);
       this.logger.trace(`[getPeginStatus] New PegIn rejected.`);
       
       if (this.hasThisLog(BRIDGE_EVENTS.RELEASE_REQUESTED, extendedBridgeTx.events)) {
         status.status = RskPeginStatusEnum.REJECTED_REFUND;
         // TODO: this.logger.trace(`[getPeginStatus] New PegIn rejected with amount: ${amount} will be refund.`);
+        this.getLoggerContextInformation(status);
         this.logger.trace(`[getPeginStatus] New PegIn rejected will be refund.`);
         return status;
       }
       if (this.hasThisLog(BRIDGE_EVENTS.UNREFUNDABLE_PEGIN, extendedBridgeTx.events)) {
         status.status = RskPeginStatusEnum.REJECTED_NO_REFUND;
         // TODO: this.logger.trace(`[getPeginStatus] New PegIn rejected with amount: ${amount} is unrefundable.`);
+        this.getLoggerContextInformation(status);
         this.logger.trace(`[getPeginStatus] New PegIn rejected is unrefundable.`);
         return status;
       }
@@ -106,6 +114,15 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
 
   private getLockBtcLogIfExists(events: ExtendedBridgeEvent[]): ExtendedBridgeEvent | undefined {
     return events.find(event => event.name === BRIDGE_EVENTS.LOCK_BTC);
+  }
+
+  private getLoggerContextInformation(pegin: PeginStatusDataModel) {
+    try {
+      this.logger.trace(`[getLoggerContextInformation] ${JSON.stringify(pegin.status)}`);
+    }
+    catch(e) {
+      this.logger.error('[getLoggerContextInformation] There was a problem with the conversion of pegin.', e);
+    }
   }
 
   parse(extendedBridgeTx: ExtendedBridgeTx): PeginStatusDataModel | null {
