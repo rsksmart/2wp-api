@@ -157,9 +157,6 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
         this.logger.trace(`[processSignedStatusByRtx] Got a pegout waiting signatures. ${this.getLoggerContextInformation(oldPegoutStatus)}`);
         
-        // i think the following log is not necessary since its not related to any status change.
-        this.logger.trace(`[processSignedStatusByRtx] New PegOut ${this.getPegoutStatusContextInformation(oldPegoutStatus)} with amount: ${(await this.getTxFromRskTransaction(originatingRskTxHash)).valueInWeis}`);
-        
         const newPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(oldPegoutStatus);
         newPegoutStatus.setRskTxInformation(extendedBridgeTx);
         newPegoutStatus.btcRawTransaction = rawTx;
@@ -170,10 +167,10 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
         newPegoutStatus.feeInSatoshisToBePaid = newPegoutStatus.valueRequestedInSatoshis - newPegoutStatus.valueInSatoshisToBeReceived;
         newPegoutStatus.btcRawTxInputsHash = this.getInputsHash(parsedBtcTransaction);
         newPegoutStatus.rskTxHash = `${extendedBridgeTx.txHash}___${index}`;
-
+        
+        this.getLoggerContextInformation(newPegoutStatus);
         this.logger.trace(`[processSignedStatusByRtx] New PegOut being released
                           with amount in weis: ${(await this.getTxFromRskTransaction(originatingRskTxHash)).valueInWeis}`);
-        
 
         try {
           oldPegoutStatus.isNewestStatus = false;
@@ -298,6 +295,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       newClonedPegoutStatus.batchPegoutIndex = index;
       newClonedPegoutStatus.batchPegoutRskTxHash = extendedBridgeTx.txHash;
 
+      this.getLoggerContextInformation(newClonedPegoutStatus);
       this.logger.trace(`[processBatchPegouts] New PegOut waiting for confirmations
                         with amount in weis: ${(await this.getTxFromRskTransaction(originatingRskTxHash)).valueInWeis}`);
 
@@ -394,6 +392,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
         index++;
 
         const originatingRskTxHash = oldPegoutStatus.originatingRskTxHash;
+
+        this.getLoggerContextInformation(newPegoutStatus);
         this.logger.trace(`[processWaitingForSignaturesStatus] New PegOut waiting for signatures
                           with amount in weis: ${(await this.getTxFromRskTransaction(originatingRskTxHash)).valueInWeis}`);
       }
@@ -431,6 +431,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     newPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
     newPegoutStatus.isNewestStatus = true;
 
+    this.getLoggerContextInformation(newPegoutStatus);
     this.logger.trace(`[processIndividualPegout] New PegOut waiting for confirmation
                       with amount in weis: ${(await this.getTxFromRskTransaction(originatingRskTxHash)).valueInWeis}`);
 
@@ -485,6 +486,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
     const status = await PegoutStatusBuilder.fillRequestReceivedStatus(extendedBridgeTx);
+    this.getLoggerContextInformation(status);
     this.logger.trace(`[processReleaseRequestReceivedStatus] New PegOut received
                       with amount: ${releaseRequestReceivedEvent.arguments.amount}`);
 
@@ -505,6 +507,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
    const status = await PegoutStatusBuilder.fillRequestRejectedStatus(extendedBridgeTx);
+   this.getLoggerContextInformation(status);
    this.logger.trace(`[processReleaseRequestRejectedStatus] New PegOut rejected
                     with amount: ${releaseRequestRejectedEvent.arguments.amount}`);
 
@@ -536,12 +539,13 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     return this.pegoutStatusDataService.set(pegout);
   }
 
-  private getLoggerContextInformation(pegout: PegoutStatusDbDataModel): string {
-    return `[rskTxHash:${pegout.rskTxHash}][originatingRskTxHash:${pegout.originatingRskTxHash}][status:${pegout.status}]${pegout.btcTxHash? '[btctxhash:' + pegout.btcTxHash + ']':''}`;
-  }
-
-  private getPegoutStatusContextInformation(pegout: PegoutStatusDbDataModel): string {
-    return pegout.status;
+  private getLoggerContextInformation(pegout: PegoutStatusDbDataModel) {
+    try {
+      this.logger.trace(`[getLoggerContextInformation] ${JSON.stringify(pegout.status)}`);
+    }
+    catch(e) {
+      this.logger.error('[getLoggerContextInformation] There was a problem with the conversion of pegout', e);
+    }
   }
 
   public async deleteByRskBlockHeight(rskBlockHeight: number) {
