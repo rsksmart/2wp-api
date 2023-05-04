@@ -56,7 +56,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
       const rskReceiver = <string> lockBtcLog.arguments.receiver;
       status.rskRecipient = rskReceiver.toLowerCase();
       status.status = RskPeginStatusEnum.LOCKED;
-      this.logger.trace(`[getPeginStatus] New PegIn locked with amount: ${lockBtcLog?.arguments.amount}.`);
+      this.logger.trace(`[getPeginStatus] PegIn locked with amount: ${lockBtcLog?.arguments.amount}.`);
       return status;
     }
 
@@ -68,23 +68,23 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
       status.btcTxId = <string> peginBtcLog.arguments.btcTxHash;
       status.status = RskPeginStatusEnum.LOCKED;
 
-      this.logger.trace(`[getPeginStatus] New PegIn locked with amount: ${peginBtcLog.arguments.amount}.`);
+      this.logger.trace(`[getPeginStatus] PegIn locked with amount: ${peginBtcLog.arguments.amount}.`);
       
       return status;
     }
     if (this.hasThisLog(BRIDGE_EVENTS.REJECTED_PEGIN, extendedBridgeTx.events)) {
       const rejectedPeginLog: ExtendedBridgeEvent = extendedBridgeTx.events.find(event => event.name === BRIDGE_EVENTS.REJECTED_PEGIN) as ExtendedBridgeEvent;
       status.btcTxId = <string> rejectedPeginLog?.arguments.btcTxHash;
-      this.logger.trace(`[getPeginStatus] New PegIn rejected.`);
+      this.logger.trace(`[getPeginStatus] PegIn rejected.`);
       
       if (this.hasThisLog(BRIDGE_EVENTS.RELEASE_REQUESTED, extendedBridgeTx.events)) {
         status.status = RskPeginStatusEnum.REJECTED_REFUND;
-        this.logger.trace(`[getPeginStatus] New PegIn rejected will be refund.`);
+        this.logger.trace(`[getPeginStatus] PegIn rejected will be refund.`);
         return status;
       }
       if (this.hasThisLog(BRIDGE_EVENTS.UNREFUNDABLE_PEGIN, extendedBridgeTx.events)) {
         status.status = RskPeginStatusEnum.REJECTED_NO_REFUND;
-        this.logger.trace(`[getPeginStatus] New PegIn rejected is unrefundable.`);
+        this.logger.trace(`[getPeginStatus] PegIn rejected is unrefundable.`);
         return status;
       }
       this.logger.warn(`[getPeginStatus] Call to RegisterBtcTransaction with invalid data! [rsktxid:${extendedBridgeTx.txHash}]`);
