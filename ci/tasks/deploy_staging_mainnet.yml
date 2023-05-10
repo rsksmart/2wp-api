@@ -26,7 +26,7 @@ run:
   - |
     out_message_file=$(pwd)/out/message.txt
 
-    apk add -q --no-progress openssh ansible gnupg git
+    apk add -q --no-progress openssh ansible gnupg gnupg-keyboxd git
     wget --quiet https://github.com/mozilla/sops/releases/download/v3.7.3/sops-v3.7.3.linux.amd64 -O /usr/bin/sops
     chmod +x /usr/bin/sops
 
