@@ -9,17 +9,19 @@ const btcInvalidTxHash = '1234c53b81e644367bf736e07456af8a1ce487174fc6b5e398f6fa
 describe('Service: Bridge', () => {
   const bridgeService = new BridgeService();
 
-  it('should return a valid BTC segwit or legacy federation address ', async () => {
+  it('should return a valid BTC segwit or legacy federation address', async () => {
     const legacyRegex = new RegExp('^[mn][1-9A-HJ-NP-Za-km-z]{26,35}');
     const segwitRegex = new RegExp('^[2][1-9A-HJ-NP-Za-km-z]{26,35}');
     const address = await bridgeService.getFederationAddress();
     expect(legacyRegex.test(address) || segwitRegex.test(address)).to.be.true();
   });
-  it('should return the min value to pegin from bridge', async () => {
+
+  it('should return the min value to pegin from bridge as number', async () => {
     const minValue = await bridgeService.getMinPeginValue();
     expect(minValue).to.be.Number();
   });
-  it('return the Locking Cap from bridge', async () => {
+
+  it('return the Locking Cap from bridge as number', async () => {
     const lockingCap = await bridgeService.getLockingCapAmount();
     expect(lockingCap).to.be.Number();
   });
@@ -31,7 +33,17 @@ describe('Service: Bridge', () => {
     expect(txProcessed).to.be.true();
     expect(txNotProcessed).to.be.false();
 
-  })
+  });
+
+  it('returns rbtc in circulation as number', async() => {
+    const rbtc = await bridgeService.getRbtcInCirculation();
+    expect(rbtc).to.be.Number();
+  });
+
+  it('returns pegin availability as number', async() => {
+    const availability = await bridgeService.getPeginAvailability();
+    expect(availability).to.be.Number();
+  });
 
   it('returns bridge transaction by hash', async () => {
     const bridgeTransaction: Transaction = {
@@ -51,7 +63,7 @@ describe('Service: Bridge', () => {
       ]
     };
     const promise = new Promise<Transaction>((resolve) => resolve(bridgeTransaction));
-    sinon.stub(bridgeTransactionParser,  'getBridgeTransactionByTxHash').returns(promise);
+    sinon.stub(bridgeTransactionParser, 'getBridgeTransactionByTxHash').returns(promise);
     const response = await bridgeService.getBridgeTransactionByHash('0x0001');
     const expectedResponse = await promise;
     expect(response).to.equal(expectedResponse);
