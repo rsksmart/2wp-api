@@ -851,8 +851,6 @@ describe('Service: PegoutDataProcessor', () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);  
-    const getLastByOriginatingRskTxHash = mockedPegoutStatusDataService.getLastByOriginatingRskTxHashNewest as sinon.SinonStub;
-    const mockedPegoutStatus = new PegoutStatusDbDataModel();
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       txHash: "0x6843cfeaafe38e1044ec5638877ff766015b44887d32c7aef7daec84aa3af7c5",
@@ -900,15 +898,6 @@ describe('Service: PegoutDataProcessor', () => {
 
     expect(hasEvent).true;
     expect(releaseRequestedEvent).not.null;
-    
-    // this logic was copied from the processBatchPegouts event's test
-    const eventData = '0xed0b3849b1087653d916f490392b7c7578c4611ef4b0ec1063d6bcd393fb6080';
-    mockedPegoutStatus.isNewestStatus = true;
-    mockedPegoutStatus.btcRecipientAddress = 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55';
-    mockedPegoutStatus.originatingRskTxHash = eventData;
-    getLastByOriginatingRskTxHash
-      .withArgs(eventData)
-      .resolves(mockedPegoutStatus);
     await thisService['processIndividualPegout'](extendedBridgeTx);
 
     // im reaching to line 340 with this test.
