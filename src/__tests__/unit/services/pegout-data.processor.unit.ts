@@ -846,4 +846,72 @@ describe('Service: PegoutDataProcessor', () => {
     await thisService['addValueInSatoshisToBeReceivedAndFee'](mockedPegoutStatus);
     expect(mockedPegoutStatus.valueInSatoshisToBeReceived).equal(337100);
   })
+
+  it('processIndividualPegout', async () => {
+    const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
+    const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);  
+    const getLastByOriginatingRskTxHash = mockedPegoutStatusDataService.getLastByOriginatingRskTxHashNewest as sinon.SinonStub;
+    const mockedPegoutStatus = new PegoutStatusDbDataModel();
+
+    const extendedBridgeTx: ExtendedBridgeTx = {
+      txHash: "0x6843cfeaafe38e1044ec5638877ff766015b44887d32c7aef7daec84aa3af7c5",
+      method: {
+        name: "updateCollections",
+        signature: "0x0c5a9990",
+        arguments: {
+        },
+      },
+      events: [
+        {
+          name: "update_collections",
+          signature: "0x1069152f4f916cbf155ee32a695d92258481944edb5b6fd649718fc1b43e515e",
+          arguments: {
+            sender: "0xD478f3CE39cc5957b890C09EFE709AC7d4c282F8",
+          },
+        },
+        {
+          name: "release_requested",
+          signature: "0x7a7c29481528ac8c2b2e93aee658fddd4dc15304fa723a5c2b88514557bcc790",
+          arguments: {
+            rskTxHash: "0x6843cfeaafe38e1044ec5638877ff766015b44887d32c7aef7daec84aa3af7c5",
+            btcTxHash: "0x14b8033bda330b5aba325040188419129c60762e852d7add97f40d14bbdc6931",
+            amount: "4500000",
+          },
+        },
+        {
+          name: "batch_pegout_created",
+          signature: "0x483d0191cc4e784b04a41f6c4801a0766b43b1fdd0b9e3e6bfdca74e5b05c2eb",
+          arguments: {
+            btcTxHash: "0x14b8033bda330b5aba325040188419129c60762e852d7add97f40d14bbdc6931",
+            releaseRskTxHashes: "0xed0b3849b1087653d916f490392b7c7578c4611ef4b0ec1063d6bcd393fb60806205c184b4039891bfeea7c9f1198851dc71906afd677098618cdcb81a17b484a7d55089e1339a7ca1fce6d2f8014ad9f03897982f77ca8af756c8ad25903b49790a13033e2766699b226aef2de80abe4f0714d09da76c5f93d0977ce6b3246cd05d84ed8add93279ae3d608685c563b683a45c3c5d93fa4a792ba9d46f334c17a8661aa403de296e9bdc6b548404689f4d19a85a09d451c71cc15b92f916207498c3f1c2ecaee97696b8cf61841204cadb218ffe09552e3e48e0a1e1a81267bd06861f412bb86f5cd9192bd6adb08a76b82ed88aa6145da714607a0200dd7e076d856c85b2e6c524f6d6eb0e23621df999ddc2cad2ded8aaee678d4a9aa6f81",
+          },
+        },
+      ],
+      blockNumber: 3552254,
+      blockHash: "0x4746b0c952019e464066ebb34d802bdc4c5f41825b0eb17b634d22ac8a4082da",
+      createdOn: new Date(),
+      to: "0x0000000000000000000000000000000001000006",
+    };
+
+    const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
+    const hasEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
+    const releaseRequestedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
+
+    expect(hasEvent).true;
+    expect(releaseRequestedEvent).not.null;
+    
+    // this logic was copied from the processBatchPegouts event's test
+    const eventData = '0xed0b3849b1087653d916f490392b7c7578c4611ef4b0ec1063d6bcd393fb6080';
+    mockedPegoutStatus.isNewestStatus = true;
+    mockedPegoutStatus.btcRecipientAddress = 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55';
+    mockedPegoutStatus.originatingRskTxHash = eventData;
+    getLastByOriginatingRskTxHash
+      .withArgs(eventData)
+      .resolves(mockedPegoutStatus);
+    await thisService['processIndividualPegout'](extendedBridgeTx);
+
+    // im reaching to line 340 with this test.
+    // im facing trouble to test what it follows, i guess related to the TODO comment on line 334. 
+  })
 });
