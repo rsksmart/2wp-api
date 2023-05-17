@@ -71,59 +71,109 @@ describe('Pegout Status Service:', () => {
         });
         expect(pegoutStatus).to.be.deepEqual(expectedResponse);
     });
-    it('should return a Pegout Status: PENDING', async () => {
-        let rskTransactionWithoutReceipt: RskTransaction = { hash: 'txHash', blockHash: 'blockHash', blockHeight: 300000, data: 'data', createdOn: new Date(), to: 'to', receipt: null };
-        getTransaction
-            .withArgs('RskTestTxId')
-            .resolves(rskTransactionWithoutReceipt);
+    it('should return a Pegout Status: PENDING when existing rskTransaction has no receipt', async () => {
+        let rskTransactionWithoutReceipt: RskTransaction = {
+            hash: 'txHash', 
+            blockHash: 'blockHash', 
+            blockHeight: 300000, 
+            data: 'data', 
+            createdOn: new Date(), 
+            to: 'to', 
+            receipt: null 
+        };
+
         getLastByOriginatingRskTxHash
-            .withArgs('RskTestTxId')
+            .withArgs('txHash')
             .resolves(null);
-        const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
+        getTransaction
+            .withArgs('txHash')
+            .resolves(rskTransactionWithoutReceipt);
+        
+        const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('txHash');
         expect(pegoutStatus.status).to.be.deepEqual(PegoutStatus.PENDING);
     });
-    it('should return a Pegout Status: != PENDING', async () => {
-        const log = [{ address: '', data: '', topics: ['',''], logIndex: 0, transactionIndex: 0, transactionHash: '', blockHash: '', blockNumber: 0 },
-                        { address: '', data: '', topics: ['',''], logIndex: 0, transactionIndex: 0, transactionHash: '', blockHash: '', blockNumber: 0 }];
-        const txReceipt = { status: true, transactionHash: '', transactionIndex: 0, blockHash: '', blockNumber: 0, from: '', to: '', cumulativeGasUsed: 0, gasUsed: 0, logs: log, logsBloom: ''};
-        const rskTransactionWithReceipt: RskTransaction = { hash: 'txHash', blockHash: 'blockHash', blockHeight: 300000, data: 'data', createdOn: new Date(), to: 'to', receipt: txReceipt};
+    it('should return a Pegout Status: != PENDING when existing rskTransaction has receipt', async () => {
+        const mockedLog = [{ 
+            address: '', 
+            data: '', 
+            topics: [''], 
+            logIndex: 0, 
+            transactionIndex: 0, 
+            transactionHash: '', 
+            blockHash: '', 
+            blockNumber: 0
+         }];
+        const mockedTxReceipt = { 
+            status: true, 
+            transactionHash: '', 
+            transactionIndex: 0, 
+            blockHash: '', 
+            blockNumber: 0, 
+            from: '', 
+            to: '', 
+            cumulativeGasUsed: 0, 
+            gasUsed: 0, 
+            logs: mockedLog, 
+            logsBloom: ''
+        };
+        const rskTransactionWithReceipt: RskTransaction = { 
+            hash: 'txHash', 
+            blockHash: 'blockHash', 
+            blockHeight: 300000, 
+            data: 'data', 
+            createdOn: new Date(), 
+            to: 'to', 
+            receipt: mockedTxReceipt
+        };
         
-        const bridgeMethod: BridgeMethod = { name: '', signature: '', arguments: {} };
-        const bridgeEvent: BridgeEvent[] = [ { name: '', signature: '', arguments: {} },
-                                            { name: '', signature: '', arguments: {} } ];
-        const transaction: Transaction = { txHash: '', method: bridgeMethod, events: bridgeEvent, blockNumber: 0 }
+        const bridgeMethod: BridgeMethod = { 
+            name: '', 
+            signature: '', 
+            arguments: {} 
+        };
+        const bridgeEvent: BridgeEvent[] = [{ 
+            name: '', 
+            signature: '', 
+            arguments: {} 
+        }];
+        const transaction: Transaction = { 
+            txHash: '', 
+            method: bridgeMethod, 
+            events: bridgeEvent, 
+            blockNumber: 0 
+        }
         
         getLastByOriginatingRskTxHash
-            .withArgs('RskTestTxId')
+            .withArgs('rskTxHash')
             .resolves(null);
         
         getTransaction
-            .withArgs('RskTestTxId')
+            .withArgs('rskTxHash')
             .resolves(rskTransactionWithReceipt);
         
         getBridgeTransaction
-            .withArgs('RskTestTxId')
+            .withArgs('rskTxHash')
             .resolves(transaction)
         
         const extendedModel: ExtendedBridgeTxModel = new ExtendedBridgeTxModel(transaction, rskTransactionWithReceipt)
         
         const processedTransaction = new PegoutStatusAppDataModel({
-            originatingRskTxHash: 'RskTestTxId',
-            rskTxHash: 'RskTestTxId',
-            rskSenderAddress: 'testSenderAddress',
-            btcRecipientAddress: 'testBtcRecipientAddress',
+            originatingRskTxHash: 'originatingRskTxHash',
+            rskTxHash: 'rskTxHash',
+            rskSenderAddress: 'senderAddress',
+            btcRecipientAddress: 'btcRecipientAddress',
             valueRequestedInSatoshis: 500000,
             valueInSatoshisToBeReceived: 495000,
             feeInSatoshisToBePaid: 5000,
             status: PegoutStatus.RECEIVED,
-            btcRawTransaction: 'testBtcRawTx',
+            btcRawTransaction: 'btcRawTx',
         });
         
         processTransaction
             .withArgs(extendedModel)
             .resolves(processedTransaction);
 
-        const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('RskTestTxId');
+        const pegoutStatus = await pegoutStatusService.getPegoutStatusByRskTxHash('rskTxHash');
         expect(pegoutStatus.status).to.not.be.deepEqual(PegoutStatus.PENDING);
     });
     it('should return a Pegout Status: REJECTED', async () => {
