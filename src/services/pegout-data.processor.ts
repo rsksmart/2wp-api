@@ -443,8 +443,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
    const status = await PegoutStatusBuilder.fillRequestRejectedStatus(extendedBridgeTx);
    this.logPegoutData(status);
-   this.logger.trace(`[processReleaseRequestRejectedStatus] PegOut rejected
-                    with amount: ${releaseRequestRejectedEvent.arguments.amount}`);
+   this.logger.trace(`[processReleaseRequestRejectedStatus] PegOut rejected with amount: ${releaseRequestRejectedEvent.arguments.amount}`);
 
     try {
       await this.save(status);
