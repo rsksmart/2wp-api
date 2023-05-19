@@ -896,11 +896,13 @@ describe('Service: PegoutDataProcessor', () => {
     const hasEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
     const releaseRequestedEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUESTED);
 
+    mockedPegoutStatusDataService.getLastByOriginatingRskTxHashNewest.resolves(new PegoutStatusDbDataModel());
+    sinon.stub(thisService, 'addValueInSatoshisToBeReceivedAndFee' as any);
+
     expect(hasEvent).true;
     expect(releaseRequestedEvent).not.null;
+    
     await thisService['processIndividualPegout'](extendedBridgeTx);
-
-    // im reaching to line 340 with this test.
-    // im facing trouble to test what it follows, i guess related to the TODO comment on line 334. 
+    sinon.assert.calledTwice(mockedPegoutStatusDataService.set);
   })
 });
