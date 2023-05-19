@@ -10,6 +10,7 @@ import { RskNodeService } from '../../../services/rsk-node.service';
 import { RskTransaction } from '../../../models/rsk/rsk-transaction.model';
 import { ExtendedBridgeTxModel } from '../../../services/extended-bridge-tx';
 import { BridgeEvent, BridgeMethod, Transaction } from 'bridge-transaction-parser';
+import { TransactionReceipt  } from 'web3-eth';
 
 describe('Pegout Status Service:', () => {
     let pegoutStatusService: PegoutStatusService;
@@ -93,29 +94,7 @@ describe('Pegout Status Service:', () => {
         expect(pegoutStatus.status).to.be.deepEqual(PegoutStatus.PENDING);
     });
     it('should return a Pegout Status: != PENDING when existing rskTransaction has receipt', async () => {
-        const mockedLog = [{ 
-            address: '', 
-            data: '', 
-            topics: [''], 
-            logIndex: 0, 
-            transactionIndex: 0, 
-            transactionHash: '', 
-            blockHash: '', 
-            blockNumber: 0
-         }];
-        const mockedTxReceipt = { 
-            status: true, 
-            transactionHash: '', 
-            transactionIndex: 0, 
-            blockHash: '', 
-            blockNumber: 0, 
-            from: '', 
-            to: '', 
-            cumulativeGasUsed: 0, 
-            gasUsed: 0, 
-            logs: mockedLog, 
-            logsBloom: ''
-        };
+        const mockedTxReceipt = {} as TransactionReceipt;
         const rskTransactionWithReceipt: RskTransaction = { 
             hash: 'txHash', 
             blockHash: 'blockHash', 
@@ -125,17 +104,10 @@ describe('Pegout Status Service:', () => {
             to: 'to', 
             receipt: mockedTxReceipt
         };
-        
-        const bridgeMethod: BridgeMethod = { 
-            name: '', 
-            signature: '', 
-            arguments: {} 
-        };
-        const bridgeEvent: BridgeEvent[] = [{ 
-            name: '', 
-            signature: '', 
-            arguments: {} 
-        }];
+
+        const bridgeEvent = [{}] as BridgeEvent[];
+        const bridgeMethod = {} as BridgeMethod;
+
         const transaction: Transaction = { 
             txHash: '', 
             method: bridgeMethod, 
