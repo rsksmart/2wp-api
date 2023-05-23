@@ -40,7 +40,7 @@ export class BalanceController {
     @requestBody({schema: getModelSchemaRef(GetBalance)})
     getBalance: GetBalance,
   ): Promise<AccountBalance> {
-    this.logger.debug(`[getBalance] Started with getBalance ${getBalance}`);
+    this.logger.debug(`[getBalance] Started with getBalance ${JSON.stringify(getBalance)}`);
     return new Promise<AccountBalance>((resolve, reject) => {
       const {areAllValid, classifiedList} = this.checkAndClassifyAddressList(getBalance.addressList);
       if (!areAllValid) reject(new Error('Invalid address list provided, please check'));
@@ -74,7 +74,7 @@ export class BalanceController {
             legacy: 0,
           });
           accBalance.calculateWalletBalance(addressBalances);
-          this.logger.trace(`[getBalance] accBalance ${accBalance}`);
+          this.logger.trace(`[getBalance] accBalance ${JSON.stringify(accBalance)}`);
           resolve(accBalance);
         })
         .catch(reason => {
