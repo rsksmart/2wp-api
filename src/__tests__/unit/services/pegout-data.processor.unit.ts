@@ -415,25 +415,25 @@ describe('Service: PegoutDataProcessor', () => {
 
   });
 
-  it('handles RELEASE_REQUESTED status, testnet', async () => {
+  it('handles RELEASE_REQUEST_RECEIVED status, testnet', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
-    const rskTxHash = '0x3769e1117683faa318c683af5fb763dc03d431580ecf2ad1271ff25bf946fe9c';
-    const btcTxHash = '0xfbfbc14548d7a352287b5f02199ac909d473333f7c2a072eb4dfda30f97a84e2';
+    const rskTxSender = '0x1234567890123456789012345678901234567890';
+    const btcDestinationAddress = 'mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8';
     const amount = 500000;
     const originatingRskTxHash = '0x5628682b56ef179e066fd12ee25a84436def371b0a11b45cf1d8308ed06f4698';
     const createdOn = new Date();
     const rskBlockHeight = 2831033;
 
-    const releaseRequestedEventsArgs = {
-      rskTxHash : originatingRskTxHash,
-      btcTxHash : btcTxHash,
+    const releaseRequestReceivedEventsArgs = {
+      rskTxSender : rskTxSender,
+      btcDestinationAddress : btcDestinationAddress,
       amount : amount,
     };
 
     const bridgeTransaction: Transaction = {
-      txHash: rskTxHash,
+      txHash: originatingRskTxHash,
       blockNumber: rskBlockHeight,
       method: {
         name: '',
@@ -442,8 +442,8 @@ describe('Service: PegoutDataProcessor', () => {
       },
       events: [{
         name: BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED,
-        signature: '0x7a7c29481528ac8c2b2e93aee658fddd4dc15304fa723a5c2b88514557bcc790',
-        arguments: releaseRequestedEventsArgs
+        signature: '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
+        arguments: releaseRequestReceivedEventsArgs
       }]
     }
 
