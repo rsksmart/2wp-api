@@ -21,7 +21,7 @@ export class RskNodeService {
   getBridgeTransaction(txHash: string): Promise<Transaction> {
     return getBridgeTransactionByTxHash(this.web3, txHash);
   }
-  getTransaction = async(txHash: string, includeReceipt = false): Promise<RskTransaction> => {
+  getTransaction(txHash: string, includeReceipt?: boolean): Promise<RskTransaction> {
     const rskTx = new RskTransaction();
     return new Promise<RskTransaction>((resolve, reject) => {
       this.web3.eth.getTransaction(txHash)
