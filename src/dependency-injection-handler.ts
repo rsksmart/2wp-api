@@ -3,7 +3,7 @@ import {TxV2ProviderDataSource} from './datasources';
 import {MongoDbDataSource} from './datasources/mongodb.datasource';
 import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from './dependency-injection-bindings';
 import {RskBlock} from './models/rsk/rsk-block.model';
-import {BitcoinService, BridgeService, PeginStatusService, PegoutStatusService, UnusedAddressService} from './services';
+import {BitcoinService, BridgeService, PeginStatusService, PegoutStatusService, UnusedAddressService, UtxoProviderProvider} from './services';
 import {DaemonService} from './services/daemon.service';
 import {NodeBridgeDataProvider} from './services/node-bridge-data.provider';
 import {PeginStatusMongoDbDataService} from './services/pegin-status-data-services/pegin-status-mongo.service';
@@ -142,5 +142,10 @@ export class DependencyInjectionHandler {
         .toClass(PegoutStatusService)
         .inScope(BindingScope.SINGLETON);
 
+    app
+        .bind(ServicesBindings.UTXO_PROVIDER_SERVICE)
+        .toClass(UtxoProviderProvider)
+        .inScope(BindingScope.SINGLETON);
+        
   }
 }
