@@ -54,8 +54,13 @@ export class BtcAddressUtils {
   }
 
   public getBtcAddressFromHash(hash160: string): string {
+    let hash = remove0x(hash160);
     try{
-      let hash = remove0x(hash160);
+      // Since Fingerroot the "release_request_received" event changed and now the btcDestinationAddress is a proper Base58 address
+      // Check if the length of the data is different than 40, then it should be an address, otherwise treat it as a hash160
+      if (hash.length != 40) {
+        return hash;
+      }
       const OP_DUP = '76';
       const OP_HASH160 = 'a9';
       const BYTES_TO_PUSH = '14';
@@ -74,7 +79,7 @@ export class BtcAddressUtils {
       return address;
     } catch (e) {
       this.logger.warn("Error getBtcAddressFromHash ", e.message);
-      return hash160;
+      return hash;
     }
   }
 
