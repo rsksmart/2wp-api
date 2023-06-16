@@ -57,8 +57,8 @@ export class BtcAddressUtils {
     let hash = remove0x(hash160);
     try{
       // Since Fingerroot the "release_request_received" event changed and now the btcDestinationAddress is a proper Base58 address
-      // Check if the length of the data is equal to 34, then it should be an address, otherwise treat it as a hash160
-      if (hash.length === 34) {
+      // Check if the length of the data is different than 40, then it should be an address, otherwise treat it as a hash160
+      if (hash.length != 40) {
         return hash;
       }
       const OP_DUP = '76';
