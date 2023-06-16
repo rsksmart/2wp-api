@@ -1,4 +1,5 @@
 import {expect} from '@loopback/testlab';
+import sinon from 'sinon';
 import {BtcAddressUtils, calculateBtcTxHash} from '../../../utils/btc-utils';
 import {
   getLegacyAddressList,
@@ -21,11 +22,27 @@ describe('function: getPeginSatusInfo', () => {
     const result = utility.getBtcAddressFromHash('0x09197f6153cb3a91bb51eec373360a1cb3b7c0e0');
     expect(result).to.be.equal('mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8');
   });
+  
+  it('hash160ToBtcAddress invalid - with an invalid hash160', async () => {
+    const utility = new BtcAddressUtils();
+    const result = utility.getBtcAddressFromHash('0x09197f6153cb3a91bb51eec373360a1cb3b7c0e0a');
+    const loggerSpy = sinon.spy(utility.logger, 'warn');
+    expect(result).to.be.equal('09197f6153cb3a91bb51eec373360a1cb3b7c0e0a');
+    expect(loggerSpy.calledWith("Error getBtcAddressFromHash "))
+  });
 
   it('hash160ToBtcAddress valid - with a base58 address', async () => {
     const utility = new BtcAddressUtils();
     const result = utility.getBtcAddressFromHash('mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8');
     expect(result).to.be.equal('mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8');
+  });
+
+  it('hash160ToBtcAddress invalid - with an invalid base58 address', async () => {
+    const utility = new BtcAddressUtils();
+    const loggerSpy = sinon.spy(utility.logger, 'warn');
+    const result = utility.getBtcAddressFromHash('mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8a');
+    expect(result).to.be.equal('mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8a');
+    expect(loggerSpy.calledWith("Error getBtcAddressFromHash "))
   });
 
   it('getRefundAddress P2PKH valid', async () => {
@@ -41,7 +58,6 @@ describe('function: getPeginSatusInfo', () => {
   });
 
   it('getRefundAddress P2PKH invalid', async () => {
-
     const utility = new BtcAddressUtils();
     const result = utility.getRefundAddress('01379ad9b7ba73bdc1d4e2e1f6884e3');
     expect(result).to.be.empty();
