@@ -49,6 +49,9 @@ export class PegoutStatusService {
                                 pegoutStatus = await this.processTransaction(extendedModel);
                             } else {
                                 pegoutStatus.status = PegoutStatus.PENDING;
+                                pegoutStatus.rskTxHash = rskTxHash;
+                                pegoutStatus.btcRecipientAddress = '';
+                                pegoutStatus.btcRawTransaction = '';
                             }
                         }
                         catch(e) {
