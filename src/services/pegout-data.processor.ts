@@ -232,8 +232,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
       this.logPegoutData(newClonedPegoutStatus);
       this.logger.trace(`[processBatchPegouts] PegOut waiting for confirmations
-                        with amount in weis: ${(await this.getTxFromRskTransaction(originatingRskTxHash)).valueInWeis}`);
-
+      with amount in weis: ${(await this.getTxFromRskTransaction(originatingRskTxHash)).valueInWeis}`);
+      
       await this.addBatchValueInSatoshisToBeReceivedAndFee(newClonedPegoutStatus, extendedBridgeTx.txHash);
 
       try {

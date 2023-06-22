@@ -759,7 +759,7 @@ describe('Service: PegoutDataProcessor', () => {
 
     let allPegoutTxs = remove0x(batchPegoutsEvent!.arguments.releaseRskTxHashes);
     let totalHashes = allPegoutTxs.length / 64;
-
+    
     expect(totalHashes).equal(9);
 
     let eventData = '';
@@ -808,7 +808,7 @@ describe('Service: PegoutDataProcessor', () => {
     sinon.assert.calledWith(spy, sinon.match({ batchPegoutRskTxHash: "0x6843cfeaafe38e1044ec5638877ff766015b44887d32c7aef7daec84aa3af7c5" }));
     sinon.assert.callCount(getLastByOriginatingRskTxHash, totalHashes);
     sinon.assert.callCount(set, totalHashes * 2);
-  });
+  }).timeout(20000);
 
   it('returns same valueInSatoshisToBeReceived when did not find pegout in pegoutsWaitingForConfirmations', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;

@@ -6,6 +6,8 @@ export class RskTransaction {
   blockHeight: number;
   data: string;
   createdOn: Date;
+  value?: number;
+  from?: string;
   to: string;
   receipt: TransactionReceipt | null;
 

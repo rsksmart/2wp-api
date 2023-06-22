@@ -7,6 +7,8 @@ import * as constants from '../constants';
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
 import * as bitcoin from 'bitcoinjs-lib';
+import WeiBig from './WeiBig';
+import SatoshiBig from './SatoshiBig';
 
 export const calculateBtcTxHash = (transaction: string) => {
   const hash = doubleSha256(remove0x(transaction));
@@ -19,6 +21,11 @@ export const calculateBtcTxHashSegWitAndNonSegwit = (raw: string) => {
   const tx:string = bitcoin.Transaction.fromHex(raw).getId();
   return tx;
 };
+
+export const fromWeiNumberToSatoshiNumber = (weis: number) => {
+  const satoshis = Number((new SatoshiBig((new WeiBig(weis, 'wei')).toRBTCString(), 'btc')).toSatoshiString());
+  return satoshis;    
+}
 
 export type AddressType = 'BITCOIN_LEGACY_ADDRESS' | 'BITCOIN_SEGWIT_ADDRESS' | 'BITCOIN_NATIVE_SEGWIT_ADDRESS' | 'BITCOIN_MULTISIGNATURE_ADDRESS';
 
