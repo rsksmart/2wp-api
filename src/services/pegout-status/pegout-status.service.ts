@@ -10,6 +10,7 @@ import {BRIDGE_EVENTS} from '../../utils/bridge-utils';
 import {RskTransaction} from "../../models/rsk/rsk-transaction.model";
 import {PegoutStatusBuilder} from "./pegout-status-builder";
 import ExtendedBridgeTx, {ExtendedBridgeTxModel} from '../extended-bridge-tx';
+import { fromWeiNumberToSatoshiNumber } from "../../utils/btc-utils";
 
 export class PegoutStatusService {
     private logger: Logger;
@@ -43,13 +44,15 @@ export class PegoutStatusService {
                             if (!rskTransaction) {
                                 pegoutStatus.status = PegoutStatus.NOT_FOUND;
                             }
-                            if(rskTransaction.receipt) {
+                            if (rskTransaction.receipt) {
                                 const transaction: Transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
                                 const extendedModel: ExtendedBridgeTxModel = new ExtendedBridgeTxModel(transaction, rskTransaction);
                                 pegoutStatus = await this.processTransaction(extendedModel);
                             } else {
                                 pegoutStatus.status = PegoutStatus.PENDING;
                                 pegoutStatus.rskTxHash = rskTxHash;
+                                pegoutStatus.valueRequestedInSatoshis = fromWeiNumberToSatoshiNumber(rskTransaction.value ?? 0);
+                                pegoutStatus.rskSenderAddress = rskTransaction.from ?? '';
                                 pegoutStatus.btcRecipientAddress = '';
                                 pegoutStatus.btcRawTransaction = '';
                             }

@@ -48,9 +48,6 @@ const getRskInfo = (btcTxId: string) => {
   return data;
 }
 
-
-// not sure if have to change some errors tests and set
-// isTxProcessed to false (or true)
 const getPeginStatusServiceWithMockedEnvironment = (
   btcTransaction: BitcoinTx | undefined,
   minPeginValue: number,

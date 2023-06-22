@@ -32,6 +32,8 @@ export class RskNodeService {
           rskTx.hash = <string> web3Tx.hash;
           rskTx.data = <string> web3Tx.input;
           rskTx.to = <string> web3Tx.to;
+          rskTx.value = <number> Number(web3Tx.value);
+          rskTx.from = <string> web3Tx.from;
 
           if(!web3Tx.blockHash || !web3Tx.blockNumber) return resolve(rskTx);
 

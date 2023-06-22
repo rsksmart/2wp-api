@@ -105,29 +105,35 @@ export class PeginStatusService {
           this.status = Status.NOT_IN_BTC_YET;
           return btcStatus;
         }
-        try{
+        try {
           if (!this.canBeAPeginSender(btcTx)) {
-            throw new Error();
+            throw new Error(`Is not a pegin. Tx was not processed in Bitcoin network.`);
           }
           const vout = btcTx.vout;
           const fedDestinationAddress = await this.getTxDestinationFedAddress(vout);
-          const time = btcTx.time ?? btcTx.blocktime;
-          btcStatus.creationDate = new Date(time * 1000); // We get Timestamp in seconds
-          btcStatus.amountTransferred = this.fromSatoshiToBtc(this.getTxSentAmountByAddress(
-            fedDestinationAddress,
-            btcTxId,
-            btcTx.vout
-          ));
-          btcStatus.btcWTxId = ensure0x(calculateBtcTxHashSegWitAndNonSegwit(btcTx.hex));            
-          btcStatus.fees = btcTx.fees ? this.fromSatoshiToBtc(btcTx.fees) : 0;
-          btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
-          btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;
-          btcStatus.federationAddress = fedDestinationAddress;
-          btcStatus.refundAddress = this.getTxRefundAddress(btcTx);
-          this.destinationAddress = this.getxDestinationRskAddress(btcTx);
-        }catch(e){
-          const errorMessage = `Is not a pegin. Tx was not processed in Bitcoin network.`;
-          this.logger.debug(errorMessage);
+          if (!fedDestinationAddress) {
+            const errorMessage = `Is not a pegin. Tx was not sent to valid Federation address.`;
+            this.logger.trace(errorMessage);
+            this.status = Status.ERROR_NOT_A_PEGIN;
+          }
+          else {
+            const time = btcTx.time ?? btcTx.blocktime;
+            btcStatus.creationDate = new Date(time * 1000); // We get Timestamp in seconds
+            btcStatus.amountTransferred = this.fromSatoshiToBtc(this.getTxSentAmountByAddress(
+              fedDestinationAddress,
+              btcTxId,
+              btcTx.vout
+            ));
+            btcStatus.btcWTxId = ensure0x(calculateBtcTxHashSegWitAndNonSegwit(btcTx.hex));            
+            btcStatus.fees = btcTx.fees ? this.fromSatoshiToBtc(btcTx.fees) : 0;
+            btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
+            btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;
+            btcStatus.federationAddress = fedDestinationAddress;
+            btcStatus.refundAddress = this.getTxRefundAddress(btcTx);
+            this.destinationAddress = this.getxDestinationRskAddress(btcTx);
+          }
+        } catch(e) {
+          this.logger.trace(e.message);
           this.status = Status.ERROR_NOT_A_PEGIN;
         }
         return btcStatus;
@@ -153,14 +159,15 @@ export class PeginStatusService {
     return (btcValue / 100000000);
   }
 
-  private getTxDestinationFedAddress = async(vout: Vout[]): Promise<string> => {
-    let fedDestinationAddress = '';
+  private getTxDestinationFedAddress = async(vout: Vout[]): Promise<string | undefined> => {
+    let fedDestinationAddress;
 
     // i guess we can modify this to have a "break" after the first if = true,
     // since the fedDestAddress is just one.
     for (let i = 0; vout && i < vout.length; i++) {
       if (vout[i].isAddress && await isAFedAddress(vout[i].addresses[0])) {
         fedDestinationAddress = vout[i].addresses[0];
+        return fedDestinationAddress;
       }
     }
     return fedDestinationAddress;
