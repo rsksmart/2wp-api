@@ -112,9 +112,7 @@ export class PeginStatusService {
           const vout = btcTx.vout;
           const fedDestinationAddress = await this.getTxDestinationFedAddress(vout);
           if (!fedDestinationAddress) {
-            const errorMessage = `Is not a pegin. Tx was not sent to valid Federation address.`;
-            this.logger.trace(errorMessage);
-            this.status = Status.ERROR_NOT_A_PEGIN;
+            throw new Error('Is not a pegin. Tx was not sent to valid Federation address.');
           }
           else {
             const time = btcTx.time ?? btcTx.blocktime;
