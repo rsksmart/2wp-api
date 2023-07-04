@@ -27,7 +27,7 @@
     "coverage": "lb-nyc report --reporter=text --reporter=lcov",
     "only-coverage": "lb-nyc report --reporter=lcov",
     "pretest": "npm run rebuild",
-    "test": "lb-nyc mocha --recursive 'dist/__tests__/**/*.js' --timeout 10000",
+    "test": "npm run unit-test",
     "posttest": "npm run lint",
     "test:dev": "lb-nyc mocha --allow-console-logs dist/__tests__/**/*.js && npm run posttest",
     "unit-test": "npm run pretest && lb-nyc mocha --recursive 'dist/__tests__/**/*.unit.js' --timeout 10000",
