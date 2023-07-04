@@ -119,6 +119,13 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
     return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 
+  public async getManyWaitingForConfirmationNewestCreatedOnBlock(block: number): Promise<PegoutStatusDbDataModel[]> {
+    const pegoutsDocuments = await this.getConnector()
+    .find({status: PegoutStatus.WAITING_FOR_CONFIRMATION, isNewestStatus: true, rskBlockHeight: block})
+    .exec();
+    return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
+  }
+
   public async getManyWaitingForSignaturesNewest(): Promise<PegoutStatusDbDataModel[]> {
     const pegoutsDocuments = await  this.getConnector()
     .find({status: PegoutStatus.WAITING_FOR_SIGNATURE, isNewestStatus: true})

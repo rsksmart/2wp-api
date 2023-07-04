@@ -14,5 +14,6 @@ export interface ExtendedBridgeEvent extends BridgeEvent{
         senderBtcAddress: string;
         releaseRskTxHashes: string;
         releaseRskTxHash: string;
+        pegoutCreationRskBlockNumber: number;
     };
 }
