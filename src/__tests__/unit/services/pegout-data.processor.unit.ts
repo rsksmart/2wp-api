@@ -523,39 +523,39 @@ describe('Service: PegoutDataProcessor', () => {
 
     const dbPegoutWaitingForConfirmation: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
-    const rskBlockHeight = 2869973;
-    const rskBlockHeightForEnoughConfirmation = rskBlockHeight + 20;
+    const originatingRskBlockHeight = 2869963;
+    const currentRskBlockHeight = 2869983;
+    const pegoutCreationRskBlockHeight = 2869973;
 
     dbPegoutWaitingForConfirmation.rskTxHash = rskTxHash;
     dbPegoutWaitingForConfirmation.btcRecipientAddress = 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55';
     dbPegoutWaitingForConfirmation.createdOn = createdOn;
     dbPegoutWaitingForConfirmation.originatingRskTxHash = originatingRskTxHash;
-    dbPegoutWaitingForConfirmation.rskBlockHeight = rskBlockHeight;
+    dbPegoutWaitingForConfirmation.rskBlockHeight = pegoutCreationRskBlockHeight;
     dbPegoutWaitingForConfirmation.rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
     dbPegoutWaitingForConfirmation.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
     dbPegoutWaitingForConfirmation.btcRawTransaction = btcRawTx1;
-    dbPegoutWaitingForConfirmation.originatingRskBlockHeight = 2869983;
+    dbPegoutWaitingForConfirmation.originatingRskBlockHeight = originatingRskBlockHeight;
     dbPegoutWaitingForConfirmation.valueRequestedInSatoshis = 521000;
 
-    mockedPegoutStatusDataService.getManyWaitingForConfirmationNewest.resolves([dbPegoutWaitingForConfirmation]);
+    mockedPegoutStatusDataService.getManyWaitingForConfirmationNewestCreatedOnBlock.resolves([dbPegoutWaitingForConfirmation]);
 
-    mockedBridgeService.getBridgeState.resolves(bridgeState);
-
-    const updateCollectionsEventsArgs = new Map();
-    updateCollectionsEventsArgs.set('sender', '');
+    const pegoutConfirmedEventArgs = new Map();
+    pegoutConfirmedEventArgs.set('btcTxHash', '');
+    pegoutConfirmedEventArgs.set('pegoutCreationRskBlockNumber', pegoutCreationRskBlockHeight);
 
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
-      blockNumber: rskBlockHeightForEnoughConfirmation,
+      blockNumber: currentRskBlockHeight,
       method: {
         name: '',
         signature: '',
         arguments: new Map()
       },
       events: [{
-        name: BRIDGE_EVENTS.UPDATE_COLLECTIONS,
-        signature: '0x1069152f4f916cbf155ee32a695d92258481944edb5b6fd649718fc1b43e515e',
-        arguments: updateCollectionsEventsArgs
+        name: BRIDGE_EVENTS.PEGOUT_CONFIRMED,
+        signature: '',
+        arguments: pegoutConfirmedEventArgs
       }]
     }
 
@@ -577,14 +577,13 @@ describe('Service: PegoutDataProcessor', () => {
     pegoutWithWaitingForSignature.btcRecipientAddress = 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55';
     pegoutWithWaitingForSignature.createdOn = createdOn;
     pegoutWithWaitingForSignature.originatingRskTxHash = originatingRskTxHash;
-    pegoutWithWaitingForSignature.rskBlockHeight = rskBlockHeight;
+    pegoutWithWaitingForSignature.rskBlockHeight = currentRskBlockHeight;
     pegoutWithWaitingForSignature.rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
     pegoutWithWaitingForSignature.status = PegoutStatus.WAITING_FOR_SIGNATURE;
     pegoutWithWaitingForSignature.btcRawTransaction = btcRawTx1;
-    pegoutWithWaitingForSignature.originatingRskBlockHeight = 2869983;
+    pegoutWithWaitingForSignature.originatingRskBlockHeight = originatingRskBlockHeight;
     pegoutWithWaitingForSignature.valueRequestedInSatoshis = 521000;
 
-    expect(thisService.isMethodAccepted(extendedBridgeTx)).equal(true);
     sinon.assert.calledTwice(mockedPegoutStatusDataService.set);
   });
 
@@ -692,6 +691,7 @@ describe('Service: PegoutDataProcessor', () => {
         getManyWaitingForSignaturesNewest: sinon.stub(),
         getManyByRskTxHashes: sinon.stub(),
         getManyByBtcRawTxInputsHashNewest: sinon.stub(),
+        getManyWaitingForConfirmationNewestCreatedOnBlock: sinon.stub(),
         getById: sinon.stub(),
         getMany: sinon.stub(),
         delete: sinon.stub(),

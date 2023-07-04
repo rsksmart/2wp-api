@@ -22,7 +22,8 @@ export enum BRIDGE_EVENTS {
   RELEASE_REQUEST_RECEIVED = 'release_request_received',
   RELEASE_REQUEST_REJECTED = 'release_request_rejected',
   ADD_SIGNATURE = 'add_signature',
-  BATCH_PEGOUT_CREATED = 'batch_pegout_created'
+  BATCH_PEGOUT_CREATED = 'batch_pegout_created',
+  PEGOUT_CONFIRMED = 'pegout_confirmed'
 };
 
 export function getBridgeSignature(methodOrEvent: BRIDGE_METHODS | BRIDGE_EVENTS): string {
