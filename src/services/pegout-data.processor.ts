@@ -315,7 +315,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     // }, []);
     try {
       let index = 0;
-      for (let oldPegoutStatus of dbPegoutsWaitingForConfirmations) {
+      for (let oldPegoutStatus of dbPegoutsWithEnoughConfirmations) {
         const newPegoutStatus: PegoutStatusDbDataModel = PegoutStatusDbDataModel.clonePegoutStatusInstance(oldPegoutStatus);
         newPegoutStatus.setRskTxInformation(extendedBridgeTx);
         newPegoutStatus.rskTxHash = `${extendedBridgeTx.txHash}__${index}`;
