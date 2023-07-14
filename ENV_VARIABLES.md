@@ -9,6 +9,7 @@ This table was created to guide and centralize the **environment variables** nec
 |RSK_DB_CONNECTION_PORT        |                               |'Database connection port'                               |
 |RSK_DB_CONNECTION_DATABASE    |                               |'Database name'                                          |
 |RSK_DB_CONNECTION_AUTH_SOURCE |                               |'Database auth source'                                   |
+|RSK_PEGOUT_MINIMUM_CONFIRMATIONS |                            |'10 blocks for testnet. 4000 blocks for mainnet'         |
 |SYNC_INITIAL_BLOCK_HEIGHT     |                               |'Initial Block Height'                                   |
 |SYNC_INITIAL_BLOCK_HASH       |                               |'Initial Block Hash'                                     |
 |SYNC_INITIAL_BLOCK_PREV_HASH  |                               |'Initial Block previous hash'                            |
@@ -38,6 +39,7 @@ This table was created to guide and centralize the **environment variables** nec
 ```dotenv
 NETWORK='testnet'
 BTC_CONFIRMATIONS=100
+RSK_PEGOUT_MINIMUM_CONFIRMATIONS=10
 FAST_MINING_BLOCK=1
 AVERAGE_MINING_BLOCK=6
 LOW_MINING_BLOCK=12
