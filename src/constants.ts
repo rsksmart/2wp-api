@@ -13,3 +13,6 @@ export const BITCOIN_MAX_SATOSHI_FEE = 5000000;
 // network
 export const NETWORK_TESTNET = 'testnet';
 export const NETWORK_MAINNET = 'mainnet';
+// environment
+export const ENVIRONMENT_PRODUCTION = 'production';
+export const ENVIRONMENT_DEVELOPMENT = 'development';

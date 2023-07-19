@@ -10,6 +10,7 @@ import {ServiceMixin} from '@loopback/service-proxy';
 import path from 'path';
 import {DependencyInjectionHandler} from './dependency-injection-handler';
 import {MySequence} from './sequence';
+import { ENVIRONMENT_PRODUCTION } from './constants';
 
 export {ApplicationConfig};
 
@@ -23,11 +24,14 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
     // Set up default home page
     this.static('/', path.join(__dirname, '../public'));
 
-    // Customize @loopback/rest-explorer configuration here
-    this.configure(RestExplorerBindings.COMPONENT).to({
-      path: '/explorer',
-    });
-    this.component(RestExplorerComponent);
+    // For production environments we will not load the explorer component
+    if (process.env.NODE_ENV !== ENVIRONMENT_PRODUCTION) {
+      // Customize @loopback/rest-explorer configuration here
+      this.configure(RestExplorerBindings.COMPONENT).to({
+        path: '/explorer',
+      });
+      this.component(RestExplorerComponent);
+    }
 
     this.projectRoot = __dirname;
     // Customize @loopback/boot Booter Conventions here

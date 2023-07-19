@@ -32,6 +32,7 @@ This table was created to guide and centralize the **environment variables** nec
 |SESSIONDB_INDEX               |1                              |'Redis index'                                            |
 |MAX_AMOUNT_ALLOWED_IN_SATOSHI |                               |'Pegin Pegout max allowed in satoshis'                   |
 |METRICS_ENABLED               |`true or false`                |'enable trace log'                                       |
+|NODE_ENV|`production or development`|'Indicates if the app should be built for a production environment or not'
 
 
 ##Example for .env.local.test file
@@ -82,4 +83,6 @@ MAX_FEE_AMOUNT_ALLOWED=5000000
 
 #Dust value (Satoshi)
 BURN_DUST_VALUE=2000
+
+NODE_ENV=development
 ```

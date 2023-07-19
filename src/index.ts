@@ -2,6 +2,7 @@ import {config} from 'dotenv';
 import {configure, getLogger} from 'log4js';
 import {ApplicationConfig, TwpapiApplication} from './application';
 import {DaemonRunner} from './daemon-runner';
+import { ENVIRONMENT_PRODUCTION } from './constants';
 
 export * from './application';
 
@@ -44,12 +45,10 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
   }
 
   //catches ctrl+c event
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  process.on('SIGINT', shutdown.bind(null));
+  process.on('SIGINT', () => { shutdown().catch(logger.error); });
 
   //catches uncaught exceptions
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  process.on('uncaughtException', shutdown.bind(null));
+  process.on('uncaughtException', () => { shutdown().catch(logger.error); });
 
   const appMode = searchAppMode();
 
@@ -83,7 +82,11 @@ if (require.main === module) {
       openApiSpec: {
         // useful when used with OpenAPI-to-GraphQL to locate your application
         setServersFromRequest: true,
+        disabled: process.env.NODE_ENV === ENVIRONMENT_PRODUCTION
       },
+      apiExplorer: {
+        disabled: process.env.NODE_ENV === ENVIRONMENT_PRODUCTION
+      }
     },
   };
   main(config).catch(err => {
