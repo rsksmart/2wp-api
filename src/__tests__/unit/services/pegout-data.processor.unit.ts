@@ -10,7 +10,7 @@ import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import { PegoutStatus, PegoutStatusDbDataModel } from '../../../models/rsk/pegout-status-data-model';
 import { BridgeService } from '../../../services';
 import * as constants from '../../../constants';
-import { BridgeState } from 'bridge-state-data-parser';
+import { BridgeState } from '@rsksmart/bridge-state-data-parser';
 import { ExtendedBridgeEvent } from '../../../models/types/bridge-transaction-parser';
 import { remove0x, ensure0x } from '../../../utils/hex-utils';
 
@@ -680,7 +680,7 @@ describe('Service: PegoutDataProcessor', () => {
 
   it('handles BATCH_PEGOUT_CREATED status', async () => {
     sandbox.stub(process.env, 'NETWORK').value(constants.NETWORK_MAINNET);
-    const mockedPegoutStatusDataService:PegoutStatusDataService = 
+    const mockedPegoutStatusDataService:PegoutStatusDataService =
       {
         deleteByRskBlockHeight: sinon.stub(),
         getManyByOriginatingRskTxHash: sinon.stub(),
@@ -698,7 +698,7 @@ describe('Service: PegoutDataProcessor', () => {
         start: sinon.stub(),
         stop: sinon.stub()
       };
-      
+
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
     const createdOn = new Date();
@@ -759,7 +759,7 @@ describe('Service: PegoutDataProcessor', () => {
 
     let allPegoutTxs = remove0x(batchPegoutsEvent!.arguments.releaseRskTxHashes);
     let totalHashes = allPegoutTxs.length / 64;
-    
+
     expect(totalHashes).equal(9);
 
     let eventData = '';
@@ -813,7 +813,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('returns same valueInSatoshisToBeReceived when did not find pegout in pegoutsWaitingForConfirmations', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);  
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
     const mockedPegoutStatus = new PegoutStatusDbDataModel();
     mockedPegoutStatus.originatingRskTxHash = rskTxHash;
     mockedPegoutStatus.valueInSatoshisToBeReceived = 1000;
@@ -821,11 +821,11 @@ describe('Service: PegoutDataProcessor', () => {
     await thisService['addValueInSatoshisToBeReceivedAndFee'](mockedPegoutStatus);
     expect(mockedPegoutStatus.valueInSatoshisToBeReceived).equal(1000);
   })
-  
+
   it('returns same valueInSatoshisToBeReceived when found a pegout but did not find an output containing the btcRecipientAddress', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);  
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
     const mockedPegoutStatus = new PegoutStatusDbDataModel();
     mockedPegoutStatus.originatingRskTxHash = '0x5628682b56ef179e066fd12ee25a84436def371b0a11b45cf1d8308ed06f4698';
     mockedPegoutStatus.valueInSatoshisToBeReceived = 1000;
@@ -837,10 +837,10 @@ describe('Service: PegoutDataProcessor', () => {
   it('returns calculated valueInSatoshisToBeReceived when found pegout in pegoutsWaitingForConfirmations', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);  
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
     const mockedPegoutStatus = new PegoutStatusDbDataModel();
     mockedPegoutStatus.originatingRskTxHash = '0x5628682b56ef179e066fd12ee25a84436def371b0a11b45cf1d8308ed06f4698';
-    mockedPegoutStatus.btcRawTransaction = btcRawTx2; 
+    mockedPegoutStatus.btcRawTransaction = btcRawTx2;
     mockedPegoutStatus.btcRecipientAddress = 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55'; // output address with value 337100 from raw tx
     mockedBridgeService.getBridgeState.resolves(bridgeState);
     await thisService['addValueInSatoshisToBeReceivedAndFee'](mockedPegoutStatus);
@@ -850,7 +850,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('processIndividualPegout', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);  
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       txHash: "0x6843cfeaafe38e1044ec5638877ff766015b44887d32c7aef7daec84aa3af7c5",
@@ -901,7 +901,7 @@ describe('Service: PegoutDataProcessor', () => {
 
     expect(hasEvent).true;
     expect(releaseRequestedEvent).not.null;
-    
+
     await thisService['processIndividualPegout'](extendedBridgeTx);
     sinon.assert.calledTwice(mockedPegoutStatusDataService.set);
   })

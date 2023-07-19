@@ -3,7 +3,7 @@ import {getLogger, Logger} from 'log4js';
 import Web3 from 'web3';
 import {Contract} from 'web3-eth-contract';
 import bridgeTransactionParser, {Transaction} from 'bridge-transaction-parser';
-import { getBridgeState, BridgeState} from 'bridge-state-data-parser';
+import { getBridgeState, BridgeState } from '@rsksmart/bridge-state-data-parser';
 
 export class BridgeService {
   private bridgeContract: Contract;
@@ -112,8 +112,8 @@ export class BridgeService {
     return await bridgeTransactionParser.getBridgeTransactionByTxHash(this.web3, txHash);
   }
 
-  public async getBridgeState(): Promise<BridgeState> {
-    return await getBridgeState(this.web3);
+  public async getBridgeState(defaultBlock: string | number = 'latest'): Promise<BridgeState> {
+    return await getBridgeState(this.web3, defaultBlock);
   }
 
 }
