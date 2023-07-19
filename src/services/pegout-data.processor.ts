@@ -157,7 +157,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
         this.logger.trace(`[processSignedStatusByRtx] Got a pegout waiting signatures.`);
         this.logPegoutData(oldPegoutStatus);
-        
+
         const newPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(oldPegoutStatus);
         newPegoutStatus.setRskTxInformation(extendedBridgeTx);
         newPegoutStatus.btcRawTransaction = rawTx;
@@ -168,7 +168,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
         newPegoutStatus.feeInSatoshisToBePaid = newPegoutStatus.valueRequestedInSatoshis - newPegoutStatus.valueInSatoshisToBeReceived;
         newPegoutStatus.btcRawTxInputsHash = this.getInputsHash(parsedBtcTransaction);
         newPegoutStatus.rskTxHash = `${extendedBridgeTx.txHash}___${index}`;
-        
+
         this.logPegoutData(newPegoutStatus);
         this.logger.trace(`[processSignedStatusByRtx] PegOut being released
                           with amount in weis: ${(await this.getTxFromRskTransaction(originatingRskTxHash)).valueInWeis}`);
@@ -233,8 +233,8 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       this.logPegoutData(newClonedPegoutStatus);
       this.logger.trace(`[processBatchPegouts] PegOut waiting for confirmations
       with amount in weis: ${(await this.getTxFromRskTransaction(originatingRskTxHash)).valueInWeis}`);
-      
-      await this.addBatchValueInSatoshisToBeReceivedAndFee(newClonedPegoutStatus, extendedBridgeTx.txHash);
+
+      await this.addBatchValueInSatoshisToBeReceivedAndFee(newClonedPegoutStatus, extendedBridgeTx.txHash, extendedBridgeTx.blockNumber);
 
       try {
         // Update previous status as outdated
@@ -251,16 +251,19 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   }
 
-  private async addBatchValueInSatoshisToBeReceivedAndFee(pegoutStatus: PegoutStatusDbDataModel, rskTxHash: string): Promise<void> {
+  private async addBatchValueInSatoshisToBeReceivedAndFee(
+    pegoutStatus: PegoutStatusDbDataModel,
+    txHash: string, blockNumber: number,
+  ): Promise<void> {
       try {
-        const bridgeState = await this.bridgeService.getBridgeState();
-        const batchedPegout = bridgeState.pegoutsWaitingForConfirmations.find(pegout => pegout.rskTxHash === rskTxHash);
+        const bridgeState = await this.bridgeService.getBridgeState(blockNumber);
+        const batchedPegout = bridgeState.pegoutsWaitingForConfirmations.find(pegout => pegout.rskTxHash === remove0x(txHash));
 
         if(!batchedPegout) {
-          this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] did not find the batched pegout in the bridge state pegoutsWaitingForConfirmations. [rsktxhash: ${rskTxHash}][originatingRskTxHash:${pegoutStatus.originatingRskTxHash}]`);
+          this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] did not find the batched pegout in the bridge state pegoutsWaitingForConfirmations. [rsktxhash: ${txHash}][originatingRskTxHash:${pegoutStatus.originatingRskTxHash}]`);
           return;
         }
-        this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] Got the batched pegout in the bridge state pegoutsWaitingForConfirmations. [rsktxhash: ${rskTxHash}][originatingRskTxHash:${pegoutStatus.originatingRskTxHash}]`);
+        this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] Got the batched pegout in the bridge state pegoutsWaitingForConfirmations. [rsktxhash: ${txHash}][originatingRskTxHash:${pegoutStatus.originatingRskTxHash}]`);
 
         const parsedBtcTransaction = bitcoin.Transaction.fromHex(batchedPegout.btcRawTx);
 
