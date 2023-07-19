@@ -67,22 +67,37 @@
       }
     }
   </style>
+  <script lang="javascript">
+    let apiVersion = new XMLHttpRequest();
+    apiVersion.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        document.getElementById("version").innerHTML = JSON.parse(apiVersion.responseText).version;
+      }
+    };
+    apiVersion.open("GET", "/api", true);
+    apiVersion.send();
+
+    let shouldIShowAPI = new XMLHttpRequest();
+    shouldIShowAPI.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status !== 404) {
+        document.getElementById('api-section').setAttribute('style', 'display:block');
+      }
+    }
+    shouldIShowAPI.open("GET", "/explorer", true);
+    shouldIShowAPI.send();
+  </script>
 </head>
 
 <body>
   <div class="info">
     <h1>2wp-api</h1>
-    <p><a href='../api'>Version</a></p>
+    <p>Version: <b id="version">loading...</b></p>
 
-    <h3>OpenAPI spec: <a href="/openapi.json">/openapi.json</a></h3>
-    <h3>API Explorer: <a href="/explorer">/explorer</a></h3>
+    <div id="api-section" style="display:none">
+      <h3>OpenAPI spec: <a href="/openapi.json">/openapi.json</a></h3>
+      <h3>API Explorer: <a href="/explorer">/explorer</a></h3>
+    </div>
   </div>
-
-  <footer class="power">
-    <a href="https://loopback.io" target="_blank" rel="noopener">
-      <img src="https://loopback.io/images/branding/powered-by-loopback/blue/powered-by-loopback-sm.png" alt=""/>
-    </a>
-  </footer>
 </body>
 
 </html>
