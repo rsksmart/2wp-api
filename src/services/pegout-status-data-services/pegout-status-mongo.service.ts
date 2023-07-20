@@ -27,7 +27,7 @@ const PegoutStatusSchema = new mongoose.Schema({
   rskBlockHash: {type: String, required: true},
   btcRawTxInputsHash: {type: String},
   batchPegoutIndex: {type: String},
-  batchPegoutRskTxHash: {type: Number},
+  batchPegoutRskTxHash: {type: String},
   changedByEvent: {type: String},
   updatedAt: {type: Date},
 });
@@ -99,10 +99,16 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
   }
 
   public async getAllNotFinishedByBtcRecipientAddress(btcRecipientAddress: string): Promise<PegoutStatusDbDataModel[]> {
-    const isNewestStatus = true;
     const pegoutDocuments = await this.getConnector()
-    .find({status: {$ne: PegoutStatus.RELEASE_BTC}, isNewestStatus, btcRecipientAddress})
+    .find({status:  PegoutStatus.WAITING_FOR_CONFIRMATION, btcRecipientAddress})
     .exec();
+    return pegoutDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
+  }
+
+  public async getPegoutByRecipientAndCreationTx(btcRecipientAddress: string, batchPegoutRskTxHash: string ): Promise<PegoutStatusDbDataModel[]> {
+    const pegoutDocuments = await this.getConnector()
+      .find({status:  PegoutStatus.WAITING_FOR_CONFIRMATION, btcRecipientAddress, batchPegoutRskTxHash})
+      .exec();
     return pegoutDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 
