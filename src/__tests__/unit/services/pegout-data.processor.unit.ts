@@ -687,6 +687,7 @@ describe('Service: PegoutDataProcessor', () => {
         getLastByOriginatingRskTxHash: sinon.stub(),
         getLastByOriginatingRskTxHashNewest: sinon.stub(),
         getAllNotFinishedByBtcRecipientAddress: sinon.stub(),
+        getPegoutByRecipientAndCreationTx: sinon.stub(),
         set: sinon.stub(),
         getManyWaitingForConfirmationNewest: sinon.stub(),
         getManyWaitingForSignaturesNewest: sinon.stub(),

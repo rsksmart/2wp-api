@@ -11,7 +11,7 @@ import { ServicesBindings } from '../dependency-injection-bindings';
 import * as bitcoin from 'bitcoinjs-lib';
 import {BridgeService} from './bridge.service';
 import * as constants from '../constants';
-import { ensure0x, remove0x } from '../utils/hex-utils';
+import {ensure0x, ensureRskHashLength, remove0x} from '../utils/hex-utils';
 import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 import { sha256 } from '../utils/sha256-utils';
@@ -34,7 +34,6 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   getFilters(): BridgeDataFilterModel[] {
-    // TODO: add BRIDGE_METHODS.RELEASE_BTC = 'releaseBtc' when this method is available in the bridge abis.
     return [
       new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.UPDATE_COLLECTIONS)),
       new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.ADD_SIGNATURE)),
@@ -131,60 +130,45 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     if(network === constants.NETWORK_MAINNET){
       btcNetwork = bitcoin.networks.bitcoin;
     }
-
-    const currentBlockHeight = extendedBridgeTx.blockNumber;
-    const pegoutMinimumConfirmations = Number(process.env.RSK_PEGOUT_MINIMUM_CONFIRMATIONS);
+    const batchPegoutCreationTx = releaseBTCEvent.arguments.releaseRskTxHash;
 
     for(let output of parsedBtcTransaction.outs) {
-      let address = bitcoin.address.fromOutputScript(output.script, btcNetwork);
+      const address = bitcoin.address.fromOutputScript(output.script, btcNetwork);
 
-      const dbPegoutsWithThisAddress = await this.pegoutStatusDataService.getAllNotFinishedByBtcRecipientAddress(address);
-
-      if(!dbPegoutsWithThisAddress || dbPegoutsWithThisAddress.length == 0) {
+      const dbPegout = await this.pegoutStatusDataService.getPegoutByRecipientAndCreationTx(address, batchPegoutCreationTx);
+      if(!dbPegout || dbPegout.length !== 1 ) {
+        this.logger.trace(`[processSignedStatusByRtx]: Not found any pegout related to this output ${address} - btachpegoutcreationTx: ${batchPegoutCreationTx}`);
         continue;
       }
+      const [thePegout] = dbPegout;
+      this.logger.trace(`[processSignedStatusByRtx] found a pegout to be released: ${thePegout.originatingRskTxHash}`);
 
-      this.logger.trace(`[processSignedStatusByRtx] found a pegout to be released: ${dbPegoutsWithThisAddress.length}`);
+      const originatingRskTxHash = thePegout.originatingRskTxHash;
+      this.logPegoutData(thePegout);
 
-      const dbPegoutsWithEnoughConfirmations: PegoutStatusDbDataModel[] = dbPegoutsWithThisAddress.filter(dbPegout => {
-        const blockHeightDiff = currentBlockHeight - dbPegout.rskBlockHeight;
-        return blockHeightDiff >= pegoutMinimumConfirmations;
-      });
+      const newPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(thePegout);
+      newPegoutStatus.setRskTxInformation(extendedBridgeTx);
+      newPegoutStatus.btcRawTransaction = rawTx;
+      newPegoutStatus.btcTxHash = parsedBtcTransaction.getHash().toString('hex');
+      newPegoutStatus.isNewestStatus = true;
+      newPegoutStatus.status = PegoutStatus.RELEASE_BTC;
+      newPegoutStatus.valueInSatoshisToBeReceived = output.value;
+      newPegoutStatus.feeInSatoshisToBePaid = newPegoutStatus.valueRequestedInSatoshis - newPegoutStatus.valueInSatoshisToBeReceived;
+      newPegoutStatus.btcRawTxInputsHash = this.getInputsHash(parsedBtcTransaction);
+      newPegoutStatus.rskTxHash = `${extendedBridgeTx.txHash}___${thePegout.batchPegoutIndex}`;
 
-      let index = 0;
-      for(let oldPegoutStatus of dbPegoutsWithEnoughConfirmations) {
-        const originatingRskTxHash = oldPegoutStatus.originatingRskTxHash;
-
-        this.logger.trace(`[processSignedStatusByRtx] Got a pegout waiting signatures.`);
-        this.logPegoutData(oldPegoutStatus);
-
-        const newPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(oldPegoutStatus);
-        newPegoutStatus.setRskTxInformation(extendedBridgeTx);
-        newPegoutStatus.btcRawTransaction = rawTx;
-        newPegoutStatus.btcTxHash = parsedBtcTransaction.getHash().toString('hex');
-        newPegoutStatus.isNewestStatus = true;
-        newPegoutStatus.status = PegoutStatus.RELEASE_BTC;
-        newPegoutStatus.valueInSatoshisToBeReceived = output.value;
-        newPegoutStatus.feeInSatoshisToBePaid = newPegoutStatus.valueRequestedInSatoshis - newPegoutStatus.valueInSatoshisToBeReceived;
-        newPegoutStatus.btcRawTxInputsHash = this.getInputsHash(parsedBtcTransaction);
-        newPegoutStatus.rskTxHash = `${extendedBridgeTx.txHash}___${index}`;
-
-        this.logPegoutData(newPegoutStatus);
-        this.logger.trace(`[processSignedStatusByRtx] PegOut being released
+      this.logPegoutData(newPegoutStatus);
+      this.logger.trace(`[processSignedStatusByRtx] PegOut being released
                           with amount in weis: ${(await this.getTxFromRskTransaction(originatingRskTxHash)).valueInWeis}`);
 
-        try {
-          oldPegoutStatus.isNewestStatus = false;
-          await this.save(oldPegoutStatus);
-          await this.save(newPegoutStatus);
-        } catch(e) {
-          this.logger.warn('[processSignedStatusByRtx] There was a problem with the storage', e);
-        }
-        index++;
+      try {
+        thePegout.isNewestStatus = false;
+        await this.save(thePegout);
+        await this.save(newPegoutStatus);
+      } catch(e) {
+        this.logger.warn('[processSignedStatusByRtx] There was a problem with the storage', e);
       }
-
     }
-
   }
 
   private async processBatchPegouts(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
@@ -257,13 +241,13 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   ): Promise<void> {
       try {
         const bridgeState = await this.bridgeService.getBridgeState(blockNumber);
-        const batchedPegout = bridgeState.pegoutsWaitingForConfirmations.find(pegout => pegout.rskTxHash === remove0x(txHash));
+        const batchedPegout = bridgeState.pegoutsWaitingForConfirmations.find(pegout => ensureRskHashLength(pegout.rskTxHash) === remove0x(txHash));
 
         if(!batchedPegout) {
-          this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] did not find the batched pegout in the bridge state pegoutsWaitingForConfirmations. [rsktxhash: ${txHash}][originatingRskTxHash:${pegoutStatus.originatingRskTxHash}]`);
+          this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] did not find the batched pegout in the bridge state pegoutsWaitingForConfirmations. [rsktxhash: ${txHash}] - [originatingRskTxHash:${pegoutStatus.originatingRskTxHash}]`);
           return;
         }
-        this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] Got the batched pegout in the bridge state pegoutsWaitingForConfirmations. [rsktxhash: ${txHash}][originatingRskTxHash:${pegoutStatus.originatingRskTxHash}]`);
+        this.logger.debug(`[addValueInSatoshisToBeReceivedAndFee] Got the batched pegout in the bridge state pegoutsWaitingForConfirmations. [rsktxhash: ${txHash}] - [originatingRskTxHash:${pegoutStatus.originatingRskTxHash}]`);
 
         const parsedBtcTransaction = bitcoin.Transaction.fromHex(batchedPegout.btcRawTx);
 
