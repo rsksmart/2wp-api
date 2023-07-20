@@ -137,7 +137,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
       const dbPegout = await this.pegoutStatusDataService.getPegoutByRecipientAndCreationTx(address, batchPegoutCreationTx);
       if(!dbPegout || dbPegout.length !== 1 ) {
-        this.logger.trace(`[processSignedStatusByRtx]: Not found any pegout related to this output ${address} - btachpegoutcreationTx: ${batchPegoutCreationTx}`);
+        this.logger.trace(`[processSignedStatusByRtx]: Not found any pegout related to this output ${address} - batchPegoutCreationTx: ${batchPegoutCreationTx}`);
         continue;
       }
       const [thePegout] = dbPegout;

@@ -107,7 +107,7 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
 
   public async getPegoutByRecipientAndCreationTx(btcRecipientAddress: string, batchPegoutRskTxHash: string ): Promise<PegoutStatusDbDataModel[]> {
     const pegoutDocuments = await this.getConnector()
-      .find({status:  PegoutStatus.WAITING_FOR_CONFIRMATION, btcRecipientAddress, batchPegoutRskTxHash})
+      .find({status: { $ne: PegoutStatus.RELEASE_BTC },isNewestStatus: true, btcRecipientAddress, batchPegoutRskTxHash})
       .exec();
     return pegoutDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
