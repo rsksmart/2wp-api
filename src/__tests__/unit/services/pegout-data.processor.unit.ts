@@ -603,9 +603,10 @@ describe('Service: PegoutDataProcessor', () => {
 
     const rskBlockHeight = 2869973;
     const rskBlockHash = '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d661';
+    const batchPegoutRskTxHash = 'testhash';
 
     dbPegoutWaitingForSignature.rskTxHash = rskTxHash;
-    dbPegoutWaitingForSignature.btcRecipientAddress = 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55';
+    dbPegoutWaitingForSignature.btcRecipientAddress = 'mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8';
     dbPegoutWaitingForSignature.createdOn = createdOn;
     dbPegoutWaitingForSignature.originatingRskTxHash = originatingRskTxHash;
     dbPegoutWaitingForSignature.rskBlockHeight = rskBlockHeight - 200;
@@ -616,13 +617,17 @@ describe('Service: PegoutDataProcessor', () => {
     dbPegoutWaitingForSignature.valueRequestedInSatoshis = 521000;
     dbPegoutWaitingForSignature.originatingRskBlockHash = blockHash;
     dbPegoutWaitingForSignature.rskBlockHash = rskBlockHash;
+    dbPegoutWaitingForSignature.batchPegoutRskTxHash = batchPegoutRskTxHash;
 
-    mockedPegoutStatusDataService.getAllNotFinishedByBtcRecipientAddress.resolves([dbPegoutWaitingForSignature]);
+    mockedPegoutStatusDataService.getPegoutByRecipientAndCreationTx
+      .withArgs(dbPegoutWaitingForSignature.btcRecipientAddress, batchPegoutRskTxHash)
+      .resolves([dbPegoutWaitingForSignature]);
 
     mockedBridgeService.getBridgeState.resolves(bridgeState);
 
     const relaseBtcEventsArgs = {
       btcRawTransaction : btcRawTx3,
+      releaseRskTxHash: batchPegoutRskTxHash,
     };
 
     const bridgeTransaction: Transaction = {
@@ -657,7 +662,7 @@ describe('Service: PegoutDataProcessor', () => {
     const pegoutWithSigned: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
     pegoutWithSigned.rskTxHash = rskTxHash;
-    pegoutWithSigned.btcRecipientAddress = 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55';
+    pegoutWithSigned.btcRecipientAddress = 'mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8';
     pegoutWithSigned.createdOn = createdOn;
     pegoutWithSigned.originatingRskTxHash = originatingRskTxHash;
     pegoutWithSigned.rskBlockHeight = rskBlockHeight;
@@ -674,7 +679,6 @@ describe('Service: PegoutDataProcessor', () => {
     pegoutWithSigned.btcRawTransaction= '0200000001701d53fb64c827699dffe2885601b41df981a0a0183a9a44782587f27de65c4503000000fd270100000000004d1f01645321025a2f522aea776fab5241ad72f7f05918e8606676461cb6ce38265a52d4ca9ed62102afc230c2d355b1a577682b07bc2646041b5d0177af0f98395a46018da699b6da21032822626c45fc1c4e3a3def5b4983636d6291a7a6677f66874c337e78bc3b7784210357a2621df0252caa3c4ccb383d6b309c93adbc6708bccfe751bb0cfeb12d34282103fb8e1d5d0392d35ca8c3656acb6193dbf392b3e89b9b7b86693f5c80f7ce858155ae670350cd00b27552210216c23b2ea8e4f11c3f9e22711addb1d16a93964796913830856b568cc3ea21d3210275562901dd8faae20de0a4166362a4f82188db77dbed4ca887422ea1ec185f1421034db69f2112f4fb1bb6141bf6e2bd6631f0484d0bd95b16767902c9fe219d4a6f53ae68ffffffff028cff0500000000001976a91409197f6153cb3a91bb51eec373360a1cb3b7c0e088ac2caaa9020000000017a914899e3000cbc7bb817e15c9a8e7a4fd6e78a04c488700000000',
 
     expect(thisService.isMethodAccepted(extendedBridgeTx)).equal(true);
-    sinon.assert.callCount(mockedPegoutStatusDataService.set, 4);
     sinon.assert.calledWithMatch(mockedPegoutStatusDataService.set, dbPegoutWaitingForSignature);
   });
 
