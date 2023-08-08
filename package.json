@@ -72,7 +72,7 @@
     "loopback-connector-mongodb": "^5.5.0",
     "loopback-connector-redis": "^3.0.0",
     "loopback-connector-rest": "^3.7.0",
-    "mongoose": "^5.13.16",
+    "mongoose": "^5.13.20",
     "pegin-address-verificator": "https://git@github.com/rsksmart/pegin-address-verifier#0.3.0",
     "pegin-cap-evaluator": "https://git@github.com/rsksmart/pegin-cap-evaluator#1.0.0",
     "tslib": "^2.0.0",
