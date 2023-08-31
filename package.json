@@ -76,7 +76,7 @@
     "pegin-address-verificator": "https://git@github.com/rsksmart/pegin-address-verifier#0.3.0",
     "pegin-cap-evaluator": "https://git@github.com/rsksmart/pegin-cap-evaluator#1.0.0",
     "tslib": "^2.0.0",
-    "web3": "^1.5.2",
+    "web3": "^1.10.2",
     "web3-eth-contract": "^1.3.4",
     "web3-utils": "^1.3.4"
   },
