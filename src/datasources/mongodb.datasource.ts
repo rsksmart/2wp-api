@@ -34,7 +34,7 @@ export class MongoDbDataSource {
   }
 
   connect(): Promise<void> {
-    return connectToMongo(this.mongoDbUri, {useUnifiedTopology: true})
+    return connectToMongo(this.mongoDbUri)
       .then(
         (connection: Mongoose) => {
           this.mongoose = connection;
