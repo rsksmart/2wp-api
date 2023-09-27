@@ -61,15 +61,13 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
       const connector = this.getConnector();
       const filter: any = {};
       filter[data.getIdFieldName()] = data.getId();
-      connector.findOneAndUpdate(filter, <any>data, {upsert: true}, (err: any) => {
-        metricLogger();
-        if (err) {
+      connector.findOneAndUpdate(filter, <any>data, {upsert: true})
+        .then(() => resolve(true))
+        .catch((err) => {
           this.logger.debug('There was an error trying to save data', err);
           reject(err);
-        } else {
-          resolve(true);
-        }
-      })
+          })
+        .finally(metricLogger);
     });
   }
 
@@ -92,5 +90,4 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
     this.logger.debug('Service stopped');
     return Promise.resolve();
   }
-
 }
