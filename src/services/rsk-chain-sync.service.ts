@@ -114,7 +114,7 @@ export class RskChainSyncService {
 
   public async sync(): Promise<void> {
     let dbBestBlock = await this.getSyncStatus();
-    const rskBestBlock = RskBlock.fromWeb3Block(await this.rskNodeService.getBlock('latest', false));
+    const rskBestBlock = RskBlock.fromWeb3Block(await this.rskNodeService.getBlock('latest'));
     // In case the db is synced with a forked chain and that forked chain is longer than the main chain,
     // remove all extra forked blocks from the db + 1 as an offset so the following logic handles it appropriately.
     if(rskBestBlock.height < dbBestBlock.rskBlockHeight) {

@@ -9,7 +9,7 @@ const getInitialBlock = () => new RskBlock(2863627, '0xba5e', '0x');
 describe('Service: RskNodeService', () => {
     it('Searches the block using initial block conf', async () => {
         const thisService = new RskNodeService();
-        const block = await thisService.getBlock(getInitialBlock().height, false);
+        const block = await thisService.getBlock(getInitialBlock().height);
         sinon.assert.match(block.number, getInitialBlock().height);
     });
     it('Verify ${process.env.RSK_NODE_HOST} configuration', async () => {
@@ -42,7 +42,7 @@ describe('Service: RskNodeService', () => {
     });
     it('Searches the block', async () => {
         const thisService = new RskNodeService();
-        const block = await thisService.getBlock(getInitialBlock().height, false);
+        const block = await thisService.getBlock(getInitialBlock().height);
         expect(block).to.not.be.null;
     });
     it('Searches the block number', async () => {
