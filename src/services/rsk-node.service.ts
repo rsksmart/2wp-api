@@ -9,8 +9,8 @@ export class RskNodeService {
   constructor() {
     this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
   }
-  getBlock(block: string | number, withTransactions = true): Promise<BlockTransactionObject> {
-    return this.web3.eth.getBlock(block, withTransactions);
+  getBlock(block: string | number): Promise<BlockTransactionObject> {
+    return this.web3.eth.getBlock(block, true);
   }
   getTransactionReceipt(txHash: string): Promise<any> {
     return this.web3.eth.getTransactionReceipt(txHash);

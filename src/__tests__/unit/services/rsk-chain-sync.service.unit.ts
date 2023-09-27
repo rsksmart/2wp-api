@@ -382,7 +382,7 @@ describe('Service: RskChainSyncService', () => {
 
     // RSK is contacted with these blocks (latest and 3 to 5)
     sinon.assert.callCount(mockedRskNodeService.getBlock, 4);
-    sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 'latest', false);
+    sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 'latest');
     sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 3);
     sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 4);
     sinon.assert.calledWithExactly(mockedRskNodeService.getBlock, 5);
