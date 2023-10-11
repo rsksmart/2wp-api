@@ -80,5 +80,3 @@ export class Vout extends Model {
 export interface VoutRelations {
   // describe navigational properties here
 }
-
-export type VoutWithRelations = Vout & VoutRelations;

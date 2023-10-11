@@ -44,7 +44,7 @@ export class DaemonService implements iDaemonService {
     this.rskBlockProcessorPublisher = rskBlockProcessorPublisher;
     this.started = false;
     this.logger = getLogger('daemon-service');
-    this.intervalTime = parseInt(syncIntervalTime || '2000');
+    this.intervalTime = parseInt(syncIntervalTime ?? '2000');
   }
 
   private async handleNewBestBlock(rskBlock: RskBlock): Promise<void> {
@@ -65,7 +65,7 @@ export class DaemonService implements iDaemonService {
   }
 
   private startTimer(): void {
-    this.dataFetchInterval = setTimeout(() => this.sync(), this.intervalTime);
+    this.dataFetchInterval = setTimeout(() => { this.sync() }, this.intervalTime);
   }
 
   private async sync(): Promise<void> {
@@ -99,8 +99,8 @@ export class DaemonService implements iDaemonService {
 
     await this.syncService.start();
     this.syncService.subscribe({
-      blockAdded: (block) => this.handleNewBestBlock(block),
-      blockDeleted: (block) => this.handleDeleteBlock(block)
+      blockAdded: (block) => { this.handleNewBestBlock(block) },
+      blockDeleted: (block) => { this.handleDeleteBlock(block) }
     });
 
     this.rskBlockProcessorPublisher.addSubscriber(this.peginDataProcessor);

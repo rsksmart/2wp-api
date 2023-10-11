@@ -87,5 +87,3 @@ export class TxV2 extends Model {
 export interface TxV2Relations {
   // describe navigational properties here
 }
-
-export type TxV2WithRelations = TxV2 & TxV2Relations;
