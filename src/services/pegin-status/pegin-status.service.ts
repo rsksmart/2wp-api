@@ -124,8 +124,8 @@ export class PeginStatusService {
             ));
             btcStatus.btcWTxId = ensure0x(calculateBtcTxHashSegWitAndNonSegwit(btcTx.hex));            
             btcStatus.fees = btcTx.fees ? this.fromSatoshiToBtc(btcTx.fees) : 0;
-            btcStatus.confirmations = Number(btcTx.confirmations) ?? 0;
-            btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) ?? 100;
+            btcStatus.confirmations = Number(btcTx.confirmations) || 0;
+            btcStatus.requiredConfirmation = Number(process.env.BTC_CONFIRMATIONS) || 100;
             btcStatus.federationAddress = fedDestinationAddress;
             btcStatus.refundAddress = this.getTxRefundAddress(btcTx);
             this.destinationAddress = this.getxDestinationRskAddress(btcTx);
