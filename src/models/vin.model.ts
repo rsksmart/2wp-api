@@ -59,5 +59,3 @@ export class Vin extends Model {
 export interface VinRelations {
   // describe navigational properties here
 }
-
-export type VintWithRelations = Vin & VinRelations;

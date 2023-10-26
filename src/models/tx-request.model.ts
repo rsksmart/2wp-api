@@ -16,5 +16,3 @@ export class TxRequest extends Model {
 export interface TxRequestRelations {
   // describe navigational properties here
 }
-
-export type TxRequestWithRelations = TxRequest & TxRequestRelations;

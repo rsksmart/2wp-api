@@ -88,5 +88,3 @@ export class BitcoinTx extends Model {
 export interface BitcoinTxRelations {
   // describe navigational properties here
 }
-
-export type BitcoinTxWithRelations = BitcoinTx & BitcoinTxRelations;

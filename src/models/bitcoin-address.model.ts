@@ -73,5 +73,3 @@ export class BitcoinAddress extends Model {
 export interface BitcoinAddressRelations {
   // describe navigational properties here
 }
-
-export type BitcoinAddressWithRelations = BitcoinAddress & BitcoinAddressRelations;
