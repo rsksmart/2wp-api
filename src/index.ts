@@ -41,6 +41,7 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
         await daemon.stop();
       }
       logger.info('Shutting down');
+      process.exit(0);
     }
   }
 

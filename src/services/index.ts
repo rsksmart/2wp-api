@@ -1,4 +1,3 @@
-
 export * from './address.service';
 export * from './bridge.service';
 export * from './broadcast.service';
@@ -14,4 +13,4 @@ export * from './rsk-chain-sync.service';
 export * from './btc-last-block.service';
 export * from './sync-status-data.service';
 export * from './rsk-node.service';
-
+export * from './register.service';
