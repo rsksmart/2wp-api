@@ -37,18 +37,17 @@ export class PeginConfigurationController {
   })
   async get(): Promise<PeginConfiguration> {
     this.logger.debug('[get] started');
+    const session = {
+      _id: crypto.randomBytes(16).toString('hex'),
+      balance: 0,
+    };
+    const ttlSessionDBExpire =
+      process.env.TTL_SESSIONDB_EXPIRE_MILLISECONDS ?? 3600000;
+    await this.sessionRepository.set(session._id, new Session(session));
+    await this.sessionRepository.expire(session._id, +ttlSessionDBExpire);
+    this.logger.trace(`[get] Got session ${session._id}`);
+    const bridgeService = new BridgeService();
     return new Promise<PeginConfiguration>((resolve, reject) => {
-      const session = {
-        _id: crypto.randomBytes(16).toString('hex'),
-        balance: 0,
-      };
-      const ttlSessionDBExpire =
-        process.env.TTL_SESSIONDB_EXPIRE_MILLISECONDS ?? 3600000;
-      this.sessionRepository.set(session._id, new Session(session));
-      this.sessionRepository.expire(session._id, +ttlSessionDBExpire);
-      this.logger.trace(`[get] Got session ${session._id}`);
-      const bridgeService = new BridgeService();
-
       Promise.all([
         bridgeService.getMinPeginValue(),
         bridgeService.getFederationAddress(),
