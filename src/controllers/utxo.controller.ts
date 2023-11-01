@@ -28,9 +28,6 @@ export class UtxoController {
     })
     addressList: AddressList,
   ): Promise<UtxoResponse> {
-    this.logger.debug(
-      `[getUtxos] Getting utxos from address list: ${addressList.addressList}`,
-    );
     return new Promise<UtxoResponse>((resolve, reject) => {
       Promise.all(
         addressList.addressList.map(async address => {
