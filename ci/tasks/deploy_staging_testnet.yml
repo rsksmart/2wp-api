@@ -25,7 +25,7 @@ run:
   - |
     out_message_file=$(pwd)/out/message.txt
 
-    echo "2wp-api: Branch: main - deployment to staging-testnet" > $out_message_file
+    echo "2wp-api: Branch: qa - deployment to staging-testnet" > $out_message_file
 
     sops_keyfile=$(pwd)/sops_key
     ssh_deploy_keyfile=$(pwd)/ssh_deploy_key
@@ -47,4 +47,4 @@ run:
 
     cd repo-iac-ng/ansible
 
-    ansible-playbook -i inventory -e ansible_ssh_extra_args=-oForwardAgent=yes -l twowp_app_api_staging_testnet --extra-vars="twowp_api_api_version=main" deploy-2wp-app-api.yml
+    ansible-playbook -i inventory -e ansible_ssh_extra_args=-oForwardAgent=yes -l twowp_app_api_staging_testnet --extra-vars="twowp_api_api_version=qa" deploy-2wp-app-api.yml
