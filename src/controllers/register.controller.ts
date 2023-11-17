@@ -4,6 +4,8 @@ import {inject} from '@loopback/core';
 import {Response, RestBindings, getModelSchemaRef, post, requestBody} from '@loopback/rest';
 import {RegisterPayload} from '../models';
 import {RegisterService} from '../services';
+import {repository} from '@loopback/repository';
+import {SessionRepository} from '../repositories';
 
 export class RegisterController {
   logger: Logger;
@@ -13,6 +15,8 @@ export class RegisterController {
     protected registerService: RegisterService,
     @inject(RestBindings.Http.RESPONSE)
     private response: Response,
+    @repository(SessionRepository)
+    public sessionRepository: SessionRepository,
   ) {
     this.logger = getLogger('register-controller');
   }
@@ -29,9 +33,15 @@ export class RegisterController {
     @requestBody({schema: getModelSchemaRef(RegisterPayload)})
     payload: RegisterPayload,
   ): Promise<Response> {
-    return this.registerService
-      .register(payload)
-      .then(() => this.response.status(200).send())
-      .catch(() => this.response.status(500).send());
+    const {sessionId, type} = payload;
+    let session;
+    if (sessionId) {
+      session = await this.sessionRepository.get(sessionId);
+    }
+    // TODO: remove pegout check
+    if (session != null || type === 'pegout') {
+      await this.registerService.register(payload);
+    }
+    return this.response.status(200).send();
   }
 }
