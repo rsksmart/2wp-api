@@ -6,6 +6,12 @@ export class RegisterPayload extends Model {
     type: 'string',
     required: true,
   })
+  sessionId: string;
+
+  @property({
+    type: 'string',
+    required: true,
+  })
   txHash: string;
 
   @property({
@@ -30,8 +36,8 @@ export class RegisterPayload extends Model {
     type: 'number',
   })
   fee?: number;
-
-  constructor(data?: Partial<RegisterPayload>) {
+  
+  constructor(data?: Partial<RegisterPayload>) { //NOSONAR
     super(data);
   }
 }
