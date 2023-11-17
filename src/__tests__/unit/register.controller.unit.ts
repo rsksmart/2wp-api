@@ -61,10 +61,8 @@ describe('RegisterController', () => {
   });
 
   it('should register a pegout with any sessionId', async () => {
-    get.resolves(null);
     await registerController.register(pegoutPayload);
     const result = await context.result;
-    sinon.assert.called(sessionRepository.stubs.get);
     sinon.assert.called(register);
     expect(result.statusCode).to.equal(200);
   });
