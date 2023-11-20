@@ -65,8 +65,8 @@ export class BitcoinAddress extends Model {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [prop: string]: any;
 
-  constructor() {
-    super();
+  constructor(data?: Partial<BitcoinAddress>) {
+    super(data);
   }
 }
 
