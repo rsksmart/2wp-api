@@ -6,6 +6,7 @@ export class AppTxModel implements SearchableModel {
   creationDate: Date;
   value: number;
   wallet: string;
+  addressType: string;
   fee: number;
 
   getId() {

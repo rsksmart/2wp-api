@@ -33,6 +33,11 @@ export class RegisterPayload extends Model {
   wallet: string;
 
   @property({
+    type: 'string',
+  })
+  addressType?: string;
+
+  @property({
     type: 'number',
   })
   fee?: number;
