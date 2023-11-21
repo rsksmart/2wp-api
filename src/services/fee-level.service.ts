@@ -6,7 +6,7 @@ export interface FeeLevel {
   // this is where you define the Node.js methods that will be
   // mapped to REST/SOAP/gRPC operations as stated in the datasource
   // json file.
-  feeProvider(block: number): Promise<string>;
+  feeProvider(block: number): Promise<string[]>;
 }
 
 export class FeeLevelProvider implements Provider<FeeLevel> {
