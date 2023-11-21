@@ -6,6 +6,7 @@ import {RegisterPayload} from '../models';
 import {RegisterService} from '../services';
 import {repository} from '@loopback/repository';
 import {SessionRepository} from '../repositories';
+import * as constants from '../constants';
 
 export class RegisterController {
   logger: Logger;
@@ -38,8 +39,7 @@ export class RegisterController {
     if (sessionId) {
       session = await this.sessionRepository.get(sessionId);
     }
-    // TODO: remove pegout check
-    if (session != null || type === 'pegout') {
+    if (session != null || type === constants.TX_TYPE_PEGOUT) {
       await this.registerService.register(payload);
     }
     return this.response.status(200).send();

@@ -3,6 +3,7 @@ import {RegisterController} from '../../controllers/register.controller';
 import {RegisterService} from '../../services/register.service';
 import {RegisterPayload} from '../../models';
 import {SessionRepository} from '../../repositories';
+import * as constants from '../../constants';
 
 describe('RegisterController', () => {
   let registerController: RegisterController;
@@ -14,7 +15,7 @@ describe('RegisterController', () => {
   let payload = new RegisterPayload({
     sessionId: '43ef33c59294d5033d96cb25b8f94723',
     txHash: '0x',
-    type: 'pegin',
+    type: constants.TX_TYPE_PEGIN,
     value: 0.005,
     wallet: 'liquality',
     fee: 0.000001,
@@ -22,7 +23,7 @@ describe('RegisterController', () => {
   let pegoutPayload = new RegisterPayload({
     sessionId: '',
     txHash: '0xb',
-    type: 'pegout',
+    type: constants.TX_TYPE_PEGOUT,
     value: 0.004,
     wallet: 'liquality',
     fee: 0.000002,
