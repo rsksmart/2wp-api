@@ -15,7 +15,7 @@ export class AddressesInfoController {
     this.bitcoinService = bitcoinService;
   }
 
-  @post('/adddressesInfo')
+  @post('/addresses-info')
   @response(200, {
     description:
       'Returns array of objects with the address information in the input corresponding index',
