@@ -1,4 +1,4 @@
-import {AddressesInfoController} from '../../controllers/AddressesInfo.controller';
+import {AddressesInfoController} from '../../controllers';
 import {expect} from '@loopback/testlab';
 import {BitcoinService} from '../../services';
 import sinon, {SinonStubbedInstance} from 'sinon';
