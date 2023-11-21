@@ -16,3 +16,6 @@ export const NETWORK_MAINNET = 'mainnet';
 // environment
 export const ENVIRONMENT_PRODUCTION = 'production';
 export const ENVIRONMENT_DEVELOPMENT = 'development';
+// transaction types
+export const TX_TYPE_PEGIN = 'pegin';
+export const TX_TYPE_PEGOUT = 'pegout';
