@@ -20,6 +20,7 @@ import {RskChainSyncService} from './services/rsk-chain-sync.service';
 import {RskNodeService} from './services/rsk-node.service';
 import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 import { PegoutDataProcessor } from './services/pegout-data.processor';
+import { FeaturesMongoDbDataService } from './services/features-mongo.service';
 
 export class DependencyInjectionHandler {
   public static configureDependencies(app: Application): void {
@@ -152,6 +153,11 @@ export class DependencyInjectionHandler {
     app
       .bind(ServicesBindings.REGISTER_SERVICE)
       .toClass(RegisterService)
+      .inScope(BindingScope.SINGLETON);
+
+      app
+      .bind(ServicesBindings.FEATURES_SERVICE)
+      .toClass(FeaturesMongoDbDataService)
       .inScope(BindingScope.SINGLETON);
   }
 }
