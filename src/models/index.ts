@@ -17,3 +17,4 @@ export * from '../models/rsk/sync-status.model';
 export *from '../models/btc-last-block.model';
 export * from './fee-amount.model';
 export * from './register-payload.model';
+export * from './features.model';

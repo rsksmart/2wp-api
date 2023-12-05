@@ -36,4 +36,5 @@ export const ServicesBindings = {
   PEGOUT_STATUS_SERVICE: 'services.PegoutStatusService',
   UTXO_PROVIDER_SERVICE: 'services.UtxoProvider',
   REGISTER_SERVICE: 'services.RegisterService',
+  FEATURES_SERVICE: 'services.FeaturesDataService',
 };

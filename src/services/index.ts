@@ -13,3 +13,4 @@ export * from './btc-last-block.service';
 export * from './sync-status-data.service';
 export * from './rsk-node.service';
 export * from './register.service';
+export * from './features-data.service';
