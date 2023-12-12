@@ -1,5 +1,5 @@
 import { SearchableModel } from "./rsk/searchable-model";
-import {Entity, model, property} from '@loopback/repository';
+import { model, property} from '@loopback/repository';
 
 export interface FeaturesDataModel {
     creationDate: Date;
