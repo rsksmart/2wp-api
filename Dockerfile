@@ -1,5 +1,5 @@
 # Check out https://hub.docker.com/_/node to select a new base image
-FROM node:14-slim
+FROM node:18.19
 
 RUN apt-get update && apt-get install -y git curl wget vim htop tree
 # Set to a non-root built-in user `node`
@@ -19,7 +19,6 @@ RUN npm ci
 
 # Bundle app source code
 COPY --chown=node DEVELOPING.md .
-COPY --chown=node tsconfig.json .
 COPY --chown=node .dockerignore .
 COPY --chown=node .env .
 COPY --chown=node .env.test .
@@ -63,7 +62,6 @@ COPY --chown=node src/index.ts .
 COPY --chown=node src/migrate.ts .
 COPY --chown=node src/openapi-spec.ts .
 COPY --chown=node src/sequence.ts .
-COPY --chown=node src/tsconfig.json .
 COPY --chown=node src/dependency-injection-bindings.ts .
 COPY --chown=node src/dependency-injection-handler.ts .
 COPY --chown=node src ./src
