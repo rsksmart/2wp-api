@@ -56,7 +56,7 @@ export class FeaturesController {
     try {
         retorno = await this.featuresDatService.getAll();
         responseCode = this.HTTP_SUCCESS_OK;
-        this.logger.info(`[get] Retrieved the features: ${retorno}`);
+        this.logger.info(`[get] Retrieved the features: ${JSON.stringify(retorno)}`);
     } catch (e) {
         this.logger.warn(`[get] Got an error: ${e}`); 
     }
