@@ -31,7 +31,9 @@ export class RegisterController {
     },
   })
   async register(
-    @requestBody({schema: getModelSchemaRef(RegisterPayload)})
+    @requestBody({
+      content: {'application/json': {schema: getModelSchemaRef(RegisterPayload)}},
+    })
     payload: RegisterPayload,
   ): Promise<Response> {
     const {sessionId, type} = payload;
