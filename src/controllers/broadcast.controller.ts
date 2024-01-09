@@ -27,7 +27,9 @@ export class BroadcastController {
     },
   })
   sendTx(
-    @requestBody({schema: getModelSchemaRef(BroadcastRequest)})
+    @requestBody({
+      content: {'application/json': {schema: getModelSchemaRef(BroadcastRequest)}},
+    })
     req: BroadcastRequest,
   ): Promise<BroadcastResponse> {
     this.logger.debug('[sendTx] started');
