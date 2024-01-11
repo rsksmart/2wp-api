@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-floating-promises */
 import mongoose from 'mongoose';
 import {PeginStatus, PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {MongoDbDataService} from '../mongodb-data.service';
@@ -41,7 +42,7 @@ export class PeginStatusMongoDbDataService extends MongoDbDataService<PeginStatu
 
   public deleteByRskBlockHeight(rskBlockHeight: number): Promise<boolean> {
     return this.getConnector()
-      .deleteMany({rskBlockHeight: rskBlockHeight})
+      .deleteMany({rskBlockHeight})
       .exec()
       .then(() => true);
   }

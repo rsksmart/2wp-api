@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-floating-promises */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
 import {ConstantsBindings, ServicesBindings} from '../dependency-injection-bindings';
@@ -9,7 +10,7 @@ import {PegoutDataProcessor} from './pegout-data.processor';
 import {RskChainSyncService} from './rsk-chain-sync.service';
 import RskBlockProcessorPublisher from './rsk-block-processor-publisher';
 
-export class DaemonService implements iDaemonService {
+export class DaemonService implements IDaemonService {
   peginStatusStorageService: PeginStatusDataService;
   syncService: RskChainSyncService;
   peginDataProcessor: PeginDataProcessor;
@@ -128,7 +129,7 @@ export class DaemonService implements iDaemonService {
 
 }
 
-export interface iDaemonService {
+export interface IDaemonService {
   start(): void;
 
   stop(): void;

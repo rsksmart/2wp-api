@@ -1,5 +1,6 @@
-import { RskTransaction } from './rsk-transaction.model';
 import { BlockTransactionObject } from 'web3-eth';
+import { RskTransaction } from './rsk-transaction.model';
+
 export class RskBlock {
   readonly height: number;
   readonly hash: string;

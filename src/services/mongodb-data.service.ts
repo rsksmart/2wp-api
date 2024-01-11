@@ -31,6 +31,7 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
   async ensureConnection(): Promise<void> {
     const p = Promise.resolve();
     if (!this.db) {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       p.then(() => this.start());
     }
     return p;

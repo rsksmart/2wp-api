@@ -1,7 +1,7 @@
 import {DefaultCrudRepository} from '@loopback/repository';
+import {inject} from '@loopback/core';
 import {PeginConfiguration} from '../models';
 import {DbDataSource} from '../datasources';
-import {inject} from '@loopback/core';
 
 export class PeginConfigurationRepository extends DefaultCrudRepository<
   PeginConfiguration,

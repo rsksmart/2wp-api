@@ -1,10 +1,10 @@
 import {Logger, getLogger} from 'log4js';
-import {ServicesBindings} from '../dependency-injection-bindings';
 import {inject} from '@loopback/core';
 import {Response, RestBindings, getModelSchemaRef, post, requestBody} from '@loopback/rest';
+import {repository} from '@loopback/repository';
+import {ServicesBindings} from '../dependency-injection-bindings';
 import {RegisterPayload} from '../models';
 import {RegisterService} from '../services';
-import {repository} from '@loopback/repository';
 import {SessionRepository} from '../repositories';
 import * as constants from '../constants';
 

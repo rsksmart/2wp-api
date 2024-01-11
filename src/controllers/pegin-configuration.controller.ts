@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 import {repository} from '@loopback/repository';
 import {get, getModelSchemaRef} from '@loopback/rest';
 import crypto from 'crypto';
@@ -55,9 +56,9 @@ export class PeginConfigurationController {
       ])
         .then(([minValue, federationAddress, availability]) => {
           const peginConf = new PeginConfiguration({
-            minValue: minValue,
+            minValue,
             maxValue: availability,
-            federationAddress: federationAddress,
+            federationAddress,
             btcConfirmations: Number(process.env.BTC_CONFIRMATIONS) || 100,
             sessionId: session._id,
           });

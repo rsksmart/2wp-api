@@ -1,13 +1,13 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
+import {BridgeEvent} from 'bridge-transaction-parser';
 import {PeginStatus as RskPeginStatusEnum, PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
 import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
-import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-transaction-processor';
+import FilteredBridgeTransactionProcessor from './filtered-bridge-transaction-processor';
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import ExtendedBridgeTx from './extended-bridge-tx';
-import {BridgeEvent} from 'bridge-transaction-parser';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 
 export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
@@ -110,6 +110,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   parse(extendedBridgeTx: ExtendedBridgeTx): PeginStatusDataModel | null {
+    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     if (!extendedBridgeTx || !extendedBridgeTx.events || !extendedBridgeTx.events.length) {
       this.logger.debug(`[parse] This transaction doesn't have the data required to be parsed`);
       return null;

@@ -4,8 +4,8 @@ import {
   getModelSchemaRef,
   response,
 } from '@loopback/rest';
-import {FeeAmount} from '../models';
 import {inject} from '@loopback/core';
+import {FeeAmount} from '../models';
 import {FeeLevel} from '../services';
 
 export class EstimateFeeController {
