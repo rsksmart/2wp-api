@@ -6,6 +6,7 @@ import { ENVIRONMENT_PRODUCTION } from './constants';
 
 export * from './application';
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 enum APP_MODE {
   API,
   DAEMON,

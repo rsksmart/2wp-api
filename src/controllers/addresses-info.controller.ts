@@ -1,7 +1,7 @@
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
+import {inject} from '@loopback/core';
 import {AddressList} from '../models';
 import {AddressInfoResponse} from '../models/adddress-info-response.model';
-import {inject} from '@loopback/core';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {BitcoinService} from '../services';
 

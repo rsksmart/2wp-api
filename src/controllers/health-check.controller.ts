@@ -1,5 +1,6 @@
 import { RestBindings, get, getModelSchemaRef, Response } from '@loopback/rest';
 import { getLogger, Logger } from 'log4js';
+import { inject } from '@loopback/core';
 import { BitcoinService, BridgeService } from '../services';
 import { ServicesBindings } from "../dependency-injection-bindings";
 import { HealthInformation } from '../models/health-information.model';
@@ -8,7 +9,6 @@ import { RskNodeService } from '../services/rsk-node.service';
 import { SyncStatusDataService } from '../services/sync-status-data.service';
 import { SyncStatusModel } from '../models/rsk/sync-status.model';
 import { LastBlockInfo } from '../models/btc-last-block.model';
-import { inject } from '@loopback/core';
 
 const packageJson = require('../../package.json');
 
@@ -66,7 +66,7 @@ export class HealthCheckController {
     health.rskNode = rskNode;
     health.bridgeService = bridgeService;
 
-    this.response.contentType('application/json').status(health.up!! ? 200 : 500).send(
+    this.response.contentType('application/json').status(health.up! ? 200 : 500).send(
       health
     );
     

@@ -4,6 +4,7 @@ import Web3 from 'web3';
 const web3 = new Web3();
 const bridgeInstance = bridge.build(web3);
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export enum BRIDGE_METHODS {
   RELEASE_BTC = 'releaseBtc',
   REGISTER_BTC_TRANSACTION = 'registerBtcTransaction',
@@ -11,6 +12,7 @@ export enum BRIDGE_METHODS {
   ADD_SIGNATURE = 'addSignature'
 };
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export enum BRIDGE_EVENTS {
   LOCK_BTC = 'lock_btc',
   PEGIN_BTC = 'pegin_btc',
@@ -27,6 +29,7 @@ export enum BRIDGE_EVENTS {
 };
 
 export function getBridgeSignature(methodOrEvent: BRIDGE_METHODS | BRIDGE_EVENTS): string {
+  // eslint-disable-next-line no-underscore-dangle
   const method = bridgeInstance._jsonInterface.find((m: any) => m.name === methodOrEvent);
   if (!method) {
     throw new Error(methodOrEvent + " does not exist in Bridge abi");

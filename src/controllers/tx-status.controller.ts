@@ -1,8 +1,8 @@
 import {get, getModelSchemaRef, param, response,} from '@loopback/rest';
-import {PeginStatus, Status, TxStatus, TxStatusType} from '../models';
-import {PeginStatusError} from "../models/pegin-status-error.model";
 import {getLogger, Logger} from "log4js";
 import {inject} from "@loopback/core";
+import {PeginStatus, Status, TxStatus, TxStatusType} from '../models';
+import {PeginStatusError} from "../models/pegin-status-error.model";
 import {ServicesBindings} from "../dependency-injection-bindings";
 import {PeginStatusService, PegoutStatusService} from "../services";
 import {PegoutStatus} from "../models/rsk/pegout-status-data-model";

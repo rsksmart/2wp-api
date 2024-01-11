@@ -1,14 +1,15 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
+import { BridgeEvent } from 'bridge-transaction-parser';
+import * as bitcoin from 'bitcoinjs-lib';
+import Web3 from 'web3';
 import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
-import FilteredBridgeTransactionProcessor from '../services/filtered-bridge-transaction-processor';
+import FilteredBridgeTransactionProcessor from './filtered-bridge-transaction-processor';
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import { PegoutStatusDataService } from './pegout-status-data-services/pegout-status-data.service';
 import ExtendedBridgeTx from './extended-bridge-tx';
 import { PegoutStatus, PegoutStatusDbDataModel } from '../models/rsk/pegout-status-data-model';
-import { BridgeEvent } from 'bridge-transaction-parser';
 import { ServicesBindings } from '../dependency-injection-bindings';
-import * as bitcoin from 'bitcoinjs-lib';
 import {BridgeService} from './bridge.service';
 import * as constants from '../constants';
 import {ensure0x, ensureRskHashLength, remove0x} from '../utils/hex-utils';
@@ -16,7 +17,6 @@ import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 import { sha256 } from '../utils/sha256-utils';
 import { FullRskTransaction } from '../models/rsk/full-rsk-transaction.model';
-import Web3 from 'web3';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
@@ -147,7 +147,6 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       const [thePegout] = dbPegout;
       this.logger.trace(`[processSignedStatusByRtx] found a pegout to be released: ${thePegout.originatingRskTxHash}`);
 
-      const originatingRskTxHash = thePegout.originatingRskTxHash;
       this.logPegoutData(thePegout);
 
       const newPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(thePegout);

@@ -1,4 +1,5 @@
 import {ensure0x} from '../utils/hex-utils';
+
 export class BridgeDataFilterModel {
   abiEncodedSignature: string;
   static EMPTY_DATA_FILTER = new BridgeDataFilterModel('0x');
