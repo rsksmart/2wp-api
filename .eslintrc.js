@@ -29,6 +29,7 @@ module.exports = {
     "radix": "off",
     "no-plusplus": "off",
     "spaced-comment": "off",
+    "import/no-cycle": "off"
   },
   "overrides": [
     {

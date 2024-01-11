@@ -64,6 +64,7 @@
     "big.js": "^6.1.1",
     "bitcoinjs-lib": "^6.0.1",
     "bridge-transaction-parser": "git+https://github.com/rsksmart/bridge-transaction-parser.git#v0.5.0-beta",
+    "bs58": "^5.0.0",
     "dotenv": "^8.6.0",
     "jssha": "^3.2.0",
     "log4js": "^6.6.1",
@@ -74,6 +75,7 @@
     "pegin-cap-evaluator": "https://git@github.com/rsksmart/pegin-cap-evaluator#1.0.0",
     "tslib": "^2.0.0",
     "web3": "^1.5.2",
+    "web3-eth": "^1.10.2",
     "web3-eth-contract": "^1.3.4",
     "web3-utils": "^1.3.4"
   },
