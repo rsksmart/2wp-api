@@ -3,7 +3,7 @@
 import mongoose from 'mongoose';
 import { FeaturesDataService } from './features-data.service';
 import {FeaturesDbDataModel} from '../models/features-data.model';
-import {MongoDbDataService} from '../services/mongodb-data.service';
+import {MongoDbDataService} from './mongodb-data.service';
 
 /*
 - THESE MODEL INTERFACES AND CLASSES ARE REQUIRED FOR MONGO BUT WE DON'T WANT THEM EXPOSED OUT OF THIS LAYER

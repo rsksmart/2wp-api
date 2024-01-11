@@ -1,11 +1,11 @@
 import {getLogger, Logger} from "log4js";
 import {inject} from "@loopback/core";
+import Web3 from 'web3';
+import {BridgeEvent, Transaction} from 'bridge-transaction-parser';
 import {ServicesBindings} from "../../dependency-injection-bindings";
 import {PegoutStatus, PegoutStatusAppDataModel} from "../../models/rsk/pegout-status-data-model";
 import {PegoutStatusDataService} from "../pegout-status-data-services/pegout-status-data.service";
 import {RskNodeService} from "../rsk-node.service";
-import Web3 from 'web3';
-import {BridgeEvent, Transaction} from 'bridge-transaction-parser';
 import {BRIDGE_EVENTS} from '../../utils/bridge-utils';
 import {RskTransaction} from "../../models/rsk/rsk-transaction.model";
 import {PegoutStatusBuilder} from "./pegout-status-builder";
@@ -102,13 +102,14 @@ export class PegoutStatusService {
     }
 
     public sanitizePegout(pegoutStatus: PegoutStatusAppDataModel): PegoutStatusAppDataModel {
+        const status = pegoutStatus;
         if(pegoutStatus?.rskTxHash){
             const indexOf = pegoutStatus.rskTxHash.indexOf('_');
             if(indexOf > 0){
-                pegoutStatus.rskTxHash = pegoutStatus.rskTxHash.substring(0, indexOf);
+                status.rskTxHash = pegoutStatus.rskTxHash.substring(0, indexOf);
             }
         }
-        return pegoutStatus;
+        return status;
     }
 
 }
