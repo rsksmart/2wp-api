@@ -9,7 +9,9 @@ module.exports = {
     "no-await-in-loop": "warn",
     "class-methods-use-this": "warn",
     "prefer-destructuring": "warn",
+    "no-else-return": "warn",
     "@typescript-eslint/lines-between-class-members": "off",
     "no-plusplus": "off",
+    "spaced-comment": "off"
   }
 };
