@@ -88,6 +88,7 @@
     "@typescript-eslint/parser": "^6.4.1",
     "eslint": "^8.48.0",
     "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-airbnb-typescript": "^17.1.0",
     "eslint-plugin-import": "^2.26.0",
     "sinon": "^11.1.2",
     "sonarqube-scanner": "^3.0.1",
