@@ -8,6 +8,8 @@ export class AppTxModel implements SearchableModel {
   wallet: string;
   addressType: string;
   fee: number;
+  rskGas: number;
+  btcEstimatedFee: number;
 
   getId() {
     return this.txHash;

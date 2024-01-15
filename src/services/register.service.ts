@@ -50,8 +50,10 @@ export class RegisterService extends MongoDbDataService<AppTxModel, AppTxMongoMo
     tx.wallet = payload.wallet;
     tx.addressType = payload.addressType ?? '';
     tx.fee = payload.fee ?? 0;
+    tx.rskGas = payload.rskGas ?? 0;
+    tx.btcEstimatedFee = payload.btcEstimatedFee ?? 0;
     this.logger.info(
-      `[NEW_TX_CREATED] [type=${tx.type}, value=${tx.value}, fee=${tx.fee}, wallet=${tx.wallet}, addressType=${tx.addressType}, id=${tx.txHash}]`,
+      `[NEW_TX_CREATED] [type=${tx.type}, value=${tx.value}, fee=${tx.fee}, gas=${tx.rskGas}, estimatedFee=${tx.btcEstimatedFee}, wallet=${tx.wallet}, addressType=${tx.addressType}, id=${tx.txHash}]`,
     );
     return this.set(tx);
   }
