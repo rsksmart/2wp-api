@@ -10,6 +10,7 @@ export class AppTxModel implements SearchableModel {
   fee: number;
   rskGas: number;
   btcEstimatedFee: number;
+  provider: string;
 
   getId() {
     return this.txHash;
