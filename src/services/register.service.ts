@@ -12,6 +12,9 @@ const AppTxSchema = new mongoose.Schema({
   value: {type: Number, required: true},
   wallet: {type: String, required: true},
   fee: {type: Number, required: true}, 
+  rskGas: {type: Number, required: true},
+  btcEstimatedFee: {type: Number, required: true},
+  provider: {type: String, required: true},
 });
 
 const AppTxConnector = mongoose.model<AppTxMongoModel>('AppTxs', AppTxSchema);
@@ -52,8 +55,9 @@ export class RegisterService extends MongoDbDataService<AppTxModel, AppTxMongoMo
     tx.fee = payload.fee ?? 0;
     tx.rskGas = payload.rskGas ?? 0;
     tx.btcEstimatedFee = payload.btcEstimatedFee ?? 0;
+    tx.provider = payload.provider ?? '';
     this.logger.info(
-      `[NEW_TX_CREATED] [type=${tx.type}, value=${tx.value}, fee=${tx.fee}, gas=${tx.rskGas}, estimatedFee=${tx.btcEstimatedFee}, wallet=${tx.wallet}, addressType=${tx.addressType}, id=${tx.txHash}]`,
+      `[NEW_TX_CREATED] [type=${tx.type}, value=${tx.value}, fee=${tx.fee}, gas=${tx.rskGas}, estimatedFee=${tx.btcEstimatedFee}, provider=${tx.provider}, wallet=${tx.wallet}, addressType=${tx.addressType}, id=${tx.txHash}]`,
     );
     return this.set(tx);
   }

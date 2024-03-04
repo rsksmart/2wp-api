@@ -51,6 +51,11 @@ export class RegisterPayload extends Model {
     type: 'number',
   })
   btcEstimatedFee?: number;
+
+  @property({
+    type: 'string',
+  })
+  provider?: string;
   
   constructor(data?: Partial<RegisterPayload>) { //NOSONAR
     super(data);
