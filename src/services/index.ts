@@ -14,3 +14,4 @@ export * from './sync-status-data.service';
 export * from './rsk-node.service';
 export * from './register.service';
 export * from './features-data.service';
+export * from './register-flyover.service';

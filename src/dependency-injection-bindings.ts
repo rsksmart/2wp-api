@@ -37,4 +37,5 @@ export const ServicesBindings = {
   UTXO_PROVIDER_SERVICE: 'services.UtxoProvider',
   REGISTER_SERVICE: 'services.RegisterService',
   FEATURES_SERVICE: 'services.FeaturesDataService',
+  REGISTER_FLYOVER_SERVICE: 'services.RegisterFlyoverService',
 };

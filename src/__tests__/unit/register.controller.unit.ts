@@ -4,13 +4,16 @@ import {RegisterService} from '../../services/register.service';
 import {RegisterPayload} from '../../models';
 import {SessionRepository} from '../../repositories';
 import * as constants from '../../constants';
+import {RegisterFlyoverService} from '../../services';
 
 describe('RegisterController', () => {
   let registerController: RegisterController;
   let registerService: RegisterService;
+  let registerFlyoverService: RegisterFlyoverService;
   let sessionRepository: StubbedInstanceWithSinonAccessor<SessionRepository>;
   let context: ExpressContextStub;
   let register: sinon.SinonStub;
+  let registerFlyover: sinon.SinonStub;
   let get: sinon.SinonStub;
   let payload = new RegisterPayload({
     sessionId: '43ef33c59294d5033d96cb25b8f94723',
@@ -28,15 +31,30 @@ describe('RegisterController', () => {
     wallet: 'liquality',
     fee: 0.000002,
   });
+  let flyoverPayload = new RegisterPayload({
+    sessionId: '',
+    txHash: '0xc',
+    type: constants.TX_TYPE_PEGOUT,
+    value: 0.005,
+    wallet: 'wallet',
+    fee: 0.000001,
+    provider: 'test provider',
+    details: {
+      blocksToCompleteTransaction: 2,
+    },
+  });
   beforeEach(reset);
   function reset() {
     context = stubExpressContext();
     registerService = createStubInstance(RegisterService);
+    registerFlyoverService = createStubInstance(RegisterFlyoverService);
     sessionRepository = createStubInstance(SessionRepository);
     get = sessionRepository.get as sinon.SinonStub;
     register = registerService.register as sinon.SinonStub;
+    registerFlyover = registerFlyoverService.register as sinon.SinonStub;
     registerController = new RegisterController(
       registerService,
+      registerFlyoverService,
       context.response,
       sessionRepository,
     );
@@ -65,6 +83,18 @@ describe('RegisterController', () => {
     await registerController.register(pegoutPayload);
     const result = await context.result;
     sinon.assert.called(register);
+    expect(result.statusCode).to.equal(200);
+  });
+  it('should not store flyover transaction without provider', async () => {
+    await registerController.register(payload);
+    const result = await context.result;
+    sinon.assert.notCalled(registerFlyover);
+    expect(result.statusCode).to.equal(200);
+  });
+  it('should store flyover transaction', async () => {
+    await registerController.register(flyoverPayload);
+    const result = await context.result;
+    sinon.assert.called(registerFlyover);
     expect(result.statusCode).to.equal(200);
   });
 });
