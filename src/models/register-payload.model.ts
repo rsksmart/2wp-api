@@ -56,6 +56,11 @@ export class RegisterPayload extends Model {
     type: 'string',
   })
   provider?: string;
+
+  @property({
+    type: 'object',
+  })
+  details?: Record<string, any>;
   
   constructor(data?: Partial<RegisterPayload>) { //NOSONAR
     super(data);
