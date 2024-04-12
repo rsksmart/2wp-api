@@ -24,6 +24,8 @@ export class TxStatus extends Model {
 export enum TxStatusType {
   PEGIN = 'PEGIN',
   PEGOUT = 'PEGOUT',
+  FLYOVER_PEGIN = 'FLYOVER_PEGIN',
+  FLYOVER_PEGOUT = 'FLYOVER_PEGOUT',
   INVALID_DATA = 'INVALID_DATA',
   UNEXPECTED_ERROR = 'UNEXPECTED_ERROR',
 }
