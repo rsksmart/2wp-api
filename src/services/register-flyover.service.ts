@@ -3,6 +3,7 @@ import {RegisterPayload} from '../models';
 import {FlyoverStatusModel} from '../models/flyover-status.model';
 import {MongoDbDataService} from './mongodb-data.service';
 import { RskNodeService } from './rsk-node.service';
+import * as constants from '../constants';
 
 interface FlyoverStatusMongoModel extends mongoose.Document, FlyoverStatusModel {}
 
@@ -45,6 +46,27 @@ export class RegisterFlyoverService extends MongoDbDataService<FlyoverStatusMode
     return filter;
   }
 
+  async getFlyoverStatus(txHash: string): Promise<any> {
+    let status;
+    const flyoverTx = await this.getById(txHash);
+    if (!flyoverTx) return null;
+
+    const currentBlock = await this.rskNodeService.getBlockNumber();
+    if (flyoverTx.blockToBeFinished <= currentBlock) {
+      status = constants.FLYOVER_STATUS_COMPLETED;
+    } else {
+      status = constants.FLYOVER_STATUS_PENDING;
+    }
+
+    return {
+      txHash: flyoverTx.txHash,
+      date: flyoverTx.date,
+      type: flyoverTx.type,
+      amount: flyoverTx.amount,
+      fee: flyoverTx.fee,
+      status,
+    };
+  }
 
   async register(payload: RegisterPayload): Promise<boolean> {
     const currentBlock = await this.rskNodeService.getBlockNumber();
