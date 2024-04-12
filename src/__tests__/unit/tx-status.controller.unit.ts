@@ -1,5 +1,5 @@
 import {TxStatusController} from "../../controllers";
-import {PeginStatusService, PegoutStatusService} from "../../services";
+import {PeginStatusService, PegoutStatusService, RegisterFlyoverService} from "../../services";
 import {createStubInstance, expect, StubbedInstanceWithSinonAccessor} from "@loopback/testlab";
 import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status, TxStatus, TxStatusType} from "../../models";
 import {PeginStatus as RskPeginStatusEnum} from "../../models/rsk/pegin-status-data.model";
@@ -18,11 +18,13 @@ describe('Controller: Tx Status', () => {
    let txStatusController: TxStatusController;
    let peginStatusService: StubbedInstanceWithSinonAccessor<PeginStatusService>;
    let pegoutStatusService: StubbedInstanceWithSinonAccessor<PegoutStatusService>;
+   let flyoverService: StubbedInstanceWithSinonAccessor<RegisterFlyoverService>;
 
    function resetController() {
       peginStatusService = createStubInstance(PeginStatusService);
       pegoutStatusService = createStubInstance(PegoutStatusService);
-      txStatusController = new TxStatusController(peginStatusService, pegoutStatusService);
+      flyoverService = createStubInstance(RegisterFlyoverService);
+      txStatusController = new TxStatusController(peginStatusService, pegoutStatusService, flyoverService);
    }
    function getMockedPeginStatus(mockedTxId: string,status: Status): PeginStatus {
       const btcPeginStatus = new BtcPeginStatus(mockedTxId);
@@ -188,6 +190,26 @@ describe('Controller: Tx Status', () => {
          expect(peginStatusService.stubs.getPeginSatusInfo.notCalled).to.be.true();
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.notCalled).to.be.true();
          expect(status.type).to.be.eql(TxStatusType.INVALID_DATA);
+      });
+      it('should search for flyover transactions if there is no pegin or pegout status', async () => {
+         peginStatusService.stubs.getPeginSatusInfo.withArgs(testRskTxHash)
+            .resolves(getMockedPeginStatus(testRskTxHash, Status.ERROR_NOT_A_PEGIN));
+         pegoutStatusService.stubs.getPegoutStatusByRskTxHash.withArgs(testRskTxHash)
+            .resolves(getMockedPegoutStatus(testRskTxHash, PegoutStatus.NOT_FOUND));
+         flyoverService.stubs.getFlyoverStatus.withArgs(testRskTxHash)
+            .resolves({
+               status: 'COMPLETED',
+               type: 'pegout',
+               txHash: testRskTxHash,
+               date: +new Date(),
+               amount: 0.005,
+               fee: 0.00001,
+            });
+         const status = await txStatusController.getTxStatus(testRskTxHash);
+         expect(peginStatusService.stubs.getPeginSatusInfo.calledOnce).to.be.true();
+         expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.calledOnce).to.be.true();
+         expect(flyoverService.stubs.getFlyoverStatus.calledOnce).to.be.true();
+         expect(status.type).to.be.eql(TxStatusType.FLYOVER_PEGOUT);
       });
    });
 });
