@@ -4,7 +4,7 @@ import {Response, RestBindings, getModelSchemaRef, post, requestBody} from '@loo
 import {repository} from '@loopback/repository';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {RegisterPayload} from '../models';
-import {RegisterService, RegisterFlyoverService} from '../services';
+import {RegisterService, FlyoverService} from '../services';
 import {SessionRepository} from '../repositories';
 import * as constants from '../constants';
 
@@ -14,8 +14,8 @@ export class RegisterController {
   constructor(
     @inject(ServicesBindings.REGISTER_SERVICE)
     protected registerService: RegisterService,    
-    @inject(ServicesBindings.REGISTER_FLYOVER_SERVICE)
-    protected registerFlyoverService: RegisterFlyoverService,
+    @inject(ServicesBindings.FLYOVER_SERVICE)
+    protected flyoverService: FlyoverService,
     @inject(RestBindings.Http.RESPONSE)
     private response: Response,
     @repository(SessionRepository)
@@ -47,7 +47,7 @@ export class RegisterController {
       await this.registerService.register(payload);
     }
     if (provider) {
-      await this.registerFlyoverService.register(payload);
+      await this.flyoverService.register(payload);
     }
     return this.response.status(200).send();
   }

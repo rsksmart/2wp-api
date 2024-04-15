@@ -1,5 +1,5 @@
 import {TxStatusController} from "../../controllers";
-import {PeginStatusService, PegoutStatusService, RegisterFlyoverService} from "../../services";
+import {PeginStatusService, PegoutStatusService, FlyoverService} from "../../services";
 import {createStubInstance, expect, StubbedInstanceWithSinonAccessor} from "@loopback/testlab";
 import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status, TxStatus, TxStatusType} from "../../models";
 import {PeginStatus as RskPeginStatusEnum} from "../../models/rsk/pegin-status-data.model";
@@ -18,12 +18,12 @@ describe('Controller: Tx Status', () => {
    let txStatusController: TxStatusController;
    let peginStatusService: StubbedInstanceWithSinonAccessor<PeginStatusService>;
    let pegoutStatusService: StubbedInstanceWithSinonAccessor<PegoutStatusService>;
-   let flyoverService: StubbedInstanceWithSinonAccessor<RegisterFlyoverService>;
+   let flyoverService: StubbedInstanceWithSinonAccessor<FlyoverService>;
 
    function resetController() {
       peginStatusService = createStubInstance(PeginStatusService);
       pegoutStatusService = createStubInstance(PegoutStatusService);
-      flyoverService = createStubInstance(RegisterFlyoverService);
+      flyoverService = createStubInstance(FlyoverService);
       txStatusController = new TxStatusController(peginStatusService, pegoutStatusService, flyoverService);
    }
    function getMockedPeginStatus(mockedTxId: string,status: Status): PeginStatus {

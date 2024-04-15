@@ -4,12 +4,12 @@ import {RegisterService} from '../../services/register.service';
 import {RegisterPayload} from '../../models';
 import {SessionRepository} from '../../repositories';
 import * as constants from '../../constants';
-import {RegisterFlyoverService} from '../../services';
+import {FlyoverService} from '../../services';
 
 describe('RegisterController', () => {
   let registerController: RegisterController;
   let registerService: RegisterService;
-  let registerFlyoverService: RegisterFlyoverService;
+  let flyoverService: FlyoverService;
   let sessionRepository: StubbedInstanceWithSinonAccessor<SessionRepository>;
   let context: ExpressContextStub;
   let register: sinon.SinonStub;
@@ -47,14 +47,14 @@ describe('RegisterController', () => {
   function reset() {
     context = stubExpressContext();
     registerService = createStubInstance(RegisterService);
-    registerFlyoverService = createStubInstance(RegisterFlyoverService);
+    flyoverService = createStubInstance(FlyoverService);
     sessionRepository = createStubInstance(SessionRepository);
     get = sessionRepository.get as sinon.SinonStub;
     register = registerService.register as sinon.SinonStub;
-    registerFlyover = registerFlyoverService.register as sinon.SinonStub;
+    registerFlyover = flyoverService.register as sinon.SinonStub;
     registerController = new RegisterController(
       registerService,
-      registerFlyoverService,
+      flyoverService,
       context.response,
       sessionRepository,
     );

@@ -18,12 +18,12 @@ const FlyoverStatusSchema = new mongoose.Schema({
 
 const FlyoverStatusConnector = mongoose.model<FlyoverStatusMongoModel>('FlyoverStatuses', FlyoverStatusSchema);
 
-export class RegisterFlyoverService extends MongoDbDataService<FlyoverStatusModel, FlyoverStatusMongoModel> {
+export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, FlyoverStatusMongoModel> {
 
   rskNodeService = new RskNodeService();
   
   protected getLoggerName(): string {
-    return 'registerFlyService';
+    return 'flyoverService';
   }
 
   protected getConnector(): mongoose.Model<FlyoverStatusMongoModel, {}, {}> {
