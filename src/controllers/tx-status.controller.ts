@@ -4,7 +4,7 @@ import {inject} from "@loopback/core";
 import {PeginStatus, Status, TxStatus, TxStatusType} from '../models';
 import {PeginStatusError} from "../models/pegin-status-error.model";
 import {ServicesBindings} from "../dependency-injection-bindings";
-import {PeginStatusService, PegoutStatusService, RegisterFlyoverService} from "../services";
+import {PeginStatusService, PegoutStatusService, FlyoverService} from "../services";
 import {PegoutStatus} from "../models/rsk/pegout-status-data-model";
 import {ensure0x, remove0x} from '../utils/hex-utils';
 import {isValidTxId} from '../utils/tx-validator';
@@ -19,8 +19,8 @@ export class TxStatusController {
       protected peginStatusService: PeginStatusService,
       @inject(ServicesBindings.PEGOUT_STATUS_SERVICE)
       protected pegoutStatusService: PegoutStatusService,
-      @inject(ServicesBindings.REGISTER_FLYOVER_SERVICE)
-      protected registerFlyoverService: RegisterFlyoverService,
+      @inject(ServicesBindings.FLYOVER_SERVICE)
+      protected flyoverService: FlyoverService,
   ) {
     this.logger = getLogger('TxStatusController');
   }
@@ -89,7 +89,7 @@ export class TxStatusController {
 
     try {
       this.logger.debug(`[getTxStatus] trying to get a flyover status with txHash: ${txId}`);
-      const flyoverStatus = await this.registerFlyoverService.getFlyoverStatus(txId);
+      const flyoverStatus = await this.flyoverService.getFlyoverStatus(txId);
       if (flyoverStatus) {
         this.logger.debug(`[getTxStatus] Flyover status got for txId ${txId} - Status: ${flyoverStatus.status}`);
         if (flyoverStatus.type === TX_TYPE_PEGIN) {
