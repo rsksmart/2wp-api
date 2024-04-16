@@ -14,6 +14,8 @@ const FlyoverStatusSchema = new mongoose.Schema({
   amount: {type: Number, required: true}, 
   fee: {type: Number, required: true},
   blockToBeFinished: {type: Number, required: true},
+  senderAddress: {type: String, required: true},
+  recipientAddress: {type: String, required: true},
 });
 
 const FlyoverStatusConnector = mongoose.model<FlyoverStatusMongoModel>('FlyoverStatuses', FlyoverStatusSchema);
@@ -64,6 +66,8 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
       type: flyoverTx.type,
       amount: flyoverTx.amount,
       fee: flyoverTx.fee,
+      senderAddress: flyoverTx.senderAddress,
+      recipientAddress: flyoverTx.recipientAddress,
       status,
     };
   }
@@ -75,7 +79,9 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
     flyoverStatus.date = new Date();
     flyoverStatus.type = payload.type;
     flyoverStatus.amount = payload.value;
-    flyoverStatus.fee = payload?.fee ?? 0;
+    flyoverStatus.fee = (payload?.fee ?? 0) + (payload?.rskGas ?? 0);
+    flyoverStatus.senderAddress = payload?.details?.senderAddress ?? '';
+    flyoverStatus.recipientAddress = payload?.details?.recipientAddress ?? '';
     flyoverStatus.blockToBeFinished = currentBlock + Number(payload?.details?.blocksToCompleteTransaction ?? 0);
     return this.set(flyoverStatus);
   }
