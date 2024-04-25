@@ -12,24 +12,17 @@ The **2wp-api** application will run on **3000 port**.
 
 Include a .env file with the required environment variables listed in `.env.test` file (you can copy that file).
 
+> **_NOTE:_**  You must have access to a Blockbook server running in the required network and provide its url in the `.env` file. If you want to setup locally please read the [instructions.](https://github.com/trezor/blockbook?tab=readme-ov-file#build-and-installation-instructions)
+
 ### Check npm and node versions
 
-```sh
-npm -version
-6.14.16
-```
+Install and run the `use` command to get the needed npm and node version
 
 ```sh
-node -v
-v14.19.1
+nvm use
 ```
 
 ### Install dependencies
-
-```sh
-npm install
-```
-
 To only install resolved dependencies in `package-lock.json`:
 
 ```sh
