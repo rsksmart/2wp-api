@@ -1,0 +1,19 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: concourse/oci-build-task
+
+inputs:
+- name: repo-twowp-api-testnet
+
+outputs:
+- name: image
+
+params:
+  CONTEXT: repo-twowp-api-testnet/
+
+run:
+  path: build
