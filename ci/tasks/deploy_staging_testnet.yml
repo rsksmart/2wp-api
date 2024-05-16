@@ -47,4 +47,4 @@ run:
 
     cd repo-iac-ng/ansible
 
-    ansible-playbook -i inventory -e ansible_ssh_extra_args=-oForwardAgent=yes -l twowp_app_api_staging_testnet --extra-vars="twowp_api_api_version=qa" deploy-2wp-app-api.yml
+    #    ansible-playbook -i inventory -e ansible_ssh_extra_args=-oForwardAgent=yes -l twowp_app_api_staging_testnet --extra-vars="twowp_api_api_version=qa" deploy-2wp-app-api.yml
