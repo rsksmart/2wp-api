@@ -129,6 +129,7 @@ export class PeginStatusService {
             btcStatus.federationAddress = fedDestinationAddress;
             btcStatus.refundAddress = this.getTxRefundAddress(btcTx);
             this.destinationAddress = this.getxDestinationRskAddress(btcTx);
+            btcStatus.senderAddress = btcTx.vin[0].addresses[0];
           }
         } catch(e) {
           this.logger.trace(e.message);
