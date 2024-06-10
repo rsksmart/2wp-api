@@ -105,6 +105,7 @@ describe('function: getPeginSatusInfo', () => {
     const result = await thisService.getPeginSatusInfo(btcTxId);
 
     expect(result.btc.txId).to.be.equal(btcTxId);
+    expect(result.btc.senderAddress).to.be.empty;
     expect(result.rsk).to.be.empty;
     expect(result.status).to.be.equal(Status.ERROR_NOT_A_PEGIN);
   })
@@ -258,6 +259,7 @@ describe('function: getPeginSatusInfo', () => {
     const result = await thisService.getPeginSatusInfo(btcTxId);
 
     expect(result.btc.txId).equal(btcTxId);
+    expect(result.btc.senderAddress).to.be.equal('2N69faB9UEHB7QyiAiQv3n2GsMM9xXnFE5W');
     expect(result.btc.amountTransferred).to.be.equal(0.01);
     expect(result.btc.federationAddress).to.be.equal(federationAddress);
     expect(result.rsk.recipientAddress).not.be.empty;
