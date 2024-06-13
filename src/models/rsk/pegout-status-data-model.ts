@@ -1,7 +1,7 @@
 import ExtendedBridgeTx from '../../services/extended-bridge-tx';
 import { SearchableModel } from './searchable-model';
 
-export enum PegoutStatus {
+export enum PegoutStatuses {
   RECEIVED = 'RECEIVED',
   REJECTED = 'REJECTED',
   WAITING_FOR_CONFIRMATION = 'WAITING_FOR_CONFIRMATION',
@@ -21,7 +21,7 @@ export interface PegoutStatusDataModel {
   valueRequestedInSatoshis: number;
   valueInSatoshisToBeReceived: number;
   feeInSatoshisToBePaid: number;
-  status: PegoutStatus;
+  status: PegoutStatuses;
   btcRawTransaction: string;
 }
 
@@ -76,7 +76,7 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
   valueRequestedInSatoshis: number;
   valueInSatoshisToBeReceived: number;
   feeInSatoshisToBePaid: number;
-  status: PegoutStatus;
+  status: PegoutStatuses;
   btcRawTransaction: string;
   originatingRskTxHash: string;
   createdOn: Date;
@@ -87,7 +87,7 @@ export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDat
   rskBlockHash: string;
   rskBlockHeight: number;
   rskSenderAddress: string;
-  status: PegoutStatus;
+  status: PegoutStatuses;
   isNewestStatus: boolean;
   createdOn: Date;
   originatingRskTxHash: string; // First pegout rskTxHash, the one the user should have.

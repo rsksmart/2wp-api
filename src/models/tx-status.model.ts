@@ -1,13 +1,13 @@
 import {Model, model, property} from '@loopback/repository';
 import {PeginStatus} from "./pegin-status.model";
-import {PegoutStatusDataModel} from "./rsk/pegout-status-data-model";
+import { PegoutStatus } from './pegout-status.model';
 
 @model()
 export class TxStatus extends Model {
   @property({
     type: 'object',
   })
-  txDetails?: PeginStatus | PegoutStatusDataModel;
+  txDetails?: PeginStatus | PegoutStatus;
 
   @property({
     type: 'string',

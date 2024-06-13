@@ -8,7 +8,7 @@ module.exports = {
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/prefer-nullish-coalescing": "warn",
     "@typescript-eslint/return-await": "warn",
-    "import/prefer-default-export": "warn",
+    "import/prefer-default-export": "off",
     "no-await-in-loop": "warn",
     "class-methods-use-this": "warn",
     "prefer-destructuring": "warn",
@@ -29,7 +29,7 @@ module.exports = {
     "radix": "off",
     "no-plusplus": "off",
     "spaced-comment": "off",
-    "import/no-cycle": "off"
+    "import/no-cycle": "off",
   },
   "overrides": [
     {

@@ -3,14 +3,15 @@ import {inject} from "@loopback/core";
 import Web3 from 'web3';
 import {BridgeEvent, Transaction} from 'bridge-transaction-parser';
 import {ServicesBindings} from "../../dependency-injection-bindings";
-import {PegoutStatus, PegoutStatusAppDataModel} from "../../models/rsk/pegout-status-data-model";
+import {PegoutStatuses, PegoutStatusAppDataModel} from "../../models/rsk/pegout-status-data-model";
 import {PegoutStatusDataService} from "../pegout-status-data-services/pegout-status-data.service";
 import {RskNodeService} from "../rsk-node.service";
 import {BRIDGE_EVENTS} from '../../utils/bridge-utils';
 import {RskTransaction} from "../../models/rsk/rsk-transaction.model";
 import {PegoutStatusBuilder} from "./pegout-status-builder";
 import ExtendedBridgeTx, {ExtendedBridgeTxModel} from '../extended-bridge-tx';
-import { fromWeiNumberToSatoshiNumber } from "../../utils/btc-utils";
+import { BtcAddressUtils, fromWeiNumberToSatoshiNumber } from "../../utils/btc-utils";
+import { PegoutStatus } from "../../models";
 
 export class PegoutStatusService {
     private logger: Logger;
@@ -18,6 +19,7 @@ export class PegoutStatusService {
     private web3: Web3;
     private rskNodeService:RskNodeService;
     private ATTACH_TRANSACTION_RECEIPT = true;
+    private btcUtils = new BtcAddressUtils();
 
     constructor(
         @inject(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
@@ -31,8 +33,8 @@ export class PegoutStatusService {
         this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
     }
 
-    public getPegoutStatusByRskTxHash(rskTxHash: string): Promise<PegoutStatusAppDataModel> {
-        return new Promise<PegoutStatusAppDataModel>((resolve, reject) => {
+    public getPegoutStatusByRskTxHash(rskTxHash: string): Promise<PegoutStatus> {
+        return new Promise<PegoutStatus>((resolve, reject) => {
             let pegoutStatus: PegoutStatusAppDataModel = new PegoutStatusAppDataModel();
             this.pegoutStatusDataService.getLastByOriginatingRskTxHashNewest(rskTxHash)
                 .then(async (pegoutStatusDbDataModel) => {
@@ -42,14 +44,14 @@ export class PegoutStatusService {
                         try {
                             const rskTransaction: RskTransaction = await this.rskNodeService.getTransaction(rskTxHash, this.ATTACH_TRANSACTION_RECEIPT);
                             if (!rskTransaction) {
-                                pegoutStatus.status = PegoutStatus.NOT_FOUND;
+                                pegoutStatus.status = PegoutStatuses.NOT_FOUND;
                             }
                             if (rskTransaction.receipt) {
                                 const transaction: Transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
                                 const extendedModel: ExtendedBridgeTxModel = new ExtendedBridgeTxModel(transaction, rskTransaction);
                                 pegoutStatus = await this.processTransaction(extendedModel);
                             } else {
-                                pegoutStatus.status = PegoutStatus.PENDING;
+                                pegoutStatus.status = PegoutStatuses.PENDING;
                                 pegoutStatus.rskTxHash = rskTxHash;
                                 pegoutStatus.valueRequestedInSatoshis = fromWeiNumberToSatoshiNumber(rskTransaction.value ?? 0);
                                 pegoutStatus.rskSenderAddress = rskTransaction.from ?? '';
@@ -59,11 +61,11 @@ export class PegoutStatusService {
                         }
                         catch(e) {
                             this.logger.error(`[getPegoutStatusByRskTxHash] - not found tx ${e}`);
-                            pegoutStatus.status = PegoutStatus.NOT_FOUND;
+                            pegoutStatus.status = PegoutStatuses.NOT_FOUND;
                         }
                         this.logger.trace(pegoutStatus.status);
 
-                    } else if (pegoutStatusDbDataModel.status === PegoutStatus.REJECTED) {
+                    } else if (pegoutStatusDbDataModel.status === PegoutStatuses.REJECTED) {
                         pegoutStatus = PegoutStatusAppDataModel.fromPegoutStatusDataModelRejected(pegoutStatusDbDataModel);
                     } else {
                         pegoutStatus = PegoutStatusAppDataModel.fromPegoutStatusDataModel(pegoutStatusDbDataModel);
@@ -89,7 +91,7 @@ export class PegoutStatusService {
             return PegoutStatusBuilder.fillRequestRejectedStatus(extendedBridgeTx);
         }
 
-        pegoutStatus.status = PegoutStatus.NOT_PEGOUT_TX;
+        pegoutStatus.status = PegoutStatuses.NOT_PEGOUT_TX;
         return pegoutStatus;
     }
 
@@ -101,7 +103,7 @@ export class PegoutStatusService {
         return events.some(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED);
     }
 
-    public sanitizePegout(pegoutStatus: PegoutStatusAppDataModel): PegoutStatusAppDataModel {
+    public sanitizePegout(pegoutStatus: PegoutStatusAppDataModel): PegoutStatus {
         const status = pegoutStatus;
         if(pegoutStatus?.rskTxHash){
             const indexOf = pegoutStatus.rskTxHash.indexOf('_');
@@ -109,7 +111,32 @@ export class PegoutStatusService {
                 status.rskTxHash = pegoutStatus.rskTxHash.substring(0, indexOf);
             }
         }
-        return status;
+        return this.getPegoutStatusFromDbModel(status);
+    }
+
+    private getPegoutStatusFromDbModel(model: PegoutStatusAppDataModel): PegoutStatus {
+        const {
+            originatingRskTxHash,
+            rskTxHash,
+            rskSenderAddress,
+            btcRecipientAddress,
+            valueRequestedInSatoshis,
+            valueInSatoshisToBeReceived,
+            feeInSatoshisToBePaid,
+            status,
+            btcRawTransaction,
+          } = model;
+          return new PegoutStatus({
+            originatingRskTxHash,
+            rskTxHash,
+            rskSenderAddress,
+            btcRecipientAddress,
+            valueRequestedInSatoshis,
+            valueInSatoshisToBeReceived,
+            feeInSatoshisToBePaid,
+            status,
+            btcTxId: btcRawTransaction ? this.btcUtils.getBtcTxIdFromRawTransaction(btcRawTransaction) : undefined,
+          });
     }
 
 }
