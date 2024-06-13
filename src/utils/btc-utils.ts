@@ -148,4 +148,10 @@ export class BtcAddressUtils {
     }
     return { valid, addressType};
   }
+
+  public getBtcTxIdFromRawTransaction(rawTx: string): string {
+    const tx = bitcoin.Transaction.fromHex(rawTx);
+    return tx.getId();
+  }
+
 }

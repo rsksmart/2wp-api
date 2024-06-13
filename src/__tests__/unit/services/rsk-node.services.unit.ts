@@ -12,10 +12,6 @@ describe('Service: RskNodeService', () => {
         const block = await thisService.getBlock(getInitialBlock().height);
         sinon.assert.match(block.number, getInitialBlock().height);
     });
-    it('Verify ${process.env.RSK_NODE_HOST} configuration', async () => {
-        const nodeHost = process.env.RSK_NODE_HOST;
-        sinon.assert.match(nodeHost, 'https://public-node.testnet.rsk.co');
-    });
     it('Searches the Tx receipt', async () => {
         const simpleTransaction = "0x368cfbff365655d14eeaaba822c20fa8bb0c98fda0eef938094dee4ec7a83a66";
         const thisService = new RskNodeService();

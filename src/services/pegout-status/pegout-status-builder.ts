@@ -1,5 +1,5 @@
 import ExtendedBridgeTx from '../extended-bridge-tx';
-import { PegoutStatus, PegoutStatusDbDataModel } from '../../models/rsk/pegout-status-data-model';
+import { PegoutStatuses, PegoutStatusDbDataModel } from '../../models/rsk/pegout-status-data-model';
 import { BRIDGE_EVENTS } from '../../utils/bridge-utils';
 import { BtcAddressUtils } from '../../utils/btc-utils';
 import {ExtendedBridgeEvent} from "../../models/types/bridge-transaction-parser";
@@ -24,7 +24,7 @@ export class PegoutStatusBuilder {
         status.btcRecipientAddress = btcDestinationAddress;
         status.valueRequestedInSatoshis = amount;
         status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
-        status.status = PegoutStatus.RECEIVED;
+        status.status = PegoutStatuses.RECEIVED;
         status.rskBlockHash = extendedBridgeTx.blockHash;
         status.originatingRskBlockHash = extendedBridgeTx.blockHash;
         status.isNewestStatus = true;
@@ -50,7 +50,7 @@ export class PegoutStatusBuilder {
         status.valueRequestedInSatoshis = amount;
         status.reason = reason;
         status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
-        status.status = PegoutStatus.REJECTED;
+        status.status = PegoutStatuses.REJECTED;
         status.isNewestStatus = true;
         return status;
     }

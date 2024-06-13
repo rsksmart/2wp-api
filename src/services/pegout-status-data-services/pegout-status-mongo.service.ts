@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import mongoose from 'mongoose';
-import {PegoutStatus, PegoutStatusDbDataModel} from '../../models/rsk/pegout-status-data-model';
+import {PegoutStatuses, PegoutStatusDbDataModel} from '../../models/rsk/pegout-status-data-model';
 import {MongoDbDataService} from '../mongodb-data.service';
 import {PegoutStatusDataService} from './pegout-status-data.service';
 
@@ -19,7 +19,7 @@ const PegoutStatusSchema = new mongoose.Schema({
   valueInSatoshisToBeReceived: {type: Number, required: true},
   feeInSatoshisToBePaid: {type: Number, required: true},
   btcRawTransaction: {type: String, required: true},
-  status: {type: String, required: true, enum: Object.values(PegoutStatus)},
+  status: {type: String, required: true, enum: Object.values(PegoutStatuses)},
   createdOn: {type: Date, required: true},
   rskBlockHeight: {type: Number, required: true},
   originatingRskBlockHeight: {type: Number, required: true},
@@ -101,35 +101,35 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
 
   public async getAllNotFinishedByBtcRecipientAddress(btcRecipientAddress: string): Promise<PegoutStatusDbDataModel[]> {
     const pegoutDocuments = await this.getConnector()
-    .find({status:  PegoutStatus.WAITING_FOR_CONFIRMATION, btcRecipientAddress})
+    .find({status:  PegoutStatuses.WAITING_FOR_CONFIRMATION, btcRecipientAddress})
     .exec();
     return pegoutDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 
   public async getPegoutByRecipientAndCreationTx(btcRecipientAddress: string, batchPegoutRskTxHash: string ): Promise<PegoutStatusDbDataModel[]> {
     const pegoutDocuments = await this.getConnector()
-      .find({status: { $ne: PegoutStatus.RELEASE_BTC },isNewestStatus: true, btcRecipientAddress, batchPegoutRskTxHash})
+      .find({status: { $ne: PegoutStatuses.RELEASE_BTC },isNewestStatus: true, btcRecipientAddress, batchPegoutRskTxHash})
       .exec();
     return pegoutDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 
   public async getManyWaitingForConfirmationNewest(): Promise<PegoutStatusDbDataModel[]> {
     const pegoutsDocuments = await this.getConnector()
-    .find({status: PegoutStatus.WAITING_FOR_CONFIRMATION, isNewestStatus: true})
+    .find({status: PegoutStatuses.WAITING_FOR_CONFIRMATION, isNewestStatus: true})
     .exec();
     return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 
   public async getManyWaitingForConfirmationNewestCreatedOnBlock(block: number): Promise<PegoutStatusDbDataModel[]> {
     const pegoutsDocuments = await this.getConnector()
-    .find({status: PegoutStatus.WAITING_FOR_CONFIRMATION, isNewestStatus: true, rskBlockHeight: block})
+    .find({status: PegoutStatuses.WAITING_FOR_CONFIRMATION, isNewestStatus: true, rskBlockHeight: block})
     .exec();
     return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }
 
   public async getManyWaitingForSignaturesNewest(): Promise<PegoutStatusDbDataModel[]> {
     const pegoutsDocuments = await  this.getConnector()
-    .find({status: PegoutStatus.WAITING_FOR_SIGNATURE, isNewestStatus: true})
+    .find({status: PegoutStatuses.WAITING_FOR_SIGNATURE, isNewestStatus: true})
     .exec();
     return pegoutsDocuments.map(PegoutStatusDbDataModel.clonePegoutStatusInstance);
   }

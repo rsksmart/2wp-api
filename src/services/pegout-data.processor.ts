@@ -8,7 +8,7 @@ import FilteredBridgeTransactionProcessor from './filtered-bridge-transaction-pr
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import { PegoutStatusDataService } from './pegout-status-data-services/pegout-status-data.service';
 import ExtendedBridgeTx from './extended-bridge-tx';
-import { PegoutStatus, PegoutStatusDbDataModel } from '../models/rsk/pegout-status-data-model';
+import { PegoutStatuses, PegoutStatusDbDataModel } from '../models/rsk/pegout-status-data-model';
 import { ServicesBindings } from '../dependency-injection-bindings';
 import {BridgeService} from './bridge.service';
 import * as constants from '../constants';
@@ -154,7 +154,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       newPegoutStatus.btcRawTransaction = rawTx;
       newPegoutStatus.btcTxHash = parsedBtcTransaction.getHash().toString('hex');
       newPegoutStatus.isNewestStatus = true;
-      newPegoutStatus.status = PegoutStatus.RELEASE_BTC;
+      newPegoutStatus.status = PegoutStatuses.RELEASE_BTC;
       newPegoutStatus.valueInSatoshisToBeReceived = output.value;
       newPegoutStatus.feeInSatoshisToBePaid = newPegoutStatus.valueRequestedInSatoshis - newPegoutStatus.valueInSatoshisToBeReceived;
       newPegoutStatus.btcRawTxInputsHash = this.getInputsHash(parsedBtcTransaction);
@@ -205,7 +205,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
       const newClonedPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(oldPegoutStatus);
       newClonedPegoutStatus.setRskTxInformation(extendedBridgeTx);
-      newClonedPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
+      newClonedPegoutStatus.status = PegoutStatuses.WAITING_FOR_CONFIRMATION;
       newClonedPegoutStatus.isNewestStatus = true;
       // Many pegouts with HOP will share the same rskTxHash, so, appending the index to differentiate them
       // and make each have a unique rskTxHash that includes to which btc tx output index each pegout belongs
@@ -284,7 +284,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       newStatus.setRskTxInformation(extendedBridgeTx);
       newStatus.rskTxHash = `${extendedBridgeTx.txHash}__${index}`;
       newStatus.isNewestStatus = true;
-      newStatus.status = PegoutStatus.WAITING_FOR_SIGNATURE;
+      newStatus.status = PegoutStatuses.WAITING_FOR_SIGNATURE;
       oldStatus.isNewestStatus = false;
       try {
         await this.saveMany([oldStatus, newStatus]);
@@ -321,7 +321,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     newPegoutStatus.setRskTxInformation(extendedBridgeTx);
     newPegoutStatus.originatingRskTxHash = originatingRskTxHash;
     newPegoutStatus.btcTxHash = btcTxHash;
-    newPegoutStatus.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
+    newPegoutStatus.status = PegoutStatuses.WAITING_FOR_CONFIRMATION;
     newPegoutStatus.isNewestStatus = true;
 
     this.logPegoutData(newPegoutStatus);

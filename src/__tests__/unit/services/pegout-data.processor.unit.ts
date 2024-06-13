@@ -7,7 +7,7 @@ import ExtendedBridgeTx from '../../../services/extended-bridge-tx';
 import {Transaction} from 'bridge-transaction-parser';
 import { BRIDGE_EVENTS, BRIDGE_METHODS } from '../../../utils/bridge-utils';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
-import { PegoutStatus, PegoutStatusDbDataModel } from '../../../models/rsk/pegout-status-data-model';
+import { PegoutStatuses, PegoutStatusDbDataModel } from '../../../models/rsk/pegout-status-data-model';
 import { BridgeService } from '../../../services';
 import * as constants from '../../../constants';
 import { BridgeState } from '@rsksmart/bridge-state-data-parser';
@@ -112,7 +112,7 @@ describe('Service: PegoutDataProcessor', () => {
     status.btcRecipientAddress = theBtcDestinationAddress;
     status.valueRequestedInSatoshis = theAmount;
     status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
-    status.status = PegoutStatus.RECEIVED;
+    status.status = PegoutStatuses.RECEIVED;
     status.rskBlockHash = extendedBridgeTx.blockHash;
     status.originatingRskBlockHash = extendedBridgeTx.blockHash;
     status.isNewestStatus = true;
@@ -177,7 +177,7 @@ describe('Service: PegoutDataProcessor', () => {
     status.btcRecipientAddress = theBtcDestinationAddress;
     status.valueRequestedInSatoshis = theAmount;
     status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
-    status.status = PegoutStatus.RECEIVED;
+    status.status = PegoutStatuses.RECEIVED;
     status.rskBlockHash = extendedBridgeTx.blockHash;
     status.originatingRskBlockHash = extendedBridgeTx.blockHash;
     status.isNewestStatus = true;
@@ -409,7 +409,7 @@ describe('Service: PegoutDataProcessor', () => {
     status.rskBlockHeight = extendedBridgeTx.blockNumber;
     status.rskSenderAddress = rskSenderAddress;
     status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
-    status.status = PegoutStatus.REJECTED;
+    status.status = PegoutStatuses.REJECTED;
 
     sinon.assert.calledOnceWithMatch(mockedPegoutStatusDataService.set, status);
 
@@ -533,7 +533,7 @@ describe('Service: PegoutDataProcessor', () => {
     dbPegoutWaitingForConfirmation.originatingRskTxHash = originatingRskTxHash;
     dbPegoutWaitingForConfirmation.rskBlockHeight = pegoutCreationRskBlockHeight;
     dbPegoutWaitingForConfirmation.rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
-    dbPegoutWaitingForConfirmation.status = PegoutStatus.WAITING_FOR_CONFIRMATION;
+    dbPegoutWaitingForConfirmation.status = PegoutStatuses.WAITING_FOR_CONFIRMATION;
     dbPegoutWaitingForConfirmation.btcRawTransaction = btcRawTx1;
     dbPegoutWaitingForConfirmation.originatingRskBlockHeight = originatingRskBlockHeight;
     dbPegoutWaitingForConfirmation.valueRequestedInSatoshis = 521000;
@@ -579,7 +579,7 @@ describe('Service: PegoutDataProcessor', () => {
     pegoutWithWaitingForSignature.originatingRskTxHash = originatingRskTxHash;
     pegoutWithWaitingForSignature.rskBlockHeight = currentRskBlockHeight;
     pegoutWithWaitingForSignature.rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
-    pegoutWithWaitingForSignature.status = PegoutStatus.WAITING_FOR_SIGNATURE;
+    pegoutWithWaitingForSignature.status = PegoutStatuses.WAITING_FOR_SIGNATURE;
     pegoutWithWaitingForSignature.btcRawTransaction = btcRawTx1;
     pegoutWithWaitingForSignature.originatingRskBlockHeight = originatingRskBlockHeight;
     pegoutWithWaitingForSignature.valueRequestedInSatoshis = 521000;
@@ -610,7 +610,7 @@ describe('Service: PegoutDataProcessor', () => {
     dbPegoutWaitingForSignature.originatingRskTxHash = originatingRskTxHash;
     dbPegoutWaitingForSignature.rskBlockHeight = rskBlockHeight - 200;
     dbPegoutWaitingForSignature.rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
-    dbPegoutWaitingForSignature.status = PegoutStatus.WAITING_FOR_SIGNATURE;
+    dbPegoutWaitingForSignature.status = PegoutStatuses.WAITING_FOR_SIGNATURE;
     dbPegoutWaitingForSignature.btcRawTransaction = btcRawTx1;
     dbPegoutWaitingForSignature.originatingRskBlockHeight = 2869983;
     dbPegoutWaitingForSignature.valueRequestedInSatoshis = 521000;
@@ -666,7 +666,7 @@ describe('Service: PegoutDataProcessor', () => {
     pegoutWithSigned.originatingRskTxHash = originatingRskTxHash;
     pegoutWithSigned.rskBlockHeight = rskBlockHeight;
     pegoutWithSigned.rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
-    pegoutWithSigned.status = PegoutStatus.RELEASE_BTC;
+    pegoutWithSigned.status = PegoutStatuses.RELEASE_BTC;
     pegoutWithSigned.btcRawTransaction = btcRawTx1;
     pegoutWithSigned.originatingRskBlockHeight = 2869983;
     pegoutWithSigned.valueRequestedInSatoshis = 521000;
@@ -781,7 +781,7 @@ describe('Service: PegoutDataProcessor', () => {
       rskTxHash: '0x6843cfeaafe38e1044ec5638877ff766015b44887d32c7aef7daec84aa3af7c5_1',
       btcRecipientAddress: 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55',
       originatingRskTxHash: '0xed0b3849b1087653d916f490392b7c7578c4611ef4b0ec1063d6bcd393fb6080',
-      status: PegoutStatus.WAITING_FOR_CONFIRMATION,
+      status: PegoutStatuses.WAITING_FOR_CONFIRMATION,
       rskBlockHeight: 3552254,
       btcTxHash: btcTxHash,
       isNewestStatus: true,

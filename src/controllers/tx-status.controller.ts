@@ -5,7 +5,7 @@ import {PeginStatus, Status, TxStatus, TxStatusType} from '../models';
 import {PeginStatusError} from "../models/pegin-status-error.model";
 import {ServicesBindings} from "../dependency-injection-bindings";
 import {PeginStatusService, PegoutStatusService, FlyoverService} from "../services";
-import {PegoutStatus} from "../models/rsk/pegout-status-data-model";
+import {PegoutStatuses} from "../models/rsk/pegout-status-data-model";
 import {ensure0x, remove0x} from '../utils/hex-utils';
 import {isValidTxId} from '../utils/tx-validator';
 import {TX_TYPE_PEGIN, TX_TYPE_PEGOUT} from '../constants';
@@ -71,7 +71,7 @@ export class TxStatusController {
       const txHash = ensure0x(txId);
       this.logger.debug(`[getTxStatus] trying to get a pegout with txHash: ${txHash}`);
       const pegoutStatus = await this.pegoutStatusService.getPegoutStatusByRskTxHash(txHash);
-      if (pegoutStatus.status !== PegoutStatus.NOT_FOUND) {
+      if (pegoutStatus.status !== PegoutStatuses.NOT_FOUND) {
         this.logger.debug(`[getTxStatus] Pegout status got for txId ${txHash} - Status: ${pegoutStatus.status}`);
         txStatus = new TxStatus({
           type: TxStatusType.PEGOUT,
