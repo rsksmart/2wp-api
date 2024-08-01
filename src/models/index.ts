@@ -19,3 +19,4 @@ export * from './fee-amount.model';
 export * from './register-payload.model';
 export * from './features.model';
 export * from './pegout-status.model';
+export * from './register-flyover-call.model';
