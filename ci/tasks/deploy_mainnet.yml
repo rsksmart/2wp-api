@@ -30,11 +30,7 @@ run:
     wget --quiet https://github.com/mozilla/sops/releases/download/v3.7.3/sops-v3.7.3.linux.amd64 -O /usr/bin/sops
     chmod +x /usr/bin/sops
 
-    cd repo-twowp-api-mainnet
-    git_tag=$(git describe --tags)
-    cd ..
-
-    echo "2wp-api: Tag: $git_tag - deployment to mainnet" > $out_message_file
+    echo "2wp-api: Docker Tag: mainnet - deployment to mainnet" > $out_message_file
 
     sops_keyfile=$(pwd)/sops_key
     ssh_deploy_keyfile=$(pwd)/ssh_deploy_key
@@ -52,4 +48,4 @@ run:
 
     cd repo-iac-ng/ansible
 
-    ansible-playbook -i inventory -e ansible_ssh_extra_args=-oForwardAgent=yes -l twowp_app_api_mainnet --extra-vars="twowp_api_api_version=$git_tag" deploy-2wp-app-api.yml
+    ansible-playbook -i inventory -e ansible_ssh_extra_args=-oForwardAgent=yes -l twowp_app_api_mainnet --extra-vars="twowp_api_api_version=mainnet" deploy-2wp-app-api.yml
