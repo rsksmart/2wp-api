@@ -8,7 +8,6 @@ image_resource:
 
 inputs:
 - name: repo-iac-ng
-- name: repo-twowp-api-testnet
 
 outputs:
 - name: out
