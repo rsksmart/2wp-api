@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import {RegisterPayload} from '../models';
+import {RegisterCallPayload, RegisterPayload} from '../models';
 import {AppTxModel} from '../models/app-tx.model';
 import {MongoDbDataService} from './mongodb-data.service';
 
@@ -11,7 +11,7 @@ const AppTxSchema = new mongoose.Schema({
   creationDate: {type: Date, required: true},
   value: {type: Number, required: true},
   wallet: {type: String, required: true},
-  fee: {type: Number, required: true}, 
+  fee: {type: Number, required: true},
   rskGas: {type: Number, required: true},
   btcEstimatedFee: {type: Number, required: true},
   provider: {type: String, required: true},
@@ -60,5 +60,13 @@ export class RegisterService extends MongoDbDataService<AppTxModel, AppTxMongoMo
       `[NEW_TX_CREATED] [type=${tx.type}, value=${tx.value}, fee=${tx.fee}, gas=${tx.rskGas}, estimatedFee=${tx.btcEstimatedFee}, provider=${tx.provider}, wallet=${tx.wallet}, addressType=${tx.addressType}, id=${tx.txHash}]`,
     );
     return this.set(tx);
+  }
+
+  async registerFlyoverCall(payload: RegisterCallPayload): Promise<boolean> {
+    const { operationType, functionType, result } = payload;
+    this.logger.info(
+      `[NEW_FLYOVER_CALL] [type=${operationType}, call=${functionType}, response=${result}]`,
+    );
+    return true;
   }
 }
