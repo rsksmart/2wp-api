@@ -50,7 +50,7 @@ export class FeaturesController {
     },
   })
   public async get(): Promise<Response> {
-    this.logger.debug('[get] started');
+    this.logger.debug('[get] started searching for features');
     let retorno = [new FeaturesDbDataModel()];
     let responseCode = this.HTTP_ERROR;
     try {
