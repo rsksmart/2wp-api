@@ -5,7 +5,7 @@ export interface FeaturesDataModel {
     creationDate: Date;
     lastUpdateDate: Date;
     name: string;
-    value: string;
+    enabled: boolean;
     version: number;
 }
   
@@ -17,7 +17,7 @@ export class FeaturesAppDataModel implements FeaturesDataModel{
   creationDate: Date;
   lastUpdateDate: Date;
   name: string;
-  value: string;
+  enabled: boolean;
   version: number;
 }
 
@@ -42,14 +42,17 @@ export class FeaturesDbDataModel implements SearchableModel, FeaturesDataModel {
   name: string;
 
   @property({
-    type: 'string',
+    type: 'boolean',
   })
-  value: string;
+  enabled: boolean;
 
   @property({
     type: 'number',
   })
   version: number;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [prop: string]: any;
 
   getId() {
     return this.name;
@@ -63,7 +66,7 @@ export class FeaturesDbDataModel implements SearchableModel, FeaturesDataModel {
     features.creationDate = other.creationDate;
     features.lastUpdateDate = other.lastUpdateDate;
     features.name = other.name;
-    features.value = other.value;
+    features.enabled = other.enabled;
     features.version = other.version;
     return features;
   }

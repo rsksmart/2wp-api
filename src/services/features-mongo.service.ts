@@ -15,7 +15,7 @@ const FeaturesSchema = new mongoose.Schema({
   creationDate: {type: Date},
   lastUpdateDate: {type: Date},
   name:  {type: String, required: true},
-  value:  {type: String, required: true},
+  enabled:  {type: Boolean, required: true},
   version: {type: Number, required: true},
 });
 
