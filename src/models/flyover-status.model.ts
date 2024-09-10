@@ -9,6 +9,7 @@ export class FlyoverStatusModel implements SearchableModel {
   blockToBeFinished: number;
   senderAddress: string;
   recipientAddress: string;
+  quoteHash: string;
 
   getId() {
     return this.txHash;
