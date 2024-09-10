@@ -16,6 +16,7 @@ const FlyoverStatusSchema = new mongoose.Schema({
   blockToBeFinished: {type: Number, required: true},
   senderAddress: {type: String, required: true},
   recipientAddress: {type: String, required: true},
+  quoteHash: {type: String, required: true},
 });
 
 const FlyoverStatusConnector = mongoose.model<FlyoverStatusMongoModel>('FlyoverStatuses', FlyoverStatusSchema);
@@ -83,6 +84,7 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
     flyoverStatus.senderAddress = payload?.details?.senderAddress ?? '';
     flyoverStatus.recipientAddress = payload?.details?.recipientAddress ?? '';
     flyoverStatus.blockToBeFinished = currentBlock + Number(payload?.details?.blocksToCompleteTransaction ?? 0);
+    flyoverStatus.quoteHash = payload?.quoteHash ?? '';
     return this.set(flyoverStatus);
   }
 }

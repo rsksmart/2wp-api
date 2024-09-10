@@ -61,6 +61,11 @@ export class RegisterPayload extends Model {
     type: 'object',
   })
   details?: Record<string, any>;
+
+  @property({
+    type: 'string',
+  })
+  quoteHash?: string;
   
   constructor(data?: Partial<RegisterPayload>) { //NOSONAR
     super(data);
