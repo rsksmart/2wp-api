@@ -70,6 +70,7 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
       senderAddress: flyoverTx.senderAddress,
       recipientAddress: flyoverTx.recipientAddress,
       status,
+      quoteHash: flyoverTx.quoteHash,
     };
   }
 
