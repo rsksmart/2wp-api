@@ -55,23 +55,35 @@ export class FeaturesController {
     },
   })
   public async get(): Promise<Response> {
-    this.logger.debug('[get] started');
-    let features = [new FeaturesDbDataModel()];
-    let responseCode = this.HTTP_ERROR;
-    try {
-        features = await this.featuresDatService.getAll();
-        const termsIdx = features.findIndex((feature) => feature.name === 'terms_and_conditions');
+    return new Promise<Response>((resolve) => {
+      this.logger.debug('[get] started');
+      let features = [new FeaturesDbDataModel()];
+      let responseCode = this.HTTP_ERROR;
+      this.featuresDatService.getAll()
+      .then((featuresFromDb) => {
+        features = featuresFromDb;
+        const termsIdx = featuresFromDb.findIndex((feature) => feature.name === 'terms_and_conditions');
+        if (!termsIdx) {
+          responseCode = this.HTTP_SUCCESS_OK;
+          this.response.contentType('application/json').status(responseCode)
+            .send(features);
+          resolve(this.response);
+        }
         this.logger.info(`[get] Retrieved terms idx: ${termsIdx}`);
-        const terms = await this.termsDatService.getVersion(features[termsIdx].version);
-        features[termsIdx].value = terms.value;
-        responseCode = this.HTTP_SUCCESS_OK;
+        return Promise.all([this.termsDatService.getVersion(features[termsIdx].version), termsIdx]);
+      })
+      .then(([terms, termsIdx]) => {
+        features[termsIdx].value = terms ? terms.value : 'Version not found';
         this.logger.info(`[get] Retrieved the features: ${JSON.stringify(features)}`);
-    } catch (e) {
-        this.logger.warn(`[get] Got an error: ${e}`); 
-    }
-    this.response.contentType('application/json').status(responseCode).send(
-        features
-    );
-    return this.response;
+        responseCode = this.HTTP_SUCCESS_OK;
+        this.response.contentType('application/json').status(responseCode)
+          .send(features);
+        resolve(this.response);
+      })
+      .catch((error) => {
+        this.logger.warn(`[get] Got an error: ${error}`);
+        resolve(this.response);
+      });
+    });
   }
 }

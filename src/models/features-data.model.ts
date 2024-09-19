@@ -61,13 +61,18 @@ export class FeaturesDbDataModel implements SearchableModel, FeaturesDataModel {
     return 'name';
   }
 
-  public static clone(other: FeaturesDbDataModel): FeaturesDbDataModel {
+  public static clone(other: Partial<FeaturesDbDataModel>): FeaturesDbDataModel {
+    const sanitizedData: Partial<FeaturesDbDataModel> = {};
     const features: FeaturesDbDataModel = new FeaturesDbDataModel();
-    features.creationDate = other.creationDate;
-    features.lastUpdateDate = other.lastUpdateDate;
-    features.name = other.name;
-    features.enabled = other.enabled;
-    features.version = other.version;
+    Object.entries(other).forEach(([key, value]) => {
+      const theKey = key as keyof FeaturesDbDataModel;
+      if (value !== undefined) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        sanitizedData[theKey] = value;
+      }
+    });
+    Object.assign(features, sanitizedData);
     return features;
   }
 
