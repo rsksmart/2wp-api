@@ -69,7 +69,6 @@ export class FeaturesController {
             .send(features);
           resolve(this.response);
         }
-        this.logger.info(`[get] Retrieved terms idx: ${termsIdx}`);
         return Promise.all([this.termsDatService.getVersion(features[termsIdx].version), termsIdx]);
       })
       .then(([terms, termsIdx]) => {
