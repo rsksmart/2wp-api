@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import {RegisterPayload} from '../models';
 import {FlyoverStatusModel} from '../models/flyover-status.model';
 import {MongoDbDataService} from './mongodb-data.service';
@@ -17,6 +17,7 @@ const FlyoverStatusSchema = new mongoose.Schema({
   senderAddress: {type: String, required: true},
   recipientAddress: {type: String, required: true},
   quoteHash: {type: String, required: true},
+  quote: Schema.Types.Mixed,
 });
 
 const FlyoverStatusConnector = mongoose.model<FlyoverStatusMongoModel>('FlyoverStatuses', FlyoverStatusSchema);
