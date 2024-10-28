@@ -1,3 +1,4 @@
+import { QuoteDbModel } from './quote-db.model';
 import {SearchableModel} from './rsk/searchable-model';
 
 export class FlyoverStatusModel implements SearchableModel {
@@ -10,6 +11,7 @@ export class FlyoverStatusModel implements SearchableModel {
   senderAddress: string;
   recipientAddress: string;
   quoteHash: string;
+  quote: QuoteDbModel;
 
   getId() {
     return this.txHash;
