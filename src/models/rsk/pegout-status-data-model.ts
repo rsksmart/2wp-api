@@ -13,6 +13,14 @@ export enum PegoutStatuses {
   RELEASE_BTC = 'RELEASE_BTC'
 }
 
+export const RejectedPegoutReasons = {
+  '1': 'LOW_AMOUNT',
+  '2': 'CALLER_CONTRACT',
+  '3': 'FEE_ABOVE_VALUE',
+} as const;
+
+export type RejectedPegoutReason = (typeof RejectedPegoutReasons)[keyof typeof RejectedPegoutReasons];
+
 export interface PegoutStatusDataModel {
   originatingRskTxHash: string;
   rskTxHash: string;
@@ -23,6 +31,7 @@ export interface PegoutStatusDataModel {
   feeInSatoshisToBePaid: number;
   status: PegoutStatuses;
   btcRawTransaction: string;
+  reason?: RejectedPegoutReason;
 }
 
 export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
@@ -61,6 +70,7 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
       rskSenderAddress,
       valueRequestedInSatoshis,
       status,
+      reason,
     } = model;
     return new PegoutStatusAppDataModel({
       originatingRskTxHash,
@@ -68,6 +78,7 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
       rskSenderAddress,
       valueRequestedInSatoshis,
       status,
+      reason,
     });
   }
   rskTxHash: string;
@@ -80,6 +91,7 @@ export class PegoutStatusAppDataModel implements PegoutStatusDataModel{
   btcRawTransaction: string;
   originatingRskTxHash: string;
   createdOn: Date;
+  reason?: RejectedPegoutReason;
 }
 
 export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDataModel {
@@ -99,7 +111,7 @@ export class PegoutStatusDbDataModel implements SearchableModel, PegoutStatusDat
   valueRequestedInSatoshis: number;
   valueInSatoshisToBeReceived: number;
   feeInSatoshisToBePaid: number;
-  reason: string;
+  reason?: RejectedPegoutReason;
   btcRawTxInputsHash: string;
   batchPegoutIndex: number;
   batchPegoutRskTxHash: string;

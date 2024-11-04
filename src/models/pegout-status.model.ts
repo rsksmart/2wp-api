@@ -1,5 +1,5 @@
 import {Model, model, property} from '@loopback/repository';
-import { PegoutStatuses } from './rsk/pegout-status-data-model';
+import { PegoutStatuses, RejectedPegoutReason } from './rsk/pegout-status-data-model';
 
 @model()
 export class PegoutStatus extends Model {
@@ -50,6 +50,11 @@ export class PegoutStatus extends Model {
     type: 'string',
   })
   btcTxId?: string;
+
+  @property({
+    type: 'string',
+  })
+  reason?: RejectedPegoutReason;
 
 
   constructor(data: Partial<PegoutStatus> = {}) {

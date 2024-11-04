@@ -1,8 +1,9 @@
 import ExtendedBridgeTx from '../extended-bridge-tx';
-import { PegoutStatuses, PegoutStatusDbDataModel } from '../../models/rsk/pegout-status-data-model';
+import { PegoutStatuses, PegoutStatusDbDataModel, RejectedPegoutReasons } from '../../models/rsk/pegout-status-data-model';
 import { BRIDGE_EVENTS } from '../../utils/bridge-utils';
 import { BtcAddressUtils } from '../../utils/btc-utils';
 import {ExtendedBridgeEvent} from "../../models/types/bridge-transaction-parser";
+import { isAvailable } from '../../utils/ts-utils';
 
 export class PegoutStatusBuilder {
 
@@ -36,9 +37,7 @@ export class PegoutStatusBuilder {
         const events: ExtendedBridgeEvent[] = extendedBridgeTx.events as ExtendedBridgeEvent[];
         const releaseRequestRejectedEvent: ExtendedBridgeEvent = events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED)!;
 
-        const rskSenderAddress = <string> releaseRequestRejectedEvent!.arguments.sender;
-        const amount = <number> releaseRequestRejectedEvent.arguments!.amount;
-        const reason = <string> releaseRequestRejectedEvent.arguments!.reason;
+        const {sender: rskSenderAddress, amount, reason} = releaseRequestRejectedEvent.arguments;
 
         const status: PegoutStatusDbDataModel = new PegoutStatusDbDataModel();
 
@@ -48,7 +47,9 @@ export class PegoutStatusBuilder {
         status.rskBlockHeight = extendedBridgeTx.blockNumber;
         status.rskSenderAddress = rskSenderAddress;
         status.valueRequestedInSatoshis = amount;
-        status.reason = reason;
+        if (isAvailable(RejectedPegoutReasons, reason)) {
+            status.reason = RejectedPegoutReasons[reason];
+        }
         status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
         status.status = PegoutStatuses.REJECTED;
         status.isNewestStatus = true;
