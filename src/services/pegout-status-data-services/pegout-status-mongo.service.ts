@@ -31,6 +31,7 @@ const PegoutStatusSchema = new mongoose.Schema({
   batchPegoutRskTxHash: {type: String},
   changedByEvent: {type: String},
   updatedAt: {type: Date},
+  reason: {type: String},
 });
 
 const PegoutStatusConnector = mongoose.model<PegoutStatusMongoModel>("PegoutStatus", PegoutStatusSchema);
