@@ -6,7 +6,6 @@ import {ServicesBindings} from '../dependency-injection-bindings';
 import {RegisterPayload} from '../models';
 import {RegisterService, FlyoverService} from '../services';
 import {SessionRepository} from '../repositories';
-import * as constants from '../constants';
 
 export class RegisterController {
   logger: Logger;
@@ -38,16 +37,11 @@ export class RegisterController {
     })
     payload: RegisterPayload,
   ): Promise<Response> {
-    const {sessionId, type, provider} = payload;
-    let session;
-    if (sessionId) {
-      session = await this.sessionRepository.get(sessionId);
-    }
-    if (session != null || type === constants.TX_TYPE_PEGOUT) {
-      await this.registerService.register(payload);
-    }
+    const {provider} = payload;
     if (provider) {
       await this.flyoverService.register(payload);
+    } else {
+      await this.registerService.register(payload);
     }
     return this.response.status(200).send();
   }
