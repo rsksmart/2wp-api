@@ -168,7 +168,7 @@ describe('Service: NodeBridgeDataProvider', () => {
         signature: '0x44cdc782a38244afd68336ab92a0b39f864d6c0b2a50fa1da58cafc93cd2ae5a',
         arguments: getMockedLockBtcEventsArgs()
       }]
-    }
+    };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
