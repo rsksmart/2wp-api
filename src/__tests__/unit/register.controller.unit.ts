@@ -16,7 +16,6 @@ describe('RegisterController', () => {
   let registerFlyover: sinon.SinonStub;
   let get: sinon.SinonStub;
   let payload = new RegisterPayload({
-    sessionId: '43ef33c59294d5033d96cb25b8f94723',
     txHash: '0x',
     type: constants.TX_TYPE_PEGIN,
     value: 0.005,
@@ -24,7 +23,6 @@ describe('RegisterController', () => {
     fee: 0.000001,
   });
   let pegoutPayload = new RegisterPayload({
-    sessionId: '',
     txHash: '0xb',
     type: constants.TX_TYPE_PEGOUT,
     value: 0.004,
@@ -32,7 +30,6 @@ describe('RegisterController', () => {
     fee: 0.000002,
   });
   let flyoverPayload = new RegisterPayload({
-    sessionId: '',
     txHash: '0xc',
     type: constants.TX_TYPE_PEGOUT,
     value: 0.005,
@@ -41,6 +38,27 @@ describe('RegisterController', () => {
     provider: 'test provider',
     details: {
       blocksToCompleteTransaction: 2,
+    },
+    quote: {
+        callFeeOnWei: 800n,
+        depositAddr: "testDeposit",
+        depositConfirmations: 200,
+        depositDateLimit: 49800,
+        expireBlocks: 100,
+        expireDate: 49850,
+        productFeeAmountOnWei: 6300n,
+        transferConfirmations: 80,
+        transferTime: 50600,
+        valueOnWei: 18450n,
+        agreementTimestamp: 1620000000,
+        gasFeeOnWei: 1000000000000000000n,
+        nonce: 1n,
+        penaltyFeeOnWei: 1000000000000000000n,
+        btcRefundAddress: "testBtcRefund",
+        lbcAddress: "testLbc",
+        lpBtcAddress: "testLpBtc",
+        rskRefundAddress: "testRskRefund",
+        liquidityProviderRskAddress: "testLiquidityProviderRsk",
     },
   });
   beforeEach(reset);
@@ -60,26 +78,16 @@ describe('RegisterController', () => {
     );
   }
 
-  it('should register a pegin with a valid sessionId', async () => {
+  it('should register a pegin', async () => {
     register.resolves(true);
     get.resolves('43ef33c59294d5033d96cb25b8f94723');
     await registerController.register(payload);
     const result = await context.result;
-    sinon.assert.called(sessionRepository.stubs.get);
     sinon.assert.called(register);
     expect(result.statusCode).to.equal(200);
   });
 
-  it('should not register a pegin with an invalid sessionId', async () => {
-    get.resolves(null);
-    await registerController.register(payload);
-    const result = await context.result;
-    sinon.assert.called(sessionRepository.stubs.get);
-    sinon.assert.notCalled(register);
-    expect(result.statusCode).to.equal(200);
-  });
-
-  it('should register a pegout with any sessionId', async () => {
+  it('should register a pegout', async () => {
     await registerController.register(pegoutPayload);
     const result = await context.result;
     sinon.assert.called(register);
