@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import {RegisterPayload} from '../models';
+import {QuoteDbModel, RegisterPayload} from '../models';
 import {FlyoverStatusModel} from '../models/flyover-status.model';
 import {MongoDbDataService} from './mongodb-data.service';
 import { RskNodeService } from './rsk-node.service';
@@ -87,6 +87,7 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
     flyoverStatus.recipientAddress = payload?.details?.recipientAddress ?? '';
     flyoverStatus.blockToBeFinished = currentBlock + Number(payload?.details?.blocksToCompleteTransaction ?? 0);
     flyoverStatus.quoteHash = payload?.quoteHash ?? '';
+    flyoverStatus.quote = payload?.quote ?? {} as QuoteDbModel;
     return this.set(flyoverStatus);
   }
 }
