@@ -7,6 +7,8 @@ on:
     branches: [ "main", "**-rc", "bugfix/**", "**-integration" ]
   schedule:
     - cron: "47 7 * * 5"
+permissions:
+  contents: read
 
 jobs:
   analyze:
