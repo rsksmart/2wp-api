@@ -66,6 +66,11 @@ export class RegisterPayload extends Model {
     type: 'object',
   })
   quote?: QuoteDbModel;
+
+  @property({
+    type: 'string',
+  })
+  acceptedQuoteSignature?: string;
   
   constructor(data?: Partial<RegisterPayload>) { //NOSONAR
     super(data);

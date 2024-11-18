@@ -12,6 +12,7 @@ export class FlyoverStatusModel implements SearchableModel {
   recipientAddress: string;
   quoteHash: string;
   quote: QuoteDbModel;
+  acceptedQuoteSignature: string;
 
   getId() {
     return this.txHash;
