@@ -18,6 +18,7 @@ const FlyoverStatusSchema = new mongoose.Schema({
   recipientAddress: {type: String, required: true},
   quoteHash: {type: String, required: true},
   quote: Schema.Types.Mixed,
+  acceptedQuoteSignature: {type: String},
 });
 
 const FlyoverStatusConnector = mongoose.model<FlyoverStatusMongoModel>('FlyoverStatuses', FlyoverStatusSchema);
@@ -72,6 +73,8 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
       recipientAddress: flyoverTx.recipientAddress,
       status,
       quoteHash: flyoverTx.quoteHash,
+      quote: flyoverTx.quote,
+      acceptedQuoteSignature: flyoverTx.acceptedQuoteSignature,
     };
   }
 
@@ -88,6 +91,7 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
     flyoverStatus.blockToBeFinished = currentBlock + Number(payload?.details?.blocksToCompleteTransaction ?? 0);
     flyoverStatus.quoteHash = payload?.quoteHash ?? '';
     flyoverStatus.quote = payload?.quote ?? {} as QuoteDbModel;
+    flyoverStatus.acceptedQuoteSignature = payload?.acceptedQuoteSignature ?? '';
     return this.set(flyoverStatus);
   }
 }
