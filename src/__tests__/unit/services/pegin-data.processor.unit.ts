@@ -155,7 +155,7 @@ describe('Service: PeginDataProcessor', () => {
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
-      const [event] = bridgeTransaction.events as ExtendedBridgeEvent[]
+      const [event] = bridgeTransaction.events as ExtendedBridgeEvent[];
       const rskReceiver = <string> event.arguments.receiver;
       expect(result.rskRecipient).to.be.equal(rskReceiver.toLowerCase());
       expect(result.status).to.be.equal(PeginStatus.LOCKED);
@@ -194,7 +194,7 @@ describe('Service: PeginDataProcessor', () => {
 
     expect(result).to.be.instanceOf(PeginStatusDataModel);
     if (result) {
-      const [event] = bridgeTransaction.events as ExtendedBridgeEvent[]
+      const [event] = bridgeTransaction.events as ExtendedBridgeEvent[];
       const rskReceiver = <string> event.arguments.receiver;
       expect(result.rskRecipient).to.be.equal(rskReceiver.toLowerCase());
       expect(result.status).to.be.equal(PeginStatus.LOCKED);
