@@ -14,6 +14,7 @@ export interface BlockBook {
     version: string,
     syncMode: boolean,
     inSync: boolean,
+    initialSync: boolean,
     bestHeight: number,
 }
 

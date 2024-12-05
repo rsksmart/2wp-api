@@ -4,7 +4,7 @@ import {inject} from "@loopback/core";
 import {PeginStatus, Status, TxStatus, TxStatusType} from '../models';
 import {PeginStatusError} from "../models/pegin-status-error.model";
 import {ServicesBindings} from "../dependency-injection-bindings";
-import {PeginStatusService, PegoutStatusService, FlyoverService} from "../services";
+import {PeginStatusService, PegoutStatusService, FlyoverService, BitcoinService} from "../services";
 import {PegoutStatuses} from "../models/rsk/pegout-status-data-model";
 import {ensure0x, remove0x} from '../utils/hex-utils';
 import {isValidTxId} from '../utils/tx-validator';
@@ -21,6 +21,8 @@ export class TxStatusController {
       protected pegoutStatusService: PegoutStatusService,
       @inject(ServicesBindings.FLYOVER_SERVICE)
       protected flyoverService: FlyoverService,
+      @inject(ServicesBindings.BITCOIN_SERVICE)
+      protected bitcoinService: BitcoinService,
   ) {
     this.logger = getLogger('TxStatusController');
   }
@@ -45,6 +47,18 @@ export class TxStatusController {
         type: TxStatusType.INVALID_DATA,
       });
       return txStatus;
+    }
+
+    try {
+      const info = await this.bitcoinService.getLastBlock();
+      this.logger.debug('[getLastBlock] trying to get block book information');
+      if (!info.inSync) {
+        this.logger.error(`[BitcoinService] - getLastBlock. Blockbook not in sync: intialSync=${info.intialSync} inSync=${info.inSync}`);
+        return new TxStatus({ type: TxStatusType.BLOCKBOOK_FAILED });
+      }
+    } catch (e) {
+      this.logger.debug(`[BitcoinService] - getLastBlock. Error: ${e}`);
+      return new TxStatus({ type: TxStatusType.BLOCKBOOK_FAILED });
     }
 
     try {
