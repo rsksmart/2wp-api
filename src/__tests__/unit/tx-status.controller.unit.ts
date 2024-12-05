@@ -1,7 +1,7 @@
 import {TxStatusController} from "../../controllers";
-import {PeginStatusService, PegoutStatusService, FlyoverService} from "../../services";
+import {PeginStatusService, PegoutStatusService, FlyoverService, BitcoinService} from "../../services";
 import {createStubInstance, expect, StubbedInstanceWithSinonAccessor} from "@loopback/testlab";
-import {BtcPeginStatus, PeginStatus, PegoutStatus, RskPeginStatus, Status, TxStatus, TxStatusType} from "../../models";
+import {BtcPeginStatus, LastBlockInfo, PeginStatus, PegoutStatus, RskPeginStatus, Status, TxStatus, TxStatusType} from "../../models";
 import {PeginStatus as RskPeginStatusEnum} from "../../models/rsk/pegin-status-data.model";
 import {PegoutStatuses} from "../../models/rsk/pegout-status-data-model";
 
@@ -14,17 +14,25 @@ const testBtcTxId = "86264805cc07e98eb7744f1584ac1aa0d584e2d2830f7d3da353a118c6a
 const testRskRecipientAddress = "0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1";
 const testFederationAddress = "2N6JWYUb6Li4Kux6UB2eihT7n3rm3YX97uv";
 
+
 describe('Controller: Tx Status', () => {
    let txStatusController: TxStatusController;
    let peginStatusService: StubbedInstanceWithSinonAccessor<PeginStatusService>;
    let pegoutStatusService: StubbedInstanceWithSinonAccessor<PegoutStatusService>;
    let flyoverService: StubbedInstanceWithSinonAccessor<FlyoverService>;
+   let bitcoinService: StubbedInstanceWithSinonAccessor<BitcoinService> & BitcoinService;
 
    function resetController() {
+      const blockInfo = new LastBlockInfo();
       peginStatusService = createStubInstance(PeginStatusService);
       pegoutStatusService = createStubInstance(PegoutStatusService);
       flyoverService = createStubInstance(FlyoverService);
-      txStatusController = new TxStatusController(peginStatusService, pegoutStatusService, flyoverService);
+      bitcoinService = createStubInstance(BitcoinService);
+      txStatusController = new TxStatusController(peginStatusService, pegoutStatusService, flyoverService, bitcoinService);
+      blockInfo.inSync = true;
+      blockInfo.initialSync = false;
+
+      bitcoinService.stubs.getLastBlock.resolves(blockInfo);
    }
    function getMockedPeginStatus(mockedTxId: string,status: Status): PeginStatus {
       const btcPeginStatus = new BtcPeginStatus(mockedTxId);
