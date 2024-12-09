@@ -1,19 +1,29 @@
 import { model, property} from '@loopback/repository';
 import { SearchableModel } from "./rsk/searchable-model";
 
+export interface SupportedBrowsers {
+  chrome: boolean;
+  firefox: boolean;
+  safari: boolean;
+  edge: boolean;
+  brave: boolean;
+  chromium: boolean;
+  opera: boolean;
+}
 export interface FeaturesDataModel {
     creationDate: Date;
     lastUpdateDate: Date;
     name: string;
     value: string;
     version: number;
+    supportedBrowsers: SupportedBrowsers;
 }
   
 export class FeaturesAppDataModel implements FeaturesDataModel{
   constructor(data?: Partial<FeaturesAppDataModel>) {
     Object.assign(this, data);
   }
-
+  supportedBrowsers: SupportedBrowsers;
   creationDate: Date;
   lastUpdateDate: Date;
   name: string;
@@ -51,6 +61,11 @@ export class FeaturesDbDataModel implements SearchableModel, FeaturesDataModel {
   })
   version: number;
 
+  @property({
+    type: 'object',
+  })
+  supportedBrowsers: SupportedBrowsers;
+
   getId() {
     return this.name;
   }
@@ -65,6 +80,7 @@ export class FeaturesDbDataModel implements SearchableModel, FeaturesDataModel {
     features.name = other.name;
     features.value = other.value;
     features.version = other.version;
+    features.supportedBrowsers = other.supportedBrowsers;
     return features;
   }
 
