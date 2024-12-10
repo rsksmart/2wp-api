@@ -1,7 +1,7 @@
 {
   "name": "2wp-api",
-  "version": "2.2.0",
-  "description": "Two Way Peg API",
+  "version": "2.3.0",
+  "description": "PowPeg API",
   "keywords": [
     "loopback-application",
     "loopback"
