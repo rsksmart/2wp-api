@@ -83,7 +83,7 @@ describe('Service: PegoutDataProcessor', () => {
         signature: '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
         arguments: releaseRequestReceivedEventsArgs
       }]
-    }
+    };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
@@ -148,7 +148,7 @@ describe('Service: PegoutDataProcessor', () => {
         signature: '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
         arguments: releaseRequestReceivedEventsArgs
       }]
-    }
+    };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
@@ -256,7 +256,7 @@ describe('Service: PegoutDataProcessor', () => {
         signature: '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
         arguments: releaseRequestReceivedEventsArgs
       }]
-    }
+    };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
@@ -301,7 +301,7 @@ describe('Service: PegoutDataProcessor', () => {
         signature: '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
         arguments: releaseRequestReceivedEventsArgs
       }]
-    }
+    };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
@@ -387,7 +387,7 @@ describe('Service: PegoutDataProcessor', () => {
         signature: '0xb607c3e1fbe6b38cd145b15b837f7b722b199caa60e3057b36c141adee3b75e7',
         arguments: releaseRequestedRejectEventsArgs
       }]
-    }
+    };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
@@ -445,7 +445,7 @@ describe('Service: PegoutDataProcessor', () => {
         signature: '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
         arguments: releaseRequestReceivedEventsArgs
       }]
-    }
+    };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
@@ -492,7 +492,7 @@ describe('Service: PegoutDataProcessor', () => {
         signature: '0x7a7c29481528ac8c2b2e93aee658fddd4dc15304fa723a5c2b88514557bcc790',
         arguments: releaseRequestedEventsArgs
       }]
-    }
+    };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
@@ -557,7 +557,7 @@ describe('Service: PegoutDataProcessor', () => {
         signature: '',
         arguments: pegoutConfirmedEventArgs
       }]
-    }
+    };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
@@ -642,7 +642,7 @@ describe('Service: PegoutDataProcessor', () => {
         signature: '0x655929b56d5c5a24f81ee80267d5151b9d680e7e703387999922e9070bc98a02',
         arguments: relaseBtcEventsArgs
       }]
-    }
+    };
 
     const rskBlockHash2 = '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d662';
 
