@@ -4,8 +4,7 @@ import {
   } from '@loopback/testlab';
 import { FeaturesController } from '../../controllers/features.controller';
 import { FeaturesDataService } from '../../services';
-import { FeaturesAppDataModel, FeaturesDbDataModel } from '../../models/features-data.model';
-import { create } from 'domain';
+import { FeaturesDbDataModel } from '../../models/features-data.model';
 import { FeaturesMongoDbDataService } from '../../services/features-mongo.service';
 
   describe('FeaturesController (unit)', () => {
