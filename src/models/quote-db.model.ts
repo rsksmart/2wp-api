@@ -17,7 +17,7 @@ export interface BaseQuoteDbModel {
     contractAddr: string;
     data: string;
     fedBTCAddr: string;
-    gasLimit: number;
+    gasLimit: bigint;
     lpCallTime: number;
     productFeeAmountOnSatoshi: bigint;
     timeForDepositInSeconds: number;
@@ -37,4 +37,4 @@ export interface BaseQuoteDbModel {
     valueOnWei: bigint;
   }
 
-  export type QuoteDbModel = PeginQuoteDbModel | PegoutQuoteDbModel;
+  export type QuoteDbModel = Partial<PeginQuoteDbModel & PegoutQuoteDbModel>;
