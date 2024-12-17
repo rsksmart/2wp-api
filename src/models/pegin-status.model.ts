@@ -1,5 +1,6 @@
 import {Model, model, property} from '@loopback/repository';
 import {PeginStatus as RskPeginStatusEnum} from './rsk/pegin-status-data.model';
+import { FlyoverStatuses } from './flyover-status.model';
 
 @model()
 export class BtcPeginStatus extends Model {
@@ -103,7 +104,7 @@ export class PeginStatus extends Model {
   @property({
     type: 'object',
   })
-  status: Status;
+  status: Status | FlyoverStatuses;
 
   constructor(btc: BtcPeginStatus, rsk?: RskPeginStatus) {
     super();
