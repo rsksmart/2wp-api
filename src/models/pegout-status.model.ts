@@ -1,5 +1,7 @@
 import {Model, model, property} from '@loopback/repository';
 import { PegoutStatuses, RejectedPegoutReason } from './rsk/pegout-status-data-model';
+import { QuoteDbModel } from './quote-db.model';
+import { FlyoverStatuses } from './flyover-status.model';
 
 @model()
 export class PegoutStatus extends Model {
@@ -44,7 +46,7 @@ export class PegoutStatus extends Model {
     type: 'string',
     required: true,
   })
-  status: PegoutStatuses;
+  status: PegoutStatuses | FlyoverStatuses;
 
   @property({
     type: 'string',
@@ -55,6 +57,11 @@ export class PegoutStatus extends Model {
     type: 'string',
   })
   reason?: RejectedPegoutReason;
+
+  @property({
+    type: 'object',
+  })
+  quote?: QuoteDbModel;
 
 
   constructor(data: Partial<PegoutStatus> = {}) {

@@ -4,6 +4,7 @@ import {createStubInstance, expect, StubbedInstanceWithSinonAccessor} from "@loo
 import {BtcPeginStatus, LastBlockInfo, PeginStatus, PegoutStatus, RskPeginStatus, Status, TxStatus, TxStatusType} from "../../models";
 import {PeginStatus as RskPeginStatusEnum} from "../../models/rsk/pegin-status-data.model";
 import {PegoutStatuses} from "../../models/rsk/pegout-status-data-model";
+import { FlyoverStatuses } from "../../models/flyover-status.model";
 
 const testBtcTxHash = "280f0659920d59bc802f0b28be0321b589e98c8faf8968f7402db3e5c37919e1";
 const testRskTxHash = "0xd8b96d2d48f2ab8298c95257ffc8a5b8992e6a6dad1f11d95644880ebce39a9a";
@@ -206,12 +207,24 @@ describe('Controller: Tx Status', () => {
             .resolves(getMockedPegoutStatus(testRskTxHash, PegoutStatuses.NOT_FOUND));
          flyoverService.stubs.getFlyoverStatus.withArgs(testRskTxHash)
             .resolves({
-               status: 'COMPLETED',
+               status: FlyoverStatuses.COMPLETED,
                type: 'pegout',
                txHash: testRskTxHash,
-               date: +new Date(),
+               date: new Date(),
                amount: 0.005,
                fee: 0.00001,
+               blockToBeFinished: 0,
+               senderAddress: "",
+               recipientAddress: "",
+               quoteHash: "",
+               acceptedQuoteSignature: "",
+               getId: function (): string {
+                  throw new Error("Function not implemented.");
+               },
+               getIdFieldName: function (): string {
+                  throw new Error("Function not implemented.");
+               },
+               quote: {},
             });
          const status = await txStatusController.getTxStatus(testRskTxHash);
          expect(peginStatusService.stubs.getPeginSatusInfo.calledOnce).to.be.true();
