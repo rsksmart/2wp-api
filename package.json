@@ -93,7 +93,7 @@
     "eslint-config-airbnb-typescript": "^17.1.0",
     "eslint-plugin-import": "^2.26.0",
     "sinon": "^11.1.2",
-    "sonarqube-scanner": "^3.0.1",
+    "sonarqube-scanner": "^4.2.6",
     "source-map-support": "^0.5.21",
     "typescript": "~5.2.2"
   }
