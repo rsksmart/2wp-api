@@ -95,6 +95,6 @@
     "sinon": "^11.1.2",
     "sonarqube-scanner": "^3.0.1",
     "source-map-support": "^0.5.21",
-    "typescript": "~5.2.2"
+    "typescript": "~5.7.3"
   }
 }
