@@ -73,16 +73,16 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
     return filter;
   }
 
-  async getFlyoverStatus(txHash: string): Promise<FlyoverStatusModel> {
-    let status;
+  async getFlyoverStatus(txHash: string): Promise<any> {
+    let flyoverStatus;
     const flyoverTx = await this.getById(txHash);
     if (!flyoverTx) return Promise.reject(new Error('Flyover tx not found'));
 
     const currentBlock = await this.rskNodeService.getBlockNumber();
     if (flyoverTx.blockToBeFinished <= currentBlock) {
-      status = FlyoverStatuses.COMPLETED;
+      flyoverStatus = FlyoverStatuses.COMPLETED;
     } else {
-      status = FlyoverStatuses.PENDING;
+      flyoverStatus = FlyoverStatuses.PENDING;
     }
 
     const simpleQuote = {
@@ -108,10 +108,20 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
       valueOnSatoshi: flyoverTx.quote.valueOnSatoshi?.toString(),
     };
 
-    const statusModel = FlyoverStatusModel.clone(flyoverTx);
-    statusModel.status = status;
-    statusModel.quote = simpleQuote;
-    return statusModel;
+    return {
+      type: flyoverTx.type,
+      amount: flyoverTx.amount.toString(),
+      fee: flyoverTx.fee.toString(),
+      blockToBeFinished: flyoverTx.blockToBeFinished.toString(),
+      senderAddress: flyoverTx.senderAddress,
+      quoteHash: flyoverTx.quoteHash,
+      txHash: flyoverTx.txHash,
+      date: flyoverTx.date,
+      recipientAddress: flyoverTx.recipientAddress,
+      status: flyoverStatus,
+      quote: simpleQuote,
+      acceptedQuoteSignature: flyoverTx.acceptedQuoteSignature,
+    };
   }
 
   async register(payload: RegisterPayload): Promise<boolean> {
