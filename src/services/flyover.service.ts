@@ -1,9 +1,8 @@
 import mongoose, { Schema } from 'mongoose';
 import {QuoteDbModel, RegisterPayload} from '../models';
-import {FlyoverStatusModel} from '../models/flyover-status.model';
+import {FlyoverStatuses, FlyoverStatusModel} from '../models/flyover-status.model';
 import {MongoDbDataService} from './mongodb-data.service';
 import { RskNodeService } from './rsk-node.service';
-import * as constants from '../constants';
 
 interface FlyoverStatusMongoModel extends mongoose.Document, FlyoverStatusModel {}
 
@@ -74,16 +73,16 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
     return filter;
   }
 
-  async getFlyoverStatus(txHash: string): Promise<any> {
+  async getFlyoverStatus(txHash: string): Promise<FlyoverStatusModel> {
     let status;
     const flyoverTx = await this.getById(txHash);
-    if (!flyoverTx) return null;
+    if (!flyoverTx) return Promise.reject(new Error('Flyover tx not found'));
 
     const currentBlock = await this.rskNodeService.getBlockNumber();
     if (flyoverTx.blockToBeFinished <= currentBlock) {
-      status = constants.FLYOVER_STATUS_COMPLETED;
+      status = FlyoverStatuses.COMPLETED;
     } else {
-      status = constants.FLYOVER_STATUS_PENDING;
+      status = FlyoverStatuses.PENDING;
     }
 
     const simpleQuote = {
@@ -109,19 +108,10 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
       valueOnSatoshi: flyoverTx.quote.valueOnSatoshi?.toString(),
     };
 
-    return {
-      txHash: flyoverTx.txHash,
-      date: flyoverTx.date,
-      type: flyoverTx.type,
-      amount: flyoverTx.amount,
-      fee: flyoverTx.fee,
-      senderAddress: flyoverTx.senderAddress,
-      recipientAddress: flyoverTx.recipientAddress,
-      status,
-      quoteHash: flyoverTx.quoteHash,
-      quote: simpleQuote,
-      acceptedQuoteSignature: flyoverTx.acceptedQuoteSignature,
-    };
+    const statusModel = FlyoverStatusModel.clone(flyoverTx);
+    statusModel.status = status;
+    statusModel.quote = simpleQuote;
+    return statusModel;
   }
 
   async register(payload: RegisterPayload): Promise<boolean> {

@@ -19,6 +19,3 @@ export const ENVIRONMENT_DEVELOPMENT = 'development';
 // transaction types
 export const TX_TYPE_PEGIN = 'pegin';
 export const TX_TYPE_PEGOUT = 'pegout';
-// flyover status
-export const FLYOVER_STATUS_PENDING = 'PENDING';
-export const FLYOVER_STATUS_COMPLETED = 'COMPLETED';
