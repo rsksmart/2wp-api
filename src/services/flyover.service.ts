@@ -86,6 +86,29 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
       status = constants.FLYOVER_STATUS_PENDING;
     }
 
+    const simpleQuote = {
+      agreementTimestamp: flyoverTx.quote.agreementTimestamp,
+      gasFeeOnWei: flyoverTx.quote.gasFeeOnWei?.toString(),
+      nonce: flyoverTx.quote.nonce?.toString(),
+      penaltyFeeOnWei: flyoverTx.quote.penaltyFeeOnWei?.toString(),
+      btcRefundAddress: flyoverTx.quote.btcRefundAddress?.toString(),
+      lbcAddress: flyoverTx.quote.lpBtcAddress,
+      lpBtcAddress: flyoverTx.quote.lpBtcAddress,
+      rskRefundAddress: flyoverTx.quote.rskRefundAddress,
+      liquidityProviderRskAddress: flyoverTx.quote.liquidityProviderRskAddress,
+      callFeeOnSatoshi: flyoverTx.quote.callFeeOnSatoshi?.toString(),
+      callOnRegister: flyoverTx.quote.callOnRegister,
+      confirmations: flyoverTx.quote.confirmations,
+      contractAddr: flyoverTx.quote.contractAddr,
+      data: flyoverTx.quote.data,
+      fedBTCAddr: flyoverTx.quote.fedBTCAddr,
+      gasLimit: flyoverTx.quote.gasLimit?.toString(),
+      lpCallTime: flyoverTx.quote.lpCallTime,
+      productFeeAmountOnSatoshi: flyoverTx.quote.productFeeAmountOnSatoshi?.toString(),
+      timeForDepositInSeconds: flyoverTx.quote.timeForDepositInSeconds,
+      valueOnSatoshi: flyoverTx.quote.valueOnSatoshi?.toString(),
+    };
+
     return {
       txHash: flyoverTx.txHash,
       date: flyoverTx.date,
@@ -96,7 +119,7 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
       recipientAddress: flyoverTx.recipientAddress,
       status,
       quoteHash: flyoverTx.quoteHash,
-      quote: flyoverTx.quote,
+      quote: simpleQuote,
       acceptedQuoteSignature: flyoverTx.acceptedQuoteSignature,
     };
   }
