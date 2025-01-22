@@ -796,7 +796,6 @@ describe('Service: PegoutDataProcessor', () => {
       valueRequestedInSatoshis: 0,
       valueInSatoshisToBeReceived: 0,
       feeInSatoshisToBePaid: 0,
-      reason: '',
       btcRawTxInputsHash: '',
       getId: function (): string {
         return '';

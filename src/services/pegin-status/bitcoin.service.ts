@@ -90,6 +90,7 @@ export class BitcoinService {
           lastBlockInfo.chain = lbir[0].backend.chain;
           lastBlockInfo.coin = lbir[0].blockbook.coin;
           lastBlockInfo.inSync = lbir[0].blockbook.inSync;
+          lastBlockInfo.initialSync = lbir[0].blockbook.initialSync;
           lastBlockInfo.syncMode = lbir[0].blockbook.syncMode;
           resolve(lastBlockInfo);
         })

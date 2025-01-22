@@ -1,13 +1,8 @@
 import {Model, model, property} from '@loopback/repository';
+import { QuoteDbModel } from './quote-db.model';
 
 @model()
 export class RegisterPayload extends Model {
-  @property({
-    type: 'string',
-    required: true,
-  })
-  sessionId: string;
-
   @property({
     type: 'string',
     required: true,
@@ -61,6 +56,21 @@ export class RegisterPayload extends Model {
     type: 'object',
   })
   details?: Record<string, any>;
+
+  @property({
+    type: 'string',
+  })
+  quoteHash?: string;
+
+  @property({
+    type: 'object',
+  })
+  quote?: QuoteDbModel;
+
+  @property({
+    type: 'string',
+  })
+  acceptedQuoteSignature?: string;
   
   constructor(data?: Partial<RegisterPayload>) { //NOSONAR
     super(data);

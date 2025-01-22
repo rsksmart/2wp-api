@@ -125,6 +125,7 @@ export class PegoutStatusService {
             feeInSatoshisToBePaid,
             status,
             btcRawTransaction,
+            reason,
           } = model;
           return new PegoutStatus({
             originatingRskTxHash,
@@ -136,6 +137,7 @@ export class PegoutStatusService {
             feeInSatoshisToBePaid,
             status,
             btcTxId: btcRawTransaction ? this.btcUtils.getBtcTxIdFromRawTransaction(btcRawTransaction) : undefined,
+            reason,
           });
     }
 

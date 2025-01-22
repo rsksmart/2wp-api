@@ -1,13 +1,14 @@
 import {Model, model, property} from '@loopback/repository';
 import {PeginStatus} from "./pegin-status.model";
 import { PegoutStatus } from './pegout-status.model';
+import { FlyoverStatusModel } from './flyover-status.model';
 
 @model()
 export class TxStatus extends Model {
   @property({
     type: 'object',
   })
-  txDetails?: PeginStatus | PegoutStatus;
+  txDetails?: PeginStatus | PegoutStatus | FlyoverStatusModel;
 
   @property({
     type: 'string',
@@ -28,4 +29,5 @@ export enum TxStatusType {
   FLYOVER_PEGOUT = 'FLYOVER_PEGOUT',
   INVALID_DATA = 'INVALID_DATA',
   UNEXPECTED_ERROR = 'UNEXPECTED_ERROR',
+  BLOCKBOOK_FAILED = 'BLOCKBOOK_FAILED',
 }

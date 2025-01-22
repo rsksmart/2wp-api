@@ -11,12 +11,23 @@ import {MongoDbDataService} from './mongodb-data.service';
 interface FeaturesMongoModel extends mongoose.Document, FeaturesDbDataModel {
 }
 
+const SupportedBrowsersSchema = new mongoose.Schema({
+  chrome: {type: Boolean, required: true},
+  firefox: {type: Boolean, required: true},
+  edge: {type: Boolean, required: true},
+  opera: {type: Boolean, required: true},
+  brave: {type: Boolean, required: true},
+  chromium: {type: Boolean, required: true},
+  safari: {type: Boolean, required: true},
+});
+
 const FeaturesSchema = new mongoose.Schema({
   creationDate: {type: Date},
   lastUpdateDate: {type: Date},
   name:  {type: String, required: true},
   value:  {type: String, required: true},
   version: {type: Number, required: true},
+  supportedBrowsers: SupportedBrowsersSchema,
 });
 
 const FeaturesConnector = mongoose.model<FeaturesMongoModel>("Features", FeaturesSchema);
