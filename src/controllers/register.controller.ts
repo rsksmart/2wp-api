@@ -40,9 +40,8 @@ export class RegisterController {
     const {provider} = payload;
     if (provider) {
       await this.flyoverService.register(payload);
-    } else {
-      await this.registerService.register(payload);
     }
+    await this.registerService.register(payload);
     return this.response.status(200).send();
   }
 }
