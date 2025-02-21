@@ -16,10 +16,10 @@ export class RegisterPayload extends Model {
   type: string;
 
   @property({
-    type: 'number',
+    type: 'string',
     required: true,
   })
-  value: number;
+  value: string;
 
   @property({
     type: 'string',
@@ -33,19 +33,19 @@ export class RegisterPayload extends Model {
   addressType?: string;
 
   @property({
-    type: 'number',
+    type: 'string',
   })
-  fee?: number;
+  fee?: string;
 
   @property({
-    type: 'number',
+    type: 'string',
   })
-  rskGas?: number;
+  rskGas?: string;
 
   @property({
-    type: 'number',
+    type: 'string',
   })
-  btcEstimatedFee?: number;
+  btcEstimatedFee?: string;
 
   @property({
     type: 'string',
