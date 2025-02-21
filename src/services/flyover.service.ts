@@ -1,45 +1,24 @@
 import mongoose, { Schema } from 'mongoose';
-import {QuoteDbModel, RegisterPayload} from '../models';
+import { PeginQuoteDbModel, PegoutQuoteDbModel, RegisterPayload } from '../models';
 import {FlyoverStatuses, FlyoverStatusModel} from '../models/flyover-status.model';
 import {MongoDbDataService} from './mongodb-data.service';
 import { RskNodeService } from './rsk-node.service';
+import { stringWeiToDecimalString, stringSatoshiToDecimalString } from '../utils/parseUnits';
+import * as constants from '../constants';
 
 interface FlyoverStatusMongoModel extends mongoose.Document, FlyoverStatusModel {}
-
-const quoteSchema = new Schema<QuoteDbModel>({
-  agreementTimestamp: {type: Number},
-  gasFeeOnWei: {type: Schema.Types.BigInt},
-  nonce: {type: Schema.Types.BigInt},
-  penaltyFeeOnWei: {type: Schema.Types.BigInt},
-  btcRefundAddress: {type: String},
-  lbcAddress: {type: String},
-  lpBtcAddress: {type: String},
-  rskRefundAddress: {type: String},
-  liquidityProviderRskAddress: {type: String},
-  callFeeOnSatoshi: {type: Schema.Types.BigInt},
-  callOnRegister: {type: Boolean},
-  confirmations: {type: Number},
-  contractAddr: {type: String},
-  data: {type: String},
-  fedBTCAddr: {type: String},
-  gasLimit: {type: Schema.Types.BigInt},
-  lpCallTime: {type: Number},
-  productFeeAmountOnSatoshi: {type: Schema.Types.BigInt},
-  timeForDepositInSeconds: {type: Number},
-  valueOnSatoshi: {type: Schema.Types.BigInt},
-})
 
 const FlyoverStatusSchema = new mongoose.Schema({
   txHash: {type: String, required: true},
   date: {type: Date, required: true},
   type: {type: String, required: true},
-  amount: {type: Number, required: true}, 
-  fee: {type: Number, required: true},
-  blockToBeFinished: {type: Number, required: true},
+  amount: {type: String, required: true},
+  fee: {type: String, required: true},
+  blockToBeFinished: {type: String, required: true},
   senderAddress: {type: String, required: true},
   recipientAddress: {type: String, required: true},
   quoteHash: {type: String, required: true},
-  quote: quoteSchema,
+  quote: {type: Schema.Types.Mixed, required: true},
   acceptedQuoteSignature: {type: String},
 });
 
@@ -85,41 +64,18 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
       flyoverStatus = FlyoverStatuses.PENDING;
     }
 
-    const simpleQuote = {
-      agreementTimestamp: flyoverTx.quote.agreementTimestamp,
-      gasFeeOnWei: flyoverTx.quote.gasFeeOnWei?.toString(),
-      nonce: flyoverTx.quote.nonce?.toString(),
-      penaltyFeeOnWei: flyoverTx.quote.penaltyFeeOnWei?.toString(),
-      btcRefundAddress: flyoverTx.quote.btcRefundAddress?.toString(),
-      lbcAddress: flyoverTx.quote.lpBtcAddress,
-      lpBtcAddress: flyoverTx.quote.lpBtcAddress,
-      rskRefundAddress: flyoverTx.quote.rskRefundAddress,
-      liquidityProviderRskAddress: flyoverTx.quote.liquidityProviderRskAddress,
-      callFeeOnSatoshi: flyoverTx.quote.callFeeOnSatoshi?.toString(),
-      callOnRegister: flyoverTx.quote.callOnRegister,
-      confirmations: flyoverTx.quote.confirmations,
-      contractAddr: flyoverTx.quote.contractAddr,
-      data: flyoverTx.quote.data,
-      fedBTCAddr: flyoverTx.quote.fedBTCAddr,
-      gasLimit: flyoverTx.quote.gasLimit?.toString(),
-      lpCallTime: flyoverTx.quote.lpCallTime,
-      productFeeAmountOnSatoshi: flyoverTx.quote.productFeeAmountOnSatoshi?.toString(),
-      timeForDepositInSeconds: flyoverTx.quote.timeForDepositInSeconds,
-      valueOnSatoshi: flyoverTx.quote.valueOnSatoshi?.toString(),
-    };
-
     return {
       type: flyoverTx.type,
-      amount: flyoverTx.amount.toString(),
-      fee: flyoverTx.fee.toString(),
-      blockToBeFinished: flyoverTx.blockToBeFinished.toString(),
+      amount: flyoverTx.amount,
+      fee: flyoverTx.fee,
+      blockToBeFinished: flyoverTx.blockToBeFinished,
       senderAddress: flyoverTx.senderAddress,
       quoteHash: flyoverTx.quoteHash,
       txHash: flyoverTx.txHash,
       date: flyoverTx.date,
       recipientAddress: flyoverTx.recipientAddress,
       status: flyoverStatus,
-      quote: simpleQuote,
+      quote: flyoverTx.quote,
       acceptedQuoteSignature: flyoverTx.acceptedQuoteSignature,
     };
   }
@@ -127,16 +83,38 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
   async register(payload: RegisterPayload): Promise<boolean> {
     const currentBlock = await this.rskNodeService.getBlockNumber();
     const flyoverStatus = new FlyoverStatusModel();
+    const feePlusGas = (BigInt(payload?.fee ?? 0) + BigInt(payload?.rskGas ?? 0));
+    if (payload.type === constants.TX_TYPE_PEGIN) {
+      flyoverStatus.amount = stringSatoshiToDecimalString(payload.value);
+      flyoverStatus.fee = stringSatoshiToDecimalString(feePlusGas.toString());
+      flyoverStatus.quote = {
+        ...payload?.quote,
+        ...(payload?.quote?.callFeeOnSatoshi && { callFeeOnSatoshi: stringSatoshiToDecimalString(payload?.quote?.callFeeOnSatoshi) }),
+        ...(payload?.quote?.gasFeeOnWei && { gasFeeOnWei: stringWeiToDecimalString(payload?.quote?.gasFeeOnWei) }),
+        ...(payload?.quote?.gasLimit && { gasLimit: payload?.quote?.gasLimit }),
+        ...(payload?.quote?.penaltyFeeOnWei && { penaltyFeeOnWei: stringWeiToDecimalString(payload?.quote?.penaltyFeeOnWei) }),
+        ...(payload?.quote?.productFeeAmountOnSatoshi && { productFeeAmountOnSatoshi: stringSatoshiToDecimalString(payload?.quote?.productFeeAmountOnSatoshi) }),
+        ...(payload?.quote?.valueOnSatoshi && { valueOnSatoshi: stringSatoshiToDecimalString(payload?.quote?.valueOnSatoshi) }),
+      } as PeginQuoteDbModel;
+    } else {
+      flyoverStatus.amount = stringWeiToDecimalString(payload.value);
+      flyoverStatus.fee = stringWeiToDecimalString(feePlusGas.toString());
+      flyoverStatus.quote = {
+        ...payload?.quote,
+        ...(payload?.quote?.callFeeOnWei && { callFeeOnWei: stringWeiToDecimalString(payload?.quote?.callFeeOnWei) }),
+        ...(payload?.quote?.gasFeeOnWei && { gasFeeOnWei: stringWeiToDecimalString(payload?.quote?.gasFeeOnWei) }),
+        ...(payload?.quote?.penaltyFeeOnWei && { penaltyFeeOnWei: stringWeiToDecimalString(payload?.quote?.penaltyFeeOnWei) }),
+        ...(payload?.quote?.productFeeAmountOnWei && { productFeeAmountOnWei: stringWeiToDecimalString(payload?.quote?.productFeeAmountOnWei) }),
+        ...(payload?.quote?.valueOnWei && { valueOnWei: stringWeiToDecimalString(payload?.quote?.valueOnWei) }),
+      } as PegoutQuoteDbModel;
+    }
     flyoverStatus.txHash = payload.txHash;
     flyoverStatus.date = new Date();
     flyoverStatus.type = payload.type;
-    flyoverStatus.amount = payload.value;
-    flyoverStatus.fee = (payload?.fee ?? 0) + (payload?.rskGas ?? 0);
     flyoverStatus.senderAddress = payload?.details?.senderAddress ?? '';
     flyoverStatus.recipientAddress = payload?.details?.recipientAddress ?? '';
     flyoverStatus.blockToBeFinished = currentBlock + Number(payload?.details?.blocksToCompleteTransaction ?? 0);
     flyoverStatus.quoteHash = payload?.quoteHash ?? '';
-    flyoverStatus.quote = { ...payload?.quote , ...(payload?.quote?.gasLimit && { gasLimit: BigInt(payload?.quote?.gasLimit) })} as QuoteDbModel;
     flyoverStatus.acceptedQuoteSignature = payload?.acceptedQuoteSignature ?? '';
     return this.set(flyoverStatus);
   }
