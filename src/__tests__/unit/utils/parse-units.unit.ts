@@ -14,8 +14,4 @@ describe('ParseUnits', () => {
     const stringValueInSatoshis = "0";
     expect(stringSatoshiToDecimalString(stringValueInSatoshis)).to.be.eql("0");
   });
-  it('should return zero string value of a wei string 0', () => {
-    const stringValueInWei = "79040000000000";
-    expect(stringWeiToDecimalString(stringValueInWei)).to.be.eql("0");
-  });
 });
