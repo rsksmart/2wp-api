@@ -4,12 +4,12 @@ export class AppTxModel implements SearchableModel {
   txHash: string;
   type: string;
   creationDate: Date;
-  value: number;
+  value: string;
   wallet: string;
   addressType: string;
-  fee: number;
-  rskGas: number;
-  btcEstimatedFee: number;
+  fee: string;
+  rskGas: string;
+  btcEstimatedFee: string;
   provider: string;
 
   getId() {
