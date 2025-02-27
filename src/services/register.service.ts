@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import {RegisterCallPayload, RegisterPayload} from '../models';
+import {RegisterPayload} from '../models';
 import {AppTxModel} from '../models/app-tx.model';
 import {MongoDbDataService} from './mongodb-data.service';
 import { stringSatoshiToDecimalString, stringWeiToDecimalString } from '../utils/parseUnits';
@@ -64,13 +64,5 @@ export class RegisterService extends MongoDbDataService<AppTxModel, AppTxMongoMo
       `[NEW_TX_CREATED] [type=${tx.type}, value=${tx.value}, fee=${tx.fee}, gas=${tx.rskGas}, estimatedFee=${tx.btcEstimatedFee}, provider=${tx.provider}, wallet=${tx.wallet}, addressType=${tx.addressType}, id=${tx.txHash}]`,
     );
     return this.set(tx);
-  }
-
-  async registerFlyoverCall(payload: RegisterCallPayload): Promise<boolean> {
-    const { operationType, functionType, result } = payload;
-    this.logger.info(
-      `[NEW_FLYOVER_CALL] [type=${operationType}, call=${functionType}, response=${result}]`,
-    );
-    return true;
   }
 }
