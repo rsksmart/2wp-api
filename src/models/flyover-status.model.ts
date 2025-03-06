@@ -9,8 +9,8 @@ export class FlyoverStatusModel implements SearchableModel {
   txHash: string;
   type: string;
   date: Date;
-  amount: number;
-  fee: number;
+  amount: string;
+  fee: string;
   blockToBeFinished: number;
   senderAddress: string;
   recipientAddress: string;
