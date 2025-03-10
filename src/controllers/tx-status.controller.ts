@@ -57,7 +57,7 @@ export class TxStatusController {
   })
   async getTxStatusByType(
     @param.path.string('txId') txId: string,
-    @param.path.string('txtype') txType: string,
+    @param.path.string('txType') txType: string,
   ): Promise<TxStatus> {
     const startTime = performance.now();
     let txStatus:TxStatus;
@@ -70,20 +70,6 @@ export class TxStatusController {
       });
       this.logTime(startTime);
       return txStatus;
-    }
-
-    try {
-      const info = await this.verifyBlockBook();
-      this.logger.debug('[getLastBlock] trying to get block book information');
-      if (!info.inSync) {
-        this.logger.debug(`[BitcoinService] - getLastBlock. Blockbook not in sync: intialSync=${info.intialSync} inSync=${info.inSync}`);
-        this.logTime(startTime);
-        return new TxStatus({ type: TxStatusType.BLOCKBOOK_FAILED });
-      }
-    } catch (e) {
-      this.logger.error(`[BitcoinService] - getLastBlock. Error: ${e}`);
-      this.logTime(startTime);
-      return new TxStatus({ type: TxStatusType.BLOCKBOOK_FAILED });
     }
 
     if(txType === TxStatusType.PEGOUT){ 
