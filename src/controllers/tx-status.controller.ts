@@ -1,4 +1,4 @@
-import {get, getModelSchemaRef, param, post, requestBody, response,} from '@loopback/rest';
+import {get, getModelSchemaRef, param, response,} from '@loopback/rest';
 import {getLogger, Logger} from "log4js";
 import {inject} from "@loopback/core";
 import {LastBlockInfo, PeginStatus, Status, TxStatus, TxStatusType} from '../models';
@@ -9,7 +9,6 @@ import {PegoutStatuses} from "../models/rsk/pegout-status-data-model";
 import {ensure0x, remove0x} from '../utils/hex-utils';
 import {isValidTxId} from '../utils/tx-validator';
 import {TX_TYPE_PEGIN} from '../constants';
-import { SearchTransactionPayload } from '../models/search-transaction-payload.model';
 
 
 export class TxStatusController {
@@ -199,7 +198,7 @@ export class TxStatusController {
 
     this.logger.error(`[getTxStatus] Transaction not found`);
     txStatus = new TxStatus({
-      type: TxStatusType.UNEXPECTED_ERROR,
+      type: TxStatusType.INVALID_DATA,
     });
     return txStatus;
   }
@@ -271,9 +270,6 @@ export class TxStatusController {
     let txStatus:TxStatus = new TxStatus({});
 
     try {
-      const result = await this.peginStatusService.getPeginSatusInfo(txId);
-      this.logger.debug(`[getPeginStatus] Found tx with status ${result.status}`);
-
       const txHash = remove0x(txId);
       this.logger.debug(`[getTxStatus] trying to get a pegin with txHash: ${txHash}`);
       const peginStatus = await this.getPeginStatus(txHash);
@@ -300,7 +296,7 @@ export class TxStatusController {
 
   private async getPeginStatus(txId: string): Promise<PeginStatus> {
     try {
-      const result = await this.peginStatusService.getPeginSatusInfo(txId);
+      const result = await this.peginStatusService.getPeginStatusInfo(txId);
       this.logger.debug(`[getPeginStatus] Found tx with status ${result.status}`);
       return result;
     } catch (e) {
