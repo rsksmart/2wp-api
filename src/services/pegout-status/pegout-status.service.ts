@@ -1,7 +1,7 @@
 import {getLogger, Logger} from "log4js";
 import {inject} from "@loopback/core";
 import Web3 from 'web3';
-import {BridgeEvent, Transaction} from 'bridge-transaction-parser';
+import {BridgeEvent, Transaction} from '@rsksmart/bridge-transaction-parser';
 import {ServicesBindings} from "../../dependency-injection-bindings";
 import {PegoutStatuses, PegoutStatusAppDataModel} from "../../models/rsk/pegout-status-data-model";
 import {PegoutStatusDataService} from "../pegout-status-data-services/pegout-status-data.service";
@@ -39,7 +39,6 @@ export class PegoutStatusService {
             this.pegoutStatusDataService.getLastByOriginatingRskTxHashNewest(rskTxHash)
                 .then(async (pegoutStatusDbDataModel) => {
                     if (!pegoutStatusDbDataModel) {
-
                         //TODO Change it when bridgeTransactionParser return PENDING transaction (tx on mempool)
                         try {
                             const rskTransaction: RskTransaction = await this.rskNodeService.getTransaction(rskTxHash, this.ATTACH_TRANSACTION_RECEIPT);
