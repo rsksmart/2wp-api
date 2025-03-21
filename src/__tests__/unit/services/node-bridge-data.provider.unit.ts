@@ -11,7 +11,7 @@ import { RskBlock } from '../../../models/rsk/rsk-block.model';
 import { RskTransaction } from '../../../models/rsk/rsk-transaction.model';
 import { PeginStatusDataService } from '../../../services/pegin-status-data-services/pegin-status-data.service';
 import { BridgeService } from '../../../services';
-import {Transaction} from 'bridge-transaction-parser';
+import {Transaction} from '@rsksmart/bridge-transaction-parser';
 
 const rskTxHash = '0xd2852f38fedf1915978715b8a0dc0670040ac4e9065989c810a5bf29c1e006fb';
 
@@ -158,6 +158,8 @@ describe('Service: NodeBridgeDataProvider', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
@@ -171,6 +173,8 @@ describe('Service: NodeBridgeDataProvider', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn,
@@ -268,6 +272,8 @@ describe('Service: NodeBridgeDataProvider', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
@@ -281,6 +287,8 @@ describe('Service: NodeBridgeDataProvider', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn,

@@ -1,18 +1,26 @@
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import {getLogger, Logger} from 'log4js';
 import Web3 from 'web3';
+import {ethers} from 'ethers';
 import {Contract} from 'web3-eth-contract';
-import bridgeTransactionParser, {Transaction} from 'bridge-transaction-parser';
+import BridgeTransactionParser, {Transaction} from '@rsksmart/bridge-transaction-parser';
 import { getBridgeState, BridgeState } from '@rsksmart/bridge-state-data-parser';
+import * as constants from '../constants';
 
 export class BridgeService {
   private bridgeContract: Contract;
   private web3: Web3;
   private TOTAL_RBTC_STOCK = 21000000;
+  private host: string;
+  private ethersProvider: ethers.JsonRpcProvider;
+  private bridgeTransactionParser: BridgeTransactionParser;
   logger: Logger;
   constructor() {
     this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
     this.bridgeContract = bridge.build(this.web3);
+    this.host = process.env.RSK_NODE_HOST ?? constants.TESTNET_RSK_NODE_HOST;
+    this.ethersProvider = new ethers.JsonRpcProvider(this.host);
+    this.bridgeTransactionParser = new BridgeTransactionParser(this.ethersProvider);
     this.logger = getLogger('bridge-service');
   }
 
@@ -109,11 +117,11 @@ export class BridgeService {
   }
 
   public async getBridgeTransactionByHash(txHash: string): Promise<Transaction> {
-    return await bridgeTransactionParser.getBridgeTransactionByTxHash(this.web3, txHash);
+    return await this.bridgeTransactionParser.getBridgeTransactionByTxHash(txHash);
   }
 
   public async getBridgeState(defaultBlock: string | number = 'latest'): Promise<BridgeState> {
-    return await getBridgeState(this.web3, defaultBlock);
+    return await getBridgeState(this.host, defaultBlock);
   }
 
 }

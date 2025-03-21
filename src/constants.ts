@@ -19,3 +19,6 @@ export const ENVIRONMENT_DEVELOPMENT = 'development';
 // transaction types
 export const TX_TYPE_PEGIN = 'pegin';
 export const TX_TYPE_PEGOUT = 'pegout';
+
+export const TESTNET_RSK_NODE_HOST = 'https://public-node.testnet.rsk.co';
+export const MAINNET_RSK_NODE_HOST = 'https://public-node.rsk.co';

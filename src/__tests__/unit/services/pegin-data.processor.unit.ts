@@ -5,7 +5,7 @@ import {PeginStatusDataService} from '../../../services/pegin-status-data-servic
 import sinon, {SinonStubbedInstance} from 'sinon';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
 import ExtendedBridgeTx from '../../../services/extended-bridge-tx';
-import {Transaction} from 'bridge-transaction-parser';
+import {Transaction} from '@rsksmart/bridge-transaction-parser';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import {ExtendedBridgeEvent} from "../../../models/types/bridge-transaction-parser";
 
@@ -132,6 +132,8 @@ describe('Service: PeginDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
@@ -141,6 +143,8 @@ describe('Service: PeginDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn: new Date(),
@@ -171,6 +175,8 @@ describe('Service: PeginDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
@@ -180,6 +186,8 @@ describe('Service: PeginDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn: new Date(),
@@ -210,6 +218,8 @@ describe('Service: PeginDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
@@ -219,6 +229,8 @@ describe('Service: PeginDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn: new Date(),
@@ -242,6 +254,8 @@ describe('Service: PeginDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
@@ -251,6 +265,8 @@ describe('Service: PeginDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn: new Date(),
@@ -279,6 +295,8 @@ describe('Service: PeginDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
@@ -288,6 +306,8 @@ describe('Service: PeginDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn: new Date(),
@@ -324,6 +344,8 @@ describe('Service: PeginDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
@@ -333,6 +355,8 @@ describe('Service: PeginDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn: new Date(),
@@ -354,6 +378,8 @@ describe('Service: PeginDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
@@ -363,6 +389,8 @@ describe('Service: PeginDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn: new Date(),
@@ -386,6 +414,8 @@ describe('Service: PeginDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: 'registerBtcTransaction',
         signature: '0x43dc0656',
@@ -395,6 +425,8 @@ describe('Service: PeginDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn: new Date(),

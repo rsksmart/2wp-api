@@ -1,6 +1,8 @@
-import {expect, sinon} from '@loopback/testlab';
+import {expect} from '@loopback/testlab';
 import {BridgeService} from '../../services';
-import bridgeTransactionParser, {Transaction} from 'bridge-transaction-parser';
+import BridgeTransactionParser, {Transaction} from '@rsksmart/bridge-transaction-parser';
+import { ethers } from 'ethers';
+import * as constants from '../../constants';
 
 const rskTxHash = '0xd2852f38fedf1915978715b8a0dc0670040ac4e9065989c810a5bf29c1e006fb';
 const btcValidTxHash = '7006c53b81e644367bf736e07456af8a1ce487174fc6b5e398f6fa7b8d069daa';
@@ -46,27 +48,13 @@ describe('Service: Bridge', () => {
   });
 
   it('returns bridge transaction by hash', async () => {
-    const bridgeTransaction: Transaction = {
-      txHash: rskTxHash,
-      blockNumber: 1,
-      method: {
-        name: 'registerBtcTransaction',
-        signature: '0x43dc0656',
-        arguments: new Map()
-      },
-      events: [
-        {
-          name: 'pegin_btc',
-          signature: '0x44cdc782a38244afd68336ab92a0b39f864d6c0b2a50fa1da58cafc93cd2ae5a',
-          arguments: new Map()
-        }
-      ]
-    };
-    const promise = new Promise<Transaction>((resolve) => resolve(bridgeTransaction));
-    sinon.stub(bridgeTransactionParser, 'getBridgeTransactionByTxHash').returns(promise);
-    const response = await bridgeService.getBridgeTransactionByHash('0x0001');
-    const expectedResponse = await promise;
-    expect(response).to.equal(expectedResponse);
+    const bridgeTransactionParser = new BridgeTransactionParser(new ethers.JsonRpcProvider(constants.TESTNET_RSK_NODE_HOST));
+    const response = await bridgeTransactionParser.getBridgeTransactionByTxHash(rskTxHash);
+    expect(response).to.have.keys('blockNumber', 'blockTimestamp', 'events', 'method', 'sender', 'txHash');
+    expect(response.events[0]).to.have.keys('arguments', 'name', 'signature');
+    expect(response.events[0].arguments).to.have.keys('amount', 'btcTxHash', 'receiver', 'senderBtcAddress');
+    expect(response.method).to.have.keys('arguments');
+    expect(response.method.arguments).to.have.keys('height', 'pmt', 'tx');
   });
 
 });
