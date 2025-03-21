@@ -1,13 +1,21 @@
-import { getBridgeTransactionByTxHash, Transaction } from 'bridge-transaction-parser';
+import BridgeTransactionParser, { Transaction } from '@rsksmart/bridge-transaction-parser';
 import Web3 from 'web3';
 import { BlockTransactionObject } from 'web3-eth';
+import { ethers } from 'ethers';
 import { RskTransaction } from '../models/rsk/rsk-transaction.model';
+import * as constants from '../constants';
 
 export class RskNodeService {
   web3: Web3;
+  host: string;
+  ethersProvider: ethers.JsonRpcProvider;
+  bridgeTransactionParser: BridgeTransactionParser;
 
   constructor() {
     this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
+    this.host = process.env.RSK_NODE_HOST ?? constants.TESTNET_RSK_NODE_HOST;
+    this.ethersProvider = new ethers.JsonRpcProvider(this.host);
+    this.bridgeTransactionParser = new BridgeTransactionParser(this.ethersProvider);
   }
   getBlock(block: string | number): Promise<BlockTransactionObject> {
     return this.web3.eth.getBlock(block, true);
@@ -19,7 +27,7 @@ export class RskNodeService {
     return this.web3.eth.getBlockNumber();
   }
   getBridgeTransaction(txHash: string): Promise<Transaction> {
-    return getBridgeTransactionByTxHash(this.web3, txHash);
+    return this.bridgeTransactionParser.getBridgeTransactionByTxHash(txHash);
   }
   getTransaction(txHash: string, includeReceipt?:boolean): Promise<RskTransaction> {
     const rskTx = new RskTransaction();

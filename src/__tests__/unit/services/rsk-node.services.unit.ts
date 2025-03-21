@@ -1,5 +1,5 @@
 import {expect, sinon} from '@loopback/testlab';
-import { BridgeEvent } from 'bridge-transaction-parser';
+import { BridgeEvent } from '@rsksmart/bridge-transaction-parser';
 import {RskBlock} from '../../../models/rsk/rsk-block.model';
 import {RskNodeService} from '../../../services/rsk-node.service';
 import { BRIDGE_EVENTS } from '../../../utils/bridge-utils';

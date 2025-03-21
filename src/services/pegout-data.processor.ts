@@ -1,6 +1,6 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
-import { BridgeEvent } from 'bridge-transaction-parser';
+import { BridgeEvent } from '@rsksmart/bridge-transaction-parser';
 import * as bitcoin from 'bitcoinjs-lib';
 import Web3 from 'web3';
 import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
@@ -17,6 +17,7 @@ import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 import { sha256 } from '../utils/sha256-utils';
 import { FullRskTransaction } from '../models/rsk/full-rsk-transaction.model';
+import { fromWeiNumberToSatoshiNumber } from "../utils/btc-utils";
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
@@ -156,7 +157,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       newPegoutStatus.isNewestStatus = true;
       newPegoutStatus.status = PegoutStatuses.RELEASE_BTC;
       newPegoutStatus.valueInSatoshisToBeReceived = output.value;
-      newPegoutStatus.feeInSatoshisToBePaid = newPegoutStatus.valueRequestedInSatoshis - newPegoutStatus.valueInSatoshisToBeReceived;
+      newPegoutStatus.feeInSatoshisToBePaid = fromWeiNumberToSatoshiNumber(newPegoutStatus.valueRequestedInSatoshis - newPegoutStatus.valueInSatoshisToBeReceived);
       newPegoutStatus.btcRawTxInputsHash = this.getInputsHash(parsedBtcTransaction);
       newPegoutStatus.rskTxHash = `${extendedBridgeTx.txHash}___${thePegout.batchPegoutIndex}`;
 
@@ -253,7 +254,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
         const output = parsedBtcTransaction.outs[pegoutStatus.batchPegoutIndex];
         pegoutStatus.valueInSatoshisToBeReceived = output.value;
-        pegoutStatus.feeInSatoshisToBePaid = pegoutStatus.valueRequestedInSatoshis - pegoutStatus.valueInSatoshisToBeReceived;
+        pegoutStatus.feeInSatoshisToBePaid = fromWeiNumberToSatoshiNumber(pegoutStatus.valueRequestedInSatoshis - pegoutStatus.valueInSatoshisToBeReceived);
         pegoutStatus.btcRawTransaction = batchedPegout.btcRawTx;
         pegoutStatus.btcRawTxInputsHash = this.getInputsHash(parsedBtcTransaction);
     } catch(e) {
@@ -365,7 +366,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
     pegoutStatus.valueInSatoshisToBeReceived = output.value;
-    pegoutStatus.feeInSatoshisToBePaid = pegoutStatus.valueRequestedInSatoshis - pegoutStatus.valueInSatoshisToBeReceived;
+    pegoutStatus.feeInSatoshisToBePaid = fromWeiNumberToSatoshiNumber(pegoutStatus.valueRequestedInSatoshis - pegoutStatus.valueInSatoshisToBeReceived);
     pegoutStatus.btcRawTransaction = pegout.btcRawTx;
   }
 

@@ -4,7 +4,7 @@ import { PegoutDataProcessor } from '../../../services/pegout-data.processor';
 import { SinonStubbedInstance } from 'sinon';
 import { PegoutStatusMongoDbDataService } from '../../../services/pegout-status-data-services/pegout-status-mongo.service';
 import ExtendedBridgeTx from '../../../services/extended-bridge-tx';
-import {Transaction} from 'bridge-transaction-parser';
+import {Transaction} from '@rsksmart/bridge-transaction-parser';
 import { BRIDGE_EVENTS, BRIDGE_METHODS } from '../../../utils/bridge-utils';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import { PegoutStatuses, PegoutStatusDbDataModel } from '../../../models/rsk/pegout-status-data-model';
@@ -73,6 +73,8 @@ describe('Service: PegoutDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: '0xfffce75653adb8b90a1be6809a44d37e07c4f7cf5d4daf209f3e23a4c9a29cf1',
       blockNumber: 3609605,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: '',
         signature: '',
@@ -86,6 +88,8 @@ describe('Service: PegoutDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn,
@@ -138,6 +142,8 @@ describe('Service: PegoutDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: '0xfffce75653adb8b90a1be6809a44d37e07c4f7cf5d4daf209f3e23a4c9a29cf1',
       blockNumber: 3609605,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: '',
         signature: '',
@@ -151,6 +157,8 @@ describe('Service: PegoutDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn,
@@ -201,6 +209,8 @@ describe('Service: PegoutDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: '0xfffce75653adb8b90a1be6809a44d37e07c4f7cf5d4daf209f3e23a4c9a29cf1',
       blockNumber: 3609605,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: '',
         signature: '',
@@ -214,6 +224,8 @@ describe('Service: PegoutDataProcessor', () => {
     }
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn,
@@ -246,6 +258,8 @@ describe('Service: PegoutDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: '',
         signature: '',
@@ -259,6 +273,8 @@ describe('Service: PegoutDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn,
@@ -291,6 +307,8 @@ describe('Service: PegoutDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: 'zzzzzz-invalid-xxxxx',
         signature: '',
@@ -304,6 +322,8 @@ describe('Service: PegoutDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn,
@@ -335,6 +355,8 @@ describe('Service: PegoutDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: BRIDGE_METHODS.UPDATE_COLLECTIONS,
         signature: '',
@@ -349,6 +371,8 @@ describe('Service: PegoutDataProcessor', () => {
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       blockHash,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       txHash: bridgeTransaction.txHash,
       createdOn,
       blockNumber: bridgeTransaction.blockNumber,
@@ -377,6 +401,8 @@ describe('Service: PegoutDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: 1,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: '',
         signature: '',
@@ -390,6 +416,8 @@ describe('Service: PegoutDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn,
@@ -435,6 +463,8 @@ describe('Service: PegoutDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: originatingRskTxHash,
       blockNumber: rskBlockHeight,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: '',
         signature: '',
@@ -448,6 +478,8 @@ describe('Service: PegoutDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn,
@@ -482,6 +514,8 @@ describe('Service: PegoutDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: rskBlockHeight,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: '',
         signature: '',
@@ -495,6 +529,8 @@ describe('Service: PegoutDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn,
@@ -547,6 +583,8 @@ describe('Service: PegoutDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: currentRskBlockHeight,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: '',
         signature: '',
@@ -560,6 +598,8 @@ describe('Service: PegoutDataProcessor', () => {
     };
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash,
       txHash: bridgeTransaction.txHash,
       createdOn,
@@ -632,6 +672,8 @@ describe('Service: PegoutDataProcessor', () => {
     const bridgeTransaction: Transaction = {
       txHash: rskTxHash,
       blockNumber: rskBlockHeight,
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       method: {
         name: 'addSignature',
         signature: '0xf10b9c59',
@@ -647,6 +689,8 @@ describe('Service: PegoutDataProcessor', () => {
     const rskBlockHash2 = '0xe934eb559aa52270dcad6ca6a890b19ba8605381b90a72f4a19a850a2e79d662';
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       blockHash: rskBlockHash2,
       txHash: bridgeTransaction.txHash,
       createdOn,
@@ -712,6 +756,8 @@ describe('Service: PegoutDataProcessor', () => {
     const set = mockedPegoutStatusDataService.set as sinon.SinonStub;
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       txHash: "0x6843cfeaafe38e1044ec5638877ff766015b44887d32c7aef7daec84aa3af7c5",
       method: {
         name: "updateCollections",
@@ -857,6 +903,8 @@ describe('Service: PegoutDataProcessor', () => {
     const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
 
     const extendedBridgeTx: ExtendedBridgeTx = {
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1626736729000,
       txHash: "0x6843cfeaafe38e1044ec5638877ff766015b44887d32c7aef7daec84aa3af7c5",
       method: {
         name: "updateCollections",

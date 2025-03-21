@@ -1,6 +1,6 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
-import {BridgeEvent} from 'bridge-transaction-parser';
+import {BridgeEvent} from '@rsksmart/bridge-transaction-parser';
 import {PeginStatus as RskPeginStatusEnum, PeginStatusDataModel} from '../models/rsk/pegin-status-data.model';
 import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
 import FilteredBridgeTransactionProcessor from './filtered-bridge-transaction-processor';

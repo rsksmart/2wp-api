@@ -9,7 +9,7 @@ import {
 import { RskNodeService } from '../../../services/rsk-node.service';
 import { RskTransaction } from '../../../models/rsk/rsk-transaction.model';
 import { ExtendedBridgeTxModel } from '../../../services/extended-bridge-tx';
-import { BridgeEvent, BridgeMethod, Transaction } from 'bridge-transaction-parser';
+import { BridgeEvent, BridgeMethod, Transaction } from '@rsksmart/bridge-transaction-parser';
 import { TransactionReceipt  } from 'web3-eth';
 import { PegoutStatus } from '../../../models';
 
@@ -115,7 +115,9 @@ describe('Pegout Status Service:', () => {
         const bridgeEvent = [{}] as BridgeEvent[];
         const bridgeMethod = {} as BridgeMethod;
 
-        const transaction: Transaction = { 
+        const transaction: Transaction = {
+            sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+            blockTimestamp: 1626736729000,
             txHash: '', 
             method: bridgeMethod, 
             events: bridgeEvent, 

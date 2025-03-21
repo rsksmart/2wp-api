@@ -1,7 +1,7 @@
 import ExtendedBridgeTx from '../extended-bridge-tx';
 import { PegoutStatuses, PegoutStatusDbDataModel, RejectedPegoutReasons } from '../../models/rsk/pegout-status-data-model';
 import { BRIDGE_EVENTS } from '../../utils/bridge-utils';
-import { BtcAddressUtils } from '../../utils/btc-utils';
+import { BtcAddressUtils, fromWeiNumberToSatoshiNumber } from '../../utils/btc-utils';
 import {ExtendedBridgeEvent} from "../../models/types/bridge-transaction-parser";
 import { isAvailable } from '../../utils/ts-utils';
 
@@ -23,7 +23,7 @@ export class PegoutStatusBuilder {
         status.rskBlockHeight = extendedBridgeTx.blockNumber;
         status.rskSenderAddress = rskSenderAddress;
         status.btcRecipientAddress = btcDestinationAddress;
-        status.valueRequestedInSatoshis = amount;
+        status.valueRequestedInSatoshis = fromWeiNumberToSatoshiNumber(amount);
         status.originatingRskBlockHeight = extendedBridgeTx.blockNumber;
         status.status = PegoutStatuses.RECEIVED;
         status.rskBlockHash = extendedBridgeTx.blockHash;
@@ -46,7 +46,7 @@ export class PegoutStatusBuilder {
         status.rskTxHash = extendedBridgeTx.txHash;
         status.rskBlockHeight = extendedBridgeTx.blockNumber;
         status.rskSenderAddress = rskSenderAddress;
-        status.valueRequestedInSatoshis = amount;
+        status.valueRequestedInSatoshis = fromWeiNumberToSatoshiNumber(amount);
         if (isAvailable(RejectedPegoutReasons, reason)) {
             status.reason = RejectedPegoutReasons[reason];
         }
