@@ -157,7 +157,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       newPegoutStatus.isNewestStatus = true;
       newPegoutStatus.status = PegoutStatuses.RELEASE_BTC;
       newPegoutStatus.valueInSatoshisToBeReceived = output.value;
-      newPegoutStatus.feeInSatoshisToBePaid = fromWeiNumberToSatoshiNumber(newPegoutStatus.valueRequestedInSatoshis - newPegoutStatus.valueInSatoshisToBeReceived);
+      newPegoutStatus.feeInSatoshisToBePaid = newPegoutStatus.valueRequestedInSatoshis - newPegoutStatus.valueInSatoshisToBeReceived;
       newPegoutStatus.btcRawTxInputsHash = this.getInputsHash(parsedBtcTransaction);
       newPegoutStatus.rskTxHash = `${extendedBridgeTx.txHash}___${thePegout.batchPegoutIndex}`;
 
@@ -254,7 +254,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
         const output = parsedBtcTransaction.outs[pegoutStatus.batchPegoutIndex];
         pegoutStatus.valueInSatoshisToBeReceived = output.value;
-        pegoutStatus.feeInSatoshisToBePaid = fromWeiNumberToSatoshiNumber(pegoutStatus.valueRequestedInSatoshis - pegoutStatus.valueInSatoshisToBeReceived);
+        pegoutStatus.feeInSatoshisToBePaid = pegoutStatus.valueRequestedInSatoshis - pegoutStatus.valueInSatoshisToBeReceived;
         pegoutStatus.btcRawTransaction = batchedPegout.btcRawTx;
         pegoutStatus.btcRawTxInputsHash = this.getInputsHash(parsedBtcTransaction);
     } catch(e) {
@@ -366,7 +366,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
 
     pegoutStatus.valueInSatoshisToBeReceived = output.value;
-    pegoutStatus.feeInSatoshisToBePaid = fromWeiNumberToSatoshiNumber(pegoutStatus.valueRequestedInSatoshis - pegoutStatus.valueInSatoshisToBeReceived);
+    pegoutStatus.feeInSatoshisToBePaid = pegoutStatus.valueRequestedInSatoshis - pegoutStatus.valueInSatoshisToBeReceived;
     pegoutStatus.btcRawTransaction = pegout.btcRawTx;
   }
 
