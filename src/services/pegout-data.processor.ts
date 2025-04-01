@@ -17,7 +17,6 @@ import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 import { sha256 } from '../utils/sha256-utils';
 import { FullRskTransaction } from '../models/rsk/full-rsk-transaction.model';
-import { fromWeiNumberToSatoshiNumber } from "../utils/btc-utils";
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
