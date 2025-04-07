@@ -70,7 +70,7 @@
     "log4js": "^6.6.1",
     "loopback-connector-kv-redis": "^4.0.0",
     "loopback-connector-rest": "^5.0.2",
-    "mongoose": "^7.5.3",
+    "mongoose": "^8.13.2",
     "pegin-address-verificator": "https://git@github.com/rsksmart/pegin-address-verifier#0.3.0",
     "pegin-cap-evaluator": "https://git@github.com/rsksmart/pegin-cap-evaluator#1.0.0",
     "tslib": "^2.0.0",
