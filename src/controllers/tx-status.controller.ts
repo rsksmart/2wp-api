@@ -109,7 +109,7 @@ export class TxStatusController {
       try {
         const flyoverStatus = await this.getFlyoverStatus(txId);
         if(flyoverStatus.txDetails){
-          this.logger.warn(`[foundTxStatus][type=${flyoverStatus.type}, protocol=NATIVE]`);
+          this.logger.warn(`[foundTxStatus][type=${flyoverStatus.type}, protocol=FLYOVER]`);
           this.logTime(startTime);
           return flyoverStatus;
         }
@@ -185,7 +185,7 @@ export class TxStatusController {
     try {
       const flyoverStatus = await this.getFlyoverStatus(txId);
       if(flyoverStatus.txDetails){
-        this.logger.warn(`[foundTxStatus][type=${flyoverStatus.type}, protocol=NATIVE]`);
+        this.logger.warn(`[foundTxStatus][type=${flyoverStatus.type}, protocol=FLYOVER]`);
         return flyoverStatus;
       }
     } catch (e) {
