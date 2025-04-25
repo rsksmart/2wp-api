@@ -1,6 +1,6 @@
 import {expect} from '@loopback/testlab';
 import {BridgeService} from '../../services';
-import BridgeTransactionParser, {Transaction} from '@rsksmart/bridge-transaction-parser';
+import BridgeTransactionParser from '@rsksmart/bridge-transaction-parser';
 import { ethers } from 'ethers';
 import * as constants from '../../constants';
 
