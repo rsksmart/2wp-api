@@ -6,6 +6,7 @@ import {ServicesBindings} from '../dependency-injection-bindings';
 import {RegisterPayload} from '../models';
 import {RegisterService, FlyoverService} from '../services';
 import {SessionRepository} from '../repositories';
+import { validateRegisterPayload } from '../utils/sanitization-utils';
 
 export class RegisterController {
   logger: Logger;
@@ -37,6 +38,10 @@ export class RegisterController {
     })
     payload: RegisterPayload,
   ): Promise<Response> {
+    const error = validateRegisterPayload(payload);
+    if (error) {
+      return this.response.status(400).send({error});
+    }
     const {provider} = payload;
     if (provider) {
       await this.flyoverService.register(payload);
