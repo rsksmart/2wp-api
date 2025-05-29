@@ -61,6 +61,39 @@ describe('RegisterController', () => {
         liquidityProviderRskAddress: "testLiquidityProviderRsk",
     },
   });
+  let flyoverPayload2 = new RegisterPayload({
+      txHash: '0xc',
+      type: constants.TX_TYPE_PEGOUT,
+      value: '5000000000000000',
+      wallet: 'wallet',
+      fee: '1000000000000',
+      provider: 'test provider',
+      details: {
+        blocksToCompleteTransaction: '2',
+      },
+      quote: {
+        callFeeOnWei: '-800',
+        depositAddr: "testDeposit",
+        depositConfirmations: '200',
+        depositDateLimit: '49800',
+        expireBlocks: '100',
+        expireDate: '49850',
+        productFeeAmountOnWei: '6300',
+        transferConfirmations: '80',
+        transferTime: '50600',
+        valueOnWei: '18450',
+        agreementTimestamp: '1620000000',
+        gasFeeOnWei: '-1000000000000000000',
+        nonce: '1000000000000000000',
+        penaltyFeeOnWei: '1000000000000000000',
+        btcRefundAddress: "testBtcRefund",
+        lbcAddress: "testLbc",
+        lpBtcAddress: "testLpBtc",
+        rskRefundAddress: "testRskRefund",
+        liquidityProviderRskAddress: "testLiquidityProviderRsk",
+      },
+    });
+
   beforeEach(reset);
   function reset() {
     context = stubExpressContext();
@@ -104,5 +137,10 @@ describe('RegisterController', () => {
     const result = await context.result;
     sinon.assert.called(registerFlyover);
     expect(result.statusCode).to.equal(200);
+  });
+    it('should not store flyover transaction if has negative values', async () => {
+    await registerController.register(flyoverPayload2);
+    const result = await context.result;
+    expect(result.statusCode).to.equal(400);
   });
 });
