@@ -1,4 +1,5 @@
 export * from './broadcast.controller';
+export * from './fireblocks.controller';
 export * from './pegin-configuration.controller';
 export * from './tx.controller';
 export * from './health-check.controller';
