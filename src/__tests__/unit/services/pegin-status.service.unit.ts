@@ -78,18 +78,18 @@ const getPeginStatusServiceWithMockedEnvironment = (
   );
 }
 
-describe('function: getPeginSatusInfo', () => {
+describe('function: getPeginStatusInfo', () => {
 
   afterEach(function () {
     sinon.restore();
   });
 
-  it('getPeginSatusInfo txId has an unexpected error', async () => {
+  it('getPeginStatusInfo txId has an unexpected error', async () => {
     const btcTxId = 'txId1';
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(undefined, 5);
 
-    const result = await thisService.getPeginSatusInfo(btcTxId);
+    const result = await thisService.getPeginStatusInfo(btcTxId);
     
     expect(result.btc.txId).to.be.equal(btcTxId);
     expect(result.btc.confirmations).to.be.empty;
@@ -97,12 +97,12 @@ describe('function: getPeginSatusInfo', () => {
     expect(result.status).to.be.equal(Status.ERROR_UNEXPECTED);
   })
 
-  it('getPeginSatusInfo invalid sender address', async () => {
+  it('getPeginStatusInfo invalid sender address', async () => {
     const btcTxId = 'txId1';
     const randomTransaction: BitcoinTx = getBitcoinTx(btcTxId, 'address', 1000000, 200);
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5);
-    const result = await thisService.getPeginSatusInfo(btcTxId);
+    const result = await thisService.getPeginStatusInfo(btcTxId);
 
     expect(result.btc.txId).to.be.equal(btcTxId);
     expect(result.btc.senderAddress).to.be.empty;
@@ -110,7 +110,7 @@ describe('function: getPeginSatusInfo', () => {
     expect(result.status).to.be.equal(Status.ERROR_NOT_A_PEGIN);
   })
 
-  it('getPeginSatusInfo sent an address different than powpeg address', async () => {
+  it('getPeginStatusInfo sent an address different than powpeg address', async () => {
     const btcTxId = 'txId2';
     const randomTransaction: BitcoinTx = getBitcoinTx(
       btcTxId,
@@ -121,14 +121,14 @@ describe('function: getPeginSatusInfo', () => {
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5);
-    const result = await thisService.getPeginSatusInfo(btcTxId);
+    const result = await thisService.getPeginStatusInfo(btcTxId);
 
     expect(result.btc.txId).to.be.equal(btcTxId);
     expect(result.rsk).to.be.empty;
     expect(result.status).equal(Status.ERROR_NOT_A_PEGIN);
   })
 
-  it('getPeginSatusInfo sent amount below minimum', async () => {
+  it('getPeginStatusInfo sent amount below minimum', async () => {
     const btcTxId = 'txId3';
     const randomTransaction: BitcoinTx = getBitcoinTx(
       btcTxId,
@@ -138,7 +138,7 @@ describe('function: getPeginSatusInfo', () => {
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 500, undefined, true);
-    const result = await thisService.getPeginSatusInfo(btcTxId);
+    const result = await thisService.getPeginStatusInfo(btcTxId);
 
     expect(result.btc.txId).to.be.equal(btcTxId);
     expect(result.btc.amountTransferred).to.be.equal(1 / 100000000);
@@ -149,7 +149,7 @@ describe('function: getPeginSatusInfo', () => {
 
   })
 
-  it('getPeginSatusInfo confirmed in RSK', async () => {
+  it('getPeginStatusInfo confirmed in RSK', async () => {
     const btcTxId = 'txId4';
     const randomTransaction: BitcoinTx = getBitcoinTx(
       btcTxId,
@@ -159,7 +159,7 @@ describe('function: getPeginSatusInfo', () => {
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, getRskInfo(btcTxId), true);
-    const result = await thisService.getPeginSatusInfo(btcTxId);
+    const result = await thisService.getPeginStatusInfo(btcTxId);
 
     expect(result.btc.txId).to.be.equal(btcTxId);
     expect(result.btc.amountTransferred).to.be.equal(0.01);
@@ -169,7 +169,7 @@ describe('function: getPeginSatusInfo', () => {
     expect(result.status).to.be.equal(Status.CONFIRMED);
   })
 
-  it('getPeginSatusInfo does not exist in RSK', async () => {
+  it('getPeginStatusInfo does not exist in RSK', async () => {
     const btcTxId = 'txId5';
     const randomTransaction: BitcoinTx = getBitcoinTx(
       btcTxId,
@@ -179,7 +179,7 @@ describe('function: getPeginSatusInfo', () => {
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, undefined, true);
-    const result = await thisService.getPeginSatusInfo(btcTxId);
+    const result = await thisService.getPeginStatusInfo(btcTxId);
 
     expect(result.btc.txId).equal(btcTxId);
     expect(result.btc.amountTransferred).to.be.equal(0.01);
@@ -188,7 +188,7 @@ describe('function: getPeginSatusInfo', () => {
     expect(result.status).equal(Status.NOT_IN_RSK_YET);
   })
 
-  it('getPeginSatusInfo bech32 without OP_RETURNS return NOT_A_PEGIN error', async () => {
+  it('getPeginStatusInfo bech32 without OP_RETURNS return NOT_A_PEGIN error', async () => {
     // dont know what this test means, so dont know if it needs to be modified
     const btcTxId = 'txId5';
     const randomTransaction: BitcoinTx = getBitcoinTx(
@@ -199,14 +199,14 @@ describe('function: getPeginSatusInfo', () => {
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5);
-    const result = await thisService.getPeginSatusInfo(btcTxId);
+    const result = await thisService.getPeginStatusInfo(btcTxId);
 
     expect(result.btc.txId).equal(btcTxId);
     expect(result.rsk).to.be.empty
     expect(result.status).equal(Status.ERROR_NOT_A_PEGIN);
   })
 
-  it('getPeginSatusInfo bech32 with OP_RETURNS return NOT_IN_RSK_YET', async () => {
+  it('getPeginStatusInfo bech32 with OP_RETURNS return NOT_IN_RSK_YET', async () => {
     const btcTxId = 'txId5';
     const randomTransaction: BitcoinTx = getBitcoinTxWithOpReturn(
       btcTxId,
@@ -216,7 +216,7 @@ describe('function: getPeginSatusInfo', () => {
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 200, undefined, true);
-    const result = await thisService.getPeginSatusInfo(btcTxId);
+    const result = await thisService.getPeginStatusInfo(btcTxId);
 
     expect(result.btc.txId).equal(btcTxId);
     expect(result.btc.amountTransferred).to.be.equal(0.01);
@@ -226,7 +226,7 @@ describe('function: getPeginSatusInfo', () => {
     expect(result.status).equal(Status.NOT_IN_RSK_YET);
   })
 
-  it('getPeginSatusInfo bech32 with OP_RETURNS return CONFIRMED', async () => {
+  it('getPeginStatusInfo bech32 with OP_RETURNS return CONFIRMED', async () => {
     const btcTxId = 'txId6';
     const randomTransaction: BitcoinTx = getBitcoinTxWithOpReturn(
       btcTxId,
@@ -236,7 +236,7 @@ describe('function: getPeginSatusInfo', () => {
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, getRskInfo(btcTxId), true);
-    const result = await thisService.getPeginSatusInfo(btcTxId);
+    const result = await thisService.getPeginStatusInfo(btcTxId);
 
     expect(result.btc.txId).equal(btcTxId);
     expect(result.btc.amountTransferred).to.be.equal(0.01);
@@ -246,7 +246,7 @@ describe('function: getPeginSatusInfo', () => {
     expect(result.status).equal(Status.CONFIRMED);
   })
 
-  it('getPeginSatusInfo waiting BTC confirmations', async () => {
+  it('getPeginStatusInfo waiting BTC confirmations', async () => {
     const btcTxId = 'txId5';
     const randomTransaction: BitcoinTx = getBitcoinTx(
       btcTxId,
@@ -256,7 +256,7 @@ describe('function: getPeginSatusInfo', () => {
     );
 
     const thisService = getPeginStatusServiceWithMockedEnvironment(randomTransaction, 5, undefined, true);
-    const result = await thisService.getPeginSatusInfo(btcTxId);
+    const result = await thisService.getPeginStatusInfo(btcTxId);
 
     expect(result.btc.txId).equal(btcTxId);
     expect(result.btc.senderAddress).to.be.equal('2N69faB9UEHB7QyiAiQv3n2GsMM9xXnFE5W');

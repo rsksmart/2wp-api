@@ -72,7 +72,7 @@ describe('Controller: Tx Status', () => {
       beforeEach(resetController);
 
       it('should resolve a pegin txStatus: WAITING_CONFIRMATIONS', async () => {
-         peginStatusService.stubs.getPeginSatusInfo.withArgs(testBtcTxHash)
+         peginStatusService.stubs.getPeginStatusInfo.withArgs(testBtcTxHash)
              .resolves(getMockedPeginStatus(testBtcTxHash, Status.WAITING_CONFIRMATIONS));
          const txStatus = await txStatusController.getTxStatus(testBtcTxHash);
          expect(txStatus).to.be.instanceOf(TxStatus);
@@ -81,7 +81,7 @@ describe('Controller: Tx Status', () => {
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.notCalled).to.be.true();
       });
       it('should resolve a pegin txStatus: NOT_IN_RSK_YET', async () => {
-         peginStatusService.stubs.getPeginSatusInfo.withArgs(testBtcTxHash)
+         peginStatusService.stubs.getPeginStatusInfo.withArgs(testBtcTxHash)
              .resolves(getMockedPeginStatus(testBtcTxHash, Status.NOT_IN_RSK_YET));
          const txStatus = await txStatusController.getTxStatus(testBtcTxHash);
          expect(txStatus).to.be.instanceOf(TxStatus);
@@ -90,7 +90,7 @@ describe('Controller: Tx Status', () => {
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.notCalled).to.be.true();
       });
       it('should resolve a pegin txStatus: CONFIRMED', async () => {
-         peginStatusService.stubs.getPeginSatusInfo.withArgs(testBtcTxHash)
+         peginStatusService.stubs.getPeginStatusInfo.withArgs(testBtcTxHash)
              .resolves(getMockedPeginStatus(testBtcTxHash, Status.CONFIRMED));
          const txStatus = await txStatusController.getTxStatus(testBtcTxHash);
          expect(txStatus).to.be.instanceOf(TxStatus);
@@ -99,7 +99,7 @@ describe('Controller: Tx Status', () => {
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.notCalled).to.be.true();
       });
       it('should resolve a pegin txStatus: REJECTED_NO_REFUND', async () => {
-         peginStatusService.stubs.getPeginSatusInfo.withArgs(testBtcTxHash)
+         peginStatusService.stubs.getPeginStatusInfo.withArgs(testBtcTxHash)
              .resolves(getMockedPeginStatus(testBtcTxHash, Status.REJECTED_NO_REFUND));
          const txStatus = await txStatusController.getTxStatus(testBtcTxHash);
          expect(txStatus).to.be.instanceOf(TxStatus);
@@ -108,7 +108,7 @@ describe('Controller: Tx Status', () => {
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.notCalled).to.be.true();
       });
       it('should resolve a pegin txStatus: REJECTED_REFUND', async () => {
-         peginStatusService.stubs.getPeginSatusInfo.withArgs(testBtcTxHash)
+         peginStatusService.stubs.getPeginStatusInfo.withArgs(testBtcTxHash)
              .resolves(getMockedPeginStatus(testBtcTxHash, Status.REJECTED_REFUND));
          const txStatus = await txStatusController.getTxStatus(testBtcTxHash);
          expect(txStatus).to.be.instanceOf(TxStatus);
@@ -117,7 +117,7 @@ describe('Controller: Tx Status', () => {
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.notCalled).to.be.true();
       });
       it('should resolve a pegin txStatus: ERROR_BELOW_MIN', async () => {
-         peginStatusService.stubs.getPeginSatusInfo.withArgs(testBtcTxHash)
+         peginStatusService.stubs.getPeginStatusInfo.withArgs(testBtcTxHash)
              .resolves(getMockedPeginStatus(testBtcTxHash, Status.ERROR_BELOW_MIN));
          const txStatus = await txStatusController.getTxStatus(testBtcTxHash);
          expect(txStatus).to.be.instanceOf(TxStatus);
@@ -131,42 +131,42 @@ describe('Controller: Tx Status', () => {
    describe('Pegout Status:', () => {
       beforeEach(resetController);
       it('should ask for pegout status if there is no a pegin', async () => {
-         peginStatusService.stubs.getPeginSatusInfo.withArgs(testRskTxHash)
+         peginStatusService.stubs.getPeginStatusInfo.withArgs(testRskTxHash)
              .resolves(getMockedPeginStatus(testRskTxHash, Status.ERROR_NOT_A_PEGIN));
          pegoutStatusService.stubs.getPegoutStatusByRskTxHash.withArgs(testRskTxHash)
              .resolves(getMockedPegoutStatus(testRskTxHash, PegoutStatuses.RECEIVED));
          const status = await txStatusController.getTxStatus(testRskTxHash);
-         expect(peginStatusService.stubs.getPeginSatusInfo.calledOnce).to.be.true();
+         expect(peginStatusService.stubs.getPeginStatusInfo.calledOnce).to.be.true();
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.calledOnce).to.be.true();
          expect(status.type).to.be.eql(TxStatusType.PEGOUT);
       });
       it('should ask for pegout status if pegin status service has an ERROR_UNEXPECTED', async () => {
-         peginStatusService.stubs.getPeginSatusInfo.withArgs(testRskTxHash)
+         peginStatusService.stubs.getPeginStatusInfo.withArgs(testRskTxHash)
              .resolves(getMockedPeginStatus(testRskTxHash, Status.ERROR_UNEXPECTED));
          pegoutStatusService.stubs.getPegoutStatusByRskTxHash.withArgs(testRskTxHash)
              .resolves(getMockedPegoutStatus(testRskTxHash, PegoutStatuses.RECEIVED));
          const status = await txStatusController.getTxStatus(testRskTxHash);
-         expect(peginStatusService.stubs.getPeginSatusInfo.calledOnce).to.be.true();
+         expect(peginStatusService.stubs.getPeginStatusInfo.calledOnce).to.be.true();
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.calledOnce).to.be.true();
          expect(status.type).to.be.eql(TxStatusType.PEGOUT);
       });
       it('should ask for pegout status if tx id are not in BTC yet', async () => {
-         peginStatusService.stubs.getPeginSatusInfo.withArgs(testRskTxHash)
+         peginStatusService.stubs.getPeginStatusInfo.withArgs(testRskTxHash)
              .resolves(getMockedPeginStatus(testRskTxHash, Status.NOT_IN_BTC_YET));
          pegoutStatusService.stubs.getPegoutStatusByRskTxHash.withArgs(testRskTxHash)
              .resolves(getMockedPegoutStatus(testRskTxHash, PegoutStatuses.RECEIVED));
          const status = await txStatusController.getTxStatus(testRskTxHash);
-         expect(peginStatusService.stubs.getPeginSatusInfo.calledOnce).to.be.true();
+         expect(peginStatusService.stubs.getPeginStatusInfo.calledOnce).to.be.true();
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.calledOnce).to.be.true();
          expect(status.type).to.be.eql(TxStatusType.PEGOUT);
       });
       it('should resolve a valid pegout status', async () => {
-         peginStatusService.stubs.getPeginSatusInfo.withArgs(testRskTxHash)
+         peginStatusService.stubs.getPeginStatusInfo.withArgs(testRskTxHash)
              .resolves(getMockedPeginStatus(testRskTxHash, Status.NOT_IN_BTC_YET));
          pegoutStatusService.stubs.getPegoutStatusByRskTxHash.withArgs(testRskTxHash)
              .resolves(getMockedPegoutStatus(testRskTxHash, PegoutStatuses.RECEIVED));
          const status = await txStatusController.getTxStatus(testRskTxHash);
-         expect(peginStatusService.stubs.getPeginSatusInfo.calledOnce).to.be.true();
+         expect(peginStatusService.stubs.getPeginStatusInfo.calledOnce).to.be.true();
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.calledOnce).to.be.true();
          expect(status).to.be.deepEqual(new TxStatus({
             type: TxStatusType.PEGOUT,
@@ -183,25 +183,26 @@ describe('Controller: Tx Status', () => {
             }),
          }));
       });
-      it('should resolve a txStatus: INVALID_DATA if it is not pegin status nor pegout status', async () => {
-         peginStatusService.stubs.getPeginSatusInfo.withArgs(testRskTxHash)
+      it('should resolve a txStatus: INVALID_DATA if it is not pegin, pegout or flyover status', async () => {
+         peginStatusService.stubs.getPeginStatusInfo.withArgs(testRskTxHash)
              .resolves(getMockedPeginStatus(testRskTxHash, Status.NOT_IN_BTC_YET));
          pegoutStatusService.stubs.getPegoutStatusByRskTxHash.withArgs(testRskTxHash)
              .resolves(getMockedPegoutStatus(testRskTxHash, PegoutStatuses.NOT_FOUND));
          const status = await txStatusController.getTxStatus(testRskTxHash);
-         expect(peginStatusService.stubs.getPeginSatusInfo.calledOnce).to.be.true();
+         expect(peginStatusService.stubs.getPeginStatusInfo.calledOnce).to.be.true();
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.calledOnce).to.be.true();
+         expect(flyoverService.stubs.getFlyoverStatus.calledOnce).to.be.true();
          expect(status.type).to.be.eql(TxStatusType.INVALID_DATA);
       });
       it('should resolve a txStatus: INVALID_DATA if it is not a valid txId', async () => {
          const invalidTxId = 'invalid-tx-id'
          const status = await txStatusController.getTxStatus(invalidTxId);
-         expect(peginStatusService.stubs.getPeginSatusInfo.notCalled).to.be.true();
+         expect(peginStatusService.stubs.getPeginStatusInfo.notCalled).to.be.true();
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.notCalled).to.be.true();
          expect(status.type).to.be.eql(TxStatusType.INVALID_DATA);
       });
       it('should search for flyover transactions if there is no pegin or pegout status', async () => {
-         peginStatusService.stubs.getPeginSatusInfo.withArgs(testRskTxHash)
+         peginStatusService.stubs.getPeginStatusInfo.withArgs(testRskTxHash)
             .resolves(getMockedPeginStatus(testRskTxHash, Status.ERROR_NOT_A_PEGIN));
          pegoutStatusService.stubs.getPegoutStatusByRskTxHash.withArgs(testRskTxHash)
             .resolves(getMockedPegoutStatus(testRskTxHash, PegoutStatuses.NOT_FOUND));
@@ -227,7 +228,7 @@ describe('Controller: Tx Status', () => {
                quote: {},
             });
          const status = await txStatusController.getTxStatus(testRskTxHash);
-         expect(peginStatusService.stubs.getPeginSatusInfo.calledOnce).to.be.true();
+         expect(peginStatusService.stubs.getPeginStatusInfo.calledOnce).to.be.true();
          expect(pegoutStatusService.stubs.getPegoutStatusByRskTxHash.calledOnce).to.be.true();
          expect(flyoverService.stubs.getFlyoverStatus.calledOnce).to.be.true();
          expect(status.type).to.be.eql(TxStatusType.FLYOVER_PEGOUT);
