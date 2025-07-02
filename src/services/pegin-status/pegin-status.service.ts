@@ -40,7 +40,7 @@ export class PeginStatusService {
     this.rskDataService = rskDataService;
   }
 
-  public getPeginSatusInfo(btcTxId: string): Promise<PeginStatus> {
+  public async getPeginStatusInfo(btcTxId: string): Promise<PeginStatus> {
     this.logger.trace(`Get Pegin information for txId: ${btcTxId}`);
     return this.getBtcInfo(btcTxId)
       .then((btcStatus) => {
