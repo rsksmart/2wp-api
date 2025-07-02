@@ -14,4 +14,13 @@ describe('ParseUnits', () => {
     const stringValueInSatoshis = "0";
     expect(stringSatoshiToDecimalString(stringValueInSatoshis)).to.be.eql("0");
   });
+
+  it('should fail if receive a negative number', () => {
+    const stringValueInSatoshis = "-10";
+    expect(stringSatoshiToDecimalString(stringValueInSatoshis)).to.be.eql("0");
+  });
+  it('should fail if receive an unexpected character', () => {
+    const stringValueInSatoshis = "abc$";
+    expect(stringSatoshiToDecimalString(stringValueInSatoshis)).to.be.eql("0");
+  });
 });
