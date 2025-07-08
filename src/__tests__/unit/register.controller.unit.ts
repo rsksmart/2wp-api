@@ -27,7 +27,8 @@ describe('RegisterController', () => {
     type: constants.TX_TYPE_PEGOUT,
     value: '4000000000000000',
     wallet: 'liquality',
-    fee: '2000000000000',
+    btcEstimatedFee: "8790",
+    rskGas: "211226840000",
   });
   let flyoverPayload = new RegisterPayload({
     txHash: '0xc',
@@ -35,6 +36,7 @@ describe('RegisterController', () => {
     value: '5000000000000000',
     wallet: 'wallet',
     fee: '1000000000000',
+    rskGas: "17990000000000",
     provider: 'test provider',
     details: {
       blocksToCompleteTransaction: '2',
