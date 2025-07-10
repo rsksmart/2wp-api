@@ -38,11 +38,9 @@ export class RegisterController {
     })
     payload: RegisterPayload,
   ): Promise<Response> {
-    if(payload.type === 'pegout' && !payload.provider) {
-      const error = validateRegisterPayload(payload);
-      if (error) {
-        return this.response.status(400).send({error});
-      }
+    const error = validateRegisterPayload(payload);
+    if (error) {
+      return this.response.status(400).send({error});
     }
     const {provider} = payload;
     if (provider) {
