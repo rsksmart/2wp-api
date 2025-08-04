@@ -1,7 +1,7 @@
 import {getModelSchemaRef, post, requestBody} from '@loopback/rest';
-import { BasePath, Fireblocks } from '@fireblocks/ts-sdk';
+import { BasePath, Fireblocks, FireblocksResponse, GetAPIUsersResponse } from '@fireblocks/ts-sdk';
 import {getLogger, Logger} from 'log4js';
-import {FireblocksVaultsRequest, FireblocksVaultsResponse} from '../models';
+import {FireblocksVaultsRequest, FireblocksVaultsResponse, FireblocksConsoleUsersResponse, FireblocksConsoleUser} from '../models';
 
 export class FireblocksController {
   logger: Logger;
@@ -149,5 +149,65 @@ export class FireblocksController {
       this.logger.warn(`[createTransaction] Something went wrong. error: ${error.message}`);
       return { error: error instanceof Error ? error.message : 'Unknown error' };
     }
+  }
+
+  @post('/fireblocks/api-users', {
+    responses: {
+      '200': {
+        description: 'Fireblocks api Users Response',
+        content: {
+          'application/json': {
+            schema: getModelSchemaRef(FireblocksConsoleUsersResponse),
+          },
+        },
+      },
+    },
+  })
+  getApiUsers(
+    @requestBody({
+      content: {'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            apiKey: {type: 'string'},
+            cert: {type: 'string'},
+          },
+          required: ['apiKey', 'cert'],
+        },
+      }},
+    })
+    req: { apiKey: string; cert: string },
+  ): Promise<FireblocksConsoleUsersResponse> {
+    this.logger.debug('[getApiUsers] started');
+    
+    return new Promise<FireblocksConsoleUsersResponse>((resolve, reject) => {
+      try {
+        const secretKey = Buffer.from(req.cert, 'base64').toString('utf-8');
+        const fireblocks = new Fireblocks({
+            apiKey: req.apiKey,
+            basePath: BasePath.US,
+            secretKey,
+        });
+        this.logger.trace(`[getApiUsers] asking for api users`);
+        fireblocks.apiUser.getApiUsers()
+        .then((usersResponse: FireblocksResponse<GetAPIUsersResponse>) => {
+          const response = new FireblocksConsoleUsersResponse({
+            users: usersResponse.data.users.map((user) => new FireblocksConsoleUser(user)),
+          });
+          resolve(response);
+        })
+        .catch((error: Error) => {
+          this.logger.warn(`[getApiUsers] Something went wrong. error: ${error}`);
+          reject(error);
+        });
+      } catch (error) {
+        this.logger.warn(`[getApiUsers] Something went wrong. error: ${error}`);
+        const errorResponse = new FireblocksConsoleUsersResponse({
+          users: [],
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        reject(errorResponse);
+      }
+    });
   }
 }
