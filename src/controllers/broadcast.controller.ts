@@ -15,6 +15,24 @@ export class BroadcastController {
   }
 
   @post('/broadcast', {
+    requestBody: {
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              data: {
+                type: 'string',
+                pattern: '^[0-9a-fA-F]+$',
+              },
+            },
+            required: ['data'],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: true,
+    },
     responses: {
       '201': {
         description: 'a Tx Broadcast',
@@ -26,12 +44,7 @@ export class BroadcastController {
       },
     },
   })
-  sendTx(
-    @requestBody({
-      content: {'application/json': {schema: getModelSchemaRef(BroadcastRequest)}},
-    })
-    req: BroadcastRequest,
-  ): Promise<BroadcastResponse> {
+  sendTx(req: BroadcastRequest): Promise<BroadcastResponse> {
     this.logger.debug('[sendTx] started');
     return new Promise<BroadcastResponse>((resolve, reject) => {
       this.broadcastProvider

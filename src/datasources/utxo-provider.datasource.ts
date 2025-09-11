@@ -4,11 +4,10 @@ import {config} from 'dotenv';
 
 config();
 
-const blockBookUrl = process.env.BLOCKBOOK_URL;
-
 const confg = {
   name: 'utxoProvider',
   connector: 'rest',
+  baseUrl: process.env.BLOCKBOOK_URL,
   options: {
     headers: {
       accept: 'application/json',
@@ -19,7 +18,7 @@ const confg = {
     {
       template: {
         method: 'GET',
-        url: `${blockBookUrl}/api/v1/utxo/{address}`,
+        url: '{baseUrl}/api/v1/utxo/{address}',
         responsePath: '$[*]',
       },
       functions: {
