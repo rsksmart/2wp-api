@@ -15,7 +15,16 @@ export class TxController {
   }
 
   @get('/tx', {
-    parameters: [{name: 'tx', schema: {type: 'string'}, in: 'query'}],
+    parameters: [{
+      name: 'tx', 
+      schema: {
+        type: 'string',
+        pattern: '^[0-9a-fA-F]{64}$',
+        minLength: 64,
+        maxLength: 64
+      }, 
+      in: 'query'
+    }],
     responses: {
       '200': {
         description: 'TX information',
