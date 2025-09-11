@@ -1,5 +1,5 @@
 import {inject} from '@loopback/core';
-import {getModelSchemaRef, post, requestBody} from '@loopback/rest';
+import {getModelSchemaRef, post } from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
 import {BroadcastRequest, BroadcastResponse} from '../models';
 import {Broadcast} from '../services';
