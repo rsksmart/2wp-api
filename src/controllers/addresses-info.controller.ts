@@ -23,7 +23,23 @@ export class AddressesInfoController {
   })
   getAddressesInfo(
     @requestBody({
-    content: {'application/json': {schema: getModelSchemaRef(AddressList)}},
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            addressList: {
+              type: 'array',
+              items: {
+                type: 'string',
+                pattern: '^([13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
+              },
+            },
+          },
+          required: ['addressList'],
+          additionalProperties: false,
+        },
+      }},
   })
       addressList: AddressList,
     ): Promise<AddressInfoResponse> {
