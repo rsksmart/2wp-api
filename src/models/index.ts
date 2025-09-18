@@ -4,6 +4,8 @@ export * from './broadcast-response.model';
 export * from './fireblocks-vaults-request.model';
 export * from './fireblocks-vaults-response.model';
 export * from './fireblocks-console-users-response.model';
+export * from './fireblocks-generic-request.model';
+export * from './fireblocks-generic-response.model';
 export * from './pegin-configuration.model';
 export * from './pegin-status.model';
 export * from './tx-input.model';
