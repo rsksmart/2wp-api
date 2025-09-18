@@ -238,7 +238,7 @@ export class FireblocksController {
         this.logger.trace(`[genericPost] URI: ${req.uri}`);
         this.logger.trace(`[genericPost] Body data: ${JSON.stringify(req.bodyData)}`);
 
-        const baseUrl = 'https://api.fireblocks.io/v1';
+        const baseUrl = 'https://api.fireblocks.io';
         const fullUrl = `${baseUrl}${req.uri}`;
         const url = new URL(fullUrl);
 
