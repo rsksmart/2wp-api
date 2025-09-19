@@ -33,3 +33,7 @@ export const validateRegisterPayload = (payload: RegisterPayload): string => {
   const error = isValidBase && isValidQuote ? '' : 'Invalid payload: negative or non-numeric values found in required fields.';
   return error;
 }
+
+export function sanitizeLogMessage(input: string): string {
+  return input.replace(/[\r\n]/g, "");
+}
