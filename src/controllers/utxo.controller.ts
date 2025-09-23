@@ -33,8 +33,9 @@ export class UtxoController {
                 type: 'array',
                 items: {
                   type: 'string',
-                pattern: '^([13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{39,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
-              },
+                pattern: '^([13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
+                },
+                minItems: 1,
               },
             },
             required: ['addressList'],
