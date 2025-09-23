@@ -20,6 +20,6 @@ describe('Broadcast Controller', () => {
       .send({
         data: 'value on hex',
       })
-      .expect(400);
+      .expect(422);
   });
 });
