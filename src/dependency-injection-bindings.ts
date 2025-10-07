@@ -38,4 +38,5 @@ export const ServicesBindings = {
   REGISTER_SERVICE: 'services.RegisterService',
   FEATURES_SERVICE: 'services.FeaturesDataService',
   FLYOVER_SERVICE: 'services.FlyoverService',
+  TX_HISTORY_SERVICE: 'services.TxHistoryService',
 };

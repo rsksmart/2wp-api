@@ -6,3 +6,4 @@ export * from './tx-status.controller';
 export * from './estimate-fee.controller';
 export * from './addresses-info.controller';
 export * from './register.controller';
+export * from './tx-history.controller';
