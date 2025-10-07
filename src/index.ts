@@ -60,7 +60,7 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
     await api.boot();
     await api.start();
 
-    const url = api.restServer.url;
+    const {url} = api.restServer;
     logger.info(`Server is running at ${url}`);
   }
   if (appMode == APP_MODE.DAEMON || appMode == APP_MODE.ALL) {

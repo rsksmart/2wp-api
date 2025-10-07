@@ -20,3 +20,4 @@ export * from './register-payload.model';
 export * from './features.model';
 export * from './pegout-status.model';
 export * from './quote-db.model';
+export * from './tx-history.model';
