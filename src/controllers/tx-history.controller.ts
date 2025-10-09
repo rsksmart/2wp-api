@@ -116,4 +116,39 @@ export class TxHistoryController {
       return this.response.status(500).send();
     }
   }
+
+  @get('/tx-history/{txHash}', {
+    responses: {
+      '200': {
+        description: 'Transaction details',
+        content: {
+          'application/json': {
+            schema: getModelSchemaRef(TxHistory, {includeRelations: true}),
+          },
+        },
+      },
+      '404': {
+        description: 'Transaction not found',
+      },
+    },
+  })
+  async getTransactionByHash(
+    @param.path.string('txHash') txHash: string,
+  ): Promise<Response> {
+    try {
+      const transaction = await this.txHistoryService.getTransactionByHash(txHash);
+      if (!transaction) {
+        return this.response.status(404).send({
+          error: 'Transaction not found',
+        });
+      }
+      return this.response.status(200).send(transaction);
+    } catch (error) {
+      this.logger.error(
+        '[getTransactionByHash] Error retrieving transaction:',
+        error.message,
+      );
+      return this.response.status(500).send();
+    }
+  }
 }
