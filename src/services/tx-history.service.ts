@@ -6,6 +6,7 @@ interface TxHistoryMongoModel extends mongoose.Document, TxHistory {}
   
 const TxHistorySchema = new mongoose.Schema({
   userAddress: {type: String, required: true, index: true},
+  txHash: {type: String, required: true, unique: true},
   providerHash: {type: String, required: true, unique: true},
   fromTokenName: {type: String, required: true},
   fromNetworkName: {type: String, required: true},
@@ -41,7 +42,7 @@ export class TxHistoryService extends MongoDbDataService<TxHistory, TxHistoryMon
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, class-methods-use-this
   protected getByIdFilter(id: any) {
-    return {providerHash: id};
+    return {txHash: id};
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, class-methods-use-this
@@ -97,5 +98,11 @@ export class TxHistoryService extends MongoDbDataService<TxHistory, TxHistoryMon
       };
     }
   
+  async getTransactionByHash(hash: string): Promise<TxHistory | null> {
+    const connector = this.getConnector();
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const tx = await connector.findOne({ txHash: hash }, { _id: 0, __v: 0 }).lean().exec();
+    return tx;
+  }
 }
 
