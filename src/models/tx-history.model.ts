@@ -15,6 +15,16 @@ export class TxHistory implements SearchableModel {
     }
   })
   userAddress: string;
+
+  @property({
+    type: 'string',
+    required: true,
+    jsonSchema: {
+      pattern: '^(0x[a-fA-F0-9]{64}|[a-fA-F0-9]{64})$',
+      errorMessage: 'Must be a valid transaction hash'
+    }
+  })
+  txHash: string;
   
   @property({
     type: 'string',
@@ -118,9 +128,9 @@ export class TxHistory implements SearchableModel {
   liquidityProviderId?: number;
 
   getId() {
-    return this.providerHash;
+    return this.txHash;
   }
   getIdFieldName() {
-    return 'providerHash';
+    return 'txHash';
   }
 }
