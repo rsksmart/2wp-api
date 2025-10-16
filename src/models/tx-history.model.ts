@@ -54,10 +54,10 @@ export class TxHistory implements SearchableModel {
     type: 'string',
     required: true,
     jsonSchema: {
-      pattern: '^[a-zA-Z]+$',
+      pattern: '^[a-zA-Z ]+$',
       minLength: 1,
-      maxLength: 20,
-      errorMessage: 'Must contain only letters'
+      maxLength: 40,
+      errorMessage: 'Must contain only letters and spaces'
     }
   })
   fromNetworkName: string;
@@ -78,10 +78,10 @@ export class TxHistory implements SearchableModel {
     type: 'string',
     required: true,
     jsonSchema: {
-      pattern: '^[a-zA-Z]+$',
+      pattern: '^[a-zA-Z ]+$',
       minLength: 1,
-      maxLength: 20,
-      errorMessage: 'Must contain only letters'
+      maxLength: 40,
+      errorMessage: 'Must contain only letters and spaces'
     }
   })
   toNetworkName: string;
