@@ -57,7 +57,10 @@ export class TxHistoryService extends MongoDbDataService<TxHistory, TxHistoryMon
    */
   async storeTransaction(txHistory: TxHistory): Promise<boolean> {
     try {
-      const txHistoryInstance = Object.assign(new TxHistory(), txHistory)
+      const { fromNetworkName, toNetworkName } = txHistory;
+      const trimmedFromNet = fromNetworkName.trim();
+      const trimmedToNet = toNetworkName.trim();
+      const txHistoryInstance = Object.assign(new TxHistory(), {...txHistory, fromNetworkName: trimmedFromNet, toNetworkName: trimmedToNet})
       return await this.set(txHistoryInstance);
     } catch (error) {
       return false;
