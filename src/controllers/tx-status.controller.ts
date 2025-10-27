@@ -37,7 +37,12 @@ export class TxStatusController {
     },
   })
   async getTxStatus(
-    @param.path.string('txId') txId: string,
+    @param.path.string('txId', {
+      schema: {
+        type: 'string',
+        pattern: '^[a-fA-F0-9]{64}$|^0x[a-fA-F0-9]{64}$',
+      },
+    }) txId: string,
   ): Promise<TxStatus> {
     const startTime = performance.now();
     const status = this.searchTryingAllTypes(txId);
@@ -55,7 +60,12 @@ export class TxStatusController {
     },
   })
   async getTxStatusByType(
-    @param.path.string('txId') txId: string,
+    @param.path.string('txId', {
+      schema: {
+        type: 'string',
+        pattern: '^[a-fA-F0-9]{64}$|^0x[a-fA-F0-9]{64}$',
+      },
+    }) txId: string,
     @param.path.string('txType') txType: string,
   ): Promise<TxStatus> {
     const startTime = performance.now();
