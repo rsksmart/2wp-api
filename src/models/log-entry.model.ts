@@ -24,12 +24,18 @@ export class LogEntry extends Model {
   @property({
     type: 'string',
     required: true,
+    jsonSchema: {
+      enum: ['peginNative', 'peginFlyover', 'pegoutNative', 'pegoutFlyover'],
+    },
   })
   type: 'peginNative' | 'peginFlyover' | 'pegoutNative' | 'pegoutFlyover';
 
   @property({
     type: 'string',
     required: true,
+    jsonSchema: {
+      enum: ['success', 'error'],
+    },
   })
   operation: 'success' | 'error';
 
@@ -39,7 +45,7 @@ export class LogEntry extends Model {
     jsonSchema: {
       minLength: 3,
       maxLength: 50,
-      pattern: '^[a-zA-Z0-9_\\- ]+$',
+      pattern: '^(?!.*--)[a-zA-Z0-9_\\- ]+$',
     },
   })
   location: string;
@@ -47,7 +53,7 @@ export class LogEntry extends Model {
   @property({
     type: 'object',
     jsonSchema: {
-      type: 'object',
+      type: ['object', 'null'],
       properties: {
         message: {
           type: 'string',
@@ -60,7 +66,6 @@ export class LogEntry extends Model {
         },
       },
       required: ['message', 'code'],
-      additionalProperties: false,
     },
   })
   error?: LogError;
