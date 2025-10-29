@@ -522,7 +522,7 @@ describe('Input Sanitization (Acceptance)', function() {
   describe('Unicode and Special Character Handling', function() {
     this.timeout(20000);
     it('should handle unicode characters in transaction hash', async () => {
-      const res = await client
+      await client
         .get('/tx-status/你好世界')
         .expect(400);
     });
@@ -537,7 +537,7 @@ describe('Input Sanitization (Acceptance)', function() {
     });
 
     it('should handle zero-width characters', async () => {
-      const res = await client
+      await client
         .get('/tx-status/test​invisible​characters')
         .expect(400);
     });
