@@ -1,4 +1,3 @@
-declare module '@rsksmart/rsk-precompiled-abis';
 declare module 'pegin-address-verifier' {
   function isValidAddress(address: string, networkType: string): boolean;
   function getAddressInformation(address: string): AddressInformation;
