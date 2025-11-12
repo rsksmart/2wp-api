@@ -1,8 +1,9 @@
-import {bridge} from '@rsksmart/rsk-precompiled-abis';
-import Web3 from 'web3';
+import * as precompiledAbis from '@rsksmart/rsk-precompiled-abis';
+import { ethers } from 'ethers';
+import { BridgeService } from '../services';
 
-const web3 = new Web3();
-const bridgeInstance = bridge.build(web3);
+const bridgeService = new BridgeService();
+const bridgeContract = bridgeService.getBridgeContract();
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export enum BRIDGE_METHODS {
@@ -29,16 +30,21 @@ export enum BRIDGE_EVENTS {
 };
 
 export function getBridgeSignature(methodOrEvent: BRIDGE_METHODS | BRIDGE_EVENTS): string {
-  // eslint-disable-next-line no-underscore-dangle
-  const method = bridgeInstance._jsonInterface.find((m: any) => m.name === methodOrEvent);
-  if (!method) {
-    throw new Error(methodOrEvent + " does not exist in Bridge abi");
+  // Try to get as function first (for methods)
+  const method = bridgeContract.interface.getFunction(methodOrEvent);
+  if (method) {
+    return method.selector;
   }
-  return <string>method.signature;
+  // If not a function, try to get as event (for events)
+  const event = bridgeContract.interface.getEvent(methodOrEvent);
+  if (event) {
+    return event.topicHash;
+  }
+  throw new Error(methodOrEvent + " does not exist in Bridge abi");
 }
 
 export function getBridgeMethodABI(method: BRIDGE_METHODS): any {
-  const abi = bridge.abi.find((m: any) => m.name === method);
+  const abi = precompiledAbis.bridge.abi.find((m: any) => m.name === method);
   if (!abi) {
     throw new Error(method + " does not exist in Bridge abi");
   }
@@ -47,15 +53,13 @@ export function getBridgeMethodABI(method: BRIDGE_METHODS): any {
 
 export function encodeBridgeMethodParameters(method: BRIDGE_METHODS, args: Array<any>): any {
   const abi = getBridgeMethodABI(method);
-
-  return web3.eth.abi.encodeParameters(
-    abi.inputs,
-    args
-  );
+  const abiCoder = new ethers.AbiCoder();
+  return abiCoder.encode(abi.inputs, args);
 }
 
 export function decodeBridgeMethodParameters(method: BRIDGE_METHODS, data: string): any {
   const abi = getBridgeMethodABI(method);
 
-  return web3.eth.abi.decodeParameters(abi.inputs, data);
+  const abiCoder = new ethers.AbiCoder();
+  return abiCoder.decode(abi.inputs, data);
 }

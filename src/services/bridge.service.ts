@@ -1,34 +1,33 @@
-import {bridge} from '@rsksmart/rsk-precompiled-abis';
+import * as precompiledAbis from '@rsksmart/rsk-precompiled-abis';
 import {getLogger, Logger} from 'log4js';
-import Web3 from 'web3';
 import {ethers} from 'ethers';
-import {Contract} from 'web3-eth-contract';
 import BridgeTransactionParser, {Transaction} from '@rsksmart/bridge-transaction-parser';
 import { getBridgeState, BridgeState } from '@rsksmart/bridge-state-data-parser';
 import * as constants from '../constants';
 
 export class BridgeService {
-  private bridgeContract: Contract;
-  private web3: Web3;
-  private TOTAL_RBTC_STOCK = 21000000;
+  private bridgeContract: ethers.Contract;
+  private provider: ethers.JsonRpcProvider;
+  private TOTAL_RBTC_STOCK = BigInt(21000000);
   private host: string;
-  private ethersProvider: ethers.JsonRpcProvider;
   private bridgeTransactionParser: BridgeTransactionParser;
   logger: Logger;
   constructor() {
-    this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
-    this.bridgeContract = bridge.build(this.web3);
+    this.provider = new ethers.JsonRpcProvider(`${process.env.RSK_NODE_HOST}`);
+    this.bridgeContract = new ethers.Contract(precompiledAbis.bridge.address, precompiledAbis.bridge.abi, this.provider);
     this.host = process.env.RSK_NODE_HOST ?? constants.TESTNET_RSK_NODE_HOST;
-    this.ethersProvider = new ethers.JsonRpcProvider(this.host);
-    this.bridgeTransactionParser = new BridgeTransactionParser(this.ethersProvider);
+    this.bridgeTransactionParser = new BridgeTransactionParser(this.provider);
     this.logger = getLogger('bridge-service');
+  }
+
+  public getBridgeContract(): ethers.Contract {
+    return this.bridgeContract;
   }
 
   public getFederationAddress(): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-      this.bridgeContract.methods
+      this.bridgeContract
         .getFederationAddress()
-        .call()
         .then((address: string) => {
           resolve(address);
         })
@@ -41,9 +40,8 @@ export class BridgeService {
 
   public getMinPeginValue(): Promise<number> {
     return new Promise<number>((resolve, reject) => {
-      this.bridgeContract.methods
+      this.bridgeContract
         .getMinimumLockTxValue()
-        .call()
         .then((minValue: string) => resolve(Number(minValue)))
         .catch((reason: any) => {
           this.logger.warn(`[getMinPeginValue] Got an error: ${reason}`);
@@ -54,9 +52,8 @@ export class BridgeService {
 
   public getLockingCapAmount(): Promise<number> {
     return new Promise<number>((resolve, reject) => {
-      this.bridgeContract.methods
+      this.bridgeContract
         .getLockingCap()
-        .call()
         .then((lockingCap: string) => resolve(Number(lockingCap)))
         .catch((reason: any) => {
           this.logger.warn(`[getLockingCapAmount] Got an error: ${reason}`);
@@ -67,16 +64,11 @@ export class BridgeService {
 
   public getRbtcInCirculation(): Promise<number> {
     return new Promise<number>((resolve, reject) => {
-      this.web3.eth
-        .getBalance(bridge.address)
-        .then((balance: string) => {
-          const amount =
-            Number(
-              this.web3.utils.toWei(
-                this.web3.utils.toBN(this.TOTAL_RBTC_STOCK),
-              ),
-            ) - Number(balance);
-          resolve(amount);
+      this.provider
+        .getBalance(precompiledAbis.bridge.address)
+        .then((balance: bigint) => {
+          const amount = this.TOTAL_RBTC_STOCK - balance;
+          resolve(Number(amount));
         })
         .catch(reason => {
           this.logger.warn(`[getRbtcInCirculation] Got an error: ${reason}`);
@@ -105,9 +97,8 @@ export class BridgeService {
 
   public async isBtcTxHashAlreadyProcessed(txHash: string): Promise<Boolean> {
     return new Promise<Boolean>((resolve, reject) => {
-      this.bridgeContract.methods
+      this.bridgeContract
         .isBtcTxHashAlreadyProcessed(txHash)
-        .call()
         .then((isProcessed: Boolean) => resolve(isProcessed))
         .catch((reason: any) => {
           this.logger.warn(`[isBtcTxHashAlreadyProcessed] Got an error: ${reason}`);

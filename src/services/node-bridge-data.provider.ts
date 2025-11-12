@@ -1,6 +1,6 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
-import {bridge} from '@rsksmart/rsk-precompiled-abis';
+import * as precompiledAbis from '@rsksmart/rsk-precompiled-abis';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
 import {RskBlock} from '../models/rsk/rsk-block.model';
@@ -28,7 +28,7 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
   async process(rskBlock: RskBlock): Promise<void> {
     this.logger.debug(`[process] Processing rskBlock ${rskBlock.hash}`);
     for(const transaction of rskBlock.transactions) {
-      if (transaction.to !== bridge.address) {
+      if (transaction.to !== precompiledAbis.bridge.address) {
         continue;
       }
       this.logger.trace(`Found a bridge tx ${transaction.hash} with signature ${transaction.data.substring(0, 10)}`);

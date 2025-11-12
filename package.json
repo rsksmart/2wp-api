@@ -62,7 +62,7 @@
     "@loopback/service-proxy": "^6.1.3",
     "@rsksmart/bridge-state-data-parser": "^2.0.0",
     "@rsksmart/bridge-transaction-parser": "^2.0.0",
-    "@rsksmart/rsk-precompiled-abis": "^6.0.0-ARROWHEAD",
+    "@rsksmart/rsk-precompiled-abis": "^7.1.0-LOVELL",
     "big.js": "^6.1.1",
     "bitcoinjs-lib": "^6.0.1",
     "bs58": "^5.0.0",
