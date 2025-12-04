@@ -21,7 +21,7 @@ export class FullRskTransaction {
     tx.blockHash = web3Tx.blockHash?.toString() ?? '';
     tx.blockNumber = Number(web3Tx.blockNumber ?? -1);
     tx.transactionIndex = Number(web3Tx.transactionIndex ?? -1);
-    tx.from = web3Tx.from ?? '';
+    tx.from = web3Tx.from;
     tx.to = web3Tx.to ?? '';
     tx.valueInWeis = String(web3Tx.value);
     tx.gas = Number(web3Tx.gas);
