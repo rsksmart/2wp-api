@@ -1,6 +1,5 @@
 import BridgeTransactionParser, { Transaction } from '@rsksmart/bridge-transaction-parser';
-import Web3 from 'web3';
-import { BlockTransactionObject } from 'web3-eth';
+import Web3, { Block } from 'web3';
 import { ethers } from 'ethers';
 import { RskTransaction } from '../models/rsk/rsk-transaction.model';
 import * as constants from '../constants';
@@ -17,14 +16,15 @@ export class RskNodeService {
     this.ethersProvider = new ethers.JsonRpcProvider(this.host);
     this.bridgeTransactionParser = new BridgeTransactionParser(this.ethersProvider);
   }
-  getBlock(block: string | number): Promise<BlockTransactionObject> {
+  getBlock(block: string | number): Promise<Block> {
     return this.web3.eth.getBlock(block, true);
   }
   getTransactionReceipt(txHash: string): Promise<any> {
     return this.web3.eth.getTransactionReceipt(txHash);
   }
-  getBlockNumber(): Promise<number> {
-    return this.web3.eth.getBlockNumber();
+  async getBlockNumber(): Promise<number> {
+    const blockNumber = await this.web3.eth.getBlockNumber();
+    return Number(blockNumber);
   }
   getBridgeTransaction(txHash: string): Promise<Transaction> {
     return this.bridgeTransactionParser.getBridgeTransactionByTxHash(txHash);
@@ -36,12 +36,12 @@ export class RskNodeService {
         .then((web3Tx) => {
           if (!web3Tx) return reject(new Error('Tx not found in RSK node.'));
 
-          rskTx.blockHash = <string> web3Tx.blockHash;
-          rskTx.hash = <string> web3Tx.hash;
-          rskTx.data = <string> web3Tx.input;
-          rskTx.to = <string> web3Tx.to;
-          rskTx.value = <number> Number(web3Tx.value);
-          rskTx.from = <string> web3Tx.from;
+          rskTx.blockHash = web3Tx.blockHash ?? '';
+          rskTx.hash = web3Tx.hash;
+          rskTx.data = web3Tx.input;
+          rskTx.to = web3Tx.to ?? '';
+          rskTx.value = Number(web3Tx.value);
+          rskTx.from = web3Tx.from;
 
           if(!web3Tx.blockHash || !web3Tx.blockNumber) return resolve(rskTx);
 
@@ -53,16 +53,12 @@ export class RskNodeService {
                 return resolve(rskTx);
               }
             })
-            .catch((reason) => {
-              return reject(reason);
-            });
+            .catch((reason) => reject(reason));
           } else {
             return resolve(rskTx);
           }
           })
-          .catch((reason) => {
-            return reject(reason);
-          });
+          .catch((reason) => reject(reason));
         });
   }
 }

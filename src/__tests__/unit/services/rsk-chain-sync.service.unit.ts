@@ -4,7 +4,7 @@ import {SyncStatusModel} from '../../../models/rsk/sync-status.model';
 import {RskChainSyncService} from '../../../services/rsk-chain-sync.service';
 import {RskNodeService} from '../../../services/rsk-node.service';
 import {SyncStatusDataService} from '../../../services/sync-status-data.service';
-import { BlockTransactionObject, Transaction } from 'web3-eth';
+import { Block, TransactionInfo } from 'web3';
 
 const getRskNodeService = () => {
   const mockedRskNodeService = sinon.createStubInstance(RskNodeService);
@@ -119,7 +119,7 @@ describe('Service: RskChainSyncService', () => {
     // Expected: sync should receive block # 2 only with no reorganization
     const firstBlock = new SyncStatusModel("0x0001", 1, '0x');
 
-    const transactions: Transaction[] = [];
+    const transactions: TransactionInfo[] = [];
 
     const secondBlock = {
       hash: '0x0002',
@@ -138,8 +138,8 @@ describe('Service: RskChainSyncService', () => {
     mockedSyncStatusDataService.getBestBlock.resolves(firstBlock);
 
     const mockedRskNodeService = getRskNodeService();
-    mockedRskNodeService.getBlock.withArgs('latest').resolves(<BlockTransactionObject>bestBlock);
-    mockedRskNodeService.getBlock.withArgs(2).resolves(<BlockTransactionObject>secondBlock);
+    mockedRskNodeService.getBlock.withArgs('latest').resolves(<Block>bestBlock);
+    mockedRskNodeService.getBlock.withArgs(2).resolves(<Block>secondBlock);
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
@@ -171,7 +171,7 @@ describe('Service: RskChainSyncService', () => {
 
     const secondBlockFromSync = new SyncStatusModel('0x0002a', firstBlock.rskBlockHeight + 1, firstBlock.rskBlockHash);
 
-    const transactions: Transaction[] = [];
+    const transactions: TransactionInfo[] = [];
 
     const firstBlockFromRsk = {
       hash: firstBlock.rskBlockHash,
@@ -203,10 +203,10 @@ describe('Service: RskChainSyncService', () => {
     mockedSyncStatusDataService.getById.withArgs(firstBlock.rskBlockHash).resolves(firstBlock);
 
     const mockedRskNodeService = getRskNodeService();
-    mockedRskNodeService.getBlock.withArgs('latest').resolves(<BlockTransactionObject>bestBlock);
-    mockedRskNodeService.getBlock.withArgs(1).resolves(<BlockTransactionObject>secondBlockFromRsk);
-    mockedRskNodeService.getBlock.withArgs(2).resolves(<BlockTransactionObject>secondBlockFromRsk);
-    mockedRskNodeService.getBlock.withArgs(3).resolves(<BlockTransactionObject>thirdBlockFromRsk);
+    mockedRskNodeService.getBlock.withArgs('latest').resolves(<Block>bestBlock);
+    mockedRskNodeService.getBlock.withArgs(1).resolves(<Block>secondBlockFromRsk);
+    mockedRskNodeService.getBlock.withArgs(2).resolves(<Block>secondBlockFromRsk);
+    mockedRskNodeService.getBlock.withArgs(3).resolves(<Block>thirdBlockFromRsk);
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
@@ -248,7 +248,7 @@ describe('Service: RskChainSyncService', () => {
     mockedSyncStatusDataService.getBestBlock.resolves(firstBlock);
 
     const mockedRskNodeService = getRskNodeService();
-    mockedRskNodeService.getBlock.withArgs('latest').resolves(<BlockTransactionObject>bestBlock);
+    mockedRskNodeService.getBlock.withArgs('latest').resolves(<Block>bestBlock);
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
@@ -296,7 +296,7 @@ describe('Service: RskChainSyncService', () => {
     const blockFromSync7 = new SyncStatusModel('0x0007a', 7, blockFromSync6.rskBlockHash); // forked
     const blockFromSync8 = new SyncStatusModel('0x0008a', 8, blockFromSync7.rskBlockHash); // forked
 
-    const transactions: Transaction[] = [];
+    const transactions: TransactionInfo[] = [];
 
     // Mocked blocks from rsk
     const blockFromRsk1 = {
@@ -351,11 +351,11 @@ describe('Service: RskChainSyncService', () => {
     mockedSyncStatusDataService.getById.withArgs(blockFromSync2.rskBlockHash).resolves(blockFromSync2);
 
     const mockedRskNodeService = getRskNodeService();
-    mockedRskNodeService.getBlock.withArgs('latest').resolves(<BlockTransactionObject>bestBlockFromRsk);
-    mockedRskNodeService.getBlock.withArgs(2).resolves(<BlockTransactionObject>blockFromRsk2);
-    mockedRskNodeService.getBlock.withArgs(3).resolves(<BlockTransactionObject>blockFromRsk3);
-    mockedRskNodeService.getBlock.withArgs(4).resolves(<BlockTransactionObject>blockFromRsk4);
-    mockedRskNodeService.getBlock.withArgs(5).resolves(<BlockTransactionObject>blockFromRsk5);
+    mockedRskNodeService.getBlock.withArgs('latest').resolves(<Block>bestBlockFromRsk);
+    mockedRskNodeService.getBlock.withArgs(2).resolves(<Block>blockFromRsk2);
+    mockedRskNodeService.getBlock.withArgs(3).resolves(<Block>blockFromRsk3);
+    mockedRskNodeService.getBlock.withArgs(4).resolves(<Block>blockFromRsk4);
+    mockedRskNodeService.getBlock.withArgs(5).resolves(<Block>blockFromRsk5);
 
     const subscriber = sinon.spy({
       blockDeleted: (): void => { },
