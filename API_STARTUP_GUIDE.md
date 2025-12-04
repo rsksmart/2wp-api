@@ -5,7 +5,7 @@ This guide provides step-by-step instructions to start the 2wp-API application, 
 ## Prerequisites
 
 Before starting the API, ensure you have the following installed:
-- **Node.js** (version 18.17.0 as specified in `.nvmrc`)
+- **Node.js** (version 20.18.2 as specified in `.nvmrc`)
 - **npm** (comes with Node.js)
 - **Docker** and **Docker Compose** (for running required databases)
 - **nvm** (Node Version Manager) - recommended for managing Node.js versions
@@ -18,7 +18,7 @@ First, ensure you're using the correct Node.js version:
 # Check if nvm is available
 nvm --version
 
-# Use the correct Node.js version (18.17.0)
+# Use the correct Node.js version (20.18.2)
 nvm use
 
 # Verify the version
@@ -27,8 +27,8 @@ npm --version
 ```
 
 **Expected output:**
-- Node.js: v18.17.0
-- npm: Should be compatible with Node.js 18.17.0
+- Node.js: v20.18.2
+- npm: Should be compatible with Node.js 20.18.2
 
 ## Step 2: Install Dependencies
 
