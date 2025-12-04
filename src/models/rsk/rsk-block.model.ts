@@ -33,7 +33,15 @@ export class RskBlock {
   }
 
   public static fromWeb3BlockWithTransactions(web3Block: Block): RskBlock {
-    const rskTransactions: RskTransaction[] = (web3Block.transactions as TransactionInfo[]).map(tx => RskTransaction.fromWeb3Transaction(web3Block, tx as TransactionInfo));
+    const { transactions } = web3Block;
+
+    const hasTxInfo = (tx: unknown): tx is TransactionInfo =>
+      typeof tx === 'object' && tx !== null && 'hash' in tx;
+
+    const rskTransactions = transactions
+      .filter(hasTxInfo)
+      .map(tx => RskTransaction.fromWeb3Transaction(web3Block, tx));
+
     return new RskBlock(
       Number(web3Block.number),
       web3Block.hash?.toString() ?? '',
