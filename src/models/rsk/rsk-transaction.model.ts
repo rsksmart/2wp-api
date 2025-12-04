@@ -1,4 +1,4 @@
-import { BlockTransactionObject, Transaction, TransactionReceipt  } from 'web3-eth';
+import { Block, TransactionInfo, TransactionReceipt } from 'web3';
 
 export class RskTransaction {
   hash: string;
@@ -11,14 +11,14 @@ export class RskTransaction {
   to: string;
   receipt: TransactionReceipt | null;
 
-  public static fromWeb3Transaction(web3Block: BlockTransactionObject, web3Tx: Transaction): RskTransaction {
+  public static fromWeb3Transaction(web3Block: Block, web3Tx: TransactionInfo): RskTransaction {
     const tx = new RskTransaction();
-    tx.blockHeight = web3Block.number;
-    tx.blockHash = web3Block.hash;
+    tx.blockHeight = Number(web3Block.number);
+    tx.blockHash = web3Block.hash?.toString() ?? '';
     tx.createdOn = new Date(Number(web3Block.timestamp) * 1000);
-    tx.hash = web3Tx.hash;
-    tx.data = web3Tx.input;
-    tx.to = <string> web3Tx.to;
+    tx.hash = web3Tx.hash?.toString() ?? '';
+    tx.data = web3Tx.input?.toString() ?? '';
+    tx.to = web3Tx.to ?? '';
     return tx;
   }
 

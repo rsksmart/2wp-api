@@ -1,4 +1,4 @@
-import { BlockTransactionObject } from 'web3-eth';
+import { Block, TransactionInfo } from 'web3';
 import { RskTransaction } from './rsk-transaction.model';
 
 export class RskBlock {
@@ -23,21 +23,21 @@ export class RskBlock {
     return `{hash:${this.hash}, parentHash:${this.parentHash}, height:${this.height}}`;
   }
 
-  public static fromWeb3Block(web3Block: BlockTransactionObject): RskBlock {
+  public static fromWeb3Block(web3Block: Block): RskBlock {
     return new RskBlock(
-      web3Block.number,
-      web3Block.hash,
-      web3Block.parentHash,
+      Number(web3Block.number),
+      web3Block.hash?.toString() ?? '',
+      web3Block.parentHash?.toString() ?? '',
       []
     );
   }
 
-  public static fromWeb3BlockWithTransactions(web3Block: BlockTransactionObject): RskBlock {
-    const rskTransactions: RskTransaction[] = web3Block.transactions.map(tx => RskTransaction.fromWeb3Transaction(web3Block, tx));
+  public static fromWeb3BlockWithTransactions(web3Block: Block): RskBlock {
+    const rskTransactions: RskTransaction[] = (web3Block.transactions as TransactionInfo[]).map(tx => RskTransaction.fromWeb3Transaction(web3Block, tx as TransactionInfo));
     return new RskBlock(
-      web3Block.number,
-      web3Block.hash,
-      web3Block.parentHash,
+      Number(web3Block.number),
+      web3Block.hash?.toString() ?? '',
+      web3Block.parentHash?.toString() ?? '',
       rskTransactions
     );
   }

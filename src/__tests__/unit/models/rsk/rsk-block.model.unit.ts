@@ -1,5 +1,5 @@
 import { RskBlock } from '../../../../models/rsk/rsk-block.model';
-import { BlockTransactionObject, Transaction } from 'web3-eth';
+import { Block, TransactionInfo } from 'web3';
 import { expect } from '@loopback/testlab';
 
 describe('Model: RskBlock', () => {
@@ -12,12 +12,12 @@ describe('Model: RskBlock', () => {
         const input = '0x000002';
         const transactionHash = '0x002';
 
-        const web3Transaction: Transaction = <Transaction> {
+        const web3Transaction: TransactionInfo = <TransactionInfo> {
             hash: transactionHash,
             input
         };
 
-        const web3Block: BlockTransactionObject = <BlockTransactionObject> {
+        const web3Block: Block = <Block> {
             number: height,
             hash,
             parentHash,
