@@ -10,7 +10,7 @@ import { RskNodeService } from '../../../services/rsk-node.service';
 import { RskTransaction } from '../../../models/rsk/rsk-transaction.model';
 import { ExtendedBridgeTxModel } from '../../../services/extended-bridge-tx';
 import { BridgeEvent, BridgeMethod, Transaction } from '@rsksmart/bridge-transaction-parser';
-import { TransactionReceipt  } from 'web3-eth';
+import { TransactionReceipt } from 'web3';
 import { PegoutStatus } from '../../../models';
 
 describe('Pegout Status Service:', () => {
