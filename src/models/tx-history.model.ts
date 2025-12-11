@@ -1,7 +1,7 @@
 import {model, property} from '@loopback/repository';
 import {SearchableModel} from './rsk/searchable-model';
 
-export const SOURCES = ['FLYOVER', 'SWAP', 'POWPEG'] as const;
+export const SOURCES = ['FLYOVER', 'SWAP', 'POWPEG', 'UNION', 'LIFI', 'SYMBIOSIS'] as const;
 export type Source = (typeof SOURCES)[number];
 
 @model()
@@ -125,7 +125,7 @@ export class TxHistory implements SearchableModel {
   @property({
     type: 'number',
   })
-  liquidityProviderId?: number;
+  liquidityProviderName?: string;
 
   getId() {
     return this.txHash;
