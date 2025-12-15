@@ -1,9 +1,38 @@
-version: "3.2"
 services:
   api:
     build: .
-    container_name: api-2wp-loopback
+    container_name: pp-api-loopback
     ports:
     - "3000:3000"
     env_file:
       - .env
+    environment:
+      RSK_DB_CONNECTION_HOST: pp-api-db
+    networks:
+      - pp-api-network
+    depends_on:
+      pp-api-db:
+        condition: service_healthy
+  pp-api-db:
+    image: mongo
+    container_name: 'ppa-api-mongo-db'
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./rsk-database/db:/data/db
+    ports:
+      - '27017-27019:27017-27019'
+    networks:
+      - pp-api-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+networks:
+  pp-api-network:
+    name: pp-api-network
+    driver: bridge
