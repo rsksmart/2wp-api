@@ -70,7 +70,6 @@
     "ethers": "^6.13.5",
     "jssha": "^3.2.0",
     "log4js": "^6.6.1",
-    "loopback-connector-kv-redis": "^4.0.0",
     "loopback-connector-rest": "^5.0.2",
     "mongoose": "^7.5.3",
     "pegin-address-verificator": "https://git@github.com/rsksmart/pegin-address-verifier#0.3.0",

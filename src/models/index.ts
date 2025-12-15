@@ -3,7 +3,6 @@ export * from './broadcast-request.model';
 export * from './broadcast-response.model';
 export * from './pegin-configuration.model';
 export * from './pegin-status.model';
-export * from './session.model';
 export * from './tx-input.model';
 export * from './tx-output.model';
 export * from './tx-request.model';

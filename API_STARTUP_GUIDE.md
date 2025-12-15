@@ -59,12 +59,6 @@ RSK_PEGOUT_MINIMUM_CONFIRMATIONS=10
 BLOCKBOOK_URL='https://your-blockbook-url'
 MAX_AMOUNT_ALLOWED_IN_SATOSHI=100000000
 
-# SessionDB (Redis) Configuration
-SESSIONDB_HOST='localhost'
-SESSIONDB_PORT=6379
-SESSIONDB_PASSWORD='sessiondb-2wp-api-password'
-SESSIONDB_INDEX=1
-
 # Federation Addresses history
 FEDERATION_ADDRESSES_HISTORY='2N6JWYUb6Li4Kux6UB2eihT7n3rm3YX97uv 2N1y7hSneV9HuWnpLTtGqdRnway1Ag3dQoj 2NF9ndVaez5owUShjSxNnY2E31QkRjLu63k 2N5exbrgeGBuKXqcinfz68atduq6ApHN4b4 2Mu7ayegt8AYi7vGYtG2KGaXErPWBQhPVfu 2N1rW3cBZNzs2ZxSfyNW7cMcNBktt6fzs88 2N1GMB8gxHYR5HLPSRgf9CJ9Lunjb9CTnKB'
 
@@ -95,27 +89,7 @@ BURN_DUST_VALUE=2000
 NODE_ENV=development
 ```
 
-## Step 4: Start SessionDB (Redis)
-
-The SessionDB is required for the API to function properly. Start it using Docker:
-
-```bash
-# Navigate to SessionDB directory
-cd SessionDB
-
-# Start Redis container
-docker-compose up -d
-
-# Verify the container is running
-docker-compose ps
-
-# Return to root directory
-cd ..
-```
-
-**Expected output:** Redis container should be running on port 6379.
-
-## Step 5: Start RSK Database (MongoDB)
+## Step 4: Start RSK Database (MongoDB)
 
 The RSK database must be running before starting the API. Follow these steps:
 
@@ -138,7 +112,7 @@ cd ..
 
 **Expected output:** MongoDB container should be running on port 27017.
 
-## Step 6: Create MongoDB User (First Time Only)
+## Step 5: Create MongoDB User (First Time Only)
 
 If this is your first time setting up the database, you need to create a user with admin permissions:
 
@@ -170,7 +144,7 @@ exit
 exit
 ```
 
-## Step 7: Build the Application
+## Step 6: Build the Application
 
 Before starting the API, build the TypeScript application:
 
@@ -179,7 +153,7 @@ Before starting the API, build the TypeScript application:
 npm run build
 ```
 
-## Step 8: Start the API
+## Step 7: Start the API
 
 Now you can start the API using the `start-api` command:
 
@@ -190,7 +164,7 @@ npm run start-api
 
 **Expected output:** The API should start and be accessible at `http://127.0.0.1:3000`.
 
-## Step 9: Verify API is Running
+## Step 8: Verify API is Running
 
 Open your browser and navigate to:
 - **API Explorer:** http://127.0.0.1:3000/explorer
@@ -224,11 +198,6 @@ To stop all services when you're done:
 
 # Stop MongoDB
 cd rsk-database
-docker-compose down
-cd ..
-
-# Stop Redis
-cd SessionDB
 docker-compose down
 cd ..
 ```

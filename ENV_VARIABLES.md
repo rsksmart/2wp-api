@@ -26,10 +26,6 @@ This table was created to guide and centralize the **environment variables** nec
 |BTC_CONFIRMATIONS             |100                            |'testnet or mainnet'                                     |
 |NETWORK                       |`testnet or mainnet`           |'testnet or mainnet'                                     |
 |BLOCKBOOK_URL                 |                               |'Blockbook url'                                          |
-|SESSIONDB_HOST                |                               |'Redis host'                                             |
-|SESSIONDB_PORT                |                               |'Redis port'                                             |
-|SESSIONDB_PASSWORD            |                               |'Redis password'                                         |
-|SESSIONDB_INDEX               |1                              |'Redis index'                                            |
 |MAX_AMOUNT_ALLOWED_IN_SATOSHI |                               |'Pegin Pegout max allowed in satoshis'                   |
 |METRICS_ENABLED               |`true or false`                |'enable trace log'                                       |
 |NODE_ENV|`production or development`|'Indicates if the app should be built for a production environment or not'
@@ -50,14 +46,8 @@ MAX_AMOUNT_ALLOWED_IN_SATOSHI=100000000
 # Federation Addresses history
 FEDERATION_ADDRESSES_HISTORY='2N6JWYUb6Li4Kux6UB2eihT7n3rm3YX97uv 2N1y7hSneV9HuWnpLTtGqdRnway1Ag3dQoj 2NF9ndVaez5owUShjSxNnY2E31QkRjLu63k 2N5exbrgeGBuKXqcinfz68atduq6ApHN4b4 2Mu7ayegt8AYi7vGYtG2KGaXErPWBQhPVfu 2N1rW3cBZNzs2ZxSfyNW7cMcNBktt6fzs88 2N1GMB8gxHYR5HLPSRgf9CJ9Lunjb9CTnKB'
 
- #sessionDB
-SESSIONDB_HOST='localhost'
-SESSIONDB_PORT=6379
-SESSIONDB_PASSWORD='sessiondb-2wp-api-password'
-SESSIONDB_INDEX=1
 BRIDGE_ADDRESS='0x0000000000000000000000000000000001000006'
 RSK_NODE_HOST='https://public-node.testnet.rsk.co'
-TTL_SESSIONDB_EXPIRE_MILLISECONDS=3600000
 METRICS_ENABLED=false;
 
 # DAEMON SYNC - https://explorer.testnet.rsk.co/block/2019830

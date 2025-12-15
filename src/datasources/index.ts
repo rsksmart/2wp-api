@@ -1,6 +1,5 @@
 export * from './address-provider.datasource';
 export * from './db.datasource';
-export * from './redis.datasource';
 export * from './tx-broadcast.datasource';
 export * from './tx-fee-provider.datasource';
 export * from './tx-provider.datasource';
