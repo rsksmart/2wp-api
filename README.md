@@ -115,13 +115,41 @@ npm run eslint
 npm run only-coverage
 ```
 
-## Deployment
+## Docker Deployment
 
-In the root directory run:
+The project includes Docker Compose configuration for running both the API and MongoDB database together.
 
-```shell
-docker-compose up
+### Docker Configuration Summary
+
+- **API Service**: Runs on port 3000, connects to MongoDB using service name `pp-api-db`
+- **MongoDB Service**: Runs on ports 27017-27019, automatically initializes with user and database from environment variables
+
+### Start Database Only (Development)
+
+To start only the MongoDB database for local development:
+
+```bash
+# Start MongoDB container
+docker-compose up -d pp-api-db
+
+# View logs
+docker-compose logs -f pp-api-db
 ```
+
+The database will be accessible at `localhost:27017`. Make sure your `.env` file has `RSK_DB_CONNECTION_HOST=localhost` for local development.
+
+### Start Full API Stack
+
+To start both the API and MongoDB together:
+
+```bash
+# Start all services
+docker-compose up -d
+```
+
+The API will be accessible at `http://localhost:3000` and will automatically connect to MongoDB using the Docker service name.
+
+**Note**: When running in Docker, the API uses `pp-api-db` as the MongoDB host (configured in docker-compose.yml). For local development without Docker, use `localhost`.
 
 ## Other useful commands
 
