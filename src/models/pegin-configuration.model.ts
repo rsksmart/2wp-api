@@ -27,12 +27,6 @@ export class PeginConfiguration extends Entity {
   btcConfirmations: number;
 
   @property({
-    type: 'string',
-    required: false,
-  })
-  sessionId?: string;
-
-  @property({
     type: 'number',
     id: true,
     generated: true,
