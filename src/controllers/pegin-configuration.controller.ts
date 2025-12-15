@@ -1,10 +1,8 @@
-/* eslint-disable no-underscore-dangle */
 import {repository} from '@loopback/repository';
 import {get, getModelSchemaRef} from '@loopback/rest';
-import crypto from 'crypto';
 import {getLogger, Logger} from 'log4js';
-import {PeginConfiguration, Session} from '../models';
-import {PeginConfigurationRepository, SessionRepository} from '../repositories';
+import {PeginConfiguration} from '../models';
+import {PeginConfigurationRepository} from '../repositories';
 import {BridgeService} from '../services';
 
 export class PeginConfigurationController {
@@ -13,8 +11,6 @@ export class PeginConfigurationController {
   constructor(
     @repository(PeginConfigurationRepository)
     public peginConfigurationRepository: PeginConfigurationRepository,
-    @repository(SessionRepository)
-    public sessionRepository: SessionRepository,
   ) {
     this.logger = getLogger('pegin-configuration-controller');
   }
@@ -38,15 +34,6 @@ export class PeginConfigurationController {
   })
   async get(): Promise<PeginConfiguration> {
     this.logger.debug('[get] started');
-    const session = {
-      _id: crypto.randomBytes(16).toString('hex'),
-      balance: 0,
-    };
-    const ttlSessionDBExpire =
-      process.env.TTL_SESSIONDB_EXPIRE_MILLISECONDS ?? 3600000;
-    await this.sessionRepository.set(session._id, new Session(session));
-    await this.sessionRepository.expire(session._id, +ttlSessionDBExpire);
-    this.logger.trace(`[get] Got session ${session._id}`);
     const bridgeService = new BridgeService();
     return new Promise<PeginConfiguration>((resolve, reject) => {
       Promise.all([
@@ -60,7 +47,6 @@ export class PeginConfigurationController {
             maxValue: availability,
             federationAddress,
             btcConfirmations: Number(process.env.BTC_CONFIRMATIONS) || 100,
-            sessionId: session._id,
           });
           this.logger.debug('[get] Finished');
           resolve(peginConf);

@@ -1,8 +1,7 @@
-import {ExpressContextStub, StubbedInstanceWithSinonAccessor, createStubInstance, expect, sinon, stubExpressContext} from '@loopback/testlab';
+import {ExpressContextStub, createStubInstance, expect, sinon, stubExpressContext} from '@loopback/testlab';
 import {RegisterController} from '../../controllers/register.controller';
 import {RegisterService} from '../../services/register.service';
 import {RegisterPayload} from '../../models';
-import {SessionRepository} from '../../repositories';
 import * as constants from '../../constants';
 import {FlyoverService} from '../../services';
 
@@ -10,11 +9,9 @@ describe('RegisterController', () => {
   let registerController: RegisterController;
   let registerService: RegisterService;
   let flyoverService: FlyoverService;
-  let sessionRepository: StubbedInstanceWithSinonAccessor<SessionRepository>;
   let context: ExpressContextStub;
   let register: sinon.SinonStub;
   let registerFlyover: sinon.SinonStub;
-  let get: sinon.SinonStub;
   let payload = new RegisterPayload({
     txHash: '0x',
     type: constants.TX_TYPE_PEGIN,
@@ -101,21 +98,17 @@ describe('RegisterController', () => {
     context = stubExpressContext();
     registerService = createStubInstance(RegisterService);
     flyoverService = createStubInstance(FlyoverService);
-    sessionRepository = createStubInstance(SessionRepository);
-    get = sessionRepository.get as sinon.SinonStub;
     register = registerService.register as sinon.SinonStub;
     registerFlyover = flyoverService.register as sinon.SinonStub;
     registerController = new RegisterController(
       registerService,
       flyoverService,
       context.response,
-      sessionRepository,
     );
   }
 
   it('should register a pegin', async () => {
     register.resolves(true);
-    get.resolves('43ef33c59294d5033d96cb25b8f94723');
     await registerController.register(payload);
     const result = await context.result;
     sinon.assert.called(register);

@@ -1,11 +1,9 @@
 import {Logger, getLogger} from 'log4js';
 import {inject} from '@loopback/core';
 import {Response, RestBindings, getModelSchemaRef, post, requestBody} from '@loopback/rest';
-import {repository} from '@loopback/repository';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {RegisterPayload} from '../models';
 import {RegisterService, FlyoverService} from '../services';
-import {SessionRepository} from '../repositories';
 import { validateRegisterPayload } from '../utils/sanitization-utils';
 
 export class RegisterController {
@@ -18,8 +16,6 @@ export class RegisterController {
     protected flyoverService: FlyoverService,
     @inject(RestBindings.Http.RESPONSE)
     private response: Response,
-    @repository(SessionRepository)
-    public sessionRepository: SessionRepository,
   ) {
     this.logger = getLogger('register-controller');
   }
