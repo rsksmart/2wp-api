@@ -25,19 +25,19 @@ export class LogEntry extends Model {
     type: 'string',
     required: true,
     jsonSchema: {
-      enum: ['peginNative', 'peginFlyover', 'pegoutNative', 'pegoutFlyover'],
+      enum: ['success', 'error'],
     },
   })
-  type: 'peginNative' | 'peginFlyover' | 'pegoutNative' | 'pegoutFlyover';
+  type: 'success' | 'error';
 
   @property({
     type: 'string',
     required: true,
     jsonSchema: {
-      enum: ['success', 'error'],
+      enum: ['peginNative', 'peginFlyover', 'pegoutNative', 'pegoutFlyover'],
     },
   })
-  operation: 'success' | 'error';
+  operation: 'peginNative' | 'peginFlyover' | 'pegoutNative' | 'pegoutFlyover';
 
   @property({
     type: 'string',
