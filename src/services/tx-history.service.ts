@@ -16,7 +16,7 @@ const TxHistorySchema = new mongoose.Schema({
   toAmount: {type: String, required: true},
   date: {type: Date, required: true, index: true},
   sdkProvider: {type: String, required: true, enum: SOURCES},
-  liquidityProviderId: {type: Number},
+  liquidityProviderName: {type: String},
 });
 
 TxHistorySchema.index({ userAddress: 1, date: -1 });

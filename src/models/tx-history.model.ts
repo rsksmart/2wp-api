@@ -116,14 +116,14 @@ export class TxHistory implements SearchableModel {
     type: 'string',
     required: true,
     jsonSchema: {
-      enum: ['FLYOVER', 'SWAP', 'POWPEG'],
-      errorMessage: 'Must be one of: FLYOVER, SWAP, POWPEG'
+      enum: ['FLYOVER', 'SWAP', 'POWPEG', 'UNION', 'LIFI', 'SYMBIOSIS'],
+      errorMessage: 'Must be one of: FLYOVER, SWAP, POWPEG, UNION, LIFI, SYMBIOSIS'
     }
   })
   sdkProvider: Source;
   
   @property({
-    type: 'number',
+    type: 'string',
   })
   liquidityProviderName?: string;
 
