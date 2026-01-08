@@ -17,12 +17,12 @@ describe('LogsController:', () => {
   describe('POST /logs', () => {
     describe('type attribute validation', () => {
       it('should accept valid type values', async () => {
-        const validTypes = ['peginNative', 'peginFlyover', 'pegoutNative', 'pegoutFlyover'];
+        const validTypes = ['success', 'error'];
         
         for (const type of validTypes) {
           const requestBody = {
             type,
-            operation: 'success',
+            operation: 'peginNative',
             location: 'test-location',
           };
 
@@ -34,12 +34,12 @@ describe('LogsController:', () => {
       });
 
       it('should reject invalid type values', async () => {
-        const invalidTypes = ['invalidType', 'pegin', 'pegout', 'native', 'flyover', '', null, undefined, 123];
+        const invalidTypes = ['invalidType', 'pegin', 'pegout', 'native', 'flyover', 'successful', 'failed', 'pending', '', null, undefined, 123];
         
         for (const type of invalidTypes) {
           const requestBody = {
             type,
-            operation: 'success',
+            operation: 'peginNative',
             location: 'test-location',
           };
 
@@ -53,11 +53,11 @@ describe('LogsController:', () => {
 
     describe('operation attribute validation', () => {
       it('should accept valid operation values', async () => {
-        const validOperations = ['success', 'error'];
+        const validOperations = ['peginNative', 'peginFlyover', 'pegoutNative', 'pegoutFlyover'];
         
         for (const operation of validOperations) {
           const requestBody = {
-            type: 'peginNative',
+            type: 'success',
             operation,
             location: 'test-location',
           };
@@ -70,11 +70,11 @@ describe('LogsController:', () => {
       });
 
       it('should reject invalid operation values', async () => {
-        const invalidOperations = ['invalid', 'successful', 'failed', 'pending', '', null, undefined, 123];
+        const invalidOperations = ['invalid', 'pegin', 'pegout', 'native', 'flyover', 'successful', 'failed', 'pending', '', null, undefined, 123];
         
         for (const operation of invalidOperations) {
           const requestBody = {
-            type: 'peginNative',
+            type: 'success',
             operation,
             location: 'test-location',
           };
@@ -102,8 +102,8 @@ describe('LogsController:', () => {
         
         for (const location of validLocations) {
           const requestBody = {
-            type: 'peginNative',
-            operation: 'success',
+            type: 'success',
+            operation: 'peginNative',
             location,
           };
 
@@ -137,8 +137,8 @@ describe('LogsController:', () => {
         
         for (const location of invalidLocations) {
           const requestBody = {
-            type: 'peginNative',
-            operation: 'success',
+            type: 'success',
+            operation: 'peginNative',
             location,
           };
 
@@ -181,8 +181,8 @@ describe('LogsController:', () => {
         
         for (const error of validErrors) {
           const requestBody = {
-            type: 'peginNative',
-            operation: 'error',
+            type: 'error',
+            operation: 'peginNative',
             location: 'test-location',
             error,
           };
@@ -203,8 +203,8 @@ describe('LogsController:', () => {
         
         for (const error of invalidErrors) {
           const requestBody = {
-            type: 'peginNative',
-            operation: 'error',
+            type: 'error',
+            operation: 'peginNative',
             location: 'test-location',
             error,
           };
@@ -222,18 +222,18 @@ describe('LogsController:', () => {
         const incompleteRequests = [
           // Missing type
           {
-            operation: 'success',
+            operation: 'peginNative',
             location: 'test-location',
           },
           // Missing operation
           {
-            type: 'peginNative',
+            type: 'success',
             location: 'test-location',
           },
           // Missing location
           {
-            type: 'peginNative',
-            operation: 'success',
+            type: 'success',
+            operation: 'peginNative',
           },
           // Empty request
           {},
@@ -251,8 +251,8 @@ describe('LogsController:', () => {
     describe('optional error field', () => {
       it('should accept requests without error field', async () => {
         const requestBody = {
-          type: 'peginNative',
-          operation: 'success',
+          type: 'success',
+          operation: 'peginNative',
           location: 'test-location',
         };
 
@@ -264,8 +264,8 @@ describe('LogsController:', () => {
 
       it('should accept requests with undefined error field', async () => {
         const requestBody = {
-          type: 'peginNative',
-          operation: 'success',
+          type: 'success',
+          operation: 'peginNative',
           location: 'test-location',
           error: undefined,
         };
@@ -280,8 +280,8 @@ describe('LogsController:', () => {
     describe('additional properties validation', () => {
       it('should reject requests with additional properties', async () => {
         const requestBody = {
-          type: 'peginNative',
-          operation: 'success',
+          type: 'success',
+          operation: 'peginNative',
           location: 'test-location',
           extraProperty: 'should-not-be-allowed',
           anotherProperty: 123,
@@ -301,25 +301,25 @@ describe('LogsController:', () => {
           // Wrong type data type
           {
             type: 123,
-            operation: 'success',
+            operation: 'peginNative',
             location: 'test-location',
           },
           // Wrong operation data type
           {
-            type: 'peginNative',
+            type: 'success',
             operation: 123,
             location: 'test-location',
           },
           // Wrong location data type
           {
-            type: 'peginNative',
-            operation: 'success',
+            type: 'success',
+            operation: 'peginNative',
             location: 123,
           },
           // Wrong error data type
           {
-            type: 'peginNative',
-            operation: 'error',
+            type: 'error',
+            operation: 'peginNative',
             location: 'test-location',
             error: 'not-an-object',
           },
@@ -337,8 +337,8 @@ describe('LogsController:', () => {
     describe('boundary conditions', () => {
       it('should handle minimum valid values', async () => {
         const requestBody = {
-          type: 'peginNative',
-          operation: 'success',
+          type: 'success',
+          operation: 'peginNative',
           location: 'abc', // minimum length
           error: {
             message: 'abc', // minimum length
@@ -354,8 +354,8 @@ describe('LogsController:', () => {
 
       it('should handle maximum valid values', async () => {
         const requestBody = {
-          type: 'pegoutFlyover',
-          operation: 'error',
+          type: 'error',
+          operation: 'pegoutFlyover',
           location: 'a'.repeat(50), // maximum length
           error: {
             message: 'a'.repeat(30), // maximum length
@@ -371,8 +371,8 @@ describe('LogsController:', () => {
 
       it('should handle negative error codes', async () => {
         const requestBody = {
-          type: 'peginNative',
-          operation: 'error',
+          type: 'error',
+          operation: 'peginNative',
           location: 'test-location',
           error: {
             message: 'test-error',
@@ -388,8 +388,8 @@ describe('LogsController:', () => {
 
       it('should handle zero error code', async () => {
         const requestBody = {
-          type: 'peginNative',
-          operation: 'error',
+          type: 'error',
+          operation: 'peginNative',
           location: 'test-location',
           error: {
             message: 'test-error',
@@ -407,8 +407,8 @@ describe('LogsController:', () => {
     describe('response validation', () => {
       it('should return 200 status code for valid requests', async () => {
         const requestBody = {
-          type: 'peginNative',
-          operation: 'success',
+          type: 'success',
+          operation: 'peginNative',
           location: 'test-location',
         };
 
@@ -423,8 +423,8 @@ describe('LogsController:', () => {
 
       it('should return 200 status code for valid error requests', async () => {
         const requestBody = {
-          type: 'peginNative',
-          operation: 'error',
+          type: 'error',
+          operation: 'peginNative',
           location: 'test-location',
           error: {
             message: 'test-error',
@@ -444,8 +444,8 @@ describe('LogsController:', () => {
 
     describe('comprehensive valid combinations', () => {
       it('should accept all valid type and operation combinations', async () => {
-        const types = ['peginNative', 'peginFlyover', 'pegoutNative', 'pegoutFlyover'];
-        const operations = ['success', 'error'];
+        const types = ['success', 'error'];
+        const operations = ['peginNative', 'peginFlyover', 'pegoutNative', 'pegoutFlyover'];
         
         for (const type of types) {
           for (const operation of operations) {
@@ -464,8 +464,8 @@ describe('LogsController:', () => {
       });
 
       it('should accept all valid combinations with error field', async () => {
-        const types = ['peginNative', 'peginFlyover', 'pegoutNative', 'pegoutFlyover'];
-        const operations = ['success', 'error'];
+        const types = ['success', 'error'];
+        const operations = ['peginNative', 'peginFlyover', 'pegoutNative', 'pegoutFlyover'];
         
         for (const type of types) {
           for (const operation of operations) {

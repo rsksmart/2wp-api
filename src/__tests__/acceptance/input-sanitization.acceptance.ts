@@ -339,8 +339,8 @@ describe('Input Sanitization (Acceptance)', function() {
       await client
         .post('/logs')
         .send({
-          type: 'peginNative',
-          operation: 'success',
+          type: 'success',
+          operation: 'peginNative',
           location: '<script>alert("xss")</script>',
         })
         .expect(422);
@@ -350,8 +350,8 @@ describe('Input Sanitization (Acceptance)', function() {
       const res = await client
         .post('/logs')
         .send({
-          type: 'peginNative',
-          operation: 'error',
+          type: 'error',
+          operation: 'peginNative',
           location: 'frontend',
           error: {
             message: '<script>alert("xss")</script>',
@@ -365,8 +365,8 @@ describe('Input Sanitization (Acceptance)', function() {
       await client
         .post('/logs')
         .send({
-          type: 'peginNative',
-          operation: 'success',
+          type: 'success',
+          operation: 'peginNative',
           location: "'; DROP TABLE logs; --",
         })
         .expect(422);
@@ -376,8 +376,8 @@ describe('Input Sanitization (Acceptance)', function() {
       const res = await client
         .post('/logs')
         .send({
-          type: 'peginNative',
-          operation: 'error',
+          type: 'error',
+          operation: 'peginNative',
           location: 'frontend',
           error: {
             message: "'; DROP TABLE logs; --",
@@ -392,7 +392,7 @@ describe('Input Sanitization (Acceptance)', function() {
         .post('/logs')
         .send({
           type: 'invalidType',
-          operation: 'success',
+          operation: 'peginNative',
           location: 'frontend',
         })
         .expect(422);
@@ -402,7 +402,7 @@ describe('Input Sanitization (Acceptance)', function() {
       await client
         .post('/logs')
         .send({
-          type: 'peginNative',
+          type: 'success',
           operation: 'invalidOperation',
           location: 'frontend',
         })
@@ -413,8 +413,8 @@ describe('Input Sanitization (Acceptance)', function() {
       await client
         .post('/logs')
         .send({
-          type: 'peginNative',
-          operation: 'success',
+          type: 'success',
+          operation: 'peginNative',
           location: 'test--location',
         })
         .expect(422);
@@ -424,8 +424,8 @@ describe('Input Sanitization (Acceptance)', function() {
       await client
         .post('/logs')
         .send({
-          type: 'peginNative',
-          operation: 'success',
+          type: 'success',
+          operation: 'peginNative',
           location: 'test@location',
         })
         .expect(422);
@@ -435,8 +435,8 @@ describe('Input Sanitization (Acceptance)', function() {
       await client
         .post('/logs')
         .send({
-          type: 'peginNative',
-          operation: 'success',
+          type: 'success',
+          operation: 'peginNative',
           location: 'frontend',
         })
         .expect(200);
@@ -446,8 +446,8 @@ describe('Input Sanitization (Acceptance)', function() {
       await client
         .post('/logs')
         .send({
-          type: 'peginNative',
-          operation: 'error',
+          type: 'error',
+          operation: 'peginNative',
           location: 'frontend',
           error: {
             message: 'test-error-message',
@@ -461,8 +461,8 @@ describe('Input Sanitization (Acceptance)', function() {
       await client
         .post('/logs')
         .send({
-          type: 'peginNative',
-          operation: 'success',
+          type: 'success',
+          operation: 'peginNative',
           location: 'frontend',
           maliciousProperty: 'should not be allowed',
         })
@@ -473,8 +473,8 @@ describe('Input Sanitization (Acceptance)', function() {
       await client
         .post('/logs')
         .send({
-          type: 'peginNative',
-          operation: 'success',
+          type: 'success',
+          operation: 'peginNative',
           // missing location
         })
         .expect(422);
