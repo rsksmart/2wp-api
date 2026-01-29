@@ -4,6 +4,12 @@ import {SearchableModel} from './rsk/searchable-model';
 export const SOURCES = ['FLYOVER', 'SWAP', 'POWPEG', 'UNION', 'LIFI', 'SYMBIOSIS'] as const;
 export type Source = (typeof SOURCES)[number];
 
+export const TOKENS = ['BTC', 'RBTC'] as const;
+export type Token = (typeof TOKENS)[number];
+
+export const NETWORKS = ['Bitcoin', 'Rootstock'] as const;
+export type Network = (typeof NETWORKS)[number];
+
 @model()
 export class TxHistory implements SearchableModel {
   @property({
@@ -30,10 +36,10 @@ export class TxHistory implements SearchableModel {
     type: 'string',
     required: true,
     jsonSchema: {
-      pattern: '^[a-zA-Z0-9_-]+$',
+      pattern: '^(0x[a-fA-F0-9]{64}|[a-fA-F0-9]{64}|[A-Za-z0-9]{12})$',
       minLength: 1,
       maxLength: 256,
-      errorMessage: 'Must contain only alphanumeric characters, hyphens, and underscores (no spaces)'
+      errorMessage: 'Must be a valid transaction hash or provider identifier'
     }
   })
   providerHash: string;
@@ -42,49 +48,41 @@ export class TxHistory implements SearchableModel {
     type: 'string',
     required: true,
     jsonSchema: {
-      pattern: '^[a-zA-Z]+$',
-      minLength: 1,
-      maxLength: 20,
-      errorMessage: 'Must contain only letters'
+      enum: [...TOKENS],
+      errorMessage: 'Must be one of: BTC, RBTC'
     }
   })
-  fromTokenName: string;
+  fromTokenName: Token;
   
   @property({
     type: 'string',
     required: true,
     jsonSchema: {
-      pattern: '^[a-zA-Z ]+$',
-      minLength: 1,
-      maxLength: 40,
-      errorMessage: 'Must contain only letters and spaces'
+      enum: [...NETWORKS],
+      errorMessage: 'Must be one of: Bitcoin, Rootstock'
     }
   })
-  fromNetworkName: string;
+  fromNetworkName: Network;
   
   @property({
     type: 'string',
     required: true,
     jsonSchema: {
-      pattern: '^[a-zA-Z]+$',
-      minLength: 1,
-      maxLength: 20,
-      errorMessage: 'Must contain only letters'
+      enum: [...TOKENS],
+      errorMessage: `Must be one of: ${TOKENS.join(', ')}`
     }
   })
-  toTokenName: string;
+  toTokenName: Token;
   
   @property({
     type: 'string',
     required: true,
     jsonSchema: {
-      pattern: '^[a-zA-Z ]+$',
-      minLength: 1,
-      maxLength: 40,
-      errorMessage: 'Must contain only letters and spaces'
+      enum: [...NETWORKS],
+      errorMessage: `Must be one of: ${NETWORKS.join(', ')}`
     }
   })
-  toNetworkName: string;
+  toNetworkName: Network;
 
   @property({
     type: 'string',
@@ -116,8 +114,8 @@ export class TxHistory implements SearchableModel {
     type: 'string',
     required: true,
     jsonSchema: {
-      enum: ['FLYOVER', 'SWAP', 'POWPEG', 'UNION', 'LIFI', 'SYMBIOSIS'],
-      errorMessage: 'Must be one of: FLYOVER, SWAP, POWPEG, UNION, LIFI, SYMBIOSIS'
+      enum: [...SOURCES],
+      errorMessage: `Must be one of: ${SOURCES.join(', ')}`
     }
   })
   sdkProvider: Source;
@@ -130,7 +128,7 @@ export class TxHistory implements SearchableModel {
   getId() {
     return this.txHash;
   }
-  getIdFieldName() {
+  getIdFieldName(): string {
     return 'txHash';
   }
 }
