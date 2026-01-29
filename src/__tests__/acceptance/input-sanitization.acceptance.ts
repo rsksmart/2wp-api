@@ -307,7 +307,7 @@ describe('Input Sanitization (Acceptance)', function() {
         .post('/register')
         .send({
           type: 'pegin',
-          txHash: "safe-tx-hash-123",
+          txHash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
           wallet: 'test-wallet',
           value: '100',
           fee: '10',
