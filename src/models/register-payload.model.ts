@@ -6,6 +6,10 @@ export class RegisterPayload extends Model {
   @property({
     type: 'string',
     required: true,
+    jsonSchema: {
+      pattern: '^(0x[a-fA-F0-9]{64}|[a-fA-F0-9]{64}|[A-Za-z0-9]{12})$',
+      errorMessage: 'Must be a valid transaction hash or provider identifier'
+    }
   })
   txHash: string;
 

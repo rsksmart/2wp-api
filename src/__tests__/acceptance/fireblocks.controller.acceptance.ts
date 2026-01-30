@@ -1,6 +1,6 @@
+import {setupApplication} from './test-helper';
 import {Client, expect} from '@loopback/testlab';
 import {TwpapiApplication} from '../..';
-import {setupApplication} from './test-helper';
 import nock from 'nock';
 
 describe('FireblocksController (Acceptance)', () => {
