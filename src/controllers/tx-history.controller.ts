@@ -60,6 +60,29 @@ export class TxHistoryController {
   }
 
   @get('/tx-history', {
+    parameters: [
+      {
+        name: 'address',
+        in: 'query',
+        required: true,
+        schema: {
+          type: 'string',
+          pattern: '^(0x[a-fA-F0-9]{40}|[13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
+        },
+        description: 'Must be a valid RSK or BTC address',
+      },
+      {
+        name: 'page',
+        in: 'query',
+        required: false,
+        schema: {
+          type: 'number',
+          minimum: 1,
+          default: 1,
+        },
+        description: 'Page number (must be greater than 0)',
+      },
+    ],
     responses: {
       '200': {
         description: 'Paginated transaction history for an address',
@@ -89,11 +112,25 @@ export class TxHistoryController {
           },
         },
       },
+      '400': {
+        description: 'Invalid address or page parameter',
+      },
     },
   })
   async getTransactionHistory(
-    @param.query.string('address', {required: true}) address: string,
-    @param.query.number('page') page: number = 1,
+    @param.query.string('address', {
+      required: true,
+      schema: {
+        type: 'string',
+        pattern: '^(0x[a-fA-F0-9]{40}|[13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
+      },
+    }) address: string,
+    @param.query.number('page', {
+      schema: {
+        type: 'number',
+        minimum: 1,
+      },
+    }) page: number = 1,
   ): Promise<Response> {
     try {
       if (!address) {
@@ -118,6 +155,18 @@ export class TxHistoryController {
   }
 
   @get('/tx-history/{txHash}', {
+    parameters: [
+      {
+        name: 'txHash',
+        in: 'path',
+        required: true,
+        schema: {
+          type: 'string',
+          pattern: '^[a-fA-F0-9]{64}$|^0x[a-fA-F0-9]{64}$',
+        },
+        description: 'Must be a valid transaction hash',
+      },
+    ],
     responses: {
       '200': {
         description: 'Transaction details',
@@ -127,13 +176,21 @@ export class TxHistoryController {
           },
         },
       },
+      '400': {
+        description: 'Invalid transaction hash format',
+      },
       '404': {
         description: 'Transaction not found',
       },
     },
   })
   async getTransactionByHash(
-    @param.path.string('txHash') txHash: string,
+    @param.path.string('txHash', {
+      schema: {
+        type: 'string',
+        pattern: '^[a-fA-F0-9]{64}$|^0x[a-fA-F0-9]{64}$',
+      },
+    }) txHash: string,
   ): Promise<Response> {
     try {
       const transaction = await this.txHistoryService.getTransactionByHash(txHash);

@@ -339,4 +339,195 @@ describe('TxHistoryController (Acceptance)', () => {
       });
     });
   });
+
+  describe('GET /tx-history', () => {
+    let getTransactionHistoryStub: sinon.SinonStub;
+
+    beforeEach(() => {
+      getTransactionHistoryStub = sinon.stub(TxHistoryService.prototype, 'getTransactionHistoryByAddress').resolves({
+        data: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+      });
+    });
+
+    afterEach(() => {
+      if (getTransactionHistoryStub) {
+        getTransactionHistoryStub.restore();
+      }
+    });
+
+    it('should return 200 with valid address and page', async () => {
+      const res = await client
+        .get('/tx-history')
+        .query({address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0', page: 1})
+        .expect(200);
+
+      expect(res.body).to.have.property('data');
+      expect(res.body).to.have.property('total');
+      expect(res.body).to.have.property('page');
+      expect(res.body).to.have.property('totalPages');
+      sinon.assert.calledOnce(getTransactionHistoryStub);
+    });
+
+    describe('Parameter Validation - Negative Tests', () => {
+      it('should reject missing address parameter', async () => {
+        await client
+          .get('/tx-history')
+          .expect(400);
+      });
+
+      it('should reject invalid address format (not matching pattern)', async () => {
+        await client
+          .get('/tx-history')
+          .query({address: 'invalid-address-format'})
+          .expect(400);
+      });
+
+      it('should reject invalid address format (too short)', async () => {
+        await client
+          .get('/tx-history')
+          .query({address: '0x123'})
+          .expect(400);
+      });
+
+      it('should reject invalid address format (invalid characters)', async () => {
+        await client
+          .get('/tx-history')
+          .query({address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEbG'})
+          .expect(400);
+      });
+
+      it('should reject negative page number', async () => {
+        await client
+          .get('/tx-history')
+          .query({address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0', page: -1})
+          .expect(400);
+      });
+
+      it('should reject zero page number', async () => {
+        await client
+          .get('/tx-history')
+          .query({address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0', page: 0})
+          .expect(400);
+      });
+
+      it('should reject non-numeric page parameter', async () => {
+        await client
+          .get('/tx-history')
+          .query({address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0', page: 'invalid'})
+          .expect(400);
+      });
+
+      it('should reject page as decimal number less than 1', async () => {
+        await client
+          .get('/tx-history')
+          .query({address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0', page: 0.5})
+          .expect(400);
+      });
+
+      it('should accept valid BTC address format', async () => {
+        await client
+          .get('/tx-history')
+          .query({address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'})
+          .expect(200);
+
+        sinon.assert.calledOnce(getTransactionHistoryStub);
+      });
+
+      it('should accept valid bech32 BTC address format', async () => {
+        await client
+          .get('/tx-history')
+          .query({address: 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'})
+          .expect(200);
+
+        sinon.assert.calledOnce(getTransactionHistoryStub);
+      });
+    });
+  });
+
+  describe('GET /tx-history/{txHash}', () => {
+    let getTransactionByHashStub: sinon.SinonStub;
+
+    beforeEach(() => {
+      getTransactionByHashStub = sinon.stub(TxHistoryService.prototype, 'getTransactionByHash').resolves(null);
+    });
+
+    afterEach(() => {
+      if (getTransactionByHashStub) {
+        getTransactionByHashStub.restore();
+      }
+    });
+
+    it('should return 200 with valid txHash format', async () => {
+      const validTxHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+      const mockTransaction = {
+        userAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
+        txHash: validTxHash,
+        providerHash: 'Test12345678',
+        fromTokenName: 'BTC',
+        fromNetworkName: 'Bitcoin',
+        toTokenName: 'RBTC',
+        toNetworkName: 'Rootstock',
+        fromAmount: '0.001',
+        toAmount: '0.0009',
+        date: new Date('2024-01-01T00:00:00.000Z'),
+        sdkProvider: 'FLYOVER',
+      };
+
+      getTransactionByHashStub.resolves(mockTransaction);
+
+      const res = await client
+        .get(`/tx-history/${validTxHash}`)
+        .expect(200);
+
+      expect(res.body).to.have.property('txHash', validTxHash);
+      sinon.assert.calledOnce(getTransactionByHashStub);
+    });
+
+    it('should return 404 when transaction not found', async () => {
+      const validTxHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+      getTransactionByHashStub.resolves(null);
+
+      const res = await client
+        .get(`/tx-history/${validTxHash}`)
+        .expect(404);
+
+      expect(res.body).to.have.property('error', 'Transaction not found');
+      sinon.assert.calledOnce(getTransactionByHashStub);
+    });
+
+    describe('Parameter Validation - Negative Tests', () => {
+      it('should reject invalid txHash format (too short)', async () => {
+        await client
+          .get('/tx-history/0x1234567890abcdef')
+          .expect(400);
+      });
+
+      it('should reject invalid txHash format (missing 0x prefix but wrong length)', async () => {
+        await client
+          .get('/tx-history/1234567890abcdef')
+          .expect(400);
+      });
+
+      it('should reject invalid txHash format (invalid characters)', async () => {
+        await client
+          .get('/tx-history/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdeg')
+          .expect(400);
+      });
+
+      it('should reject invalid txHash format (special characters)', async () => {
+        await client
+          .get('/tx-history/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abc@#$')
+          .expect(400);
+      });
+
+      it('should reject invalid txHash format (contains spaces)', async () => {
+        await client
+          .get('/tx-history/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab cdef')
+          .expect(400);
+      });
+    });
+  });
 });
