@@ -1,6 +1,7 @@
 import {inject} from '@loopback/core';
 import {get, getModelSchemaRef} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
+import * as Sentry from "@sentry/node";
 import {Tx} from '../models';
 import {TxService} from '../services';
 
@@ -47,6 +48,7 @@ export class TxController {
         })
         .catch((reason) => {
           this.logger.warn(`[getTx] Got an error: ${reason}`);
+          Sentry.captureException(reason);
           return reject(reason);
         });
     });

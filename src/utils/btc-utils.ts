@@ -61,7 +61,7 @@ export class BtcAddressUtils {
   }
 
   public getBtcAddressFromHash(hash160: string): string {
-    let hash = remove0x(hash160);
+    const hash = remove0x(hash160);
     try{
       // Since Fingerroot the "release_request_received" event changed and now the btcDestinationAddress is a proper Base58 address
       // Check if the length of the data is different than 40, then it should be an address, otherwise treat it as a hash160
@@ -94,13 +94,13 @@ export class BtcAddressUtils {
     if (netName == 'mainnet') {
       if (type == 'P2PKH') {
         return '00';
-      } else if (type == 'P2SH') {
+      } if (type == 'P2SH') {
         return '05';
       }
     } else if (netName == 'testnet') {
       if (type == 'P2PKH') {
         return '6F';
-      } else if (type == 'P2SH') {
+      } if (type == 'P2SH') {
         return 'C4';
       }
     }

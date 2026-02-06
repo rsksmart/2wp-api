@@ -1,5 +1,6 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
+import * as Sentry from "@sentry/node";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
@@ -56,26 +57,27 @@ export class PeginStatusService {
                 peginStatusInfo.setRskPeginStatus(rskStatus);
                 this.logger.debug(`Tx: ${btcTxId} includes rsk info. RskAddress: ${rskStatus.recipientAddress} Pegin status: ${peginStatusInfo.status}`);
                 return peginStatusInfo;
-              } else {
+              } 
                 const peginRskInfo = new RskPeginStatus();
                 peginRskInfo.recipientAddress = this.destinationAddress;
                 peginStatusInfo.status = Status.NOT_IN_RSK_YET;
                 this.logger.debug(`Tx: ${btcTxId} not in RSK yet. Pegin status: ${peginStatusInfo.status}`);
                 peginStatusInfo.setRskPeginStatus(peginRskInfo);
                 return peginStatusInfo;
-              }
+              
             });
-        } else {
+        } 
           const peginRskInfo = new RskPeginStatus();
           peginRskInfo.recipientAddress = this.destinationAddress;
           peginStatusInfo.status = Status.WAITING_CONFIRMATIONS;
           this.logger.debug(`Tx: ${btcTxId} waiting confirmations. Pegin status: ${peginStatusInfo.status}`);
           peginStatusInfo.setRskPeginStatus(peginRskInfo);
           return peginStatusInfo;
-        }
+        
       })
       .catch((e) => {
         this.logger.warn(`TxId:${btcTxId} Unexpected error trying to obtain information. Error: ${e}`);
+        Sentry.captureException(e);
         return new PeginStatusError(btcTxId);
       })
   };
@@ -109,7 +111,7 @@ export class PeginStatusService {
           if (!this.canBeAPeginSender(btcTx)) {
             throw new Error(`Is not a pegin. Tx was not processed in Bitcoin network.`);
           }
-          const vout = btcTx.vout;
+          const {vout} = btcTx;
           const fedDestinationAddress = await this.getTxDestinationFedAddress(vout);
           if (!fedDestinationAddress) {
             throw new Error('Is not a pegin. Tx was not sent to valid Federation address.');
@@ -244,11 +246,11 @@ export class PeginStatusService {
       if (data.length === 96 || data.length === 54) { //Contain refund address
         this.logger.debug(`Tx contains OPT_RETURN value: ${txId}`);
         return (true);
-      } else {
+      } 
         const errorMessage = `Can not parse OP_RETURN parameter. Invalid transaction: ${txId}`;
         this.logger.warn(errorMessage);
         return false;  //RSK will return invalid
-      }
+      
     }
     return (false);
   }
@@ -257,7 +259,7 @@ export class PeginStatusService {
     try {
       if (peginAddressVerifier.canPegIn(peginAddressVerifier.getAddressInformation(btcTx.vin[0].addresses[0]))) {
         return true;
-      } else if (this.getxDestinationRskAddress(btcTx).length > 0) {
+      } if (this.getxDestinationRskAddress(btcTx).length > 0) {
         return true;
       }
     } catch {

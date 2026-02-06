@@ -1,6 +1,7 @@
 import {inject} from '@loopback/core';
 import {getModelSchemaRef, post} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
+import * as Sentry from "@sentry/node";
 import {BroadcastRequest, BroadcastResponse} from '../models';
 import {Broadcast} from '../services';
 
@@ -60,6 +61,7 @@ export class BroadcastController {
         })
         .catch((reason) => {
           this.logger.warn(`[sendTx] Something went wrong. error: ${reason}`);
+          Sentry.captureException(reason);
           return reject(reason);
         });
     });

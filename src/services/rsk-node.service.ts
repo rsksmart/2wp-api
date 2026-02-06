@@ -1,5 +1,6 @@
 import BridgeTransactionParser, { Transaction } from '@rsksmart/bridge-transaction-parser';
 import Web3, { Block } from 'web3';
+import * as Sentry from "@sentry/node";
 import { ethers } from 'ethers';
 import { RskTransaction } from '../models/rsk/rsk-transaction.model';
 import * as constants from '../constants';
@@ -53,12 +54,18 @@ export class RskNodeService {
                 return resolve(rskTx);
               }
             })
-            .catch((reason) => reject(reason));
+            .catch((reason) => {
+              Sentry.captureException(reason);
+              return reject(reason);
+            });
           } else {
             return resolve(rskTx);
           }
           })
-          .catch((reason) => reject(reason));
+          .catch((reason) => {
+            Sentry.captureException(reason);
+            return reject(reason);
+          });
         });
   }
 }

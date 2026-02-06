@@ -1,5 +1,6 @@
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
 import {inject} from '@loopback/core';
+import * as Sentry from "@sentry/node";
 import {AddressList} from '../models';
 import {AddressInfoResponse} from '../models/adddress-info-response.model';
 import {ServicesBindings} from '../dependency-injection-bindings';
@@ -52,7 +53,10 @@ export class AddressesInfoController {
             addressesInfo,
           }));
         })
-        .catch(reject);
+        .catch((error) => {
+          Sentry.captureException(error);
+          return reject(error);
+        });
     });
   }
 }

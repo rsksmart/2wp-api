@@ -45,7 +45,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   async process(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
     try {
       this.logger.debug(`[process] Got tx ${extendedBridgeTx.txHash}`);
-      const events: BridgeEvent[] = extendedBridgeTx.events;
+      const {events} = extendedBridgeTx;
 
       if (!this.isMethodAccepted(extendedBridgeTx)) {
         return this.logger.warn('[process] Received a method not accepted');
@@ -136,7 +136,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
     const batchPegoutCreationTx = releaseBTCEvent.arguments.releaseRskTxHash;
 
-    for(let output of parsedBtcTransaction.outs) {
+    for(const output of parsedBtcTransaction.outs) {
       const address = bitcoin.address.fromOutputScript(output.script, btcNetwork);
 
       const dbPegout = await this.pegoutStatusDataService.getPegoutByRecipientAndCreationTx(address, batchPegoutCreationTx);
@@ -279,7 +279,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
 
   private async changePegoutsToWaitingForSignatures(dbPegoutsWaitingForConfirmations: PegoutStatusDbDataModel[], extendedBridgeTx: ExtendedBridgeTx) {
     let index = 0;
-    for (let oldStatus of dbPegoutsWaitingForConfirmations) {
+    for (const oldStatus of dbPegoutsWaitingForConfirmations) {
       const newStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(oldStatus);
       newStatus.setRskTxInformation(extendedBridgeTx);
       newStatus.rskTxHash = `${extendedBridgeTx.txHash}__${index}`;

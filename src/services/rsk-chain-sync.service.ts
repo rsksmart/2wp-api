@@ -97,8 +97,7 @@ export class RskChainSyncService {
     if (!this.started) {
       p.then(() => this.start());
     }
-    return p.then(() => {
-      return this.syncStorageService.getBestBlock().then(result => {
+    return p.then(() => this.syncStorageService.getBestBlock().then(result => {
         if (!result) {
           this.logger.debug(
             'No sync data on storage! starting from default height',
@@ -109,8 +108,7 @@ export class RskChainSyncService {
           return syncStatusModel;
         }
         return <SyncStatusModel>result;
-      });
-    });
+      }));
   }
 
   public async sync(): Promise<void> {

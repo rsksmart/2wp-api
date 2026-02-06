@@ -3,6 +3,7 @@ import {configure, getLogger} from 'log4js';
 import {ApplicationConfig, TwpapiApplication} from './application';
 import {DaemonRunner} from './daemon-runner';
 import { ENVIRONMENT_PRODUCTION } from './constants';
+import './instrument';
 
 export * from './application';
 

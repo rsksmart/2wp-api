@@ -24,7 +24,7 @@ export class ApiInformationController {
     },
   })
   getApiInformation():ApiInformation {
-    const version = packageJson.version;
+    const {version} = packageJson;
     this.logger.debug(`[getApiInformation] current version : ${version}`);
     const apiInfo = new ApiInformation();
     apiInfo.version = version;

@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import {getLogger, Logger} from 'log4js';
 import mongoose from 'mongoose';
+import * as Sentry from "@sentry/node";
 import {SyncStatusModel} from '../models/rsk/sync-status.model';
 import {MongoDbDataService} from './mongodb-data.service';
 import {SyncStatusDataService} from './sync-status-data.service';
-
 /*
 - THESE MODEL INTERFACES AND CLASSES ARE REQUIRED FOR MONGO BUT WE DON'T WANT THEM EXPOSED OUT OF THIS LAYER
 */
@@ -51,6 +51,7 @@ export class SyncStatusMongoService extends MongoDbDataService<SyncStatusModel, 
       .then(result => <SyncStatusModel>(result[0]))
       .catch((reason) => {
         this.logger.warn(`[getBestBlock] Got an error: ${reason}`);
+        Sentry.captureException(reason);
         return undefined;
       });
   }

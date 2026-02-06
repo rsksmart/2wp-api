@@ -1,5 +1,6 @@
 import * as precompiledAbis from '@rsksmart/rsk-precompiled-abis';
 import {getLogger, Logger} from 'log4js';
+import * as Sentry from "@sentry/node";
 import {ethers} from 'ethers';
 import BridgeTransactionParser, {Transaction} from '@rsksmart/bridge-transaction-parser';
 import { getBridgeState, BridgeState } from '@rsksmart/bridge-state-data-parser';
@@ -33,6 +34,7 @@ export class BridgeService {
         })
         .catch((reason: any) => {
           this.logger.warn(`[getFederationAddress] Got an error: ${reason}`);
+          Sentry.captureException(reason);
           reject(reason);
         });
     });
@@ -108,11 +110,11 @@ export class BridgeService {
   }
 
   public async getBridgeTransactionByHash(txHash: string): Promise<Transaction> {
-    return await this.bridgeTransactionParser.getBridgeTransactionByTxHash(txHash);
+    return this.bridgeTransactionParser.getBridgeTransactionByTxHash(txHash);
   }
 
   public async getBridgeState(defaultBlock: string | number = 'latest'): Promise<BridgeState> {
-    return await getBridgeState(this.host, defaultBlock);
+    return getBridgeState(this.host, defaultBlock);
   }
 
 }
