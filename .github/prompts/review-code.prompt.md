@@ -1,5 +1,5 @@
 ---
-agent: 'agent'
+agent: 'code-review-agent'
 description: 'Perform a comprehensive code review'
 ---
 
