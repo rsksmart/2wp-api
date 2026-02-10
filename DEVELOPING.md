@@ -34,3 +34,57 @@ Install the following extensions:
    suite and lint the code for both programming and style errors. You should run
    this command manually whenever you have new changes to test. Test failures
    and linter errors will be printed to the terminal.
+
+## Code Review with GitHub Copilot
+
+This repository uses custom instructions for code reviews powered by GitHub Copilot. The custom instructions help ensure consistent, high-quality code reviews across all pull requests.
+
+### Custom Instructions Location
+
+- **Instructions file**: `.github/copilot-instructions.md`
+- **Review criteria**: `.github/prompts/review-code.prompt.md`
+
+### What the Custom Instructions Cover
+
+The automated code review checks for:
+
+1. **Security Issues**
+   - Input validation and sanitization
+   - Data exposure risks
+   - Injection vulnerabilities
+   - OWASP Top 10 risks
+
+2. **Performance & Efficiency**
+   - Algorithm complexity
+   - Memory usage patterns
+   - Database query optimization
+   - Unnecessary computations
+
+3. **Code Quality**
+   - Readability and maintainability
+   - Proper naming conventions
+   - Function/class size and responsibility
+   - Code duplication
+   - **Special focus**: Avoiding nested ternary operators
+
+4. **Architecture & Design**
+   - Design pattern usage
+   - Separation of concerns
+   - Dependency management
+   - Error handling strategy
+
+5. **Testing & Documentation**
+   - Test coverage and quality
+   - Documentation completeness
+   - Comment clarity and necessity
+
+### Review Output Format
+
+Reviews are categorized as:
+- **🔴 Critical Issues** - Must fix before merge
+- **🟡 Suggestions** - Improvements to consider
+- **✅ Good Practices** - What's done well
+
+### How to Use
+
+When GitHub Copilot performs code reviews on your pull requests, it will automatically apply these custom instructions. The review will provide specific line references, clear explanations, suggested solutions with code examples, and rationale for each recommendation.
