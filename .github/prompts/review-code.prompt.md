@@ -15,7 +15,7 @@ Analyze the selected code for:
    - Input validation and sanitization
    - Data exposure risks
    - Injection vulnerabilities
-   - Top 10 OWASP risks
+   - OWASP Top 10 risks
 
 2. **Performance & Efficiency**
    - Algorithm complexity
