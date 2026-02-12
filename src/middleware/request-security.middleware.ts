@@ -5,10 +5,22 @@ const API_KEY_HEADER = 'api_key';
 const PAYLOAD_HASH_HEADER = 'x-payload-hash';
 const API_KEY_ENV_VAR = 'REQUEST_API_KEY';
 const SALT_ENV_VAR = 'REQUEST_SALT';
+const CACHE_MAX_ENTRIES = 1000;
 
-const isObject = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+type CachedResponse = {
+  type: 'result';
+  result: unknown;
+} | {
+  type: 'raw';
+  statusCode: number;
+  contentType?: string;
+  payload: Uint8Array;
 };
+
+const responseCache = new Map<string, CachedResponse>();
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const canonicalizeJson = (value: unknown): unknown => {
   if (Array.isArray(value)) {
@@ -46,6 +58,51 @@ const getRequestPayload = (request: Request): string => {
 
 const sha256 = (value: string): string => createHash('sha256').update(value).digest('hex');
 
+const buildCacheKey = (request: Request, payloadHash: string): string => {
+  const requestUrl = request.originalUrl ?? request.url;
+  return `${request.method}:${requestUrl}:${payloadHash}`;
+};
+
+const storeCachedResponse = (cacheKey: string, cachedResponse: CachedResponse): void => {
+  if (responseCache.has(cacheKey)) {
+    responseCache.delete(cacheKey);
+  }
+
+  responseCache.set(cacheKey, cachedResponse);
+
+  if (responseCache.size > CACHE_MAX_ENTRIES) {
+    const firstKey = responseCache.keys().next().value;
+    if (firstKey) {
+      responseCache.delete(firstKey);
+    }
+  }
+};
+
+const getContentType = (headerValue: number | string | string[] | undefined): string | undefined => {
+  if (typeof headerValue === 'string') {
+    return headerValue;
+  }
+
+  if (Array.isArray(headerValue)) {
+    return headerValue[0];
+  }
+
+  return undefined;
+};
+
+const concatChunks = (chunks: Uint8Array[]): Uint8Array => {
+  const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+
+  chunks.forEach(chunk => {
+    merged.set(chunk, offset);
+    offset += chunk.length;
+  });
+
+  return merged;
+};
+
 const secureStringCompare = (left: string, right: string): boolean => {
   const leftBuffer = Buffer.from(left);
   const rightBuffer = Buffer.from(right);
@@ -54,10 +111,10 @@ const secureStringCompare = (left: string, right: string): boolean => {
     return false;
   }
 
-  return timingSafeEqual(leftBuffer, rightBuffer);
+  return timingSafeEqual(new Uint8Array(leftBuffer), new Uint8Array(rightBuffer));
 };
 
-export const requestSecurityMiddleware: Middleware = async ({request}, next) => {
+export const requestSecurityMiddleware: Middleware = async ({request, response}, next) => {
   const expectedApiKey = process.env[API_KEY_ENV_VAR];
   const rootstockSalt = process.env[SALT_ENV_VAR];
 
@@ -71,20 +128,92 @@ export const requestSecurityMiddleware: Middleware = async ({request}, next) => 
   }
 
   if (!secureStringCompare(providedApiKey, expectedApiKey)) {
-    throw new HttpErrors.Unauthorized('Invalid api key');
+    throw new HttpErrors.Unauthorized();
   }
 
   const providedPayloadHash = request.header(PAYLOAD_HASH_HEADER);
   if (!providedPayloadHash) {
-    throw new HttpErrors.Unauthorized(`Missing '${PAYLOAD_HASH_HEADER}' header`);
+    throw new HttpErrors.Unauthorized();
   }
 
+  const normalizedPayloadHash = providedPayloadHash.toLowerCase();
   const payload = getRequestPayload(request);
-  const expectedPayloadHash = sha256(sha256(payload+rootstockSalt));
+  const expectedPayloadHash = sha256(sha256(payload + rootstockSalt));
 
-  if (!secureStringCompare(providedPayloadHash.toLowerCase(), expectedPayloadHash)) {
-    throw new HttpErrors.Unauthorized('Invalid payload hash');
+  if (!secureStringCompare(normalizedPayloadHash, expectedPayloadHash)) {
+    throw new HttpErrors.Unauthorized();
   }
 
-  return next();
+  const cacheKey = buildCacheKey(request, normalizedPayloadHash);
+  const cachedResponse = responseCache.get(cacheKey);
+  if (cachedResponse) {
+    response.setHeader('x-payload-hash-cache', 'HIT');
+    if (cachedResponse.type === 'result') {
+      return cachedResponse.result;
+    }
+
+    if (cachedResponse.contentType) {
+      response.setHeader('content-type', cachedResponse.contentType);
+    }
+    response.status(cachedResponse.statusCode).send(Buffer.from(cachedResponse.payload));
+    return undefined;
+  }
+
+  const responseChunks: Uint8Array[] = [];
+  const originalWrite = response.write.bind(response);
+  const originalEnd = response.end.bind(response);
+
+  const appendChunk = (chunk: unknown, encoding?: BufferEncoding): void => {
+    if (chunk === undefined || chunk === null) {
+      return;
+    }
+
+    if (Buffer.isBuffer(chunk)) {
+      responseChunks.push(new Uint8Array(chunk));
+      return;
+    }
+
+    if (typeof chunk === 'string') {
+      responseChunks.push(new Uint8Array(Buffer.from(chunk, encoding)));
+    }
+  };
+
+  response.write = ((chunk: unknown, ...args: unknown[]) => {
+    appendChunk(chunk, args[0] as BufferEncoding | undefined);
+    return originalWrite(chunk as never, ...(args as never[]));
+  }) as typeof response.write;
+
+  response.end = ((chunk?: unknown, ...args: unknown[]) => {
+    appendChunk(chunk, args[0] as BufferEncoding | undefined);
+    return originalEnd(chunk as never, ...(args as never[]));
+  }) as typeof response.end;
+
+  let result: unknown;
+
+  try {
+    result = await next();
+  } finally {
+    response.write = originalWrite;
+    response.end = originalEnd;
+  }
+
+  if (result === undefined) {
+    const contentType = getContentType(response.getHeader('content-type'));
+
+    storeCachedResponse(cacheKey, {
+      type: 'raw',
+      statusCode: response.statusCode,
+      contentType,
+      payload: concatChunks(responseChunks),
+    });
+
+    return result;
+  }
+
+  storeCachedResponse(cacheKey, {
+    type: 'result',
+    result,
+  });
+
+  return result;
 };
