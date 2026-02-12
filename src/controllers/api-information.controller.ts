@@ -28,6 +28,7 @@ export class ApiInformationController {
     this.logger.debug(`[getApiInformation] current version : ${version}`);
     const apiInfo = new ApiInformation();
     apiInfo.version = version;
+    apiInfo.extraInfo = 'This API provides information about the current version of the application.';
     return apiInfo;
   }
 }
