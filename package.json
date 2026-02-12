@@ -71,7 +71,7 @@
     "jssha": "^3.2.0",
     "log4js": "^6.6.1",
     "loopback-connector-rest": "^5.0.2",
-    "mongoose": "^7.5.3",
+    "mongoose": "^9.0.2",
     "pegin-address-verificator": "https://git@github.com/rsksmart/pegin-address-verifier#0.3.0",
     "tslib": "^2.0.0",
     "web3": "^4.16.0"
