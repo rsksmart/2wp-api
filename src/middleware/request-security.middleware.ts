@@ -114,6 +114,20 @@ const secureStringCompare = (left: string, right: string): boolean => {
   return timingSafeEqual(new Uint8Array(leftBuffer), new Uint8Array(rightBuffer));
 };
 
+const isResponseLikeResult = (value: unknown): boolean => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.pipe === 'function'
+    || typeof candidate.setHeader === 'function'
+    || typeof candidate.write === 'function'
+    || typeof candidate.end === 'function'
+  );
+};
+
 export const requestSecurityMiddleware: Middleware = async ({request, response}, next) => {
   const expectedApiKey = process.env[API_KEY_ENV_VAR];
   const rootstockSalt = process.env[SALT_ENV_VAR];
@@ -201,7 +215,9 @@ export const requestSecurityMiddleware: Middleware = async ({request, response},
     response.end = originalEnd;
   }
 
-  if (result === undefined) {
+  const hasWrittenResponse = responseChunks.length > 0 || response.headersSent;
+
+  if (result === undefined || hasWrittenResponse || isResponseLikeResult(result)) {
     const contentType = getContentType(response.getHeader('content-type'));
 
     storeCachedResponse(cacheKey, {

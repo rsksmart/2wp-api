@@ -24,6 +24,7 @@ export class ApiInformationController {
     },
   })
   getApiInformation():ApiInformation {
+    // eslint-disable-next-line prefer-destructuring
     const version = packageJson.version;
     this.logger.debug(`[getApiInformation] current version : ${version}`);
     const apiInfo = new ApiInformation();

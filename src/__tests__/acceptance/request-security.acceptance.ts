@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {Client, createClientForHandler, expect} from '@loopback/testlab';
+import {Client, createClientForHandler, expect, givenHttpServerConfig} from '@loopback/testlab';
 import {TwpapiApplication} from '../..';
 
 describe('Request Security Middleware (Acceptance)', () => {
@@ -38,7 +38,9 @@ describe('Request Security Middleware (Acceptance)', () => {
     process.env.REQUEST_API_KEY = apiKey;
     process.env.REQUEST_SALT = requestSalt;
 
-    app = new TwpapiApplication();
+    app = new TwpapiApplication({
+      rest: givenHttpServerConfig({port: 0}),
+    });
     await app.boot();
     await app.start();
 
