@@ -1,11 +1,7 @@
 import {
     expect,
-    createStubInstance,
   } from '@loopback/testlab';
-import { ApiInformationController } from '../../controllers/api-information.controller';
-import type { Response } from 'express';
-
- 
+import { ApiInformationController } from '../../controllers/api-information.controller'; 
 
     describe('getApiInfo()',() => {
         it('retrieves the API Information', async() => {
