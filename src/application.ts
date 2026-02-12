@@ -1,16 +1,17 @@
 import type {ApplicationConfig} from '@loopback/core';
 import {BootMixin} from '@loopback/boot';
 import {RepositoryMixin} from '@loopback/repository';
-import {RestApplication} from '@loopback/rest';
+import {RestApplication, RestMiddlewareGroups} from '@loopback/rest';
 import {
   RestExplorerBindings,
   RestExplorerComponent,
 } from '@loopback/rest-explorer';
 import {ServiceMixin} from '@loopback/service-proxy';
-import path from 'path';
+import path from 'node:path';
 import {DependencyInjectionHandler} from './dependency-injection-handler';
 import {MySequence} from './sequence';
 import { ENVIRONMENT_PRODUCTION } from './constants';
+import {requestSecurityMiddleware} from './middleware/request-security.middleware';
 
 export {ApplicationConfig} from '@loopback/core';
 
@@ -22,7 +23,7 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
         cors: {
           origin: ['https://powpeg.staging-testnet.rootstock.io'],
           methods: ['GET', 'POST'],
-          allowedHeaders: ['Content-Type'],
+          allowedHeaders: ['Content-Type', 'api_key', 'x-payload-hash'],
           credentials: true,
           maxAge: 86400,
         },
@@ -32,6 +33,12 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
 
     // Set up the custom sequence
     this.sequence(MySequence);
+
+    this.middleware(requestSecurityMiddleware, {
+      group: 'requestSecurity',
+      upstreamGroups: RestMiddlewareGroups.PARSE_PARAMS,
+      downstreamGroups: RestMiddlewareGroups.INVOKE_METHOD,
+    });
 
     // Set up default home page
     this.static('/', path.join(__dirname, '../public'));
