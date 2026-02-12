@@ -1,7 +1,7 @@
 import {BootMixin} from '@loopback/boot';
 import {ApplicationConfig} from '@loopback/core';
 import {RepositoryMixin} from '@loopback/repository';
-import {RestApplication} from '@loopback/rest';
+import {RestApplication, RestBindings} from '@loopback/rest';
 import {
   RestExplorerBindings,
   RestExplorerComponent,
@@ -20,6 +20,16 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
 
     // Set up the custom sequence
     this.sequence(MySequence);
+
+    this.configure(RestBindings.CONFIG).to({
+      cors: {
+        origin: ['https://powpeg.staging-testnet.rootstock.io/', 'https://powpeg.rootstock.io/'],
+        methods: ['GET'],
+        allowedHeaders: ['Content-Type'],
+        credentials: true,
+        maxAge: 86400,
+      },
+    });
 
     // Set up default home page
     this.static('/', path.join(__dirname, '../public'));
