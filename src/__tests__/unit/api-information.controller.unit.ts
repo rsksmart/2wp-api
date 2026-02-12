@@ -9,7 +9,6 @@ import type { Response } from 'express';
 
     describe('getApiInfo()',() => {
         it('retrieves the API Information', async() => {
-            const mockResponse = {} as unknown as Response;
             const controller = new ApiInformationController();
             const apiInfo    = controller.getApiInformation();
             const version = process.env.npm_package_version;
