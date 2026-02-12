@@ -119,12 +119,16 @@ export const requestSecurityMiddleware: Middleware = async ({request, response},
   const rootstockSalt = process.env[SALT_ENV_VAR];
 
   if (!expectedApiKey) {
-    throw new HttpErrors.InternalServerError('Request API key validation is not configured');
+    throw new HttpErrors.InternalServerError();
+  }
+
+  if (!rootstockSalt) {
+    throw new HttpErrors.InternalServerError();
   }
 
   const providedApiKey = request.header(API_KEY_HEADER);
   if (!providedApiKey) {
-    throw new HttpErrors.Unauthorized(`Missing '${API_KEY_HEADER}' header`);
+    throw new HttpErrors.Unauthorized();
   }
 
   if (!secureStringCompare(providedApiKey, expectedApiKey)) {

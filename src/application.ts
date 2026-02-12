@@ -17,11 +17,25 @@ export {ApplicationConfig} from '@loopback/core';
 
 export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(RestApplication))) {
   constructor(options: ApplicationConfig = {}) {
+
+    const corsOrigins =
+      process.env.CORS_ORIGIN && process.env.CORS_ORIGIN.trim().length > 0
+        ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim()).filter(origin => origin.length > 0)
+        : ['https://powpeg.staging-testnet.rootstock.io'];
+
+    if(corsOrigins.length === 0) {
+      throw new Error('CORS_ORIGIN environment variable is set but does not contain any valid origins');
+    }
+
+    if(corsOrigins.includes("*")) {
+      throw new Error('CORS_ORIGIN environment variable cannot contain wildcard origin "*" for security reasons');
+    }
+
     const appOptions: ApplicationConfig = {
       ...options,
       rest: {
         cors: {
-          origin: ['https://powpeg.staging-testnet.rootstock.io'],
+          origin: [corsOrigins],
           methods: ['GET', 'POST'],
           allowedHeaders: ['Content-Type', 'api_key', 'x-payload-hash'],
           credentials: true,
