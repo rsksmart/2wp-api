@@ -1,12 +1,15 @@
 import {
     expect,
+    createStubInstance,
   } from '@loopback/testlab';
 import { ApiInformationController } from '../../controllers/api-information.controller';
+import type { Response } from 'express';
 
-  describe('ApiInformationController (unit)', () => {
+ 
 
     describe('getApiInfo()',() => {
         it('retrieves the API Information', async() => {
+            const mockResponse = {} as unknown as Response;
             const controller = new ApiInformationController();
             const apiInfo    = controller.getApiInformation();
             const version = process.env.npm_package_version;
@@ -15,4 +18,4 @@ import { ApiInformationController } from '../../controllers/api-information.cont
         });
     });
 
-  });
+ 

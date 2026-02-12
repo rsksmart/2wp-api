@@ -1,7 +1,7 @@
+import type {ApplicationConfig} from '@loopback/core';
 import {BootMixin} from '@loopback/boot';
-import {ApplicationConfig} from '@loopback/core';
 import {RepositoryMixin} from '@loopback/repository';
-import {RestApplication, RestBindings} from '@loopback/rest';
+import {RestApplication} from '@loopback/rest';
 import {
   RestExplorerBindings,
   RestExplorerComponent,
@@ -12,24 +12,26 @@ import {DependencyInjectionHandler} from './dependency-injection-handler';
 import {MySequence} from './sequence';
 import { ENVIRONMENT_PRODUCTION } from './constants';
 
-export {ApplicationConfig};
+export {ApplicationConfig} from '@loopback/core';
 
 export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(RestApplication))) {
   constructor(options: ApplicationConfig = {}) {
-    super(options);
+    const appOptions: ApplicationConfig = {
+      ...options,
+      rest: {
+        cors: {
+          origin: ['https://powpeg.staging-testnet.rootstock.io'],
+          methods: ['GET', 'POST'],
+          allowedHeaders: ['Content-Type'],
+          credentials: true,
+          maxAge: 86400,
+        },
+      },
+    };
+    super(appOptions);
 
     // Set up the custom sequence
     this.sequence(MySequence);
-
-    this.configure(RestBindings.CONFIG).to({
-      cors: {
-        origin: ['https://powpeg.staging-testnet.rootstock.io/', 'https://powpeg.rootstock.io/'],
-        methods: ['GET'],
-        allowedHeaders: ['Content-Type'],
-        credentials: true,
-        maxAge: 86400,
-      },
-    });
 
     // Set up default home page
     this.static('/', path.join(__dirname, '../public'));
@@ -56,5 +58,4 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
 
     DependencyInjectionHandler.configureDependencies(this);
   }
-
 }
