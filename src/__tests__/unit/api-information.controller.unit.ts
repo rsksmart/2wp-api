@@ -1,9 +1,7 @@
 import {
     expect,
   } from '@loopback/testlab';
-import { ApiInformationController } from '../../controllers/api-information.controller';
-
-  describe('ApiInformationController (unit)', () => {
+import { ApiInformationController } from '../../controllers/api-information.controller'; 
 
     describe('getApiInfo()',() => {
         it('retrieves the API Information', async() => {
@@ -15,4 +13,4 @@ import { ApiInformationController } from '../../controllers/api-information.cont
         });
     });
 
-  });
+ 
