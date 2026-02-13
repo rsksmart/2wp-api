@@ -9,24 +9,38 @@ import {TxHistoryController} from '../../controllers/tx-history.controller';
 import {TxHistoryService} from '../../services/tx-history.service';
 import {TxHistory, TOKENS, NETWORKS} from '../../models/tx-history.model';
 import {sinon} from '@loopback/testlab/dist/sinon';
+import {BitcoinService, RskNodeService} from '../../services';
 
 describe('TxHistoryController', () => {
   let controller: TxHistoryController;
   let txHistoryService: TxHistoryService;
+  let bitcoinService: BitcoinService;
+  let rskNodeService: RskNodeService;
   let storeTransaction: sinon.SinonStub;
   let getTransactionHistoryByAddress: sinon.SinonStub;
+  let getTx: sinon.SinonStub;
+  let getRskTransaction: sinon.SinonStub;
   let context: any;
 
   beforeEach(resetRepositories);
 
   function resetRepositories() {
     context = stubExpressContext();
+    bitcoinService = createStubInstance(BitcoinService);
+    rskNodeService = createStubInstance(RskNodeService);
     txHistoryService = createStubInstance(TxHistoryService);
+    getTx = bitcoinService.getTx as sinon.SinonStub;
+    getRskTransaction = rskNodeService.getTransaction as sinon.SinonStub;
     storeTransaction = txHistoryService.storeTransaction as sinon.SinonStub;
     getTransactionHistoryByAddress = txHistoryService.getTransactionHistoryByAddress as sinon.SinonStub;
 
+    getTx.resolves({});
+    getRskTransaction.resolves({});
+
     controller = new TxHistoryController(
-      txHistoryService,
+      bitcoinService,
+      rskNodeService,
+      txHistoryService as any,
       context.response,
     );
   }
@@ -35,6 +49,7 @@ describe('TxHistoryController', () => {
     it('should store a valid transaction and return 200', async () => {
       const txHistory: TxHistory = {
         userAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
+        txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
         providerHash: 'Test123Hash',
         fromTokenName: 'BTC',
         fromNetworkName: 'Bitcoin',
@@ -58,6 +73,7 @@ describe('TxHistoryController', () => {
     it('should return 500 when storage fails', async () => {
       const txHistory: TxHistory = {
         userAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+        txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdea',
         providerHash: 'Test456Hash',
         fromTokenName: 'RBTC',
         fromNetworkName: 'Rootstock',
@@ -75,6 +91,29 @@ describe('TxHistoryController', () => {
 
       sinon.assert.calledOnce(storeTransaction);
       expect(response.statusCode).to.equal(500);
+    });
+
+    it('should return 200 and not store when transaction does not exist in source network', async () => {
+      const txHistory: TxHistory = {
+        userAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
+        txHash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+        providerHash: 'MissingTxHash',
+        fromTokenName: 'BTC',
+        fromNetworkName: 'Bitcoin',
+        toTokenName: 'RBTC',
+        toNetworkName: 'Rootstock',
+        fromAmount: '0.001',
+        toAmount: '0.0009',
+        date: new Date('2024-01-03'),
+        sdkProvider: 'FLYOVER',
+      } as TxHistory;
+
+      getTx.rejects(new Error('Error getting tx'));
+
+      const response = await controller.storeTransaction(txHistory);
+
+      sinon.assert.notCalled(storeTransaction);
+      expect(response.statusCode).to.equal(200);
     });
   });
 

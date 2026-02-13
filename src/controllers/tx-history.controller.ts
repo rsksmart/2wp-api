@@ -12,17 +12,26 @@ import {Logger, getLogger} from 'log4js';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {TxHistory} from '../models/tx-history.model';
 import {TxHistoryService} from '../services/tx-history.service';
+import {BitcoinService, RskNodeService} from '../services';
 
 export class TxHistoryController {
   logger: Logger;
+  private readonly rskNodeService: RskNodeService;
+  private readonly bitcoinService: BitcoinService;
 
   constructor(
+    @inject(ServicesBindings.BITCOIN_SERVICE)
+    bitcoinService: BitcoinService,
+    @inject(ServicesBindings.RSK_NODE_SERVICE)
+    rskNodeService: RskNodeService,
     @inject(ServicesBindings.TX_HISTORY_SERVICE)
     protected txHistoryService: TxHistoryService,
     @inject(RestBindings.Http.RESPONSE)
     private response: Response,
   ) {
     this.logger = getLogger('tx-history-controller');
+    this.bitcoinService = bitcoinService;
+    this.rskNodeService = rskNodeService;
   }
 
   @post('/tx-history', {
@@ -43,6 +52,11 @@ export class TxHistoryController {
     txHistory: TxHistory,
   ): Promise<Response> {
     try {
+      const transactionExists = await this.verifyTransactionExists(txHistory);
+      if (!transactionExists) {
+        return this.response.status(200).send();
+      }
+
       const result = await this.txHistoryService.storeTransaction(txHistory);
       if (result) {
         return this.response.status(200).send();
@@ -56,6 +70,26 @@ export class TxHistoryController {
     } catch (error) {
       this.logger.error(`[storeTransaction] Error storing transaction:`, error.message);
       return this.response.status(500).send();
+    }
+  }
+
+  private async verifyTransactionExists(txHistory: TxHistory): Promise<boolean> {
+    const sourceNetwork = txHistory.fromNetworkName?.trim().toLowerCase();
+
+    try {
+      if (sourceNetwork === 'bitcoin') {
+        await this.bitcoinService.getTx(txHistory.txHash);
+      } else if (sourceNetwork === 'rootstock') {
+        await this.rskNodeService.getTransaction(txHistory.txHash);
+      }
+
+      return true;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `[verifyTransactionExists] Transaction not found for ${txHistory.fromNetworkName}: ${txHistory.txHash} ${errorMessage}`,
+      );
+      return false;
     }
   }
 
