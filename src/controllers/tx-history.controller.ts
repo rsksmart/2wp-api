@@ -52,8 +52,13 @@ export class TxHistoryController {
     txHistory: TxHistory,
   ): Promise<Response> {
     try {
-      const transactionExists = await this.verifyTransactionExists(txHistory);
+      const transactionExists = await this.verifyTransactionExistsOnBlockchain(txHistory);
       if (!transactionExists) {
+        return this.response.status(200).send();
+      }
+
+      const transactionExistsInDatabase = await this.verifyTransactionExistsInDatabase(txHistory.txHash);
+      if (transactionExistsInDatabase) {
         return this.response.status(200).send();
       }
 
@@ -73,7 +78,12 @@ export class TxHistoryController {
     }
   }
 
-  private async verifyTransactionExists(txHistory: TxHistory): Promise<boolean> {
+  private async verifyTransactionExistsInDatabase(txHash: string): Promise<boolean> {
+    const transaction = await this.txHistoryService.getTransactionByHash(txHash);
+    return !!transaction;
+  }
+
+  private async verifyTransactionExistsOnBlockchain(txHistory: TxHistory): Promise<boolean> {
     const sourceNetwork = txHistory.fromNetworkName?.trim().toLowerCase();
 
     try {
@@ -82,6 +92,8 @@ export class TxHistoryController {
       } else if (sourceNetwork === 'rootstock') {
         await this.rskNodeService.getTransaction(txHistory.txHash);
       }
+
+      
 
       return true;
     } catch (error: unknown) {

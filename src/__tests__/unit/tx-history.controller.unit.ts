@@ -18,6 +18,7 @@ describe('TxHistoryController', () => {
   let rskNodeService: RskNodeService;
   let storeTransaction: sinon.SinonStub;
   let getTransactionHistoryByAddress: sinon.SinonStub;
+  let getTransactionByHash: sinon.SinonStub;
   let getTx: sinon.SinonStub;
   let getRskTransaction: sinon.SinonStub;
   let context: any;
@@ -33,9 +34,11 @@ describe('TxHistoryController', () => {
     getRskTransaction = rskNodeService.getTransaction as sinon.SinonStub;
     storeTransaction = txHistoryService.storeTransaction as sinon.SinonStub;
     getTransactionHistoryByAddress = txHistoryService.getTransactionHistoryByAddress as sinon.SinonStub;
+    getTransactionByHash = txHistoryService.getTransactionByHash as sinon.SinonStub;
 
     getTx.resolves({});
     getRskTransaction.resolves({});
+    getTransactionByHash.resolves(null);
 
     controller = new TxHistoryController(
       bitcoinService,
@@ -112,6 +115,32 @@ describe('TxHistoryController', () => {
 
       const response = await controller.storeTransaction(txHistory);
 
+      sinon.assert.notCalled(storeTransaction);
+      expect(response.statusCode).to.equal(200);
+    });
+
+    it('should return 200 and not store when transaction already exists in database', async () => {
+      const txHistory: TxHistory = {
+        userAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
+        txHash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+        providerHash: 'ExistingTxHash',
+        fromTokenName: 'BTC',
+        fromNetworkName: 'Bitcoin',
+        toTokenName: 'RBTC',
+        toNetworkName: 'Rootstock',
+        fromAmount: '0.001',
+        toAmount: '0.0009',
+        date: new Date('2024-01-03'),
+        sdkProvider: 'FLYOVER',
+      } as TxHistory;
+
+      getTransactionByHash.resolves(txHistory);
+
+      const response = await controller.storeTransaction(txHistory);
+
+      sinon.assert.calledOnce(getTransactionByHash);
+      sinon.assert.notCalled(getTx);
+      sinon.assert.notCalled(getRskTransaction);
       sinon.assert.notCalled(storeTransaction);
       expect(response.statusCode).to.equal(200);
     });
