@@ -1,7 +1,7 @@
 import {model, property} from '@loopback/repository';
 import {SearchableModel} from './rsk/searchable-model';
 
-export const SOURCES = ['FLYOVER', 'SWAP', 'POWPEG', 'UNION', 'LIFI', 'SYMBIOSIS'] as const;
+export const SOURCES = ['FLYOVER', 'SWAP', 'POWPEG', 'UNION', 'LIFI', 'SYMBIOSIS', 'teks-staging'] as const;
 export type Source = (typeof SOURCES)[number];
 
 export const TOKENS = ['BTC', 'RBTC', 'ETH', 'USDT', 'USDC', 'DAI', 'WBTC', 'BNB', 'FIAT'] as const;
