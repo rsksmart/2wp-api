@@ -660,7 +660,7 @@ describe('TxHistoryController', () => {
     describe('Optional Fields', () => {
       it('should accept valid liquidityProviderName', () => {
         const data = getValidTxHistory();
-        data.liquidityProviderName = 'Uniswap';
+        data.liquidityProviderName = 'LIFI';
         expect(validate(data)).to.be.true;
       });
 
@@ -685,7 +685,7 @@ describe('TxHistoryController', () => {
 
       it('should accept valid object with all fields including optional', () => {
         const data = getValidTxHistory();
-        data.liquidityProviderName = 'Uniswap';
+        data.liquidityProviderName = 'LIFI';
         expect(validate(data)).to.be.true;
       });
 

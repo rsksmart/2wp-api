@@ -4,7 +4,7 @@ import {SearchableModel} from './rsk/searchable-model';
 export const SOURCES = ['FLYOVER', 'SWAP', 'POWPEG', 'UNION', 'LIFI', 'SYMBIOSIS'] as const;
 export type Source = (typeof SOURCES)[number];
 
-export const TOKENS = ['BTC', 'RBTC', 'ETH', 'USDT', 'USDC', 'DAI', 'WBTC', 'BNB', 'Fiat'] as const;
+export const TOKENS = ['BTC', 'RBTC', 'ETH', 'USDT', 'USDC', 'DAI', 'WBTC', 'BNB', 'FIAT'] as const;
 export type Token = (typeof TOKENS)[number];
 
 export const NETWORKS = ['Bitcoin', 'Rootstock', 'Ethereum', 'BNB Smart Chain', 'Lightning Network'] as const;
@@ -128,19 +128,7 @@ export class TxHistory implements SearchableModel {
       errorMessage: `Must be one of: ${SOURCES.join(', ')}`
     }
   })
-  liquidityProviderName?: string;
-
-  @property({
-    type: 'number',
-    required: false,
-    jsonSchema: {
-      type: 'number',
-      minimum: 0,
-      maximum: 2,
-      errorMessage: 'Must be a valid liquidity provider ID'
-    }
-  })
-  liquidityProviderId?: number;
+  liquidityProviderName?: Source;
 
   getId() {
     return this.txHash;

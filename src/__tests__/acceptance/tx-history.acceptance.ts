@@ -261,47 +261,6 @@ describe('TxHistoryController (Acceptance)', () => {
           .expect(422);
       });
 
-      it('should reject invalid liquidityProviderId (negative)', async () => {
-        const requestBody = {
-          ...getValidRequestBody(),
-          liquidityProviderId: -1,
-        };
-
-        await client
-          .post('/tx-history')
-          .send(requestBody)
-          .expect(422);
-      });
-
-      it('should reject invalid liquidityProviderId (exceeds maximum)', async () => {
-        const requestBody = {
-          ...getValidRequestBody(),
-          liquidityProviderId: 3,
-        };
-
-        await client
-          .post('/tx-history')
-          .send(requestBody)
-          .expect(422);
-      });
-
-      it('should accept valid liquidityProviderId (within range)', async () => {
-        const requestBody = {
-          ...getValidRequestBody(),
-          liquidityProviderId: 1,
-        };
-
-        storeTransactionStub = sinon.stub(TxHistoryService.prototype, 'storeTransaction').resolves(true);
-
-        const res = await client
-          .post('/tx-history')
-          .send(requestBody)
-          .expect(200);
-
-        expect(res.body).to.be.empty();
-        sinon.assert.calledOnce(storeTransactionStub);
-      });
-
       it('should accept valid new token names (ETH, USDT)', async () => {
         const requestBody = {
           ...getValidRequestBody(),
