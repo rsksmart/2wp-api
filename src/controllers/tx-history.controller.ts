@@ -91,6 +91,8 @@ export class TxHistoryController {
         await this.bitcoinService.getTx(txHistory.txHash);
       } else if (sourceNetwork === 'rootstock') {
         await this.rskNodeService.getTransaction(txHistory.txHash);
+      } else {
+        return false;
       }
 
       
