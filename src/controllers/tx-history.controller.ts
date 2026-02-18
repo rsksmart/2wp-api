@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 import {inject} from '@loopback/core';
 import {
   Response,
@@ -83,27 +84,28 @@ export class TxHistoryController {
     return !!transaction;
   }
 
-  private async verifyTransactionExistsOnBlockchain(txHistory: TxHistory): Promise<boolean> {
+  private async verifyTransactionExistsOnBlockchain(txHistory: TxHistory): Promise<TxHistory> {
     const sourceNetwork = txHistory.fromNetworkName?.trim().toLowerCase();
 
     try {
       if (sourceNetwork === 'bitcoin') {
-        await this.bitcoinService.getTx(txHistory.txHash);
+        const btcTransaction = await this.bitcoinService.getTx(txHistory.txHash);
+        txHistory.fromAmount = btcTransaction.amount.toString();
+        txHistory.userAddress = btcTransaction.address;
       } else if (sourceNetwork === 'rootstock') {
-        await this.rskNodeService.getTransaction(txHistory.txHash);
+        const rskTransaction = await this.rskNodeService.getTransaction(txHistory.txHash);
+        txHistory.fromAmount = rskTransaction.value?.toString() ?? '';
+        txHistory.userAddress = rskTransaction.from?.toString() ?? '';
       } else {
-        return false;
+        return null as unknown as TxHistory;
       }
-
-      
-
-      return true;
+      return txHistory;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.warn(
         `[verifyTransactionExists] Transaction not found for ${txHistory.fromNetworkName}: ${txHistory.txHash} ${errorMessage}`,
       );
-      return false;
+      return null as unknown as TxHistory;
     }
   }
 
