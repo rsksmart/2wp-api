@@ -22,12 +22,20 @@ export class RegisterPayload extends Model {
   @property({
     type: 'string',
     required: true,
+    jsonSchema: {
+      pattern: '^[0-9]+$',
+      errorMessage: 'Must be a valid number (digits only, no negative)'
+    }
   })
   value: string;
 
   @property({
     type: 'string',
     required: true,
+    jsonSchema: {
+      pattern: '^(0x[a-fA-F0-9]{40}|[13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
+      errorMessage: 'Must be a valid wallet address'
+    }
   })
   wallet: string;
 

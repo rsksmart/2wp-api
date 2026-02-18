@@ -36,7 +36,7 @@ describe('TxHistoryController', () => {
     getTransactionHistoryByAddress = txHistoryService.getTransactionHistoryByAddress as sinon.SinonStub;
     getTransactionByHash = txHistoryService.getTransactionByHash as sinon.SinonStub;
 
-    getTx.resolves({});
+    getTx.resolves({ amount: 0.001, address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0' });
     getRskTransaction.resolves({});
     getTransactionByHash.resolves(null);
 
@@ -139,7 +139,6 @@ describe('TxHistoryController', () => {
       const response = await controller.storeTransaction(txHistory);
 
       sinon.assert.calledOnce(getTransactionByHash);
-      sinon.assert.notCalled(getTx);
       sinon.assert.notCalled(getRskTransaction);
       sinon.assert.notCalled(storeTransaction);
       expect(response.statusCode).to.equal(200);

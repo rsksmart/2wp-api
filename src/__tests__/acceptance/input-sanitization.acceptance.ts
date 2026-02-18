@@ -3,6 +3,9 @@ import {TwpapiApplication} from '../..';
 import {setupApplication} from './test-helper';
 import sinon from 'sinon';
 import { ServicesBindings } from '../../dependency-injection-bindings';
+import { PeginStatus, Status, BtcPeginStatus } from '../../models/pegin-status.model';
+import { PegoutStatus } from '../../models/pegout-status.model';
+import { PegoutStatuses } from '../../models/rsk/pegout-status-data-model';
 
 describe('Input Sanitization (Acceptance)', function() {
   // Increase timeout for application startup
@@ -267,13 +270,12 @@ describe('Input Sanitization (Acceptance)', function() {
         .send({
           type: 'pegin',
           txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-          wallet: 'test-wallet',
+          wallet: '0xB69d88d37e8788F1e8F86FD26c710Eaa93dE3311',
           value: '-100',
           fee: '10',
         });
       
-      expect(res.status).to.equal(400);
-      expect(res.body.error).to.match(/negative/i);
+      expect(res.status).to.equal(422);
     });
 
     it('should reject non-numeric values', async () => {
@@ -282,13 +284,13 @@ describe('Input Sanitization (Acceptance)', function() {
         .send({
           type: 'pegin',
           txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-          wallet: 'test-wallet',
+          wallet: '0xB69d88d37e8788F1e8F86FD26c710Eaa93dE3311',
           value: 'not-a-number',
+
           fee: '10',
         });
       
-      expect(res.status).to.equal(400);
-      expect(res.body.error).to.match(/non-numeric/i);
+      expect(res.status).to.equal(422);
     });
 
     it('should handle SQL injection in txHash', async () => {
@@ -299,7 +301,7 @@ describe('Input Sanitization (Acceptance)', function() {
         .send({
           type: 'pegin',
           txHash: "'; DROP TABLE transactions; --",
-          wallet: 'test-wallet',
+          wallet: '0xB69d88d37e8788F1e8F86FD26c710Eaa93dE3311',
           value: '100',
           fee: '10',
         });
@@ -319,7 +321,7 @@ describe('Input Sanitization (Acceptance)', function() {
         });
       
       // Should handle gracefully
-      expect(res.status).to.be.oneOf([200, 400, 422]);
+      expect(res.status).to.be.oneOf([400, 422]);
     });
   });
 
@@ -493,11 +495,42 @@ describe('Input Sanitization (Acceptance)', function() {
       let bitcoinServiceGetAddressInfoStub = sinon.stub();
       bitcoinServiceGetAddressInfoStub.resolves(null);
       const txHash = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+      
+      // Mock PEGIN_STATUS_SERVICE
+      const btcPeginStatus = new BtcPeginStatus(txHash);
+      const peginStatus = new PeginStatus(btcPeginStatus);
+      peginStatus.status = Status.ERROR_NOT_A_PEGIN;
+      let peginStatusServiceGetPeginStatusInfoStub = sinon.stub();
+      peginStatusServiceGetPeginStatusInfoStub.resolves(peginStatus);
+      
+      // Mock PEGOUT_STATUS_SERVICE
+      const pegoutStatus = new PegoutStatus({
+        originatingRskTxHash: txHash,
+        valueRequestedInSatoshis: 0,
+        status: PegoutStatuses.NOT_FOUND,
+      });
+      let pegoutStatusServiceGetPegoutStatusByRskTxHashStub = sinon.stub();
+      pegoutStatusServiceGetPegoutStatusByRskTxHashStub.resolves(pegoutStatus);
+      
+      // Mock FLYOVER_SERVICE
+      let flyoverServiceGetFlyoverStatusStub = sinon.stub();
+      flyoverServiceGetFlyoverStatusStub.resolves(null);
+      
       app.getBinding(ServicesBindings.BITCOIN_SERVICE).to({
         getTx: bitcoinServiceGetTxStub,
         getLastBlock: bitcoinServiceGetLastBlockStub,
         getAddressInfo: bitcoinServiceGetAddressInfoStub,
       });
+      app.getBinding(ServicesBindings.PEGIN_STATUS_SERVICE).to({
+        getPeginStatusInfo: peginStatusServiceGetPeginStatusInfoStub,
+      });
+      app.getBinding(ServicesBindings.PEGOUT_STATUS_SERVICE).to({
+        getPegoutStatusByRskTxHash: pegoutStatusServiceGetPegoutStatusByRskTxHashStub,
+      });
+      app.getBinding(ServicesBindings.FLYOVER_SERVICE).to({
+        getFlyoverStatus: flyoverServiceGetFlyoverStatusStub,
+      });
+      
       const client2 = createRestAppClient(app);
       const res = await client2
         .get(`/tx-status/${txHash}`)

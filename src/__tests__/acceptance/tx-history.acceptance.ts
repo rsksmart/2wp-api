@@ -1,4 +1,4 @@
-import {Client, expect} from '@loopback/testlab';
+import {Client, expect, createRestAppClient} from '@loopback/testlab';
 import {TwpapiApplication} from '../..';
 import {setupApplication} from './test-helper';
 import {TxHistoryService} from '../../services/tx-history.service';
@@ -10,11 +10,31 @@ describe('TxHistoryController (Acceptance)', () => {
   let client: Client;
   let txHistoryService: TxHistoryService;
   let storeTransactionStub: sinon.SinonStub;
+  let bitcoinServiceGetTxStub: sinon.SinonStub;
+  let rskNodeServiceGetTransactionStub: sinon.SinonStub;
 
-  before('setupApplication', async () => {
+  async function startClient() {
     ({app, client} = await setupApplication());
     
     txHistoryService = await app.get(ServicesBindings.TX_HISTORY_SERVICE);
+
+    if (bitcoinServiceGetTxStub) {
+      app.getBinding(ServicesBindings.BITCOIN_SERVICE).to({
+        getTx: bitcoinServiceGetTxStub,
+      });
+    }
+    
+    if (rskNodeServiceGetTransactionStub) {
+      app.getBinding(ServicesBindings.RSK_NODE_SERVICE).to({
+        getTransaction: rskNodeServiceGetTransactionStub,
+      });
+    }
+    
+    client = createRestAppClient(app);
+  }
+
+  before('setupApplication', async () => {
+
   });
 
   after(async () => {
@@ -22,9 +42,8 @@ describe('TxHistoryController (Acceptance)', () => {
   });
 
   afterEach(() => {
-    if (storeTransactionStub) {
-      storeTransactionStub.restore();
-    }
+
+    sinon.restore();
   });
 
   describe('POST /tx-history', () => {
@@ -43,9 +62,17 @@ describe('TxHistoryController (Acceptance)', () => {
     });
 
     it('should store a valid transaction and return 200', async () => {
+      bitcoinServiceGetTxStub = sinon.stub();
+      bitcoinServiceGetTxStub.resolves({ amount: 0.001, address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0' });
+      rskNodeServiceGetTransactionStub = sinon.stub();
+      rskNodeServiceGetTransactionStub.resolves({});
+      
+      await startClient();
+      
       const requestBody = getValidRequestBody();
 
       storeTransactionStub = sinon.stub(TxHistoryService.prototype, 'storeTransaction').resolves(true);
+      const getTransactionByHashStub = sinon.stub(TxHistoryService.prototype, 'getTransactionByHash').resolves(null);
 
       const res = await client
         .post('/tx-history')
@@ -58,6 +85,7 @@ describe('TxHistoryController (Acceptance)', () => {
 
     describe('Field Validation - Negative Tests', () => {
       it('should reject invalid userAddress format', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           userAddress: 'invalid-address-format',
@@ -70,6 +98,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid txHash format (too short)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           txHash: '0x1234567890abcdef',
@@ -82,6 +111,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid txHash format (invalid characters)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdeg',
@@ -94,6 +124,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid providerHash format (too short)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           providerHash: 'Test123',
@@ -106,6 +137,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid providerHash format (special characters)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           providerHash: 'Test123456@',
@@ -118,6 +150,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid fromTokenName (not in enum)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           fromTokenName: 'INVALID_TOKEN',
@@ -130,6 +163,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid fromNetworkName (not in enum)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           fromNetworkName: 'Polygon',
@@ -142,6 +176,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid toTokenName (not in enum)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           toTokenName: 'INVALID_TOKEN',
@@ -154,6 +189,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid toNetworkName (not in enum)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           toNetworkName: 'Avalanche',
@@ -166,6 +202,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid fromAmount format (special characters)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           fromAmount: '0.001@#$',
@@ -178,6 +215,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid fromAmount format (letters)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           fromAmount: '0.001abc',
@@ -190,6 +228,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid toAmount format (special characters)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           toAmount: '0.0009!@#',
@@ -202,6 +241,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid toAmount format (letters)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           toAmount: '0.0009xyz',
@@ -214,6 +254,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid date format', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           date: 'invalid-date-string',
@@ -226,6 +267,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid sdkProvider (not in enum)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           sdkProvider: 'INVALID_PROVIDER',
@@ -238,6 +280,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid sdkProvider (lowercase)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           sdkProvider: 'flyover',
@@ -250,6 +293,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid liquidityProviderName (not in enum)', async () => {
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           liquidityProviderName: 'INVALID_PROVIDER',
@@ -262,6 +306,12 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should accept valid new token names (ETH, USDT)', async () => {
+        bitcoinServiceGetTxStub = sinon.stub();
+        bitcoinServiceGetTxStub.resolves({ amount: 0.001, address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0' });
+        rskNodeServiceGetTransactionStub = sinon.stub();
+        rskNodeServiceGetTransactionStub.resolves({});
+        
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           fromTokenName: 'ETH',
@@ -269,6 +319,7 @@ describe('TxHistoryController (Acceptance)', () => {
         };
 
         storeTransactionStub = sinon.stub(TxHistoryService.prototype, 'storeTransaction').resolves(true);
+        const getTransactionByHashStub = sinon.stub(TxHistoryService.prototype, 'getTransactionByHash').resolves(null);
 
         const res = await client
           .post('/tx-history')
@@ -277,9 +328,16 @@ describe('TxHistoryController (Acceptance)', () => {
 
         expect(res.body).to.be.empty();
         sinon.assert.calledOnce(storeTransactionStub);
+        getTransactionByHashStub.restore();
       });
 
       it('should accept valid new network names (Ethereum, BNB Smart Chain)', async () => {
+        bitcoinServiceGetTxStub = sinon.stub();
+        bitcoinServiceGetTxStub.resolves({});
+        rskNodeServiceGetTransactionStub = sinon.stub();
+        rskNodeServiceGetTransactionStub.resolves({});
+        
+        await startClient();
         const requestBody = {
           ...getValidRequestBody(),
           fromNetworkName: 'Ethereum',
@@ -287,6 +345,7 @@ describe('TxHistoryController (Acceptance)', () => {
         };
 
         storeTransactionStub = sinon.stub(TxHistoryService.prototype, 'storeTransaction').resolves(true);
+        const getTransactionByHashStub = sinon.stub(TxHistoryService.prototype, 'getTransactionByHash').resolves(null);
 
         const res = await client
           .post('/tx-history')
@@ -295,6 +354,7 @@ describe('TxHistoryController (Acceptance)', () => {
 
         expect(res.body).to.be.empty();
         sinon.assert.calledOnce(storeTransactionStub);
+        getTransactionByHashStub.restore();
       });
     });
   });
@@ -318,6 +378,7 @@ describe('TxHistoryController (Acceptance)', () => {
     });
 
     it('should return 200 with valid address and page', async () => {
+      await startClient();
       const res = await client
         .get('/tx-history')
         .query({address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0', page: 1})
@@ -332,12 +393,14 @@ describe('TxHistoryController (Acceptance)', () => {
 
     describe('Parameter Validation - Negative Tests', () => {
       it('should reject missing address parameter', async () => {
+        await startClient();
         await client
           .get('/tx-history')
           .expect(400);
       });
 
       it('should reject invalid address format (not matching pattern)', async () => {
+        await startClient();
         await client
           .get('/tx-history')
           .query({address: 'invalid-address-format'})
@@ -345,6 +408,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid address format (too short)', async () => {
+        await startClient();
         await client
           .get('/tx-history')
           .query({address: '0x123'})
@@ -352,6 +416,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject invalid address format (invalid characters)', async () => {
+        await startClient();
         await client
           .get('/tx-history')
           .query({address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEbG'})
@@ -359,6 +424,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject negative page number', async () => {
+        await startClient();
         await client
           .get('/tx-history')
           .query({address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0', page: -1})
@@ -366,6 +432,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject zero page number', async () => {
+        await startClient();
         await client
           .get('/tx-history')
           .query({address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0', page: 0})
@@ -373,6 +440,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject non-numeric page parameter', async () => {
+        await startClient();
         await client
           .get('/tx-history')
           .query({address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0', page: 'invalid'})
@@ -380,6 +448,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should reject page as decimal number less than 1', async () => {
+        await startClient();
         await client
           .get('/tx-history')
           .query({address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0', page: 0.5})
@@ -387,6 +456,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should accept valid BTC address format', async () => {
+        await startClient();
         await client
           .get('/tx-history')
           .query({address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'})
@@ -396,6 +466,7 @@ describe('TxHistoryController (Acceptance)', () => {
       });
 
       it('should accept valid bech32 BTC address format', async () => {
+        await startClient();
         await client
           .get('/tx-history')
           .query({address: 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'})
@@ -459,30 +530,37 @@ describe('TxHistoryController (Acceptance)', () => {
 
     describe('Parameter Validation - Negative Tests', () => {
       it('should reject invalid txHash format (too short)', async () => {
+        await startClient();
         await client
           .get('/tx-history/0x1234567890abcdef')
           .expect(400);
       });
 
       it('should reject invalid txHash format (missing 0x prefix but wrong length)', async () => {
+        await startClient();
         await client
           .get('/tx-history/1234567890abcdef')
           .expect(400);
       });
 
       it('should reject invalid txHash format (invalid characters)', async () => {
+        await startClient();
         await client
           .get('/tx-history/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdeg')
           .expect(400);
       });
 
       it('should reject invalid txHash format (special characters)', async () => {
+        await startClient();
         await client
           .get('/tx-history/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abc@#$')
           .expect(400);
       });
 
       it('should reject invalid txHash format (contains spaces)', async () => {
+        await startClient();
+        
+
         await client
           .get('/tx-history/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab cdef')
           .expect(400);

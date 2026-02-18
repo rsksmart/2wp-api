@@ -96,9 +96,9 @@ export class TxHistoryController {
         const rskTransaction = await this.rskNodeService.getTransaction(txHistory.txHash);
         txHistory.fromAmount = rskTransaction.value?.toString() ?? '';
         txHistory.userAddress = rskTransaction.from?.toString() ?? '';
-      } else {
-        return null as unknown as TxHistory;
-      }
+      } 
+      // TODO: For other valid networks (Ethereum, BNB Smart Chain, etc.) no on-chain
+      // verification is performed — allow the transaction to be stored.
       return txHistory;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
