@@ -8,6 +8,8 @@ import {
 } from '../../helper';
 import * as constants from '../../../constants';
 
+process.env.NETWORK = 'testnet';
+
 describe('function: getPeginSatusInfo', () => {
   const btcAddressUtils = new BtcAddressUtils();
 

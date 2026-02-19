@@ -13,6 +13,8 @@ import { BridgeEvent, BridgeMethod, Transaction } from '@rsksmart/bridge-transac
 import { TransactionReceipt } from 'web3';
 import { PegoutStatus } from '../../../models';
 
+process.env.RSK_NODE_HOST = 'https://public-node.testnet.rsk.co';
+
 describe('Pegout Status Service:', () => {
     let pegoutStatusService: PegoutStatusService;
     let pegoutStatusServiceMocked: PegoutStatusService;

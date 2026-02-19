@@ -5,6 +5,9 @@ import { BitcoinService } from '../../../services';
 import sinon, { SinonStubbedInstance } from 'sinon';
 import { LastBlockInfo } from '../../../models';
 
+const BLOCKBOOK_URL = 'https://blockbook-01.testnet.2wp.iovlabs.net:19130/';
+const SYNC_INITIAL_BLOCK_HEIGHT = '3916761';
+
 describe('Service: BitcoinService', () => {
     let service: BitcoinService;
     let getLastBlock: sinon.SinonStub;
@@ -12,6 +15,8 @@ describe('Service: BitcoinService', () => {
     beforeEach(resetRepositories);
 
     function resetRepositories() {
+        process.env.BLOCKBOOK_URL = BLOCKBOOK_URL;
+        process.env.SYNC_INITIAL_BLOCK_HEIGHT = SYNC_INITIAL_BLOCK_HEIGHT;
         service =
         sinon.createStubInstance(BitcoinService) as SinonStubbedInstance<BitcoinService> & BitcoinService;
 

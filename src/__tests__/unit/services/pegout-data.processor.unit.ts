@@ -36,13 +36,19 @@ const bridgeState: BridgeState = {
   nextPegoutCreationBlockNumber: 0
 };
 
-const NETWORK = process.env.NETWORK;
+const NETWORK = process.env.NETWORK ?? 'testnet';
+process.env.NETWORK = NETWORK;
 process.env.RSK_PEGOUT_MINIMUM_CONFIRMATIONS = '10';
 
 describe('Service: PegoutDataProcessor', () => {
 
   afterEach(() => {
-    sandbox.stub(process.env, 'NETWORK').value(NETWORK);
+    if (NETWORK === undefined) {
+      delete process.env.NETWORK;
+    } else {
+      process.env.NETWORK = NETWORK;
+    }
+    sandbox.restore();
   });
 
   it('returns filters', () => {
@@ -821,6 +827,8 @@ describe('Service: PegoutDataProcessor', () => {
       getLastByOriginatingRskTxHash.withArgs(eventData).resolves(foundPegoutStatus);
     }
 
+    sinon.stub(thisService, 'getTxFromRskTransaction' as any).resolves({valueInWeis: '0'});
+
     await thisService.process(extendedBridgeTx);
     const btcTxHash = <string> batchPegoutsEvent!.arguments.btcTxHash;
     const newClonedPegoutStatus:PegoutStatusDbDataModel = {
@@ -950,6 +958,7 @@ describe('Service: PegoutDataProcessor', () => {
 
     mockedPegoutStatusDataService.getLastByOriginatingRskTxHashNewest.resolves(new PegoutStatusDbDataModel());
     sinon.stub(thisService, 'addValueInSatoshisToBeReceivedAndFee' as any);
+    sinon.stub(thisService, 'getTxFromRskTransaction' as any).resolves({valueInWeis: '0'});
 
     expect(hasEvent).true;
     expect(releaseRequestedEvent).not.null;

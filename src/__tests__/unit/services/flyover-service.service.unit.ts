@@ -1,16 +1,15 @@
 import { expect } from '@loopback/testlab';
 import { FlyoverService } from '../../../services/flyover.service';
 import { RegisterPayload } from '../../../models/register-payload.model';
-import { RskNodeService } from '../../../services/rsk-node.service';
 import sinon from 'sinon';
 import { MongoDbDataSource } from '../../../datasources/mongodb.datasource';
 
+process.env.RSK_NODE_HOST = 'https://public-node.testnet.rsk.co';
+
 describe('Service: FlyoverService', () => {
   let flyoverService: FlyoverService;
-  let rskNodeService: RskNodeService;
 
   beforeEach(() => {
-    rskNodeService = new RskNodeService();
     const mongoDbDataSource = sinon.createStubInstance(MongoDbDataSource);
     flyoverService = new FlyoverService(mongoDbDataSource);
   });
@@ -21,7 +20,7 @@ describe('Service: FlyoverService', () => {
 	describe('Register:', () => {
     it('should register a pegin native transaction successfully', async () => {
         const mockBlockNumber = 1000;
-        sinon.stub(rskNodeService, 'getBlockNumber').resolves(mockBlockNumber);
+        sinon.stub(flyoverService.rskNodeService, 'getBlockNumber').resolves(mockBlockNumber);
         sinon.stub(flyoverService, 'set').resolves(true);
     
         const payload: RegisterPayload = new RegisterPayload( {
@@ -38,7 +37,7 @@ describe('Service: FlyoverService', () => {
     });
 		it('should register a pegout native transaction successfully', async () => {
 			const mockBlockNumber = 1000;
-			sinon.stub(rskNodeService, 'getBlockNumber').resolves(mockBlockNumber);
+			sinon.stub(flyoverService.rskNodeService, 'getBlockNumber').resolves(mockBlockNumber);
 			sinon.stub(flyoverService, 'set').resolves(true);
 	
 			const payload: RegisterPayload = new RegisterPayload( {
@@ -55,7 +54,7 @@ describe('Service: FlyoverService', () => {
 		});
 		it('should register a pegout flyover transaction successfully', async () => {
 			const mockBlockNumber = 1000;
-			sinon.stub(rskNodeService, 'getBlockNumber').resolves(mockBlockNumber);
+			sinon.stub(flyoverService.rskNodeService, 'getBlockNumber').resolves(mockBlockNumber);
 			sinon.stub(flyoverService, 'set').resolves(true);
 	
 			const payload: RegisterPayload = new RegisterPayload( {
@@ -101,7 +100,7 @@ describe('Service: FlyoverService', () => {
 		});
 		it('should register a pegin flyover transaction successfully', async () => {
 			const mockBlockNumber = 1000;
-			sinon.stub(rskNodeService, 'getBlockNumber').resolves(mockBlockNumber);
+			sinon.stub(flyoverService.rskNodeService, 'getBlockNumber').resolves(mockBlockNumber);
 			sinon.stub(flyoverService, 'set').resolves(true);
 	
 			const payload: RegisterPayload = new RegisterPayload( {

@@ -7,6 +7,10 @@ import {Vin} from '../../../models/vin.model';
 import {Vout} from '../../../models/vout.model';
 import {BitcoinService, BridgeService, PeginStatusService} from '../../../services';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
+import {RskNodeService} from '../../../services/rsk-node.service';
+import * as federationAddressUtils from '../../../utils/federation-addresses';
+
+process.env.RSK_NODE_HOST = 'https://public-node.testnet.rsk.co';
 
 const federationAddress = '2N1GMB8gxHYR5HLPSRgf9CJ9Lunjb9CTnKB';
 
@@ -79,6 +83,11 @@ const getPeginStatusServiceWithMockedEnvironment = (
 }
 
 describe('function: getPeginStatusInfo', () => {
+
+  beforeEach(function () {
+    sinon.stub(RskNodeService.prototype, 'getBlockNumber').resolves(4000000);
+    sinon.stub(federationAddressUtils, 'isAFedAddress').callsFake(async (address: string) => address === federationAddress);
+  });
 
   afterEach(function () {
     sinon.restore();
