@@ -114,7 +114,7 @@ export class BtcAddressUtils {
     }
 
     try {
-      const network = process.env.NETWORK ?? 'tesnet';
+      const network = process.env.NETWORK ?? 'testnet';
       const prefix = this.getNetPrefix(network, typeAddress);
       const dataToReview = `${prefix}${data}`;
       const checksum = doubleSha256(dataToReview).substr(0, 8);

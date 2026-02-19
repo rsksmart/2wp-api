@@ -1,5 +1,8 @@
 {
   "exit": true,
   "recursive": true,
-  "require": "source-map-support/register"
+  "require": [
+    "source-map-support/register",
+    "dist/__tests__/test-setup.js"
+  ]
 }
