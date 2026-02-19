@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 import {inject} from '@loopback/core';
 import {
   Response,
@@ -12,17 +13,26 @@ import {Logger, getLogger} from 'log4js';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {TxHistory} from '../models/tx-history.model';
 import {TxHistoryService} from '../services/tx-history.service';
+import {BitcoinService, RskNodeService} from '../services';
 
 export class TxHistoryController {
   logger: Logger;
+  private readonly rskNodeService: RskNodeService;
+  private readonly bitcoinService: BitcoinService;
 
   constructor(
+    @inject(ServicesBindings.BITCOIN_SERVICE)
+    bitcoinService: BitcoinService,
+    @inject(ServicesBindings.RSK_NODE_SERVICE)
+    rskNodeService: RskNodeService,
     @inject(ServicesBindings.TX_HISTORY_SERVICE)
     protected txHistoryService: TxHistoryService,
     @inject(RestBindings.Http.RESPONSE)
     private response: Response,
   ) {
     this.logger = getLogger('tx-history-controller');
+    this.bitcoinService = bitcoinService;
+    this.rskNodeService = rskNodeService;
   }
 
   @post('/tx-history', {
@@ -43,6 +53,16 @@ export class TxHistoryController {
     txHistory: TxHistory,
   ): Promise<Response> {
     try {
+      const transactionExists = await this.verifyTransactionExistsOnBlockchain(txHistory);
+      if (!transactionExists) {
+        return this.response.status(200).send();
+      }
+
+      const transactionExistsInDatabase = await this.verifyTransactionExistsInDatabase(txHistory.txHash);
+      if (transactionExistsInDatabase) {
+        return this.response.status(200).send();
+      }
+
       const result = await this.txHistoryService.storeTransaction(txHistory);
       if (result) {
         return this.response.status(200).send();
@@ -59,7 +79,60 @@ export class TxHistoryController {
     }
   }
 
+  private async verifyTransactionExistsInDatabase(txHash: string): Promise<boolean> {
+    const transaction = await this.txHistoryService.getTransactionByHash(txHash);
+    return !!transaction;
+  }
+
+  private async verifyTransactionExistsOnBlockchain(txHistory: TxHistory): Promise<TxHistory | null> {
+    const sourceNetwork = txHistory.fromNetworkName?.trim().toLowerCase();
+
+    try {
+      if (sourceNetwork === 'bitcoin') {
+        const btcTransaction = await this.bitcoinService.getTx(txHistory.txHash);
+        txHistory.fromAmount = btcTransaction.amount.toString();
+        txHistory.userAddress = btcTransaction.address;
+      } else if (sourceNetwork === 'rootstock') {
+        const rskTransaction = await this.rskNodeService.getTransaction(txHistory.txHash);
+        txHistory.fromAmount = rskTransaction.value?.toString() ?? '';
+        txHistory.userAddress = rskTransaction.from?.toString() ?? '';
+      }
+      // TODO: For other valid networks (Ethereum, BNB Smart Chain, etc.) no on-chain
+      // verification is performed — allow the transaction to be stored.
+      return txHistory;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `[verifyTransactionExistsOnBlockchain] Transaction not found for ${txHistory.fromNetworkName}: ${txHistory.txHash} ${errorMessage}`,
+      );
+      return null;
+    }
+  }
+
   @get('/tx-history', {
+    parameters: [
+      {
+        name: 'address',
+        in: 'query',
+        required: true,
+        schema: {
+          type: 'string',
+          pattern: '^(0x[a-fA-F0-9]{40}|[13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
+        },
+        description: 'Must be a valid RSK or BTC address',
+      },
+      {
+        name: 'page',
+        in: 'query',
+        required: false,
+        schema: {
+          type: 'number',
+          minimum: 1,
+          default: 1,
+        },
+        description: 'Page number (min 1)',
+      },
+    ],
     responses: {
       '200': {
         description: 'Paginated transaction history for an address',
@@ -152,3 +225,4 @@ export class TxHistoryController {
     }
   }
 }
+

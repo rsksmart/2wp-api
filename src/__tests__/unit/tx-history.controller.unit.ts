@@ -9,24 +9,41 @@ import {TxHistoryController} from '../../controllers/tx-history.controller';
 import {TxHistoryService} from '../../services/tx-history.service';
 import {TxHistory, TOKENS, NETWORKS} from '../../models/tx-history.model';
 import {sinon} from '@loopback/testlab/dist/sinon';
+import {BitcoinService, RskNodeService} from '../../services';
 
 describe('TxHistoryController', () => {
   let controller: TxHistoryController;
   let txHistoryService: TxHistoryService;
+  let bitcoinService: BitcoinService;
+  let rskNodeService: RskNodeService;
   let storeTransaction: sinon.SinonStub;
   let getTransactionHistoryByAddress: sinon.SinonStub;
+  let getTransactionByHash: sinon.SinonStub;
+  let getTx: sinon.SinonStub;
+  let getRskTransaction: sinon.SinonStub;
   let context: any;
 
   beforeEach(resetRepositories);
 
   function resetRepositories() {
     context = stubExpressContext();
+    bitcoinService = createStubInstance(BitcoinService);
+    rskNodeService = createStubInstance(RskNodeService);
     txHistoryService = createStubInstance(TxHistoryService);
+    getTx = bitcoinService.getTx as sinon.SinonStub;
+    getRskTransaction = rskNodeService.getTransaction as sinon.SinonStub;
     storeTransaction = txHistoryService.storeTransaction as sinon.SinonStub;
     getTransactionHistoryByAddress = txHistoryService.getTransactionHistoryByAddress as sinon.SinonStub;
+    getTransactionByHash = txHistoryService.getTransactionByHash as sinon.SinonStub;
+
+    getTx.resolves({ amount: 0.001, address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0' });
+    getRskTransaction.resolves({});
+    getTransactionByHash.resolves(null);
 
     controller = new TxHistoryController(
-      txHistoryService,
+      bitcoinService,
+      rskNodeService,
+      txHistoryService as any,
       context.response,
     );
   }
@@ -35,6 +52,7 @@ describe('TxHistoryController', () => {
     it('should store a valid transaction and return 200', async () => {
       const txHistory: TxHistory = {
         userAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
+        txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
         providerHash: 'Test123Hash',
         fromTokenName: 'BTC',
         fromNetworkName: 'Bitcoin',
@@ -58,6 +76,7 @@ describe('TxHistoryController', () => {
     it('should return 500 when storage fails', async () => {
       const txHistory: TxHistory = {
         userAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+        txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdea',
         providerHash: 'Test456Hash',
         fromTokenName: 'RBTC',
         fromNetworkName: 'Rootstock',
@@ -75,6 +94,54 @@ describe('TxHistoryController', () => {
 
       sinon.assert.calledOnce(storeTransaction);
       expect(response.statusCode).to.equal(500);
+    });
+
+    it('should return 200 and not store when transaction does not exist in source network', async () => {
+      const txHistory: TxHistory = {
+        userAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
+        txHash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+        providerHash: 'MissingTxHash',
+        fromTokenName: 'BTC',
+        fromNetworkName: 'Bitcoin',
+        toTokenName: 'RBTC',
+        toNetworkName: 'Rootstock',
+        fromAmount: '0.001',
+        toAmount: '0.0009',
+        date: new Date('2024-01-03'),
+        sdkProvider: 'FLYOVER',
+      } as TxHistory;
+
+      getTx.rejects(new Error('Error getting tx'));
+
+      const response = await controller.storeTransaction(txHistory);
+
+      sinon.assert.notCalled(storeTransaction);
+      expect(response.statusCode).to.equal(200);
+    });
+
+    it('should return 200 and not store when transaction already exists in database', async () => {
+      const txHistory: TxHistory = {
+        userAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
+        txHash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+        providerHash: 'ExistingTxHash',
+        fromTokenName: 'BTC',
+        fromNetworkName: 'Bitcoin',
+        toTokenName: 'RBTC',
+        toNetworkName: 'Rootstock',
+        fromAmount: '0.001',
+        toAmount: '0.0009',
+        date: new Date('2024-01-03'),
+        sdkProvider: 'FLYOVER',
+      } as TxHistory;
+
+      getTransactionByHash.resolves(txHistory);
+
+      const response = await controller.storeTransaction(txHistory);
+
+      sinon.assert.calledOnce(getTransactionByHash);
+      sinon.assert.notCalled(getRskTransaction);
+      sinon.assert.notCalled(storeTransaction);
+      expect(response.statusCode).to.equal(200);
     });
   });
 
@@ -452,13 +519,13 @@ describe('TxHistoryController', () => {
 
       it('should reject invalid fromTokenName (not in enum)', () => {
         const data = getValidTxHistory();
-        data.fromTokenName = 'ETH' as any;
+        data.fromTokenName = 'XRP' as any;
         expect(validate(data)).to.be.false;
       });
 
       it('should reject invalid toTokenName (not in enum)', () => {
         const data = getValidTxHistory();
-        data.toTokenName = 'USDT' as any;
+        data.toTokenName = 'XRP' as any;
         expect(validate(data)).to.be.false;
       });
 
@@ -492,7 +559,7 @@ describe('TxHistoryController', () => {
 
       it('should reject invalid fromNetworkName (not in enum)', () => {
         const data = getValidTxHistory();
-        data.fromNetworkName = 'Ethereum' as any;
+        data.fromNetworkName = 'Polygon' as any;
         expect(validate(data)).to.be.false;
       });
 
@@ -621,7 +688,7 @@ describe('TxHistoryController', () => {
     describe('Optional Fields', () => {
       it('should accept valid liquidityProviderName', () => {
         const data = getValidTxHistory();
-        data.liquidityProviderName = 'Uniswap';
+        data.liquidityProviderName = 'LIFI';
         expect(validate(data)).to.be.true;
       });
 
@@ -646,7 +713,7 @@ describe('TxHistoryController', () => {
 
       it('should accept valid object with all fields including optional', () => {
         const data = getValidTxHistory();
-        data.liquidityProviderName = 'Uniswap';
+        data.liquidityProviderName = 'LIFI';
         expect(validate(data)).to.be.true;
       });
 

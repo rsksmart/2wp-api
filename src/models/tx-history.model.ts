@@ -1,13 +1,13 @@
 import {model, property} from '@loopback/repository';
 import {SearchableModel} from './rsk/searchable-model';
 
-export const SOURCES = ['FLYOVER', 'SWAP', 'POWPEG', 'UNION', 'LIFI', 'SYMBIOSIS'] as const;
+export const SOURCES = ['FLYOVER', 'SWAP', 'POWPEG', 'UNION', 'LIFI', 'SYMBIOSIS', 'teks-staging'] as const;
 export type Source = (typeof SOURCES)[number];
 
-export const TOKENS = ['BTC', 'RBTC'] as const;
+export const TOKENS = ['BTC', 'RBTC', 'ETH', 'USDT', 'USDC', 'DAI', 'WBTC', 'BNB', 'FIAT'] as const;
 export type Token = (typeof TOKENS)[number];
 
-export const NETWORKS = ['Bitcoin', 'Rootstock'] as const;
+export const NETWORKS = ['Bitcoin', 'Rootstock', 'Ethereum', 'BNB Smart Chain', 'Lightning Network'] as const;
 export type Network = (typeof NETWORKS)[number];
 
 @model()
@@ -122,8 +122,13 @@ export class TxHistory implements SearchableModel {
   
   @property({
     type: 'string',
+    required: false,
+    jsonSchema: {
+      enum: [...SOURCES],
+      errorMessage: `Must be one of: ${SOURCES.join(', ')}`
+    }
   })
-  liquidityProviderName?: string;
+  liquidityProviderName?: Source;
 
   getId() {
     return this.txHash;
