@@ -14,6 +14,7 @@ import {ServicesBindings} from '../dependency-injection-bindings';
 import {TxHistory} from '../models/tx-history.model';
 import {TxHistoryService} from '../services/tx-history.service';
 import {BitcoinService, RskNodeService} from '../services';
+import {TxHashAndQuote} from '../models/tx-hash-model';
 
 export class TxHistoryController {
   logger: Logger;
@@ -46,62 +47,84 @@ export class TxHistoryController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(TxHistory),
+          schema: getModelSchemaRef(TxHashAndQuote),
         },
       },
     })
-    txHistory: TxHistory,
+    txHashAndQuote: TxHashAndQuote,
   ): Promise<Response> {
     try {
-      const transactionExists = await this.verifyTransactionExistsOnBlockchain(txHistory);
-      if (!transactionExists) {
+      const transactionObtainedFromBlockchain =
+        await this.verifyTransactionExistsOnBlockchain(txHashAndQuote);
+      if (!transactionObtainedFromBlockchain) {
         return this.response.status(200).send();
       }
 
-      const transactionExistsInDatabase = await this.verifyTransactionExistsInDatabase(txHistory.txHash);
+      const transactionExistsInDatabase =
+        await this.verifyTransactionExistsInDatabase(txHashAndQuote.transactionHash);
       if (transactionExistsInDatabase) {
         return this.response.status(200).send();
       }
 
-      const result = await this.txHistoryService.storeTransaction(txHistory);
+      const result = await this.txHistoryService.storeTransaction(transactionObtainedFromBlockchain);
       if (result) {
         return this.response.status(200).send();
       }
       this.logger.error(
-        `[storeTransaction] Failed to store transaction: ${txHistory.providerHash}`,
+        `[storeTransaction] Failed to store transaction: ${transactionObtainedFromBlockchain.txHash}`,
       );
       return this.response.status(500).send({
         error: 'Failed to store transaction',
       });
     } catch (error) {
-      this.logger.error(`[storeTransaction] Error storing transaction:`, error.message);
+      this.logger.error(
+        `[storeTransaction] Error storing transaction:`,
+        error.message,
+      );
       return this.response.status(500).send();
     }
   }
 
-  private async verifyTransactionExistsInDatabase(txHash: string): Promise<boolean> {
-    const transaction = await this.txHistoryService.getTransactionByHash(txHash);
+  private async verifyTransactionExistsInDatabase(
+    txHash: string,
+  ): Promise<boolean> {
+    const transaction =
+      await this.txHistoryService.getTransactionByHash(txHash);
     return !!transaction;
   }
 
-  private async verifyTransactionExistsOnBlockchain(txHistory: TxHistory): Promise<TxHistory> {
-    const sourceNetwork = txHistory.fromNetworkName?.trim().toLowerCase();
-
+  private async verifyTransactionExistsOnBlockchain(
+    txHashAndQuote: TxHashAndQuote,
+  ): Promise<TxHistory> {
+    const txHistory = new TxHistory();
     try {
-      if (sourceNetwork === 'bitcoin') {
-        const btcTransaction = await this.bitcoinService.getTx(txHistory.txHash);
+      const btcTransaction = await this.bitcoinService.getTx(
+        txHashAndQuote.transactionHash,
+      );
+      if (btcTransaction) {
         txHistory.fromAmount = btcTransaction.amount.toString();
         txHistory.userAddress = btcTransaction.address;
-      } else if (sourceNetwork === 'rootstock') {
-        const rskTransaction = await this.rskNodeService.getTransaction(txHistory.txHash);
-        txHistory.fromAmount = rskTransaction.value?.toString() ?? '';
-        txHistory.userAddress = rskTransaction.from?.toString() ?? '';
-      } 
-      // TODO: For other valid networks (Ethereum, BNB Smart Chain, etc.) no on-chain
-      // verification is performed — allow the transaction to be stored.
+        txHistory.providerHash = txHashAndQuote.transactionHash;
+      } else {
+        const rskTransaction = await this.rskNodeService.getTransaction(
+          txHistory.txHash,
+        );
+        if (rskTransaction) {
+          txHistory.fromAmount = rskTransaction.value?.toString() ?? '';
+          txHistory.userAddress = rskTransaction.from?.toString() ?? '';
+          txHistory.providerHash = txHashAndQuote.transactionHash;
+        } else {
+          // Not expected to have other networks here due to validation, but just in case
+          this.logger.warn(
+            `[verifyTransactionExists] Unsupported network: ${txHistory.fromNetworkName}`,
+          );
+          return null as unknown as TxHistory;
+        }
+      }
       return txHistory;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.warn(
         `[verifyTransactionExists] Transaction not found for ${txHistory.fromNetworkName}: ${txHistory.txHash} ${errorMessage}`,
       );
@@ -117,7 +140,8 @@ export class TxHistoryController {
         required: true,
         schema: {
           type: 'string',
-          pattern: '^(0x[a-fA-F0-9]{40}|[13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
+          pattern:
+            '^(0x[a-fA-F0-9]{40}|[13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
         },
         description: 'Must be a valid RSK or BTC address',
       },
@@ -172,15 +196,18 @@ export class TxHistoryController {
       required: true,
       schema: {
         type: 'string',
-        pattern: '^(0x[a-fA-F0-9]{40}|[13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
+        pattern:
+          '^(0x[a-fA-F0-9]{40}|[13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
       },
-    }) address: string,
+    })
+    address: string,
     @param.query.number('page', {
       schema: {
         type: 'number',
         minimum: 1,
       },
-    }) page: number = 1,
+    })
+    page: number = 1,
   ): Promise<Response> {
     try {
       if (!address) {
@@ -193,7 +220,10 @@ export class TxHistoryController {
           error: 'Page parameter must be greater than 0',
         });
       }
-      const result = await this.txHistoryService.getTransactionHistoryByAddress(address, page);
+      const result = await this.txHistoryService.getTransactionHistoryByAddress(
+        address,
+        page,
+      );
       return this.response.status(200).send(result);
     } catch (error) {
       this.logger.error(
@@ -240,10 +270,12 @@ export class TxHistoryController {
         type: 'string',
         pattern: '^[a-fA-F0-9]{64}$|^0x[a-fA-F0-9]{64}$',
       },
-    }) txHash: string,
+    })
+    txHash: string,
   ): Promise<Response> {
     try {
-      const transaction = await this.txHistoryService.getTransactionByHash(txHash);
+      const transaction =
+        await this.txHistoryService.getTransactionByHash(txHash);
       if (!transaction) {
         return this.response.status(404).send({
           error: 'Transaction not found',
