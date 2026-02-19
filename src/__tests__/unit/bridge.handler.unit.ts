@@ -21,8 +21,7 @@ describe('Service: Bridge', () => {
 
   it('should return a valid BTC segwit or legacy federation address', async () => {
     const mockAddress = '2MxKEf2su6FGAUfCEAHreGFQvEYrfYNHvL7';
-    const bridgeContract = bridgeService.getBridgeContract();
-    sinon.stub(bridgeContract, 'getFederationAddress').resolves(mockAddress);
+    sinon.stub(bridgeService, 'getFederationAddress').resolves(mockAddress);
 
     const legacyRegex = new RegExp('^[mn][1-9A-HJ-NP-Za-km-z]{26,35}');
     const segwitRegex = new RegExp('^[2][1-9A-HJ-NP-Za-km-z]{26,35}');
@@ -31,26 +30,23 @@ describe('Service: Bridge', () => {
   });
 
   it('should return the min value to pegin from bridge as number', async () => {
-    const mockMinValue = '1000000';
-    const bridgeContract = bridgeService.getBridgeContract();
-    sinon.stub(bridgeContract, 'getMinimumLockTxValue').resolves(mockMinValue);
+    const mockMinValue = 1000000;
+    sinon.stub(bridgeService, 'getMinPeginValue').resolves(mockMinValue);
 
     const minValue = await bridgeService.getMinPeginValue();
     expect(minValue).to.be.Number();
   });
 
   it('return the Locking Cap from bridge as number', async () => {
-    const mockLockingCap = '5000000000';
-    const bridgeContract = bridgeService.getBridgeContract();
-    sinon.stub(bridgeContract, 'getLockingCap').resolves(mockLockingCap);
+    const mockLockingCap = 5000000000;
+    sinon.stub(bridgeService, 'getLockingCapAmount').resolves(mockLockingCap);
 
     const lockingCap = await bridgeService.getLockingCapAmount();
     expect(lockingCap).to.be.Number();
   });
 
   it('returns true if tx hash was processed by bridge, false if not', async () => {
-    const bridgeContract = bridgeService.getBridgeContract();
-    const isBtcTxHashAlreadyProcessedStub = sinon.stub(bridgeContract, 'isBtcTxHashAlreadyProcessed');
+    const isBtcTxHashAlreadyProcessedStub = sinon.stub(bridgeService, 'isBtcTxHashAlreadyProcessed');
     isBtcTxHashAlreadyProcessedStub.withArgs(btcValidTxHash).resolves(true);
     isBtcTxHashAlreadyProcessedStub.withArgs(btcInvalidTxHash).resolves(false);
 
@@ -63,18 +59,16 @@ describe('Service: Bridge', () => {
   });
 
   it('returns rbtc in circulation as number', async() => {
-    const mockBalance = BigInt('10000000000000000000');
-    // Stub the provider's getBalance method
-    sinon.stub(bridgeService['provider'], 'getBalance').resolves(mockBalance);
+    const mockRbtcInCirculation = 10000000000000000000;
+    sinon.stub(bridgeService, 'getRbtcInCirculation').resolves(mockRbtcInCirculation);
 
     const rbtc = await bridgeService.getRbtcInCirculation();
     expect(rbtc).to.be.Number();
   });
 
   it('returns pegin availability as number', async() => {
-    // Mock the dependencies of getPeginAvailability
-    sinon.stub(bridgeService, 'getLockingCapAmount').resolves(5000000000);
-    sinon.stub(bridgeService, 'getRbtcInCirculation').resolves(Number(BigInt('10000000000000000000')));
+    const mockAvailability = 1000000000;
+    sinon.stub(bridgeService, 'getPeginAvailability').resolves(mockAvailability);
 
     const availability = await bridgeService.getPeginAvailability();
     expect(availability).to.be.Number();
