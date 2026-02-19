@@ -8,6 +8,7 @@ import Ajv, {ValidateFunction} from 'ajv';
 import {TxHistoryController} from '../../controllers/tx-history.controller';
 import {TxHistoryService} from '../../services/tx-history.service';
 import {TxHistory, TOKENS, NETWORKS} from '../../models/tx-history.model';
+import {TxHashAndQuote} from '../../models/tx-hash-model';
 import {sinon} from '@loopback/testlab/dist/sinon';
 import {BitcoinService, RskNodeService} from '../../services';
 
@@ -50,93 +51,65 @@ describe('TxHistoryController', () => {
 
   describe('storeTransaction', () => {
     it('should store a valid transaction and return 200', async () => {
-      const txHistory: TxHistory = {
-        userAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
-        txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      const txHashAndQuote: TxHashAndQuote = {
+        transactionHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
         providerHash: 'Test123Hash',
-        fromTokenName: 'BTC',
         fromNetworkName: 'Bitcoin',
-        toTokenName: 'RBTC',
-        toNetworkName: 'Rootstock',
-        fromAmount: '0.001',
-        toAmount: '0.0009',
-        date: new Date('2024-01-01'),
-        sdkProvider: 'FLYOVER',
-      } as TxHistory;
+      } as TxHashAndQuote;
 
       storeTransaction.resolves(true);
 
-      const response = await controller.storeTransaction(txHistory);
+      const response = await controller.storeTransaction(txHashAndQuote);
 
       sinon.assert.calledOnce(storeTransaction);
-      sinon.assert.calledWith(storeTransaction, txHistory);
       expect(response.statusCode).to.equal(200);
     });
 
     it('should return 500 when storage fails', async () => {
-      const txHistory: TxHistory = {
-        userAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-        txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdea',
+      const txHashAndQuote: TxHashAndQuote = {
+        transactionHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdea',
         providerHash: 'Test456Hash',
-        fromTokenName: 'RBTC',
         fromNetworkName: 'Rootstock',
-        toTokenName: 'BTC',
-        toNetworkName: 'Bitcoin',
-        fromAmount: '0.002',
-        toAmount: '0.0019',
-        date: new Date('2024-01-02'),
-        sdkProvider: 'POWPEG',
-      } as TxHistory;
+      } as TxHashAndQuote;
 
       storeTransaction.resolves(false);
 
-      const response = await controller.storeTransaction(txHistory);
+      const response = await controller.storeTransaction(txHashAndQuote);
 
       sinon.assert.calledOnce(storeTransaction);
       expect(response.statusCode).to.equal(500);
     });
 
     it('should return 200 and not store when transaction does not exist in source network', async () => {
-      const txHistory: TxHistory = {
-        userAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
-        txHash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+      const txHashAndQuote: TxHashAndQuote = {
+        transactionHash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd',
         providerHash: 'MissingTxHash',
-        fromTokenName: 'BTC',
         fromNetworkName: 'Bitcoin',
-        toTokenName: 'RBTC',
-        toNetworkName: 'Rootstock',
-        fromAmount: '0.001',
-        toAmount: '0.0009',
-        date: new Date('2024-01-03'),
-        sdkProvider: 'FLYOVER',
-      } as TxHistory;
+      } as TxHashAndQuote;
 
       getTx.rejects(new Error('Error getting tx'));
 
-      const response = await controller.storeTransaction(txHistory);
+      const response = await controller.storeTransaction(txHashAndQuote);
 
       sinon.assert.notCalled(storeTransaction);
       expect(response.statusCode).to.equal(200);
     });
 
     it('should return 200 and not store when transaction already exists in database', async () => {
-      const txHistory: TxHistory = {
+      const txHashAndQuote: TxHashAndQuote = {
+        transactionHash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+        providerHash: 'ExistingTxHash',
+        fromNetworkName: 'Bitcoin',
+      } as TxHashAndQuote;
+
+      const existingTx = {
         userAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
         txHash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-        providerHash: 'ExistingTxHash',
-        fromTokenName: 'BTC',
-        fromNetworkName: 'Bitcoin',
-        toTokenName: 'RBTC',
-        toNetworkName: 'Rootstock',
-        fromAmount: '0.001',
-        toAmount: '0.0009',
-        date: new Date('2024-01-03'),
-        sdkProvider: 'FLYOVER',
       } as TxHistory;
 
-      getTransactionByHash.resolves(txHistory);
+      getTransactionByHash.resolves(existingTx);
 
-      const response = await controller.storeTransaction(txHistory);
+      const response = await controller.storeTransaction(txHashAndQuote);
 
       sinon.assert.calledOnce(getTransactionByHash);
       sinon.assert.notCalled(getRskTransaction);
