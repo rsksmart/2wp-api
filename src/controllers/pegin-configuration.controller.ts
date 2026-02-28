@@ -1,6 +1,7 @@
 import {repository} from '@loopback/repository';
 import {get, getModelSchemaRef} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
+import * as Sentry from "@sentry/node";
 import {PeginConfiguration} from '../models';
 import {PeginConfigurationRepository} from '../repositories';
 import {BridgeService} from '../services';
@@ -53,6 +54,7 @@ export class PeginConfigurationController {
         })
         .catch((e) => {
           this.logger.warn(`[get] Got an error: ${e}`);
+          Sentry.captureException(e);
           reject(e);
         });
     });

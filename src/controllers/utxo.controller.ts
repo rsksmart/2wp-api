@@ -1,6 +1,7 @@
 import {inject} from '@loopback/core';
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
+import * as Sentry from "@sentry/node";
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {AddressList, Utxo} from '../models';
 import {UtxoResponse} from '../models/utxo-response.model';
@@ -59,6 +60,7 @@ export class UtxoController {
         })
         .catch(reason => {
           this.logger.warn(`[getUtxos] Got an error: ${reason}`);
+          Sentry.captureException(reason);
           reject(reason);
         });
     });

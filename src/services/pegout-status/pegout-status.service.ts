@@ -1,5 +1,6 @@
 import {getLogger, Logger} from "log4js";
 import {inject} from "@loopback/core";
+import * as Sentry from "@sentry/node";
 import Web3 from 'web3';
 import {BridgeEvent, Transaction} from '@rsksmart/bridge-transaction-parser';
 import {ServicesBindings} from "../../dependency-injection-bindings";
@@ -74,6 +75,7 @@ export class PegoutStatusService {
                 })
                 .catch((e) => {
                     this.logger.warn(`TxId:${rskTxHash} Unexpected error trying to obtain information. Error: ${e}`);
+                    Sentry.captureException(e);
                     reject(e);
                 });
         });
@@ -81,7 +83,7 @@ export class PegoutStatusService {
 
     private async processTransaction(extendedBridgeTx: ExtendedBridgeTx): Promise<PegoutStatusAppDataModel> {
         const pegoutStatus: PegoutStatusAppDataModel = new PegoutStatusAppDataModel();
-        const events = extendedBridgeTx.events;
+        const {events} = extendedBridgeTx;
 
         if(this.hasReleaseRequestReceivedEvent(events)) {
             return PegoutStatusBuilder.fillRequestReceivedStatus(extendedBridgeTx);

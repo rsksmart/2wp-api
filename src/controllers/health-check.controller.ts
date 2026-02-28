@@ -1,6 +1,7 @@
 import { RestBindings, get, getModelSchemaRef, Response } from '@loopback/rest';
 import { getLogger, Logger } from 'log4js';
 import { inject } from '@loopback/core';
+import * as Sentry from "@sentry/node";
 import { BitcoinService, BridgeService } from '../services';
 import { ServicesBindings } from "../dependency-injection-bindings";
 import { HealthInformation } from '../models/health-information.model';
@@ -50,16 +51,16 @@ export class HealthCheckController {
     },
   })
   async health(): Promise<Response> {
-    const version = packageJson.version;
+    const {version} = packageJson;
     this.logger.debug(`[healthCheckController] current version : ${version}`);
     const health = new HealthInformation();
     health.up = true;
     health.apiVersion = version;
 
-    let dataBase: HealthInformationChecks = await this.getDataBaseInfo(health);
-    let blockBook: BlockBoock = await this.getBlockBookInfo(health);
-    let rskNode: HealthInformationChecks = await this.getRskNodeInfo(health);
-    let bridgeService: HealthInformationChecks = await this.getBridgeInfo(health);
+    const dataBase: HealthInformationChecks = await this.getDataBaseInfo(health);
+    const blockBook: BlockBoock = await this.getBlockBookInfo(health);
+    const rskNode: HealthInformationChecks = await this.getRskNodeInfo(health);
+    const bridgeService: HealthInformationChecks = await this.getBridgeInfo(health);
 
     health.dataBase = dataBase;
     health.blockBook = blockBook;
@@ -74,17 +75,18 @@ export class HealthCheckController {
   }
 
   private async getBridgeInfo(health: HealthInformation): Promise<HealthInformationChecks> {
-    let bridgeService = new Federation();
+    const bridgeService = new Federation();
     return this.bridgeService.getFederationAddress().then((address: any) => {
       if(address) {
         bridgeService.up = true;
         bridgeService.federationAddress = address;
         return bridgeService;
-      } else {
+      } 
         throw new Error("Error searching Bridge State");
-      }
+      
     }).catch((e) => {
       this.logger.error(`[healthCheckController-BridgeError] error : ${e}`);
+      Sentry.captureException(e);
       bridgeService.up = false;
       health.up = false;
       return bridgeService;
@@ -92,7 +94,7 @@ export class HealthCheckController {
   }
 
   private async getBlockBookInfo(health: HealthInformation): Promise<BlockBoock> {
-    let blockBook = new BlockBoock();
+    const blockBook = new BlockBoock();
     return this.bitcoinService.getLastBlock().then((info: LastBlockInfo) => {
       if (info) {
         blockBook.up = true;
@@ -102,11 +104,12 @@ export class HealthCheckController {
         blockBook.syncing = info.inSync;
         blockBook.chain = info.chain;
         return blockBook;
-      } else {
+      } 
         throw new Error("Error searching BTC Block Number");
-      }
+      
     }).catch((e) => {
       this.logger.error(`[healthCheckController-BlockBook] error : ${e}`);
+      Sentry.captureException(e);
       blockBook.up = false;
       health.up = false;
       return blockBook;
@@ -114,17 +117,18 @@ export class HealthCheckController {
   }
   
   private async getRskNodeInfo(health: HealthInformation): Promise<HealthInformationChecks> {
-    let rskNode = this.createNewType();
+    const rskNode = this.createNewType();
     return this.rskNodeService.getBlockNumber().then((blockNumber:number) => {
       if(blockNumber) {
         rskNode.up = true;
         rskNode.lastRskBlockNumber = blockNumber;
         return rskNode;
-      } else {
+      } 
         throw new Error("Error searching block number");
-      }
+      
     }).catch((e) => {
       this.logger.error(`[healthCheckController-RskNodeInfoError] error : ${e}`);
+      Sentry.captureException(e);
       rskNode.up = false;
       health.up = false;
       return rskNode;
@@ -132,18 +136,19 @@ export class HealthCheckController {
   }
 
   private async getDataBaseInfo(health: HealthInformation): Promise<HealthInformationChecks> {
-    let dataBase = this.createNewType();
+    const dataBase = this.createNewType();
     return this.syncStorageService.getBestBlock().then((syncStatusModel: SyncStatusModel | undefined) => {
       if(syncStatusModel) {
         dataBase.lastRskBlockNumber = syncStatusModel.rskBlockHeight;
         dataBase.lastRskBlockHash = syncStatusModel.rskBlockHash;
         dataBase.up = true;
         return dataBase;
-      } else {
+      } 
         throw new Error("[healthCheckController-DataBaseError] - Block info not found");
-      }
+      
     }).catch((e) => {
       this.logger.error(`[healthCheckController-DataBaseError] error : ${e}`);
+      Sentry.captureException(e);
       health.up = false;
       dataBase.up = false;
       return dataBase;

@@ -40,13 +40,13 @@ export function getBridgeSignature(methodOrEvent: BRIDGE_METHODS | BRIDGE_EVENTS
   if (event) {
     return event.topicHash;
   }
-  throw new Error(methodOrEvent + " does not exist in Bridge abi");
+  throw new Error(`${methodOrEvent  } does not exist in Bridge abi`);
 }
 
 export function getBridgeMethodABI(method: BRIDGE_METHODS): any {
   const abi = precompiledAbis.bridge.abi.find((m: any) => m.name === method);
   if (!abi) {
-    throw new Error(method + " does not exist in Bridge abi");
+    throw new Error(`${method  } does not exist in Bridge abi`);
   }
   return abi;
 }

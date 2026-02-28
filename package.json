@@ -63,6 +63,7 @@
     "@rsksmart/bridge-state-data-parser": "^2.0.0",
     "@rsksmart/bridge-transaction-parser": "^2.0.0",
     "@rsksmart/rsk-precompiled-abis": "^8.0.0-REED",
+    "@sentry/node": "^10.38.0",
     "big.js": "^6.1.1",
     "bitcoinjs-lib": "^6.0.1",
     "bs58": "^5.0.0",

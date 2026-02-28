@@ -1,5 +1,6 @@
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from 'log4js';
+import * as Sentry from "@sentry/node";
 import {AddressService, TxV2Service} from '..';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BitcoinAddress} from '../../models/bitcoin-address.model';
@@ -48,6 +49,7 @@ export class BitcoinService {
         })
         .catch(reason => {
           this.logger.warn(`[getTx] Got an error: ${reason}`);
+          Sentry.captureException(reason);
           reject(`Error getting tx ${txId}`);
         });
     });
@@ -74,6 +76,7 @@ export class BitcoinService {
           resolve(responseAddress);
         })
         .catch(() => {
+          Sentry.captureException(`Error getting address ${address}`);
           reject(`Error getting address ${address}`);
         });
     });
@@ -95,6 +98,7 @@ export class BitcoinService {
           resolve(lastBlockInfo);
         })
         .catch((e) => {
+          Sentry.captureException(`Error getting last block ${e}`);
           reject(`Error getting last block ${e}`);
         });
     });
