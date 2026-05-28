@@ -5,7 +5,6 @@ import { BridgeService } from '../services';
 const bridgeService = new BridgeService();
 const bridgeContract = bridgeService.getBridgeContract();
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export enum BRIDGE_METHODS {
   RELEASE_BTC = 'releaseBtc',
   REGISTER_BTC_TRANSACTION = 'registerBtcTransaction',
@@ -13,7 +12,6 @@ export enum BRIDGE_METHODS {
   ADD_SIGNATURE = 'addSignature'
 };
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export enum BRIDGE_EVENTS {
   LOCK_BTC = 'lock_btc',
   PEGIN_BTC = 'pegin_btc',

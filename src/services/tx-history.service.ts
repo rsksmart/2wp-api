@@ -83,7 +83,6 @@ export class TxHistoryService extends MongoDbDataService<TxHistory, TxHistoryMon
       const connector = this.getConnector();
       const [data, total] = await Promise.all([
         connector
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           .find({ userAddress: address }, { _id: 0, __v: 0 })
           .sort({ date: -1 })
           .skip(skip)
@@ -103,7 +102,6 @@ export class TxHistoryService extends MongoDbDataService<TxHistory, TxHistoryMon
   
   async getTransactionByHash(hash: string): Promise<TxHistory | null> {
     const connector = this.getConnector();
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const tx = await connector.findOne({ txHash: hash }, { _id: 0, __v: 0 }).lean().exec();
     return tx;
   }
