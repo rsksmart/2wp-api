@@ -1,5 +1,7 @@
 import {Client, expect} from '@loopback/testlab';
+import sinon from 'sinon';
 import {TwpapiApplication} from '../..';
+import {ADDRESS_LIST_MAX_ITEMS} from '../../config/limits';
 import {setupApplication} from './test-helper';
 import {UtxoProvider} from '../../services';
 
@@ -995,6 +997,85 @@ describe('UtxoController (Acceptance)', () => {
           utxoProviderService.utxoProvider = originalUtxoProvider;
         }
       });
+    });
+
+    describe('uplicate address-list response amplification', () => {
+      // Deterministic generator of unique valid mainnet legacy P2PKH addresses.
+      function uniqueLegacyMainnet(index: number): string {
+        const base58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+        let n = index + 1;
+        let suffix = '';
+        while (n > 0) {
+          suffix = base58[n % 58] + suffix;
+          n = Math.floor(n / 58);
+        }
+        return '1' + suffix.padStart(33, 'A');
+      }
+
+      it('should reject requests with more than ADDRESS_LIST_MAX_ITEMS entries (422)', async () => {
+        const utxoStub = sinon.stub(utxoProviderService, 'utxoProvider').resolves([]);
+        try {
+          const requestBody = {
+            addressList: Array.from(
+              {length: ADDRESS_LIST_MAX_ITEMS + 1},
+              (_, i) => uniqueLegacyMainnet(i),
+            ),
+          };
+
+          await client
+            .post('/utxo')
+            .send(requestBody)
+            .expect(422);
+
+          sinon.assert.notCalled(utxoStub);
+        } finally {
+          utxoStub.restore();
+        }
+      });
+
+      it('should reject requests with duplicate addresses (422)', async () => {
+        const utxoStub = sinon.stub(utxoProviderService, 'utxoProvider').resolves([]);
+        try {
+          const requestBody = {
+            addressList: [
+              testAddresses.legacyMainnet,
+              testAddresses.legacyMainnet,
+            ],
+          };
+
+          await client
+            .post('/utxo')
+            .send(requestBody)
+            .expect(422);
+
+          sinon.assert.notCalled(utxoStub);
+        } finally {
+          utxoStub.restore();
+        }
+      });
+
+      it('PoC regression: should reject 25 000 duplicate addresses without invoking the provider', async () => {
+        // Return [] (not 200 rows) so the test process itself never tries to
+        // build the amplified response while the route is still buggy.
+        const utxoStub = sinon.stub(utxoProviderService, 'utxoProvider').resolves([]);
+        try {
+          const requestBody = {
+            addressList: Array.from(
+              {length: 25000},
+              () => testAddresses.legacyMainnet,
+            ),
+          };
+
+          await client
+            .post('/utxo')
+            .send(requestBody)
+            .expect(422);
+
+          sinon.assert.notCalled(utxoStub);
+        } finally {
+          utxoStub.restore();
+        }
+      }).timeout(10000);
     });
   });
 });

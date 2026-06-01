@@ -1,4 +1,6 @@
 import {Model, model, property} from '@loopback/repository';
+import {ADDRESS_LIST_MAX_ITEMS} from '../config/limits';
+import {BTC_ADDRESS_PATTERN} from '../utils/address-patterns';
 
 @model()
 export class AddressList extends Model {
@@ -9,7 +11,12 @@ export class AddressList extends Model {
     required: true,
     items: {
       type: 'string',
-      pattern: '^([13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
+      pattern: BTC_ADDRESS_PATTERN,
+    },
+    jsonSchema: {
+      minItems: 1,
+      maxItems: ADDRESS_LIST_MAX_ITEMS,
+      uniqueItems: true,
     },
   })
   addressList: string[];

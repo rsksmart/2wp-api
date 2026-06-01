@@ -1,5 +1,10 @@
 import {expect} from '@loopback/testlab';
 import sinon from 'sinon';
+import {
+  ADDRESS_LIST_MAX_ITEMS,
+  PROVIDER_CONCURRENCY,
+  UTXO_RESPONSE_MAX_ROWS,
+} from '../../config/limits';
 import {UtxoController} from '../../controllers/utxo.controller';
 import {AddressList, Utxo} from '../../models';
 import {UtxoResponse} from '../../models/utxo-response.model';
@@ -661,6 +666,162 @@ describe('UtxoController', () => {
           height: 100000,
           confirmations: 800000,
         });
+      });
+    });
+
+    describe('vulnerability 79368 — duplicate address-list response amplification', () => {
+      // Deterministic generator of unique valid mainnet legacy P2PKH addresses.
+      // Length 34 (1 + 33) fits the controller regex [13mn][...]{25,34}.
+      function uniqueLegacyMainnet(index: number): string {
+        const base58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+        let n = index + 1;
+        let suffix = '';
+        while (n > 0) {
+          suffix = base58[n % 58] + suffix;
+          n = Math.floor(n / 58);
+        }
+        return '1' + suffix.padStart(33, 'A');
+      }
+
+      it('should reject addressList exceeding ADDRESS_LIST_MAX_ITEMS without calling the provider', async () => {
+        const tooMany = Array.from(
+          {length: ADDRESS_LIST_MAX_ITEMS + 1},
+          (_, i) => uniqueLegacyMainnet(i),
+        );
+        const addressList = new AddressList({addressList: tooMany});
+        utxoProvider.resolves([]);
+
+        let caught: unknown = null;
+        try {
+          await utxoController.getUtxos(addressList);
+        } catch (err) {
+          caught = err;
+        }
+
+        expect(caught).to.not.be.null();
+        sinon.assert.notCalled(utxoProvider);
+      });
+
+      it('should reject addressList containing duplicate addresses', async () => {
+        const addressList = new AddressList({
+          addressList: [
+            testAddresses.legacyMainnet,
+            testAddresses.legacyMainnet,
+          ],
+        });
+        utxoProvider.resolves([]);
+
+        let caught: unknown = null;
+        try {
+          await utxoController.getUtxos(addressList);
+        } catch (err) {
+          caught = err;
+        }
+
+        expect(caught).to.not.be.null();
+        sinon.assert.notCalled(utxoProvider);
+      });
+
+      it('should call the provider at most once per unique address (defense in depth)', async () => {
+        // Even if duplicate rejection is disabled by configuration, the
+        // controller must collapse duplicates before fan-out so a single
+        // address never produces N provider calls.
+        const addressList = new AddressList({
+          addressList: [
+            testAddresses.legacyMainnet,
+            testAddresses.legacyMainnet,
+            testAddresses.legacyMainnet,
+          ],
+        });
+        utxoProvider.resolves([]);
+
+        try {
+          await utxoController.getUtxos(addressList);
+        } catch {
+          // Rejection is also acceptable here; the assertion below covers it.
+        }
+
+        expect(utxoProvider.callCount).to.be.lessThanOrEqual(1);
+      });
+
+      it('should bound provider fan-out concurrency to PROVIDER_CONCURRENCY', async () => {
+        let inFlight = 0;
+        let maxInFlight = 0;
+        utxoProvider.callsFake(async () => {
+          inFlight += 1;
+          if (inFlight > maxInFlight) maxInFlight = inFlight;
+          await new Promise(resolve => setTimeout(resolve, 25));
+          inFlight -= 1;
+          return [];
+        });
+
+        const addresses = Array.from(
+          {length: PROVIDER_CONCURRENCY * 4},
+          (_, i) => uniqueLegacyMainnet(i),
+        );
+        const addressList = new AddressList({addressList: addresses});
+
+        await utxoController.getUtxos(addressList);
+
+        expect(maxInFlight).to.be.lessThanOrEqual(PROVIDER_CONCURRENCY);
+      });
+
+      it('should cap the aggregated UTXO response to UTXO_RESPONSE_MAX_ROWS rows', async () => {
+        const addressCount = 5;
+        const addresses = Array.from(
+          {length: addressCount},
+          (_, i) => uniqueLegacyMainnet(i),
+        );
+        const addressList = new AddressList({addressList: addresses});
+        const utxosPerAddress =
+          Math.ceil(UTXO_RESPONSE_MAX_ROWS / addressCount) + 1;
+        const heavyUtxos = Array.from({length: utxosPerAddress}, (_, i) => ({
+          txid: String(i).padStart(64, '0'),
+          vout: i,
+          amount: '0.00000546',
+          satoshis: 546,
+          height: 1,
+          confirmations: 1,
+        }));
+        utxoProvider.resolves(heavyUtxos);
+
+        let caught: unknown = null;
+        let result: import('../../models/utxo-response.model').UtxoResponse | null = null;
+        try {
+          result = await utxoController.getUtxos(addressList);
+        } catch (err) {
+          caught = err;
+        }
+
+        // Either the controller rejects with a payload-too-large style error,
+        // or it truncates the response — both close the amplification channel.
+        if (caught) {
+          expect(caught).to.not.be.null();
+        } else {
+          expect(result).to.not.be.null();
+          expect(result!.data.length).to.be.lessThanOrEqual(UTXO_RESPONSE_MAX_ROWS);
+        }
+      });
+
+      it('PoC regression: should reject 25 000 duplicate addresses without invoking the provider', async () => {
+        const addressList = new AddressList({
+          addressList: Array.from({length: 25000}, () => testAddresses.legacyMainnet),
+        });
+        utxoProvider.resolves([]); // empty per-address rows for safety
+
+        const startedAt = Date.now();
+        let caught: unknown = null;
+        try {
+          await utxoController.getUtxos(addressList);
+        } catch (err) {
+          caught = err;
+        }
+        const elapsedMs = Date.now() - startedAt;
+
+        expect(caught).to.not.be.null();
+        sinon.assert.notCalled(utxoProvider);
+        // Reject must be a constant-time guard, not after walking the list.
+        expect(elapsedMs).to.be.lessThan(500);
       });
     });
   });
