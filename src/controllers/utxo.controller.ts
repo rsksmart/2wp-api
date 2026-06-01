@@ -1,10 +1,19 @@
 import {inject} from '@loopback/core';
-import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
+import {HttpErrors, getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
 import {getLogger, Logger} from 'log4js';
+import {
+  ADDRESS_LIST_MAX_ITEMS,
+  PROVIDER_CONCURRENCY,
+  REJECT_DUPLICATE_ADDRESSES,
+  UTXO_RESPONSE_MAX_ROWS,
+} from '../config/limits';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {AddressList, Utxo} from '../models';
 import {UtxoResponse} from '../models/utxo-response.model';
 import {UtxoProvider} from '../services';
+import {BTC_ADDRESS_PATTERN} from '../utils/address-patterns';
+import {validateAddressList} from '../utils/address-list-validation';
+import {withConcurrency} from '../utils/concurrency';
 
 export class UtxoController {
   logger: Logger;
@@ -31,36 +40,42 @@ export class UtxoController {
             properties: {
               addressList: {
                 type: 'array',
-                items: {
-                  type: 'string',
-                pattern: '^([13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
-                },
+                items: {type: 'string', pattern: BTC_ADDRESS_PATTERN},
                 minItems: 1,
+                maxItems: ADDRESS_LIST_MAX_ITEMS,
+                uniqueItems: true,
               },
             },
             required: ['addressList'],
             additionalProperties: false,
           },
-        }
+        },
       },
     })
     addressList: AddressList,
   ): Promise<UtxoResponse> {
-    return new Promise<UtxoResponse>((resolve, reject) => {
-      Promise.all(
-        addressList.addressList.map(async address => {
-          const utxos = await this.utxoProviderService.utxoProvider(address);
-          return utxos.map(utxo => new Utxo({address, ...utxo}));
-        }),
-      )
-        .then(utxosWithAddress => {
-          this.logger.trace('[getUtxos] Got utxos!');
-          resolve(new UtxoResponse({data: utxosWithAddress.flat()}));
-        })
-        .catch(reason => {
-          this.logger.warn(`[getUtxos] Got an error: ${reason}`);
-          reject(reason);
-        });
+    validateAddressList(addressList.addressList, {
+      maxItems: ADDRESS_LIST_MAX_ITEMS,
+      rejectDuplicates: REJECT_DUPLICATE_ADDRESSES,
     });
+
+    const utxosWithAddress = await withConcurrency(
+      addressList.addressList,
+      PROVIDER_CONCURRENCY,
+      async (address: string) => {
+        const utxos = await this.utxoProviderService.utxoProvider(address);
+        return utxos.map(utxo => new Utxo({address, ...utxo}));
+      },
+    );
+
+    const flat = utxosWithAddress.flat();
+    if (flat.length > UTXO_RESPONSE_MAX_ROWS) {
+      throw new HttpErrors.PayloadTooLarge(
+        `UTXO response exceeds maximum of ${UTXO_RESPONSE_MAX_ROWS} rows`,
+      );
+    }
+
+    this.logger.trace('[getUtxos] Got utxos!');
+    return new UtxoResponse({data: flat});
   }
 }
