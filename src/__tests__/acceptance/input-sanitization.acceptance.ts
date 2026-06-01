@@ -177,16 +177,12 @@ describe('Input Sanitization (Acceptance)', function() {
     });
 
     it('should reject empty address list', async () => {
-      // Empty array is accepted but returns empty results
-      const res = await client
+      await client
         .post('/addresses-info')
         .send({
           addressList: [],
         })
-        .expect(200);
-      
-      expect(res.body.addressesInfo).to.be.Array();
-      expect(res.body.addressesInfo).to.have.length(0);
+        .expect(422);
     });
 
     it('should reject additional properties', async () => {
@@ -303,7 +299,10 @@ describe('Input Sanitization (Acceptance)', function() {
     it('should handle SQL injection in txHash', async () => {
       // SQL injection strings are stored as-is (no SQL queries involved)
       // The validation focuses on numeric fields
-      const res = await client
+      const registerStub = sinon.stub().resolves(true);
+      app.getBinding(ServicesBindings.REGISTER_SERVICE).to({ register: registerStub });
+      const client2 = createRestAppClient(app);
+      const res = await client2
         .post('/register')
         .send({
           type: 'pegin',
@@ -312,13 +311,16 @@ describe('Input Sanitization (Acceptance)', function() {
           value: '100',
           fee: '10',
         });
-      
+
       // Should succeed with valid numeric values
       expect(res.status).to.equal(200);
     });
 
     it('should reject XSS in wallet field', async () => {
-      const res = await client
+      const registerStub = sinon.stub().resolves(true);
+      app.getBinding(ServicesBindings.REGISTER_SERVICE).to({ register: registerStub });
+      const client2 = createRestAppClient(app);
+      const res = await client2
         .post('/register')
         .send({
           type: 'pegin',
@@ -327,7 +329,7 @@ describe('Input Sanitization (Acceptance)', function() {
           value: '100',
           fee: '10',
         });
-      
+
       // Should handle gracefully
       expect(res.status).to.be.oneOf([200, 400, 422]);
     });
@@ -485,34 +487,38 @@ describe('Input Sanitization (Acceptance)', function() {
     this.timeout(20000);
 
     it('should handle RSK tx hash without 0x prefix', async function() {
-      let bitcoinServiceGetTxStub = sinon.stub();
-      bitcoinServiceGetTxStub.resolves(null);
-      let bitcoinServiceGetLastBlockStub = sinon.stub();
-      bitcoinServiceGetLastBlockStub.resolves({
-        inSync: true,
-        syncMode: true,
-        page: 1,
-        coin: 'BTC',
-        host: 'test-host',
-        version: '1.0.0',
-        bestHeight: 1000000,
-        chain: 'main',
-        blocks: 1000000,
-        bestBlockHash: 'test-block-hash',
-      });
-      let bitcoinServiceGetAddressInfoStub = sinon.stub();
-      bitcoinServiceGetAddressInfoStub.resolves(null);
       const txHash = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
       app.getBinding(ServicesBindings.BITCOIN_SERVICE).to({
-        getTx: bitcoinServiceGetTxStub,
-        getLastBlock: bitcoinServiceGetLastBlockStub,
-        getAddressInfo: bitcoinServiceGetAddressInfoStub,
+        getTx: sinon.stub().resolves(null),
+        getLastBlock: sinon.stub().resolves({
+          inSync: true,
+          syncMode: true,
+          page: 1,
+          coin: 'BTC',
+          host: 'test-host',
+          version: '1.0.0',
+          bestHeight: 1000000,
+          chain: 'main',
+          blocks: 1000000,
+          bestBlockHash: 'test-block-hash',
+        }),
+        getAddressInfo: sinon.stub().resolves(null),
+      });
+      app.getBinding(ServicesBindings.PEGIN_STATUS_SERVICE).to({
+        getPeginStatusInfo: sinon.stub().rejects(new Error('not found')),
+      });
+      app.getBinding(ServicesBindings.PEGOUT_STATUS_SERVICE).to({
+        getPegoutStatusByRskTxHash: sinon.stub().rejects(new Error('not found')),
+      });
+      app.getBinding(ServicesBindings.FLYOVER_SERVICE).to({
+        getFlyoverStatus: sinon.stub().rejects(new Error('not found')),
+        register: sinon.stub().resolves(),
       });
       const client2 = createRestAppClient(app);
       const res = await client2
         .get(`/tx-status/${txHash}`)
         .expect(200);
-      
+
       expect(res.body).to.have.property('type');
     });
   });

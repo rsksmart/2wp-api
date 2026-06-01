@@ -1,12 +1,21 @@
 import {getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
 import {inject} from '@loopback/core';
+import {
+  ADDRESS_INFO_MAX_TXIDS,
+  ADDRESS_LIST_MAX_ITEMS,
+  PROVIDER_CONCURRENCY,
+  REJECT_DUPLICATE_ADDRESSES,
+} from '../config/limits';
 import {AddressList} from '../models';
 import {AddressInfoResponse} from '../models/adddress-info-response.model';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {BitcoinService} from '../services';
+import {BTC_ADDRESS_PATTERN} from '../utils/address-patterns';
+import {validateAddressList} from '../utils/address-list-validation';
+import {withConcurrency} from '../utils/concurrency';
 
 export class AddressesInfoController {
-  private bitcoinService:BitcoinService;
+  private bitcoinService: BitcoinService;
 
   constructor(
     @inject(ServicesBindings.BITCOIN_SERVICE)
@@ -21,38 +30,46 @@ export class AddressesInfoController {
       'Returns array of objects with the address information in the input corresponding index',
     content: {'application/json': {schema: getModelSchemaRef(AddressInfoResponse)}},
   })
-  getAddressesInfo(
+  async getAddressesInfo(
     @requestBody({
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            addressList: {
-              type: 'array',
-              items: {
-                type: 'string',
-                pattern: '^([13mn][a-km-zA-HJ-NP-Z1-9]{25,34}|2[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1q|tb1q)[0-9a-z]{38,59}|(bc1p|tb1p)[0-9a-z]{39,59})$',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              addressList: {
+                type: 'array',
+                items: {type: 'string', pattern: BTC_ADDRESS_PATTERN},
+                minItems: 1,
+                maxItems: ADDRESS_LIST_MAX_ITEMS,
+                uniqueItems: true,
               },
             },
+            required: ['addressList'],
+            additionalProperties: false,
           },
-          required: ['addressList'],
-          additionalProperties: false,
         },
-      }},
-  })
-      addressList: AddressList,
-    ): Promise<AddressInfoResponse> {
-    return new Promise<AddressInfoResponse>((resolve, reject) => {
-      const addressInfoPromises = addressList.addressList
-        .map((address: string) => this.bitcoinService.getAddressInfo(address));
-      Promise.all(addressInfoPromises)
-        .then((addressesInfo) => {
-          resolve(new AddressInfoResponse({
-            addressesInfo,
-          }));
-        })
-        .catch(reject);
+      },
+    })
+    addressList: AddressList,
+  ): Promise<AddressInfoResponse> {
+    validateAddressList(addressList.addressList, {
+      maxItems: ADDRESS_LIST_MAX_ITEMS,
+      rejectDuplicates: REJECT_DUPLICATE_ADDRESSES,
     });
+
+    const addressesInfo = await withConcurrency(
+      addressList.addressList,
+      PROVIDER_CONCURRENCY,
+      async (address: string) => {
+        const info = await this.bitcoinService.getAddressInfo(address);
+        if (Array.isArray(info.txids) && info.txids.length > ADDRESS_INFO_MAX_TXIDS) {
+          info.txids = info.txids.slice(0, ADDRESS_INFO_MAX_TXIDS);
+        }
+        return info;
+      },
+    );
+
+    return new AddressInfoResponse({addressesInfo});
   }
 }

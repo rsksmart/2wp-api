@@ -27,7 +27,7 @@ jobs:
       - name: Build & test project
         run: |
           npm ci
-          npm run unit-test
+          npm run test:all
           npm run eslint
           npm run only-coverage
       - name: SonarCloud Scan
