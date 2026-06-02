@@ -37,5 +37,4 @@ export const ServicesBindings = {
   UTXO_PROVIDER_SERVICE: 'services.UtxoProvider',
   FEATURES_SERVICE: 'services.FeaturesDataService',
   FLYOVER_SERVICE: 'services.FlyoverService',
-  TX_HISTORY_SERVICE: 'services.TxHistoryService',
 };
