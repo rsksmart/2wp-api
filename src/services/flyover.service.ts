@@ -1,10 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
-import { PeginQuoteDbModel, PegoutQuoteDbModel, RegisterPayload } from '../models';
 import {FlyoverStatuses, FlyoverStatusModel} from '../models/flyover-status.model';
 import {MongoDbDataService} from './mongodb-data.service';
 import { RskNodeService } from './rsk-node.service';
-import { stringWeiToDecimalString, stringSatoshiToDecimalString } from '../utils/parseUnits';
-import * as constants from '../constants';
 
 interface FlyoverStatusMongoModel extends mongoose.Document, FlyoverStatusModel {}
 
@@ -80,42 +77,4 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
     };
   }
 
-  async register(payload: RegisterPayload): Promise<boolean> {
-    const currentBlock = await this.rskNodeService.getBlockNumber();
-    const flyoverStatus = new FlyoverStatusModel();
-    const feePlusGas = (BigInt(payload?.fee ?? 0) + BigInt(payload?.rskGas ?? 0));
-    if (payload.type === constants.TX_TYPE_PEGIN) {
-      flyoverStatus.amount = stringSatoshiToDecimalString(payload.value);
-      flyoverStatus.fee = stringSatoshiToDecimalString(feePlusGas.toString());
-      flyoverStatus.quote = {
-        ...payload?.quote,
-        ...(payload?.quote?.callFeeOnSatoshi && { callFeeOnSatoshi: stringSatoshiToDecimalString(payload?.quote?.callFeeOnSatoshi) }),
-        ...(payload?.quote?.gasFeeOnWei && { gasFeeOnWei: stringWeiToDecimalString(payload?.quote?.gasFeeOnWei) }),
-        ...(payload?.quote?.gasLimit && { gasLimit: payload?.quote?.gasLimit }),
-        ...(payload?.quote?.penaltyFeeOnWei && { penaltyFeeOnWei: stringWeiToDecimalString(payload?.quote?.penaltyFeeOnWei) }),
-        ...(payload?.quote?.productFeeAmountOnSatoshi && { productFeeAmountOnSatoshi: stringSatoshiToDecimalString(payload?.quote?.productFeeAmountOnSatoshi) }),
-        ...(payload?.quote?.valueOnSatoshi && { valueOnSatoshi: stringSatoshiToDecimalString(payload?.quote?.valueOnSatoshi) }),
-      } as PeginQuoteDbModel;
-    } else {
-      flyoverStatus.amount = stringWeiToDecimalString(payload.value);
-      flyoverStatus.fee = stringWeiToDecimalString(feePlusGas.toString());
-      flyoverStatus.quote = {
-        ...payload?.quote,
-        ...(payload?.quote?.callFeeOnWei && { callFeeOnWei: stringWeiToDecimalString(payload?.quote?.callFeeOnWei) }),
-        ...(payload?.quote?.gasFeeOnWei && { gasFeeOnWei: stringWeiToDecimalString(payload?.quote?.gasFeeOnWei) }),
-        ...(payload?.quote?.penaltyFeeOnWei && { penaltyFeeOnWei: stringWeiToDecimalString(payload?.quote?.penaltyFeeOnWei) }),
-        ...(payload?.quote?.productFeeAmountOnWei && { productFeeAmountOnWei: stringWeiToDecimalString(payload?.quote?.productFeeAmountOnWei) }),
-        ...(payload?.quote?.valueOnWei && { valueOnWei: stringWeiToDecimalString(payload?.quote?.valueOnWei) }),
-      } as PegoutQuoteDbModel;
-    }
-    flyoverStatus.txHash = payload.txHash;
-    flyoverStatus.date = new Date();
-    flyoverStatus.type = payload.type;
-    flyoverStatus.senderAddress = payload?.details?.senderAddress ?? '';
-    flyoverStatus.recipientAddress = payload?.details?.recipientAddress ?? '';
-    flyoverStatus.blockToBeFinished = currentBlock + Number(payload?.details?.blocksToCompleteTransaction ?? 0);
-    flyoverStatus.quoteHash = payload?.quoteHash ?? '';
-    flyoverStatus.acceptedQuoteSignature = payload?.acceptedQuoteSignature ?? '';
-    return this.set(flyoverStatus);
-  }
 }

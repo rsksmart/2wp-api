@@ -1,8 +1,6 @@
 export * from './address-list.model';
 export * from './broadcast-request.model';
 export * from './broadcast-response.model';
-export * from './fireblocks-generic-request.model';
-export * from './fireblocks-generic-response.model';
 export * from './pegin-configuration.model';
 export * from './pegin-status.model';
 export * from './tx-input.model';
@@ -17,7 +15,6 @@ export * from './tx-status.model';
 export * from './rsk/sync-status.model';
 export *from './btc-last-block.model';
 export * from './fee-amount.model';
-export * from './register-payload.model';
 export * from './features.model';
 export * from './pegout-status.model';
 export * from './quote-db.model';

@@ -264,77 +264,6 @@ describe('Input Sanitization (Acceptance)', function() {
     });
   });
 
-  describe('POST /register - Payload Validation', function() {
-    this.timeout(15000);
-    it('should reject negative values in payload', async () => {
-      const res = await client
-        .post('/register')
-        .send({
-          type: 'pegin',
-          txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-          wallet: 'test-wallet',
-          value: '-100',
-          fee: '10',
-        });
-      
-      expect(res.status).to.equal(400);
-      expect(res.body.error).to.match(/negative/i);
-    });
-
-    it('should reject non-numeric values', async () => {
-      const res = await client
-        .post('/register')
-        .send({
-          type: 'pegin',
-          txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-          wallet: 'test-wallet',
-          value: 'not-a-number',
-          fee: '10',
-        });
-      
-      expect(res.status).to.equal(400);
-      expect(res.body.error).to.match(/non-numeric/i);
-    });
-
-    it('should handle SQL injection in txHash', async () => {
-      // SQL injection strings are stored as-is (no SQL queries involved)
-      // The validation focuses on numeric fields
-      const registerStub = sinon.stub().resolves(true);
-      app.getBinding(ServicesBindings.REGISTER_SERVICE).to({ register: registerStub });
-      const client2 = createRestAppClient(app);
-      const res = await client2
-        .post('/register')
-        .send({
-          type: 'pegin',
-          txHash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-          wallet: 'test-wallet',
-          value: '100',
-          fee: '10',
-        });
-
-      // Should succeed with valid numeric values
-      expect(res.status).to.equal(200);
-    });
-
-    it('should reject XSS in wallet field', async () => {
-      const registerStub = sinon.stub().resolves(true);
-      app.getBinding(ServicesBindings.REGISTER_SERVICE).to({ register: registerStub });
-      const client2 = createRestAppClient(app);
-      const res = await client2
-        .post('/register')
-        .send({
-          type: 'pegin',
-          txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-          wallet: '<script>alert("xss")</script>',
-          value: '100',
-          fee: '10',
-        });
-
-      // Should handle gracefully
-      expect(res.status).to.be.oneOf([200, 400, 422]);
-    });
-  });
-
   describe('POST /logs - Log Entry Validation', function() {
     this.timeout(15000);
     it('should reject XSS attempts in location field', async () => {
@@ -512,7 +441,6 @@ describe('Input Sanitization (Acceptance)', function() {
       });
       app.getBinding(ServicesBindings.FLYOVER_SERVICE).to({
         getFlyoverStatus: sinon.stub().rejects(new Error('not found')),
-        register: sinon.stub().resolves(),
       });
       const client2 = createRestAppClient(app);
       const res = await client2
