@@ -35,7 +35,6 @@ export const ServicesBindings = {
   RSK_BLOCK_PROCESSOR_PUBLISHER: 'services.RskBlockProcessorPublisher',
   PEGOUT_STATUS_SERVICE: 'services.PegoutStatusService',
   UTXO_PROVIDER_SERVICE: 'services.UtxoProvider',
-  REGISTER_SERVICE: 'services.RegisterService',
   FEATURES_SERVICE: 'services.FeaturesDataService',
   FLYOVER_SERVICE: 'services.FlyoverService',
   TX_HISTORY_SERVICE: 'services.TxHistoryService',
