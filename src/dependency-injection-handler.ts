@@ -9,7 +9,6 @@ import {
   PeginStatusService,
   PegoutStatusService,
   UtxoProviderProvider,
-  RegisterService,
 } from './services';
 import {DaemonService} from './services/daemon.service';
 import {NodeBridgeDataProvider} from './services/node-bridge-data.provider';
@@ -151,11 +150,6 @@ export class DependencyInjectionHandler {
         .toClass(UtxoProviderProvider)
         .inScope(BindingScope.SINGLETON);
    
-    app
-      .bind(ServicesBindings.REGISTER_SERVICE)
-      .toClass(RegisterService)
-      .inScope(BindingScope.SINGLETON);
-
       app
       .bind(ServicesBindings.FEATURES_SERVICE)
       .toClass(FeaturesMongoDbDataService)
