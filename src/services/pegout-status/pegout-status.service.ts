@@ -1,7 +1,7 @@
 import {getLogger, Logger} from "log4js";
 import {inject} from "@loopback/core";
 import Web3 from 'web3';
-import {BridgeEvent, Transaction} from '@rsksmart/bridge-transaction-parser';
+import {BridgeEvent} from '@rsksmart/bridge-transaction-parser';
 import {ServicesBindings} from "../../dependency-injection-bindings";
 import {PegoutStatuses, PegoutStatusAppDataModel} from "../../models/rsk/pegout-status-data-model";
 import {PegoutStatusDataService} from "../pegout-status-data-services/pegout-status-data.service";
@@ -46,9 +46,13 @@ export class PegoutStatusService {
                                 pegoutStatus.status = PegoutStatuses.NOT_FOUND;
                             }
                             if (rskTransaction.receipt) {
-                                const transaction: Transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
-                                const extendedModel: ExtendedBridgeTxModel = new ExtendedBridgeTxModel(transaction, rskTransaction);
-                                pegoutStatus = await this.processTransaction(extendedModel);
+                                const transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
+                                if (!transaction) {
+                                    pegoutStatus.status = PegoutStatuses.NOT_FOUND;
+                                } else {
+                                    const extendedModel: ExtendedBridgeTxModel = new ExtendedBridgeTxModel(transaction, rskTransaction);
+                                    pegoutStatus = await this.processTransaction(extendedModel);
+                                }
                             } else {
                                 pegoutStatus.status = PegoutStatuses.PENDING;
                                 pegoutStatus.rskTxHash = rskTxHash;

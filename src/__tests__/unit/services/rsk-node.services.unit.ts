@@ -50,13 +50,13 @@ describe('Service: RskNodeService', () => {
         const simpleTransaction = "0x368cfbff365655d14eeaaba822c20fa8bb0c98fda0eef938094dee4ec7a83a66";
         const thisService = new RskNodeService();
         const txRsk = await thisService.getBridgeTransaction(simpleTransaction);
-        expect(txRsk.events).to.be.null;
+        expect(txRsk!.events).to.be.null;
     });
     it('Searches the Bridge Transaction RELEASE_REQUEST_RECEIVED', async () => {
         const simpleTransaction = "0x368cfbff365655d14eeaaba822c20fa8bb0c98fda0eef938094dee4ec7a83a66";
         const thisService = new RskNodeService();
         const txRsk = await thisService.getBridgeTransaction(simpleTransaction);
-        const releaseRequestRejectedEvent: BridgeEvent = txRsk.events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)!;
+        const releaseRequestRejectedEvent: BridgeEvent = txRsk!.events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)!;
 
         expect(releaseRequestRejectedEvent).to.be.null;
     });

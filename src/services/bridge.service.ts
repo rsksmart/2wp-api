@@ -107,7 +107,7 @@ export class BridgeService {
     });
   }
 
-  public async getBridgeTransactionByHash(txHash: string): Promise<Transaction> {
+  public async getBridgeTransactionByHash(txHash: string): Promise<Transaction | undefined> {
     return await this.bridgeTransactionParser.getBridgeTransactionByTxHash(txHash);
   }
 
