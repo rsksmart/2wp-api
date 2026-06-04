@@ -50,11 +50,12 @@ describe('Service: Bridge', () => {
   it('returns bridge transaction by hash', async () => {
     const bridgeTransactionParser = new BridgeTransactionParser(new ethers.JsonRpcProvider(constants.TESTNET_RSK_NODE_HOST));
     const response = await bridgeTransactionParser.getBridgeTransactionByTxHash(rskTxHash);
-    expect(response).to.have.keys('blockNumber', 'blockTimestamp', 'events', 'method', 'sender', 'txHash');
-    expect(response.events[0]).to.have.keys('arguments', 'name', 'signature');
-    expect(response.events[0].arguments).to.have.keys('amount', 'btcTxHash', 'receiver', 'senderBtcAddress');
-    expect(response.method).to.have.keys('arguments');
-    expect(response.method.arguments).to.have.keys('height', 'pmt', 'tx');
+    expect(response).to.not.be.undefined();
+    expect(response!).to.have.keys('blockNumber', 'blockTimestamp', 'events', 'method', 'sender', 'txHash');
+    expect(response!.events[0]).to.have.keys('arguments', 'name', 'signature');
+    expect(response!.events[0].arguments).to.have.keys('amount', 'btcTxHash', 'receiver', 'senderBtcAddress');
+    expect(response!.method).to.have.keys('arguments');
+    expect(response!.method!.arguments).to.have.keys('height', 'pmt', 'tx');
   });
 
 });

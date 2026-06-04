@@ -26,7 +26,7 @@ export class RskNodeService {
     const blockNumber = await this.web3.eth.getBlockNumber();
     return Number(blockNumber);
   }
-  getBridgeTransaction(txHash: string): Promise<Transaction> {
+  getBridgeTransaction(txHash: string): Promise<Transaction | undefined> {
     return this.bridgeTransactionParser.getBridgeTransactionByTxHash(txHash);
   }
   getTransaction(txHash: string, includeReceipt?:boolean): Promise<RskTransaction> {
