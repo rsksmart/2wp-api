@@ -1,4 +1,4 @@
-import {getLogger, Logger} from "log4js";
+import {getLogger, Logger} from "../../utils/logger";
 import {inject} from "@loopback/core";
 import Web3 from 'web3';
 import {BridgeEvent} from '@rsksmart/bridge-transaction-parser';

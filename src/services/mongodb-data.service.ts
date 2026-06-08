@@ -1,5 +1,5 @@
 import {inject} from '@loopback/core';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../utils/logger';
 import mongoose from 'mongoose';
 import {MongoDbDataSource} from '../datasources/mongodb.datasource';
 import {DatasourcesBindings} from '../dependency-injection-bindings';

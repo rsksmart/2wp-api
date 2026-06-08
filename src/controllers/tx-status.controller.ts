@@ -1,5 +1,5 @@
 import {get, getModelSchemaRef, param, response,} from '@loopback/rest';
-import {getLogger, Logger} from "log4js";
+import {getLogger, Logger} from "../utils/logger";
 import {inject} from "@loopback/core";
 import {LastBlockInfo, PeginStatus, Status, TxStatus, TxStatusType} from '../models';
 import {PeginStatusError} from "../models/pegin-status-error.model";
@@ -45,7 +45,7 @@ export class TxStatusController {
     }) txId: string,
   ): Promise<TxStatus> {
     const startTime = performance.now();
-    const status = this.searchTryingAllTypes(txId);
+    const status = await this.searchTryingAllTypes(txId);
     this.logTime(startTime);
     return status;
   }
@@ -213,11 +213,10 @@ export class TxStatusController {
     return txStatus;
   }
 
-  // eslint-disable-next-line class-methods-use-this
   private logTime(startTime:number){
     const endTime = performance.now();
     const totalTime = endTime - startTime;
-    console.log(`[getTxStatus][TOTAL_TIME=${totalTime}] Execution time: ${totalTime} milliseconds`);
+    this.logger.debug({durationMs: totalTime}, '[getTxStatus] Execution time');
   }
 
   private async verifyBlockBook(): Promise<LastBlockInfo> {

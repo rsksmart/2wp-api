@@ -1,5 +1,5 @@
 import { RestBindings, get, getModelSchemaRef, Response } from '@loopback/rest';
-import { getLogger, Logger } from 'log4js';
+import { getLogger, Logger } from '../utils/logger';
 import { inject } from '@loopback/core';
 import { BitcoinService, BridgeService } from '../services';
 import { ServicesBindings } from "../dependency-injection-bindings";

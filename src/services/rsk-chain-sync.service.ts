@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import {inject} from '@loopback/core';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../utils/logger';
 import {ConstantsBindings, ServicesBindings} from '../dependency-injection-bindings';
 import {RskBlock} from '../models/rsk/rsk-block.model';
 import {SyncStatusModel} from '../models/rsk/sync-status.model';
@@ -101,8 +101,8 @@ export class RskChainSyncService {
       return this.syncStorageService.getBestBlock().then(result => {
         if (!result) {
           this.logger.debug(
+            {defaultInitialBlock: this.defaultInitialBlock.toString()},
             'No sync data on storage! starting from default height',
-            this.defaultInitialBlock.toString()
           );
           // TODO: should I store this and notify subscribers?
           const syncStatusModel = this.blockToSyncStatusDataModel(this.defaultInitialBlock);

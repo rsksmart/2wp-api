@@ -1,5 +1,5 @@
 import {get, getModelSchemaRef} from '@loopback/rest';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../utils/logger';
 import {ApiInformation} from '../models';
 
 const packageJson = require('../../package.json');
