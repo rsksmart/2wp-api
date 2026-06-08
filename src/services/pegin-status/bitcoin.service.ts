@@ -1,5 +1,5 @@
 import {inject} from '@loopback/core';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../../utils/logger';
 import {AddressService, TxV2Service} from '..';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BitcoinAddress} from '../../models/bitcoin-address.model';

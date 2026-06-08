@@ -1,6 +1,6 @@
 import {repository} from '@loopback/repository';
 import {get, getModelSchemaRef} from '@loopback/rest';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../utils/logger';
 import {PeginConfiguration} from '../models';
 import {PeginConfigurationRepository} from '../repositories';
 import {BridgeService} from '../services';

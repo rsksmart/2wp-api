@@ -27,6 +27,8 @@ This table was created to guide and centralize the **environment variables** nec
 |NETWORK                       |`testnet or mainnet`           |'testnet or mainnet'                                     |
 |BLOCKBOOK_URL                 |                               |'Blockbook url'                                          |
 |MAX_AMOUNT_ALLOWED_IN_SATOSHI |                               |'Pegin Pegout max allowed in satoshis'                   |
+|LOG_FORMAT                    |`json or pretty`               |'Log output format. Defaults to json'                    |
+|LOG_LEVEL                     |`trace, debug, info, warn, error, fatal` |'Minimum log level. Defaults to info'           |
 |METRICS_ENABLED               |`true or false`                |'enable trace log'                                       |
 |NODE_ENV|`production or development`|'Indicates if the app should be built for a production environment or not'
 
@@ -48,6 +50,8 @@ FEDERATION_ADDRESSES_HISTORY='2N6JWYUb6Li4Kux6UB2eihT7n3rm3YX97uv 2N1y7hSneV9HuW
 
 BRIDGE_ADDRESS='0x0000000000000000000000000000000001000006'
 RSK_NODE_HOST='https://public-node.testnet.rsk.co'
+LOG_FORMAT=pretty
+LOG_LEVEL=debug
 METRICS_ENABLED=false;
 
 # DAEMON SYNC - https://explorer.testnet.rsk.co/block/2019830

@@ -1,6 +1,6 @@
 import {inject} from '@loopback/core';
 import {HttpErrors, getModelSchemaRef, post, requestBody, response} from '@loopback/rest';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../utils/logger';
 import {
   ADDRESS_LIST_MAX_ITEMS,
   PROVIDER_CONCURRENCY,

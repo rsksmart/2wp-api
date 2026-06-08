@@ -1,6 +1,6 @@
 import {inject} from '@loopback/core';
 import {get, getModelSchemaRef} from '@loopback/rest';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../utils/logger';
 import {Tx} from '../models';
 import {TxService} from '../services';
 

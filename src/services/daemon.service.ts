@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import {inject} from '@loopback/core';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../utils/logger';
 import {ConstantsBindings, ServicesBindings} from '../dependency-injection-bindings';
 import {RskBlock} from '../models/rsk/rsk-block.model';
 import {getMetricLogger} from '../utils/metric-logger';

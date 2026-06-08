@@ -1,5 +1,5 @@
 import {inject} from '@loopback/core';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../utils/logger';
 import { BridgeEvent } from '@rsksmart/bridge-transaction-parser';
 import * as bitcoin from 'bitcoinjs-lib';
 import Web3 from 'web3';
@@ -352,7 +352,10 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       return;
     }
 
-    this.logger.debug('[addValueInSatoshisToBeReceivedAndFee] found a pegout in waiting for confirmations at block: ', pegout.pegoutCreationBlockNumber);
+    this.logger.debug(
+      {pegoutCreationBlockNumber: pegout.pegoutCreationBlockNumber},
+      '[addValueInSatoshisToBeReceivedAndFee] found a pegout in waiting for confirmations at block',
+    );
     const parsedBtcTransaction = bitcoin.Transaction.fromHex(pegout.btcRawTx);
     const output = parsedBtcTransaction.outs.find(out => {
       const parsedBtcAddress = bitcoin.address.fromOutputScript(out.script, this.getBitcoinNetwork());

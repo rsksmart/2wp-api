@@ -1,5 +1,5 @@
 import { inject } from '@loopback/core';
-import { getLogger, Logger } from 'log4js';
+import { getLogger, Logger } from '../utils/logger';
 import { RestBindings, get, getModelSchemaRef, Response, } from '@loopback/rest';
 import { ServicesBindings } from '../dependency-injection-bindings';
 import { FeaturesDataService } from '../services/features-data.service';

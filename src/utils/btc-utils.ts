@@ -1,5 +1,5 @@
 import base58 from 'bs58';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from './logger';
 import * as bitcoin from 'bitcoinjs-lib';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore

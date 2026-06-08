@@ -1,5 +1,5 @@
 import {inject} from '@loopback/core';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../utils/logger';
 import * as precompiledAbis from '@rsksmart/rsk-precompiled-abis';
 import {ServicesBindings} from '../dependency-injection-bindings';
 import {BridgeDataFilterModel} from '../models/bridge-data-filter.model';
