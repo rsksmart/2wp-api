@@ -4,7 +4,6 @@ import {
   ADDRESS_INFO_MAX_TXIDS,
   ADDRESS_LIST_MAX_ITEMS,
   PROVIDER_CONCURRENCY,
-  REJECT_DUPLICATE_ADDRESSES,
 } from '../config/limits';
 import {AddressList} from '../models';
 import {AddressInfoResponse} from '../models/adddress-info-response.model';
@@ -53,10 +52,7 @@ export class AddressesInfoController {
     })
     addressList: AddressList,
   ): Promise<AddressInfoResponse> {
-    validateAddressList(addressList.addressList, {
-      maxItems: ADDRESS_LIST_MAX_ITEMS,
-      rejectDuplicates: REJECT_DUPLICATE_ADDRESSES,
-    });
+    validateAddressList(addressList.addressList, {maxItems: ADDRESS_LIST_MAX_ITEMS});
 
     const addressesInfo = await withConcurrency(
       addressList.addressList,
