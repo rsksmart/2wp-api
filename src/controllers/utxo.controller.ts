@@ -71,7 +71,7 @@ export class UtxoController {
       );
     }
 
-    this.logger.trace({method: 'getUtxos', count: flat.length}, 'Got utxos!');
+    this.logger.debug({method: 'getUtxos', count: flat.length}, 'Got utxos!');
     return new UtxoResponse({data: flat});
   }
 }

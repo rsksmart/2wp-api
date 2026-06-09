@@ -41,7 +41,7 @@ export class RskChainSyncService {
   }
 
   private async deleteOldBlock(block: SyncStatusModel): Promise<void> {
-    this.logger.trace(`[deleteOldBlock] going to delete block ${block.rskBlockHeight} (${block.rskBlockHash})`);
+    this.logger.debug(`[deleteOldBlock] going to delete block ${block.rskBlockHeight} (${block.rskBlockHash})`);
     await this.syncStorageService.delete(block.rskBlockHash);
 
     const deletedBlock = new RskBlock(
@@ -53,11 +53,11 @@ export class RskChainSyncService {
   }
 
   private async addNewBlocks(blocksToAdd: Array<RskBlock>): Promise<void> {
-    this.logger.trace(`[addNewBlocks] going to add ${blocksToAdd.length} blocks`);
+    this.logger.debug(`[addNewBlocks] going to add ${blocksToAdd.length} blocks`);
     while (blocksToAdd.length > 0) {
       const blockToAdd = <RskBlock>(blocksToAdd.pop());
 
-      this.logger.trace(`[addNewBlocks] going to add block ${blockToAdd.height} (${blockToAdd.hash})`);
+      this.logger.debug(`[addNewBlocks] going to add block ${blockToAdd.height} (${blockToAdd.hash})`);
       await this.syncStorageService.set(this.blockToSyncStatusDataModel(blockToAdd));
 
       this.subscribers.forEach(s => s.blockAdded(blockToAdd));
@@ -74,7 +74,7 @@ export class RskChainSyncService {
       p.then(() => this.syncStorageService.start());
       p.then(() => {
         this.started = true;
-        this.logger.trace('Service started');
+        this.logger.debug('Service started');
       });
     }
     return p;
@@ -86,7 +86,7 @@ export class RskChainSyncService {
       p.then(() => this.syncStorageService.stop());
       p.then(() => {
         this.started = false;
-        this.logger.trace('Service stopped');
+        this.logger.debug('Service stopped');
       });
     }
     return p;

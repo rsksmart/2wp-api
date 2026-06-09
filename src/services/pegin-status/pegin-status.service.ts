@@ -1,9 +1,9 @@
 import {inject} from '@loopback/core';
-import {getLogger, Logger} from '../../utils/logger';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
-import {BitcoinService, BridgeService} from '..';
+import {getLogger, Logger} from '../../utils/logger';
+import {BitcoinService, BridgeService} from '..'
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status} from '../../models';
 import {BitcoinTx} from '../../models/bitcoin-tx.model';
@@ -41,7 +41,7 @@ export class PeginStatusService {
   }
 
   public async getPeginStatusInfo(btcTxId: string): Promise<PeginStatus> {
-    this.logger.trace({method: 'getPeginStatusInfo', txId: btcTxId}, 'Get Pegin information for txId');
+    this.logger.debug({method: 'getPeginStatusInfo', txId: btcTxId}, 'Get Pegin information for txId');
     return this.getBtcInfo(btcTxId)
       .then((btcStatus) => {
         const peginStatusInfo = new PeginStatus(btcStatus);
@@ -142,7 +142,7 @@ export class PeginStatusService {
             btcStatus.senderAddress = btcTx.vin[0].addresses[0];
           }
         } catch(err) {
-          this.logger.trace({method: 'getBtcTxInfoFromService', err});
+          this.logger.debug({method: 'getBtcTxInfoFromService', err});
           this.status = Status.ERROR_NOT_A_PEGIN;
         }
         return btcStatus;
@@ -195,7 +195,7 @@ export class PeginStatusService {
       }
     }
     if (acummulatedAmount === 0) {
-      this.logger.error({method: 'getTxSentAmountByAddress', fedDestinationAddress, txId});
+      this.logger.warn({method: 'getTxSentAmountByAddress', fedDestinationAddress, txId});
     }
     return acummulatedAmount;
   }

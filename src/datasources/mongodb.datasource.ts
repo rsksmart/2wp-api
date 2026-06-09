@@ -1,7 +1,7 @@
 /* eslint-disable  @typescript-eslint/no-floating-promises */
 import {inject} from '@loopback/core';
-import {getLogger, Logger} from '../utils/logger';
 import {connect as connectToMongo, Mongoose} from 'mongoose';
+import {getLogger, Logger} from '../utils/logger';
 import {ConstantsBindings} from '../dependency-injection-bindings';
 
 export class MongoDbDataSource {
@@ -39,7 +39,7 @@ export class MongoDbDataSource {
       .then(
         (connection: Mongoose) => {
           this.mongoose = connection;
-          this.logger.trace({method: 'connect'}, 'Connected to mongodb');
+          this.logger.debug({method: 'connect'}, 'Connected to mongodb');
         },
         err => {
           this.logger.error({method: 'connect', err});
@@ -54,7 +54,7 @@ export class MongoDbDataSource {
       this.mongoose.STATES[this.mongoose.connection.readyState] != this.mongoose.STATES.disconnected.toString()) {
       p.then(() => this.mongoose.disconnect());
       p.then(() => {
-        this.logger.trace({method: 'disconnect'}, 'Disconnected from mongodb');
+        this.logger.debug({method: 'disconnect'}, 'Disconnected from mongodb');
       });
     }
     return p;

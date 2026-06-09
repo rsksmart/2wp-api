@@ -1,9 +1,9 @@
 import base58 from 'bs58';
-import {getLogger, Logger} from './logger';
 import * as bitcoin from 'bitcoinjs-lib';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
+import {getLogger, Logger} from './logger';
 import * as constants from '../constants';
 import {doubleSha256} from './sha256-utils';
 import {remove0x} from './hex-utils';

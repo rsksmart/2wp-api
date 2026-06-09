@@ -28,8 +28,8 @@ This table was created to guide and centralize the **environment variables** nec
 |BLOCKBOOK_URL                 |                               |'Blockbook url'                                          |
 |MAX_AMOUNT_ALLOWED_IN_SATOSHI |                               |'Pegin Pegout max allowed in satoshis'                   |
 |LOG_FORMAT                    |`json or pretty`               |'Log output format. Defaults to json'                    |
-|LOG_LEVEL                     |`trace, debug, info, warn, error, fatal` |'Minimum log level. Defaults to info'           |
-|METRICS_ENABLED               |`true or false`                |'enable trace log'                                       |
+|LOG_LEVEL                     |`debug, info, warn, error, fatal` |'Minimum log level. Defaults to info'           |
+|METRICS_ENABLED               |`true or false`                |'enable metric debug log'                                |
 |NODE_ENV|`production or development`|'Indicates if the app should be built for a production environment or not'
 
 

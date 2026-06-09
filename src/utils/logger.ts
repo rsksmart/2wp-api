@@ -4,6 +4,11 @@ import type {Logger, LoggerOptions} from 'pino';
 const packageJson = require('../../package.json');
 
 const prettyFormat = process.env.LOG_FORMAT?.toLowerCase() === 'pretty';
+const supportedLogLevels = new Set(['debug', 'info', 'warn', 'error', 'fatal']);
+const configuredLogLevel = process.env.LOG_LEVEL?.toLowerCase();
+const logLevel = configuredLogLevel && supportedLogLevels.has(configuredLogLevel)
+  ? configuredLogLevel
+  : 'info';
 const isoTimestamp = () => `,"timestamp":"${new Date().toISOString()}"`;
 const redactPaths = [
   'apiKey',
@@ -33,7 +38,7 @@ const redactPaths = [
 ];
 
 const options: LoggerOptions = {
-  level: process.env.LOG_LEVEL ?? 'info',
+  level: logLevel,
   base: {
     service: packageJson.name,
     environment: process.env.NODE_ENV ?? 'development',

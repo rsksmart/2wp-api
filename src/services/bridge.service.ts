@@ -1,8 +1,8 @@
 import * as precompiledAbis from '@rsksmart/rsk-precompiled-abis';
-import {getLogger, Logger} from '../utils/logger';
 import {ethers} from 'ethers';
 import BridgeTransactionParser, {Transaction} from '@rsksmart/bridge-transaction-parser';
 import { getBridgeState, BridgeState } from '@rsksmart/bridge-state-data-parser';
+import {getLogger, Logger} from '../utils/logger';
 import * as constants from '../constants';
 
 export class BridgeService {

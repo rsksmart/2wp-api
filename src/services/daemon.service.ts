@@ -95,7 +95,7 @@ export class DaemonService implements IDaemonService {
     if (this.started) {
       return;
     }
-    this.logger.trace('Starting');
+    this.logger.debug('Starting');
     await this.peginStatusStorageService.start();
 
     await this.syncService.start();
@@ -117,7 +117,7 @@ export class DaemonService implements IDaemonService {
   public async stop(): Promise<void> {
     if (this.started) {
       this.started = false;
-      this.logger.trace('Stopping');
+      this.logger.debug('Stopping');
       clearInterval(this.dataFetchInterval);
       await this.peginStatusStorageService.stop()
       await this.syncService.stop();
