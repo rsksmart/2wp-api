@@ -45,12 +45,14 @@ export class BroadcastController {
     },
   })
   sendTx(req: BroadcastRequest): Promise<BroadcastResponse> {
-    this.logger.debug('[sendTx] started');
+    this.logger.debug({method: 'sendTx'}, 'started');
     return new Promise<BroadcastResponse>((resolve, reject) => {
       this.broadcastProvider
         .broadcast(req.data)
         .then(([txStatus]) => {
-          this.logger.trace(`[sendTx] Broadcasted! txId:${txStatus.result ?? 'n/a'}. Error: ${txStatus.error ?? 'n/a'}`);
+          const txId = txStatus.result ?? 'n/a';
+          const broadcastError = txStatus.error ?? 'n/a';
+          this.logger.trace({method: 'sendTx', txId, broadcastError}, 'Broadcasted!');
           return resolve(
             new BroadcastResponse({
               txId: txStatus.result ?? '',
@@ -58,9 +60,9 @@ export class BroadcastController {
             }),
           );
         })
-        .catch((reason) => {
-          this.logger.warn(`[sendTx] Something went wrong. error: ${reason}`);
-          return reject(reason);
+        .catch((err) => {
+          this.logger.warn({method: 'sendTx', err});
+          return reject(err);
         });
     });
   }

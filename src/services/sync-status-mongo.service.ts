@@ -49,8 +49,8 @@ export class SyncStatusMongoService extends MongoDbDataService<SyncStatusModel, 
       .limit(1) // get the first one
       .exec()
       .then(result => <SyncStatusModel>(result[0]))
-      .catch((reason) => {
-        this.logger.warn(`[getBestBlock] Got an error: ${reason}`);
+      .catch((err) => {
+        this.logger.warn({method: 'getBestBlock', err});
         return undefined;
       });
   }

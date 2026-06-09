@@ -2,12 +2,12 @@ import {Logger} from './logger';
 
 const getTime = () => (new Date()).getTime();
 
-export const getMetricLogger = (logger: Logger, methodName: any) => {
+export const getMetricLogger = (logger: Logger, method: string) => {
   const start = getTime();
   return () => {
-    if (process.env.METRICS_ENABLED &&
-      process.env.METRICS_ENABLED.toLowerCase() === 'true') {
-      logger.trace(`${methodName} took ${getTime() - start}ms`);
+    if (process.env.METRICS_ENABLED?.toLowerCase() === 'true') {
+      const durationMs = getTime() - start;
+      logger.trace({method, durationMs});
     }
   };
 };

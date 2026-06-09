@@ -37,17 +37,17 @@ export class TxController {
     },
   })
   getTx(txId: string): Promise<Tx> {
-    this.logger.debug(`[getTx] started with txId: ${txId}`);
+    this.logger.debug({method: 'getTx', txId}, 'started');
     return new Promise<Tx>((resolve, reject) => {
       this.txService
         .txProvider(txId)
         .then(([tx]) => {
-          this.logger.trace(`[getTx] found tx!`);
+          this.logger.trace({method: 'getTx', txId}, 'found tx!');
           return resolve(new Tx(tx));
         })
-        .catch((reason) => {
-          this.logger.warn(`[getTx] Got an error: ${reason}`);
-          return reject(reason);
+        .catch((err) => {
+          this.logger.warn({method: 'getTx', err, txId});
+          return reject(err);
         });
     });
   }

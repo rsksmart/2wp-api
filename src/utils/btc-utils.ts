@@ -33,7 +33,7 @@ export class BtcAddressUtils {
   public logger: Logger;
 
   constructor() {
-    this.logger = getLogger('BtcAddressUtils');
+    this.logger = getLogger('btc-address-utils');
   }
 
   public getRefundAddress(addressRefundInfo: string): string {
@@ -54,8 +54,8 @@ export class BtcAddressUtils {
         throw new Error(errorMessage);
       }
     }
-    catch (error) {
-      this.logger.warn("Error parsing refund address", error.message);
+    catch (err) {
+      this.logger.warn({method: 'getRefundAddress', err}, 'Error parsing refund address');
     }
     return address;
   }
@@ -84,8 +84,8 @@ export class BtcAddressUtils {
 
       const address = (bitcoin.address.fromOutputScript(bufferFrom, btcNetwork));
       return address;
-    } catch (e) {
-      this.logger.warn("Error getBtcAddressFromHash ", e.message);
+    } catch (err) {
+      this.logger.warn({method: 'getBtcAddressFromHash', err, hash160: hash});
       return hash;
     }
   }
@@ -109,7 +109,7 @@ export class BtcAddressUtils {
 
   private getAddress(data: string, typeAddress: string): string {
     if (data.length != 40) {
-      this.logger.warn("Wrong size for script getting BTC refund address");
+      this.logger.warn({method: 'getAddress', dataLength: data.length}, 'Wrong size for script getting BTC refund address');
       return '';
     }
 
@@ -120,8 +120,8 @@ export class BtcAddressUtils {
       const checksum = doubleSha256(dataToReview).substr(0, 8);
       return base58.encode(Buffer.from(`${dataToReview}${checksum}`, 'hex'))
     }
-    catch (error) {
-      this.logger.warn("Error getting BTC refund address");
+    catch (err) {
+      this.logger.warn({method: 'getAddress', err});
     }
     return '';
   }

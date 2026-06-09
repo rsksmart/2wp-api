@@ -31,9 +31,9 @@ export class BridgeService {
         .then((address: string) => {
           resolve(address);
         })
-        .catch((reason: any) => {
-          this.logger.warn(`[getFederationAddress] Got an error: ${reason}`);
-          reject(reason);
+        .catch((err: any) => {
+          this.logger.warn({method: 'getFederationAddress', err});
+          reject(err);
         });
     });
   }
@@ -43,9 +43,9 @@ export class BridgeService {
       this.bridgeContract
         .getMinimumLockTxValue()
         .then((minValue: string) => resolve(Number(minValue)))
-        .catch((reason: any) => {
-          this.logger.warn(`[getMinPeginValue] Got an error: ${reason}`);
-          reject(reason);
+        .catch((err: any) => {
+          this.logger.warn({method: 'getMinPeginValue', err});
+          reject(err);
         });
     });
   }
@@ -55,9 +55,9 @@ export class BridgeService {
       this.bridgeContract
         .getLockingCap()
         .then((lockingCap: string) => resolve(Number(lockingCap)))
-        .catch((reason: any) => {
-          this.logger.warn(`[getLockingCapAmount] Got an error: ${reason}`);
-          reject(reason);
+        .catch((err: any) => {
+          this.logger.warn({method: 'getLockingCapAmount', err});
+          reject(err);
         });
     });
   }
@@ -70,9 +70,9 @@ export class BridgeService {
           const amount = this.TOTAL_RBTC_STOCK - balance;
           resolve(Number(amount));
         })
-        .catch(reason => {
-          this.logger.warn(`[getRbtcInCirculation] Got an error: ${reason}`);
-          reject(reason);
+        .catch(err => {
+          this.logger.warn({method: 'getRbtcInCirculation', err});
+          reject(err);
         });
     });
   }
@@ -88,9 +88,9 @@ export class BridgeService {
             ? Number(process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI) : Infinity;
           resolve(Math.min(availability, maxAllowed));
         })
-        .catch(reason => {
-          this.logger.warn(`[getPeginAvailability] Got an error: ${reason}`);
-          reject(reason);
+        .catch(err => {
+          this.logger.warn({method: 'getPeginAvailability', err});
+          reject(err);
         });
     });
   }
@@ -100,9 +100,9 @@ export class BridgeService {
       this.bridgeContract
         .isBtcTxHashAlreadyProcessed(txHash)
         .then((isProcessed: Boolean) => resolve(isProcessed))
-        .catch((reason: any) => {
-          this.logger.warn(`[isBtcTxHashAlreadyProcessed] Got an error: ${reason}`);
-          reject(reason);
+        .catch((err: any) => {
+          this.logger.warn({method: 'isBtcTxHashAlreadyProcessed', err});
+          reject(err);
         });
     });
   }

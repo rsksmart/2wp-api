@@ -39,10 +39,10 @@ export class MongoDbDataSource {
       .then(
         (connection: Mongoose) => {
           this.mongoose = connection;
-          this.logger.trace('Connected to mongodb');
+          this.logger.trace({method: 'connect'}, 'Connected to mongodb');
         },
         err => {
-          this.logger.error('There was an error connecting to mongodb', err);
+          this.logger.error({method: 'connect', err});
           throw err;
         }
       );
@@ -54,7 +54,7 @@ export class MongoDbDataSource {
       this.mongoose.STATES[this.mongoose.connection.readyState] != this.mongoose.STATES.disconnected.toString()) {
       p.then(() => this.mongoose.disconnect());
       p.then(() => {
-        this.logger.trace('Disconnected from mongodb');
+        this.logger.trace({method: 'disconnect'}, 'Disconnected from mongodb');
       });
     }
     return p;
