@@ -1,7 +1,7 @@
-import {getLogger, Logger} from "../../utils/logger";
 import {inject} from "@loopback/core";
 import Web3 from 'web3';
 import {BridgeEvent} from '@rsksmart/bridge-transaction-parser';
+import {getLogger, Logger} from "../../utils/logger";
 import {ServicesBindings} from "../../dependency-injection-bindings";
 import {PegoutStatuses, PegoutStatusAppDataModel} from "../../models/rsk/pegout-status-data-model";
 import {PegoutStatusDataService} from "../pegout-status-data-services/pegout-status-data.service";
@@ -63,10 +63,10 @@ export class PegoutStatusService {
                             }
                         }
                         catch(err) {
-                            this.logger.error({method: 'getPegoutStatusByRskTxHash', err, txId: rskTxHash});
+                            this.logger.warn({method: 'getPegoutStatusByRskTxHash', err, txId: rskTxHash});
                             pegoutStatus.status = PegoutStatuses.NOT_FOUND;
                         }
-                        this.logger.trace({method: 'getPegoutStatusByRskTxHash', txId: rskTxHash, status: pegoutStatus.status});
+                        this.logger.debug({method: 'getPegoutStatusByRskTxHash', txId: rskTxHash, status: pegoutStatus.status});
 
                     } else if (pegoutStatusDbDataModel.status === PegoutStatuses.REJECTED) {
                         pegoutStatus = PegoutStatusAppDataModel.fromPegoutStatusDataModelRejected(pegoutStatusDbDataModel);

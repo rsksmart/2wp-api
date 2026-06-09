@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
-import {getLogger, Logger} from '../utils/logger';
 import mongoose from 'mongoose';
+import {getLogger, Logger} from '../utils/logger';
 import {SyncStatusModel} from '../models/rsk/sync-status.model';
 import {MongoDbDataService} from './mongodb-data.service';
 import {SyncStatusDataService} from './sync-status-data.service';

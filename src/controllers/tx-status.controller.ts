@@ -1,6 +1,6 @@
 import {get, getModelSchemaRef, param, response,} from '@loopback/rest';
-import {getLogger, Logger} from "../utils/logger";
 import {inject} from "@loopback/core";
+import {getLogger, Logger} from "../utils/logger";
 import {LastBlockInfo, PeginStatus, Status, TxStatus, TxStatusType} from '../models';
 import {PeginStatusError} from "../models/pegin-status-error.model";
 import {ServicesBindings} from "../dependency-injection-bindings";
@@ -70,7 +70,7 @@ export class TxStatusController {
   ): Promise<TxStatus> {
     const startTime = performance.now();
     let txStatus:TxStatus;
-    this.logger.warn({method: 'getTxStatusByType', txType, txId});
+    this.logger.debug({method: 'getTxStatusByType', txType, txId});
 
     if (!isValidTxId(txId)) {
       this.logger.debug({method: 'getTxStatusByType', txId}, 'the provided tx id is invalid');
@@ -85,7 +85,10 @@ export class TxStatusController {
       try {
         const nativePegoutStatus = await this.getNativePegoutStatus(txId);
         if(nativePegoutStatus.txDetails){
-          this.logger.warn({method: 'getTxStatusByType', txId, txType, type: nativePegoutStatus.type, protocol: 'NATIVE'});
+          this.logger.info(
+            {method: 'getTxStatusByType', txId, txType, type: nativePegoutStatus.type, protocol: 'NATIVE'},
+            'Transaction status found',
+          );
           this.logTime(startTime);
           return nativePegoutStatus;
         }
@@ -102,7 +105,10 @@ export class TxStatusController {
       try {
         const nativePeginStatus = await this.getNativePeginStatus(txId);
         if(nativePeginStatus.txDetails){
-          this.logger.warn({method: 'getTxStatusByType', txId, txType, type: nativePeginStatus.type, protocol: 'NATIVE'});
+          this.logger.info(
+            {method: 'getTxStatusByType', txId, txType, type: nativePeginStatus.type, protocol: 'NATIVE'},
+            'Transaction status found',
+          );
           this.logTime(startTime);
           return nativePeginStatus;
         }
@@ -119,7 +125,10 @@ export class TxStatusController {
       try {
         const flyoverStatus = await this.getFlyoverStatus(txId);
         if(flyoverStatus.txDetails){
-          this.logger.warn({method: 'getTxStatusByType', txId, txType, type: flyoverStatus.type, protocol: 'FLYOVER'});
+          this.logger.info(
+            {method: 'getTxStatusByType', txId, txType, type: flyoverStatus.type, protocol: 'FLYOVER'},
+            'Transaction status found',
+          );
           this.logTime(startTime);
           return flyoverStatus;
         }
@@ -133,7 +142,7 @@ export class TxStatusController {
       }
     }
 
-    this.logger.error({method: 'getTxStatusByType', txId, txType}, 'Transaction not found');
+    this.logger.info({method: 'getTxStatusByType', txId, txType}, 'Transaction not found');
     txStatus = new TxStatus({
       type: TxStatusType.UNEXPECTED_ERROR,
     });
@@ -170,7 +179,10 @@ export class TxStatusController {
     try {
       const nativePeginStatus = await this.getNativePeginStatus(txId);
       if(nativePeginStatus.txDetails){
-        this.logger.warn({method: 'searchTryingAllTypes', txId, type: nativePeginStatus.type, protocol: 'NATIVE'});
+        this.logger.info(
+          {method: 'searchTryingAllTypes', txId, type: nativePeginStatus.type, protocol: 'NATIVE'},
+          'Transaction status found',
+        );
         return nativePeginStatus;
       }
     } catch (err) {
@@ -184,7 +196,10 @@ export class TxStatusController {
     try {
       const nativePegoutStatus = await this.getNativePegoutStatus(txId);
       if(nativePegoutStatus.txDetails){
-        this.logger.warn({method: 'searchTryingAllTypes', txId, type: nativePegoutStatus.type, protocol: 'NATIVE'});
+        this.logger.info(
+          {method: 'searchTryingAllTypes', txId, type: nativePegoutStatus.type, protocol: 'NATIVE'},
+          'Transaction status found',
+        );
         return nativePegoutStatus;
       }
     } catch (err) {
@@ -198,7 +213,10 @@ export class TxStatusController {
     try {
       const flyoverStatus = await this.getFlyoverStatus(txId);
       if(flyoverStatus.txDetails){
-        this.logger.warn({method: 'searchTryingAllTypes', txId, type: flyoverStatus.type, protocol: 'FLYOVER'});
+        this.logger.info(
+          {method: 'searchTryingAllTypes', txId, type: flyoverStatus.type, protocol: 'FLYOVER'},
+          'Transaction status found',
+        );
         return flyoverStatus;
       }
     } catch (err) {
@@ -209,7 +227,7 @@ export class TxStatusController {
       return txStatus;
     }
 
-    this.logger.error({method: 'searchTryingAllTypes', txId}, 'Transaction not found');
+    this.logger.info({method: 'searchTryingAllTypes', txId}, 'Transaction not found');
     txStatus = new TxStatus({
       type: TxStatusType.INVALID_DATA,
     });

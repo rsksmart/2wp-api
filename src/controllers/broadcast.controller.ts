@@ -52,7 +52,7 @@ export class BroadcastController {
         .then(([txStatus]) => {
           const txId = txStatus.result ?? 'n/a';
           const broadcastError = txStatus.error ?? 'n/a';
-          this.logger.trace({method: 'sendTx', txId, broadcastError}, 'Broadcasted!');
+          this.logger.debug({method: 'sendTx', txId, broadcastError}, 'Broadcasted!');
           return resolve(
             new BroadcastResponse({
               txId: txStatus.result ?? '',

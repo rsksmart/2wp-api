@@ -89,7 +89,7 @@ if (require.main === module) {
     },
   };
   main(config).catch(err => {
-    getLogger('app').error({err}, 'Cannot start the application');
+    getLogger('app').fatal({err}, 'Cannot start the application');
     process.exit(1);
   });
 }

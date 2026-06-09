@@ -7,7 +7,7 @@ export const getMetricLogger = (logger: Logger, method: string) => {
   return () => {
     if (process.env.METRICS_ENABLED?.toLowerCase() === 'true') {
       const durationMs = getTime() - start;
-      logger.trace({method, durationMs});
+      logger.debug({method, durationMs});
     }
   };
 };
