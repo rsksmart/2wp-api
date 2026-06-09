@@ -4,6 +4,7 @@ import type {Logger, LoggerOptions} from 'pino';
 const packageJson = require('../../package.json');
 
 const prettyFormat = process.env.LOG_FORMAT?.toLowerCase() === 'pretty';
+const isoTimestamp = () => `,"timestamp":"${new Date().toISOString()}"`;
 const redactPaths = [
   'apiKey',
   'jwt',
@@ -35,9 +36,10 @@ const options: LoggerOptions = {
   level: process.env.LOG_LEVEL ?? 'info',
   base: {
     service: packageJson.name,
-    env: process.env.NODE_ENV ?? 'development',
+    environment: process.env.NODE_ENV ?? 'development',
     version: packageJson.version,
   },
+  messageKey: 'message',
   formatters: {
     level: label => ({level: label}),
   },
@@ -45,8 +47,9 @@ const options: LoggerOptions = {
     paths: redactPaths,
     censor: '[REDACTED]',
   },
-  timestamp: pino.stdTimeFunctions.isoTime,
+  timestamp: isoTimestamp,
 };
+
 
 if (prettyFormat) {
   options.transport = {
