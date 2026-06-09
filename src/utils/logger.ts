@@ -10,7 +10,7 @@ const logLevel = configuredLogLevel && supportedLogLevels.has(configuredLogLevel
   ? configuredLogLevel
   : 'info';
 const isoTimestamp = () => `,"timestamp":"${new Date().toISOString()}"`;
-const redactPaths = [
+const baseRedactPaths = [
   'apiKey',
   'jwt',
   'token',
@@ -36,6 +36,10 @@ const redactPaths = [
   '*.privateKey',
   '*.mnemonic',
 ];
+const redactPaths = [
+  ...baseRedactPaths,
+  ...baseRedactPaths.map(path => `errorContext.${path}`),
+];
 
 const options: LoggerOptions = {
   level: logLevel,
@@ -47,6 +51,26 @@ const options: LoggerOptions = {
   messageKey: 'message',
   formatters: {
     level: label => ({level: label}),
+  },
+  hooks: {
+    logMethod(args, method, level) {
+      const [object, message] = args;
+      const isError = object && typeof object === 'object' && 'err' in object && object.err instanceof Error;
+
+      if (level < pino.levels.values.error || !isError) {
+        return method.apply(this, args);
+      }
+
+      const {err, errorCode, ...errorContext} = object as {err: Error, [key: string]: unknown};
+      const normalizedError = {
+        errorCode,
+        errorMessage: err.message,
+        errorStack: err.stack,
+        errorContext,
+      };
+
+      return method.apply(this, [normalizedError, message]);
+    },
   },
   redact: {
     paths: redactPaths,
