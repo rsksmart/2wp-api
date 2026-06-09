@@ -999,7 +999,7 @@ describe('UtxoController (Acceptance)', () => {
       });
     });
 
-    describe('uplicate address-list response amplification', () => {
+    describe('duplicate address-list response amplification', () => {
       // Deterministic generator of unique valid mainnet legacy P2PKH addresses.
       function uniqueLegacyMainnet(index: number): string {
         const base58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
