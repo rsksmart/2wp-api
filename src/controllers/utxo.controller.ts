@@ -4,7 +4,6 @@ import {getLogger, Logger} from 'log4js';
 import {
   ADDRESS_LIST_MAX_ITEMS,
   PROVIDER_CONCURRENCY,
-  REJECT_DUPLICATE_ADDRESSES,
   UTXO_RESPONSE_MAX_ROWS,
 } from '../config/limits';
 import {ServicesBindings} from '../dependency-injection-bindings';
@@ -54,10 +53,7 @@ export class UtxoController {
     })
     addressList: AddressList,
   ): Promise<UtxoResponse> {
-    validateAddressList(addressList.addressList, {
-      maxItems: ADDRESS_LIST_MAX_ITEMS,
-      rejectDuplicates: REJECT_DUPLICATE_ADDRESSES,
-    });
+    validateAddressList(addressList.addressList, {maxItems: ADDRESS_LIST_MAX_ITEMS});
 
     const utxosWithAddress = await withConcurrency(
       addressList.addressList,
