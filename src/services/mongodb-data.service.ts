@@ -55,9 +55,8 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
     const metricLogger = getMetricLogger(this.logger, 'set');
     return new Promise((resolve, reject) => {
       if (!data) {
-        const err = 'Data was not provided';
-        this.logger.debug(err);
-        reject(err);
+        this.logger.debug({method: 'set'}, 'Data was not provided');
+        reject('Data was not provided');
       }
       const connector = this.getConnector();
       const filter: any = {};
@@ -65,7 +64,7 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
       connector.findOneAndUpdate(filter, <any>data, {upsert: true})
         .then(() => resolve(true))
         .catch((err) => {
-          this.logger.debug('There was an error trying to save data', err);
+          this.logger.debug({method: 'set', err});
           reject(err);
           })
         .finally(metricLogger);
@@ -83,12 +82,12 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
     return this.mongoDbDataSource.getConnection()
       .then((connection) => {
         this.db = connection;
-        this.logger.debug('Service started')
+        this.logger.debug({method: 'start'}, 'Service started');
       });
   }
 
   stop(): Promise<void> {
-    this.logger.debug('Service stopped');
+    this.logger.debug({method: 'stop'}, 'Service stopped');
     return Promise.resolve();
   }
 }

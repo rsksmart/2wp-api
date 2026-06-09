@@ -24,7 +24,7 @@ export class TxStatusController {
       @inject(ServicesBindings.BITCOIN_SERVICE)
       protected bitcoinService: BitcoinService,
   ) {
-    this.logger = getLogger('TxStatusController');
+    this.logger = getLogger('tx-status-controller');
   }
 
   @get('/tx-status/{txId}')
@@ -70,10 +70,10 @@ export class TxStatusController {
   ): Promise<TxStatus> {
     const startTime = performance.now();
     let txStatus:TxStatus;
-    this.logger.warn(`[getTxStatus][type=${txType}, txId=${txId}]`);
+    this.logger.warn({method: 'getTxStatusByType', txType, txId});
 
     if (!isValidTxId(txId)) {
-      this.logger.debug(`[getTxStatus] the provided tx id: ${txId} is invalid`);
+      this.logger.debug({method: 'getTxStatusByType', txId}, 'the provided tx id is invalid');
       txStatus = new TxStatus({
         type: TxStatusType.INVALID_DATA,
       });
@@ -85,12 +85,12 @@ export class TxStatusController {
       try {
         const nativePegoutStatus = await this.getNativePegoutStatus(txId);
         if(nativePegoutStatus.txDetails){
-          this.logger.warn(`[foundTxStatus][type=${nativePegoutStatus.type}, protocol=NATIVE]`);
+          this.logger.warn({method: 'getTxStatusByType', txId, txType, type: nativePegoutStatus.type, protocol: 'NATIVE'});
           this.logTime(startTime);
           return nativePegoutStatus;
         }
-      } catch (e) {
-        this.logger.error(`[getTxStatus] Unexpected error while retrieving status: [${e}]`);
+      } catch (err) {
+        this.logger.error({method: 'getTxStatusByType', err, txId, txType});
         txStatus = new TxStatus({
           type: TxStatusType.UNEXPECTED_ERROR,
         });
@@ -102,12 +102,12 @@ export class TxStatusController {
       try {
         const nativePeginStatus = await this.getNativePeginStatus(txId);
         if(nativePeginStatus.txDetails){
-          this.logger.warn(`[foundTxStatus][type=${nativePeginStatus.type}, protocol=NATIVE]`);
+          this.logger.warn({method: 'getTxStatusByType', txId, txType, type: nativePeginStatus.type, protocol: 'NATIVE'});
           this.logTime(startTime);
           return nativePeginStatus;
         }
-      } catch (e) {
-        this.logger.error(`[getTxStatus] Unexpected error while retrieving a flyover status: [${e}]`);
+      } catch (err) {
+        this.logger.error({method: 'getTxStatusByType', err, txId, txType});
         txStatus = new TxStatus({
           type: TxStatusType.UNEXPECTED_ERROR,
         });
@@ -119,12 +119,12 @@ export class TxStatusController {
       try {
         const flyoverStatus = await this.getFlyoverStatus(txId);
         if(flyoverStatus.txDetails){
-          this.logger.warn(`[foundTxStatus][type=${flyoverStatus.type}, protocol=FLYOVER]`);
+          this.logger.warn({method: 'getTxStatusByType', txId, txType, type: flyoverStatus.type, protocol: 'FLYOVER'});
           this.logTime(startTime);
           return flyoverStatus;
         }
-      } catch (e) {
-        this.logger.error(`[getTxStatus] Unexpected error while retrieving status: [${e}]`);
+      } catch (err) {
+        this.logger.error({method: 'getTxStatusByType', err, txId, txType});
         txStatus = new TxStatus({
           type: TxStatusType.UNEXPECTED_ERROR,
         });
@@ -133,7 +133,7 @@ export class TxStatusController {
       }
     }
 
-    this.logger.error(`[getTxStatus] Transaction not found`);
+    this.logger.error({method: 'getTxStatusByType', txId, txType}, 'Transaction not found');
     txStatus = new TxStatus({
       type: TxStatusType.UNEXPECTED_ERROR,
     });
@@ -145,7 +145,7 @@ export class TxStatusController {
     let txStatus:TxStatus;
     
     if (!isValidTxId(txId)) {
-      this.logger.debug(`[getTxStatus] the provided tx id: ${txId} is invalid`);
+      this.logger.debug({method: 'searchTryingAllTypes', txId}, 'the provided tx id is invalid');
       txStatus = new TxStatus({
         type: TxStatusType.INVALID_DATA,
       });
@@ -154,24 +154,27 @@ export class TxStatusController {
 
     try {
       const info = await this.verifyBlockBook();
-      this.logger.debug('[getLastBlock] trying to get block book information');
+      this.logger.debug({method: 'searchTryingAllTypes'}, 'trying to get block book information');
       if (!info.inSync) {
-        this.logger.debug(`[BitcoinService] - getLastBlock. Blockbook not in sync: intialSync=${info.intialSync} inSync=${info.inSync}`);
+        this.logger.debug(
+          {method: 'searchTryingAllTypes', initialSync: info.intialSync, inSync: info.inSync},
+          'Blockbook not in sync',
+        );
         return new TxStatus({ type: TxStatusType.BLOCKBOOK_FAILED });
       }
-    } catch (e) {
-      this.logger.error(`[BitcoinService] - getLastBlock. Error: ${e}`);
+    } catch (err) {
+      this.logger.error({method: 'searchTryingAllTypes', err});
       return new TxStatus({ type: TxStatusType.BLOCKBOOK_FAILED });
     }
 
     try {
       const nativePeginStatus = await this.getNativePeginStatus(txId);
       if(nativePeginStatus.txDetails){
-        this.logger.warn(`[foundTxStatus][type=${nativePeginStatus.type}, protocol=NATIVE]`);
+        this.logger.warn({method: 'searchTryingAllTypes', txId, type: nativePeginStatus.type, protocol: 'NATIVE'});
         return nativePeginStatus;
       }
-    } catch (e) {
-      this.logger.error(`[getTxStatus] Unexpected error while retrieving a flyover status: [${e}]`);
+    } catch (err) {
+      this.logger.error({method: 'searchTryingAllTypes', err, txId});
       txStatus = new TxStatus({
         type: TxStatusType.UNEXPECTED_ERROR,
       });
@@ -181,11 +184,11 @@ export class TxStatusController {
     try {
       const nativePegoutStatus = await this.getNativePegoutStatus(txId);
       if(nativePegoutStatus.txDetails){
-        this.logger.warn(`[foundTxStatus][type=${nativePegoutStatus.type}, protocol=NATIVE]`);
+        this.logger.warn({method: 'searchTryingAllTypes', txId, type: nativePegoutStatus.type, protocol: 'NATIVE'});
         return nativePegoutStatus;
       }
-    } catch (e) {
-      this.logger.error(`[getTxStatus] Unexpected error while retrieving status: [${e}]`);
+    } catch (err) {
+      this.logger.error({method: 'searchTryingAllTypes', err, txId});
       txStatus = new TxStatus({
         type: TxStatusType.UNEXPECTED_ERROR,
       });
@@ -195,18 +198,18 @@ export class TxStatusController {
     try {
       const flyoverStatus = await this.getFlyoverStatus(txId);
       if(flyoverStatus.txDetails){
-        this.logger.warn(`[foundTxStatus][type=${flyoverStatus.type}, protocol=FLYOVER]`);
+        this.logger.warn({method: 'searchTryingAllTypes', txId, type: flyoverStatus.type, protocol: 'FLYOVER'});
         return flyoverStatus;
       }
-    } catch (e) {
-      this.logger.error(`[getTxStatus] Unexpected error while retrieving status: [${e}]`);
+    } catch (err) {
+      this.logger.error({method: 'searchTryingAllTypes', err, txId});
       txStatus = new TxStatus({
         type: TxStatusType.UNEXPECTED_ERROR,
       });
       return txStatus;
     }
 
-    this.logger.error(`[getTxStatus] Transaction not found`);
+    this.logger.error({method: 'searchTryingAllTypes', txId}, 'Transaction not found');
     txStatus = new TxStatus({
       type: TxStatusType.INVALID_DATA,
     });
@@ -216,24 +219,27 @@ export class TxStatusController {
   private logTime(startTime:number){
     const endTime = performance.now();
     const totalTime = endTime - startTime;
-    this.logger.debug({durationMs: totalTime}, '[getTxStatus] Execution time');
+    this.logger.debug({method: 'logTime', durationMs: totalTime}, 'Execution time');
   }
 
   private async verifyBlockBook(): Promise<LastBlockInfo> {
     const info = await this.bitcoinService.getLastBlock();
-    this.logger.debug('[getLastBlock] trying to get block book information');
+    this.logger.debug({method: 'verifyBlockBook'}, 'trying to get block book information');
     return info;
   }
 
   private async getFlyoverStatus(txId: string): Promise<TxStatus> {
     let txStatus:TxStatus = new TxStatus({});
     try {
-      this.logger.debug(`[getTxStatus] trying to get a Flyover with txHash: ${txId}`);
+      this.logger.debug({method: 'getFlyoverStatus', txId}, 'trying to get a Flyover with txHash');
       const flyoverStatus = await this.flyoverService.getFlyoverStatus(txId);
       if (flyoverStatus) {
-        this.logger.debug(`[getTxStatus] Flyover ${flyoverStatus.type} Status got for txId ${txId} - Status: ${flyoverStatus.status}`);
+        this.logger.debug(
+          {method: 'getFlyoverStatus', txId, type: flyoverStatus.type, status: flyoverStatus.status},
+          'Flyover Status got for txId',
+        );
         if (!flyoverStatus.type) {
-          this.logger.debug(`[getTxStatus] Flyover ${flyoverStatus.type} Status: no tx found for the provided tx id: ${txId}`);
+          this.logger.debug({method: 'getFlyoverStatus', txId, type: flyoverStatus.type}, 'Flyover Status: no tx found for the provided tx id');
           txStatus = new TxStatus({
             type: TxStatusType.INVALID_DATA, // no tx found
           });
@@ -244,8 +250,8 @@ export class TxStatusController {
           });
         }
       }
-    } catch (e) {
-      this.logger.error(`[getTxStatus] Unexpected error while retrieving a flyover status: [${e}]`);
+    } catch (err) {
+      this.logger.error({method: 'getFlyoverStatus', err, txId});
       txStatus = new TxStatus({
         type: TxStatusType.UNEXPECTED_ERROR,
       });
@@ -257,17 +263,17 @@ export class TxStatusController {
     let txStatus:TxStatus = new TxStatus({});
     try {
       const txHash = ensure0x(txId);
-      this.logger.debug(`[getTxStatus] trying to get a Native Pegout with txHash: ${txHash}`);
+      this.logger.debug({method: 'getNativePegoutStatus', txId: txHash}, 'trying to get a Native Pegout with txHash');
       const pegoutStatus = await this.pegoutStatusService.getPegoutStatusByRskTxHash(txHash);
       if (pegoutStatus.status !== PegoutStatuses.NOT_FOUND) {
-        this.logger.debug(`[getTxStatus] Native Pegout Status got for txId ${txHash} - Status: ${pegoutStatus.status}`);
+        this.logger.debug({method: 'getNativePegoutStatus', txId: txHash, status: pegoutStatus.status}, 'Native Pegout Status got for txId');
         txStatus = new TxStatus({
           type: TxStatusType.PEGOUT,
           txDetails: pegoutStatus,
         });
       }
-    } catch (e) {
-      this.logger.error(`[getTxStatus] Unexpected error while retrieving a Native Pegout Status: [${e}]`);
+    } catch (err) {
+      this.logger.error({method: 'getNativePegoutStatus', err, txId});
       txStatus = new TxStatus({
         type: TxStatusType.UNEXPECTED_ERROR,
       });
@@ -280,22 +286,22 @@ export class TxStatusController {
 
     try {
       const txHash = remove0x(txId);
-      this.logger.debug(`[getTxStatus] trying to get a pegin with txHash: ${txHash}`);
+      this.logger.debug({method: 'getNativePeginStatus', txId: txHash}, 'trying to get a pegin with txHash');
       const peginStatus = await this.getPeginStatus(txHash);
       if (
           peginStatus.status !== Status.ERROR_NOT_A_PEGIN
           && peginStatus.status !== Status.ERROR_UNEXPECTED
           && peginStatus.status !== Status.NOT_IN_BTC_YET
       ) {
-        this.logger.debug(`[getTxStatus] Pegin status got for txId ${txHash} - Status: ${peginStatus.status}`);
+        this.logger.debug({method: 'getNativePeginStatus', txId: txHash, status: peginStatus.status}, 'Pegin status got for txId');
         txStatus = new TxStatus({
           type: TxStatusType.PEGIN,
           txDetails: peginStatus,
         });
       }
 
-    } catch (e) {
-      this.logger.error(`[getTxStatus] Unexpected error while retrieving a pegin status: [${e}]`);
+    } catch (err) {
+      this.logger.error({method: 'getNativePeginStatus', err, txId});
       txStatus = new TxStatus({
         type: TxStatusType.UNEXPECTED_ERROR,
       });
@@ -306,10 +312,10 @@ export class TxStatusController {
   private async getPeginStatus(txId: string): Promise<PeginStatus> {
     try {
       const result = await this.peginStatusService.getPeginStatusInfo(txId);
-      this.logger.debug(`[getPeginStatus] Found tx with status ${result.status}`);
+      this.logger.debug({method: 'getPeginStatus', txId, status: result.status}, 'Found tx with status');
       return result;
-    } catch (e) {
-      this.logger.warn(`[getPeginStatus] Unexpected error: [${e}]`);
+    } catch (err) {
+      this.logger.warn({method: 'getPeginStatus', err, txId});
       return Promise.resolve(new PeginStatusError(txId));
     };
   }

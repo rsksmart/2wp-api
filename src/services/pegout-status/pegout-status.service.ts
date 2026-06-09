@@ -27,7 +27,7 @@ export class PegoutStatusService {
         @inject(ServicesBindings.RSK_NODE_SERVICE)
             rskNodeService: RskNodeService
     ) {
-        this.logger = getLogger('pegoutStatusService');
+        this.logger = getLogger('pegout-status-service');
         this.pegoutStatusDataService = pegoutStatusDataService;
         this.rskNodeService = rskNodeService;
         this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
@@ -62,23 +62,23 @@ export class PegoutStatusService {
                                 pegoutStatus.btcRawTransaction = '';
                             }
                         }
-                        catch(e) {
-                            this.logger.error(`[getPegoutStatusByRskTxHash] - not found tx ${e}`);
+                        catch(err) {
+                            this.logger.error({method: 'getPegoutStatusByRskTxHash', err, txId: rskTxHash});
                             pegoutStatus.status = PegoutStatuses.NOT_FOUND;
                         }
-                        this.logger.trace(pegoutStatus.status);
+                        this.logger.trace({method: 'getPegoutStatusByRskTxHash', txId: rskTxHash, status: pegoutStatus.status});
 
                     } else if (pegoutStatusDbDataModel.status === PegoutStatuses.REJECTED) {
                         pegoutStatus = PegoutStatusAppDataModel.fromPegoutStatusDataModelRejected(pegoutStatusDbDataModel);
                     } else {
                         pegoutStatus = PegoutStatusAppDataModel.fromPegoutStatusDataModel(pegoutStatusDbDataModel);
                     }
-                    this.logger.debug(`TxId:${rskTxHash} Pegout Status: ${pegoutStatus.status}`);
+                    this.logger.debug({method: 'getPegoutStatusByRskTxHash', txId: rskTxHash, status: pegoutStatus.status}, 'Pegout Status');
                     resolve(this.sanitizePegout(pegoutStatus));
                 })
-                .catch((e) => {
-                    this.logger.warn(`TxId:${rskTxHash} Unexpected error trying to obtain information. Error: ${e}`);
-                    reject(e);
+                .catch((err) => {
+                    this.logger.warn({method: 'getPegoutStatusByRskTxHash', err, txId: rskTxHash});
+                    reject(err);
                 });
         });
     }

@@ -51,7 +51,7 @@ export class HealthCheckController {
   })
   async health(): Promise<Response> {
     const version = packageJson.version;
-    this.logger.debug(`[healthCheckController] current version : ${version}`);
+    this.logger.debug({method: 'health', version});
     const health = new HealthInformation();
     health.up = true;
     health.apiVersion = version;
@@ -83,8 +83,8 @@ export class HealthCheckController {
       } else {
         throw new Error("Error searching Bridge State");
       }
-    }).catch((e) => {
-      this.logger.error(`[healthCheckController-BridgeError] error : ${e}`);
+    }).catch((err) => {
+      this.logger.error({method: 'getBridgeInfo', err, check: 'bridge'});
       bridgeService.up = false;
       health.up = false;
       return bridgeService;
@@ -105,8 +105,8 @@ export class HealthCheckController {
       } else {
         throw new Error("Error searching BTC Block Number");
       }
-    }).catch((e) => {
-      this.logger.error(`[healthCheckController-BlockBook] error : ${e}`);
+    }).catch((err) => {
+      this.logger.error({method: 'getBlockBookInfo', err, check: 'blockBook'});
       blockBook.up = false;
       health.up = false;
       return blockBook;
@@ -123,8 +123,8 @@ export class HealthCheckController {
       } else {
         throw new Error("Error searching block number");
       }
-    }).catch((e) => {
-      this.logger.error(`[healthCheckController-RskNodeInfoError] error : ${e}`);
+    }).catch((err) => {
+      this.logger.error({method: 'getRskNodeInfo', err, check: 'rskNode'});
       rskNode.up = false;
       health.up = false;
       return rskNode;
@@ -140,10 +140,10 @@ export class HealthCheckController {
         dataBase.up = true;
         return dataBase;
       } else {
-        throw new Error("[healthCheckController-DataBaseError] - Block info not found");
+        throw new Error("Block info not found");
       }
-    }).catch((e) => {
-      this.logger.error(`[healthCheckController-DataBaseError] error : ${e}`);
+    }).catch((err) => {
+      this.logger.error({method: 'getDataBaseInfo', err, check: 'database'});
       health.up = false;
       dataBase.up = false;
       return dataBase;
