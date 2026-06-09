@@ -4,6 +4,9 @@ export function validateAddressList(
   list: string[],
   opts: {maxItems: number},
 ): void {
+  if (list.length < 1) {
+    throw new HttpErrors.UnprocessableEntity('addressList must not be empty');
+  }
   if (list.length > opts.maxItems) {
     throw new HttpErrors.UnprocessableEntity(
       `addressList exceeds maximum of ${opts.maxItems} items`,
