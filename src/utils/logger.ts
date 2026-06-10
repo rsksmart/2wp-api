@@ -85,7 +85,8 @@ if (prettyFormat) {
     target: 'pino-pretty',
     options: {
       colorize: true,
-      ignore: 'pid,hostname',
+      ignore: 'pid,hostname,service,environment,version',
+      singleLine: true,
     },
   };
 }
