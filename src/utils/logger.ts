@@ -1,5 +1,6 @@
 import pino from 'pino';
 import type {Logger, LoggerOptions} from 'pino';
+import {getTraceId} from './trace-context';
 
 const packageJson = require('../../package.json');
 
@@ -51,6 +52,10 @@ const options: LoggerOptions = {
   messageKey: 'message',
   formatters: {
     level: label => ({level: label}),
+  },
+  mixin() {
+    const traceId = getTraceId();
+    return traceId ? {traceId} : {};
   },
   hooks: {
     logMethod(args, method, level) {

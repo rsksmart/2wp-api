@@ -2,6 +2,7 @@ import {randomBytes} from 'crypto';
 import {Next} from '@loopback/core';
 import {Middleware, MiddlewareContext, Request} from '@loopback/rest';
 import {getLogger} from '../utils/logger';
+import {runWithTraceId} from '../utils/trace-context';
 
 const logger = getLogger('http-access');
 
@@ -49,7 +50,7 @@ const extractTraceparentId = (traceparent?: string): string | null => {
 
 // Prefer an inbound trace id, then a request id, otherwise generate one so
 // every logged request can be correlated.
-const resolveRequestId = (request: Request): string => {
+const resolveTraceId = (request: Request): string => {
   const traceparentId = extractTraceparentId(request.get('traceparent'));
   if (traceparentId) {
     return traceparentId;
@@ -71,28 +72,32 @@ export const httpAccessLogMiddleware: Middleware = async (
   next: Next,
 ) => {
   const {request, response} = ctx;
-  const requestId = resolveRequestId(request);
+  const traceId = resolveTraceId(request);
 
   if (!response.headersSent) {
-    response.setHeader(REQUEST_ID_HEADER, requestId);
+    response.setHeader(REQUEST_ID_HEADER, traceId);
   }
 
-  if (isApiRequest(request.path)) {
-    const startedAt = Date.now();
-    response.once('finish', () => {
-      logger.info(
-        {
-          httpMethod: request.method,
-          httpPath: request.path,
-          httpStatusCode: response.statusCode,
-          durationMs: Date.now() - startedAt,
-          userAgent: request.get('user-agent'),
-          requestId,
-        },
-        'HTTP request completed',
-      );
-    });
-  }
+  // Run the rest of the request within a trace context so every log line
+  // emitted by downstream controllers and services carries the traceId.
+  return runWithTraceId(traceId, () => {
+    if (isApiRequest(request.path)) {
+      const startedAt = Date.now();
+      response.once('finish', () => {
+        logger.info(
+          {
+            httpMethod: request.method,
+            httpPath: request.path,
+            httpStatusCode: response.statusCode,
+            durationMs: Date.now() - startedAt,
+            userAgent: request.get('user-agent'),
+            traceId,
+          },
+          'HTTP request completed',
+        );
+      });
+    }
 
-  return next();
+    return next();
+  });
 };
