@@ -10,6 +10,7 @@ import {ServiceMixin} from '@loopback/service-proxy';
 import path from 'path';
 import {DependencyInjectionHandler} from './dependency-injection-handler';
 import {MySequence} from './sequence';
+import {httpAccessLogMiddleware} from './middleware/http-access-log.middleware';
 import { ENVIRONMENT_PRODUCTION } from './constants';
 
 export {ApplicationConfig};
@@ -20,6 +21,9 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
 
     // Set up the custom sequence
     this.sequence(MySequence);
+
+    // Log inbound HTTP requests/responses for API routes
+    this.middleware(httpAccessLogMiddleware);
 
     // Set up default home page
     this.static('/', path.join(__dirname, '../public'));

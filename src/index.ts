@@ -1,4 +1,4 @@
-import {config} from 'dotenv';
+import 'dotenv/config';
 import {getLogger} from './utils/logger';
 import {ApplicationConfig, TwpapiApplication} from './application';
 import {DaemonRunner} from './daemon-runner';
@@ -51,7 +51,6 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
 
   const appMode = searchAppMode();
 
-  config();
   if (appMode == APP_MODE.API || appMode == APP_MODE.ALL) {
     api = new TwpapiApplication(options);
     await api.boot();
