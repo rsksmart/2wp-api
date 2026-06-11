@@ -7,6 +7,8 @@ import {runWithTraceId} from '../utils/trace-context';
 const logger = getLogger('http-access');
 
 const REQUEST_ID_HEADER = 'X-Request-Id';
+const MAX_CORRELATION_ID_LENGTH = 128;
+const SAFE_CORRELATION_ID_PATTERN = /^[A-Za-z0-9._:-]+$/;
 
 const STATIC_PATHS = new Set<string>([
   '/',
@@ -26,11 +28,16 @@ const isApiRequest = (path: string): boolean => {
   );
 };
 
-const firstNonEmptyHeader = (
+const isSafeCorrelationId = (value: string): boolean =>
+  value.length <= MAX_CORRELATION_ID_LENGTH && SAFE_CORRELATION_ID_PATTERN.test(value);
+
+const firstValidCorrelationIdHeader = (
   request: Request,
   ...names: string[]
 ): string | undefined =>
-  names.map(name => request.get(name)?.trim()).find(value => !!value);
+  names
+    .map(name => request.get(name)?.trim())
+    .find((value) => !!value && isSafeCorrelationId(value));
 
 // Extract the trace-id segment from a W3C traceparent header
 const extractTraceparentId = (traceparent?: string): string | null => {
@@ -55,11 +62,11 @@ const resolveTraceId = (request: Request): string => {
   if (traceparentId) {
     return traceparentId;
   }
-  const traceId = firstNonEmptyHeader(request, 'x-trace-id', 'traceid');
+  const traceId = firstValidCorrelationIdHeader(request, 'x-trace-id', 'traceid');
   if (traceId) {
     return traceId;
   }
-  const requestId = firstNonEmptyHeader(request, 'x-request-id');
+  const requestId = firstValidCorrelationIdHeader(request, 'x-request-id');
   if (requestId) {
     return requestId;
   }
