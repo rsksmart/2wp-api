@@ -42,6 +42,26 @@ const redactPaths = [
   ...baseRedactPaths.map(path => `errorContext.${path}`),
 ];
 
+type ErrorPayload = {err: Error; errorCode?: unknown; [key: string]: unknown};
+
+type NormalizedError = {
+  errorCode: unknown;
+  errorMessage: string;
+  errorContext: Record<string, unknown>;
+  errorStack?: string;
+};
+
+const isErrorPayload = (object: unknown): object is ErrorPayload =>
+  !!object && typeof object === 'object' && 'err' in object && (object as ErrorPayload).err instanceof Error;
+
+const normalizeError = ({err, errorCode, ...errorContext}: ErrorPayload, includeStack: boolean): NormalizedError => {
+  const normalized: NormalizedError = {errorCode, errorMessage: err.message, errorContext};
+  if (includeStack) {
+    normalized.errorStack = err.stack;
+  }
+  return normalized;
+};
+
 const options: LoggerOptions = {
   level: logLevel,
   base: {
@@ -60,21 +80,11 @@ const options: LoggerOptions = {
   hooks: {
     logMethod(args, method, level) {
       const [object, message] = args;
-      const isError = object && typeof object === 'object' && 'err' in object && object.err instanceof Error;
-
-      if (level < pino.levels.values.error || !isError) {
+      if (!isErrorPayload(object)) {
         return method.apply(this, args);
       }
-
-      const {err, errorCode, ...errorContext} = object as {err: Error, [key: string]: unknown};
-      const normalizedError = {
-        errorCode,
-        errorMessage: err.message,
-        errorStack: err.stack,
-        errorContext,
-      };
-
-      return method.apply(this, [normalizedError, message]);
+      const includeStack = level >= pino.levels.values.error;
+      return method.apply(this, [normalizeError(object, includeStack), message]);
     },
   },
   redact: {
