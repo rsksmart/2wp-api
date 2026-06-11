@@ -3,7 +3,7 @@ import {inject} from '@loopback/core';
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
 import {getLogger, Logger} from '../../utils/logger';
-import {BitcoinService, BridgeService} from '..'
+import {BitcoinService, BridgeService} from '..';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status} from '../../models';
 import {BitcoinTx} from '../../models/bitcoin-tx.model';
