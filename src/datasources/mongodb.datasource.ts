@@ -42,7 +42,7 @@ export class MongoDbDataSource {
           this.logger.debug({method: 'connect'}, 'Connected to mongodb');
         },
         err => {
-          this.logger.error({method: 'connect', err});
+          this.logger.error({method: 'connect', err}, 'MongoDB connection failed');
           throw err;
         }
       );
