@@ -46,7 +46,7 @@ export class TxController {
           return resolve(new Tx(tx));
         })
         .catch((err) => {
-          this.logger.warn({method: 'getTx', err, txId});
+          this.logger.warn({method: 'getTx', err, txId}, 'Failed to retrieve tx');
           return reject(err);
         });
     });

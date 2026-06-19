@@ -58,7 +58,7 @@ export class FeaturesController {
         responseCode = this.HTTP_SUCCESS_OK;
         this.logger.info({method: 'get', featureCount: features.length}, 'Retrieved the features');
     } catch (err) {
-        this.logger.warn({method: 'get', err});
+        this.logger.warn({method: 'get', err}, 'Failed to retrieve features');
     }
     this.response.contentType('application/json').status(responseCode).send(
         features

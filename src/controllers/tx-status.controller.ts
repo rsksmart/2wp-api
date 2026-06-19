@@ -93,7 +93,7 @@ export class TxStatusController {
           return nativePegoutStatus;
         }
       } catch (err) {
-        this.logger.error({method: 'getTxStatusByType', err, txId, txType});
+        this.logger.error({method: 'getTxStatusByType', err, txId, txType}, 'Unexpected error retrieving tx status');
         txStatus = new TxStatus({
           type: TxStatusType.UNEXPECTED_ERROR,
         });
@@ -113,7 +113,7 @@ export class TxStatusController {
           return nativePeginStatus;
         }
       } catch (err) {
-        this.logger.error({method: 'getTxStatusByType', err, txId, txType});
+        this.logger.error({method: 'getTxStatusByType', err, txId, txType}, 'Unexpected error retrieving tx status');
         txStatus = new TxStatus({
           type: TxStatusType.UNEXPECTED_ERROR,
         });
@@ -133,7 +133,7 @@ export class TxStatusController {
           return flyoverStatus;
         }
       } catch (err) {
-        this.logger.error({method: 'getTxStatusByType', err, txId, txType});
+        this.logger.error({method: 'getTxStatusByType', err, txId, txType}, 'Unexpected error retrieving tx status');
         txStatus = new TxStatus({
           type: TxStatusType.UNEXPECTED_ERROR,
         });

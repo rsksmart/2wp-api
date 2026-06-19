@@ -61,7 +61,7 @@ export class BroadcastController {
           );
         })
         .catch((err) => {
-          this.logger.warn({method: 'sendTx', err});
+          this.logger.warn({method: 'sendTx', err}, 'Broadcast failed');
           return reject(err);
         });
     });

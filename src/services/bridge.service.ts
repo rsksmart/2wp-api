@@ -32,7 +32,7 @@ export class BridgeService {
           resolve(address);
         })
         .catch((err: any) => {
-          this.logger.warn({method: 'getFederationAddress', err});
+          this.logger.warn({method: 'getFederationAddress', err}, 'Bridge call failed');
           reject(err);
         });
     });
@@ -44,7 +44,7 @@ export class BridgeService {
         .getMinimumLockTxValue()
         .then((minValue: string) => resolve(Number(minValue)))
         .catch((err: any) => {
-          this.logger.warn({method: 'getMinPeginValue', err});
+          this.logger.warn({method: 'getMinPeginValue', err}, 'Bridge call failed');
           reject(err);
         });
     });
@@ -56,7 +56,7 @@ export class BridgeService {
         .getLockingCap()
         .then((lockingCap: string) => resolve(Number(lockingCap)))
         .catch((err: any) => {
-          this.logger.warn({method: 'getLockingCapAmount', err});
+          this.logger.warn({method: 'getLockingCapAmount', err}, 'Bridge call failed');
           reject(err);
         });
     });
@@ -71,7 +71,7 @@ export class BridgeService {
           resolve(Number(amount));
         })
         .catch(err => {
-          this.logger.warn({method: 'getRbtcInCirculation', err});
+          this.logger.warn({method: 'getRbtcInCirculation', err}, 'Bridge call failed');
           reject(err);
         });
     });
@@ -89,7 +89,7 @@ export class BridgeService {
           resolve(Math.min(availability, maxAllowed));
         })
         .catch(err => {
-          this.logger.warn({method: 'getPeginAvailability', err});
+          this.logger.warn({method: 'getPeginAvailability', err}, 'Bridge call failed');
           reject(err);
         });
     });
@@ -101,7 +101,7 @@ export class BridgeService {
         .isBtcTxHashAlreadyProcessed(txHash)
         .then((isProcessed: Boolean) => resolve(isProcessed))
         .catch((err: any) => {
-          this.logger.warn({method: 'isBtcTxHashAlreadyProcessed', err});
+          this.logger.warn({method: 'isBtcTxHashAlreadyProcessed', err}, 'Bridge call failed');
           reject(err);
         });
     });
