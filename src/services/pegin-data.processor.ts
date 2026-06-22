@@ -20,21 +20,21 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   async process(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
-    this.logger.debug(`[process] Got tx ${extendedBridgeTx.txHash}`);
+    this.logger.debug({method: 'process', txHash: extendedBridgeTx.txHash}, 'Got tx');
     const peginStatus = this.parse(extendedBridgeTx);
     if (!peginStatus) {
-      this.logger.debug('[process] Transaction is not a registerBtcTransaction or fails to register the peg-in');
+      this.logger.debug({method: 'process'}, 'Transaction is not a registerBtcTransaction or fails to register the peg-in');
       return;
     }
     try {
       const found = await this.peginStatusStorageService.getById(peginStatus.btcTxId);
       if (found) {
-        return this.logger.debug(`[process] ${extendedBridgeTx.txHash} already registered`);
+        return this.logger.debug({method: 'process', txHash: extendedBridgeTx.txHash}, 'Tx already registered');
       }
       await this.peginStatusStorageService.set(peginStatus);
-      this.logger.info(`[process] ${extendedBridgeTx.txHash} registered. data: [btctxid:${peginStatus.btcTxId}] [status${peginStatus.status}]`);
+      this.logger.info({method: 'process', txHash: extendedBridgeTx.txHash, btcTxId: peginStatus.btcTxId, status: peginStatus.status}, 'Tx registered');
     } catch (e) {
-      this.logger.warn('[process] There was a problem with the storage', e);
+      this.logger.warn({method: 'process', err: e}, 'There was a problem with the storage');
     }
   }
 
@@ -47,7 +47,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   private getPeginStatus(extendedBridgeTx: ExtendedBridgeTx): PeginStatusDataModel | undefined {
-    this.logger.debug(`[getPeginStatus] Started with transaction ${extendedBridgeTx.txHash}`);
+    this.logger.debug({method: 'getPeginStatus', txHash: extendedBridgeTx.txHash}, 'Started');
     const status = new PeginStatusDataModel();
 
     const lockBtcLog = this.getLockBtcLogIfExists(extendedBridgeTx.events as ExtendedBridgeEvent[]);
@@ -56,38 +56,38 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
       const rskReceiver = <string> lockBtcLog.arguments.receiver;
       status.rskRecipient = rskReceiver.toLowerCase();
       status.status = RskPeginStatusEnum.LOCKED;
-      this.logger.debug(`[getPeginStatus] PegIn locked with amount: ${lockBtcLog?.arguments.amount}.`);
+      this.logger.debug({method: 'getPeginStatus', amount: lockBtcLog?.arguments.amount}, 'PegIn locked');
       return status;
     }
 
     const peginBtcLog = this.getPeginBtcLogIfExists(extendedBridgeTx.events as ExtendedBridgeEvent[]);
     if (peginBtcLog) {
-      this.logger.debug(`[getPeginStatus] New PegIn received with amount: ${peginBtcLog.arguments.amount}.`);
+      this.logger.debug({method: 'getPeginStatus', amount: peginBtcLog.arguments.amount}, 'New PegIn received');
       const rskReceiver = <string> peginBtcLog.arguments.receiver;
       status.rskRecipient = rskReceiver.toLowerCase();
       status.btcTxId = <string> peginBtcLog.arguments.btcTxHash;
       status.status = RskPeginStatusEnum.LOCKED;
 
-      this.logger.debug(`[getPeginStatus] PegIn locked with amount: ${peginBtcLog.arguments.amount}.`);
-      
+      this.logger.debug({method: 'getPeginStatus', amount: peginBtcLog.arguments.amount}, 'PegIn locked');
+
       return status;
     }
     if (this.hasThisLog(BRIDGE_EVENTS.REJECTED_PEGIN, extendedBridgeTx.events)) {
       const rejectedPeginLog: ExtendedBridgeEvent = extendedBridgeTx.events.find(event => event.name === BRIDGE_EVENTS.REJECTED_PEGIN) as ExtendedBridgeEvent;
       status.btcTxId = <string> rejectedPeginLog?.arguments.btcTxHash;
-      this.logger.debug(`[getPeginStatus] PegIn rejected.`);
-      
+      this.logger.debug({method: 'getPeginStatus'}, 'PegIn rejected');
+
       if (this.hasThisLog(BRIDGE_EVENTS.RELEASE_REQUESTED, extendedBridgeTx.events)) {
         status.status = RskPeginStatusEnum.REJECTED_REFUND;
-        this.logger.debug(`[getPeginStatus] PegIn rejected will be refund.`);
+        this.logger.debug({method: 'getPeginStatus'}, 'PegIn rejected, will be refunded');
         return status;
       }
       if (this.hasThisLog(BRIDGE_EVENTS.UNREFUNDABLE_PEGIN, extendedBridgeTx.events)) {
         status.status = RskPeginStatusEnum.REJECTED_NO_REFUND;
-        this.logger.debug(`[getPeginStatus] PegIn rejected is unrefundable.`);
+        this.logger.debug({method: 'getPeginStatus'}, 'PegIn rejected, unrefundable');
         return status;
       }
-      this.logger.warn(`[getPeginStatus] Call to RegisterBtcTransaction with invalid data! [rsktxid:${extendedBridgeTx.txHash}]`);
+      this.logger.warn({method: 'getPeginStatus', txHash: extendedBridgeTx.txHash}, 'Call to RegisterBtcTransaction with invalid data');
     }
 
   }
@@ -102,17 +102,17 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
 
   private logPeginData(pegin: PeginStatusDataModel) {
     try {
-      this.logger.debug(`[logPeginData] ${JSON.stringify(pegin.status)}`);
+      this.logger.debug({method: 'logPeginData', status: pegin.status}, 'Pegin data');
     }
     catch(e) {
-      this.logger.error('[logPeginData] There was a problem with the conversion of pegin.', e);
+      this.logger.error({method: 'logPeginData', err: e}, 'There was a problem with the conversion of pegin');
     }
   }
 
   parse(extendedBridgeTx: ExtendedBridgeTx): PeginStatusDataModel | null {
     // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     if (!extendedBridgeTx || !extendedBridgeTx.events || !extendedBridgeTx.events.length) {
-      this.logger.debug(`[parse] This transaction doesn't have the data required to be parsed`);
+      this.logger.debug({method: 'parse'}, "This transaction doesn't have the data required to be parsed");
       return null;
     }
     const result = this.getPeginStatus(extendedBridgeTx);
