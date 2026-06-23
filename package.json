@@ -1,6 +1,6 @@
 {
   "name": "2wp-api",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "PowPeg API",
   "keywords": [
     "loopback-application",
@@ -78,12 +78,24 @@
     "web3": "^4.16.0"
   },
   "overrides": {
-    "@loopback/context": { "uuid": "^11.1.1" },
-    "hyperid": { "uuid": "^11.1.1" },
-    "istanbul-lib-processinfo": { "uuid": "^11.1.1" },
-    "loopback-datasource-juggler": { "uuid": "^11.1.1" },
-    "loopback-connector": { "uuid": "^11.1.1" },
-    "postman-request": { "uuid": "^3.4.0" }
+    "@loopback/context": {
+      "uuid": "^11.1.1"
+    },
+    "hyperid": {
+      "uuid": "^11.1.1"
+    },
+    "istanbul-lib-processinfo": {
+      "uuid": "^11.1.1"
+    },
+    "loopback-datasource-juggler": {
+      "uuid": "^11.1.1"
+    },
+    "loopback-connector": {
+      "uuid": "^11.1.1"
+    },
+    "postman-request": {
+      "uuid": "^3.4.0"
+    }
   },
   "devDependencies": {
     "@loopback/build": "^12.0.12",
@@ -104,5 +116,8 @@
     "sonarqube-scanner": "^3.0.1",
     "source-map-support": "^0.5.21",
     "typescript": "~5.2.2"
+  },
+  "allowScripts": {
+    "@scarf/scarf": false
   }
 }
