@@ -25,7 +25,7 @@ run:
   - |
     out_message_file=$(pwd)/out/message.txt
 
-    apk add -q --no-progress openssh ansible gnupg gnupg-keyboxd git
+    apk add -q --no-progress openssh ansible gnupg git
     wget --quiet https://github.com/mozilla/sops/releases/download/v3.7.3/sops-v3.7.3.linux.amd64 -O /usr/bin/sops
     chmod +x /usr/bin/sops
 
@@ -40,6 +40,9 @@ run:
     echo "$SSH_DEPLOY_KEY" > $ssh_deploy_keyfile
     echo "$TWOWP_API_SSH_KEY" > $twowp_api_ssh_keyfile
     umask 022
+
+    mkdir -p /root/.gnupg && chmod 700 /root/.gnupg
+    echo "use-keyboxd no" > /root/.gnupg/common.conf
 
     gpg --import $sops_keyfile
     eval $(ssh-agent)
