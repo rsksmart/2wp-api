@@ -1,6 +1,6 @@
 {
   "name": "2wp-api",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "PowPeg API",
   "keywords": [
     "loopback-application",
@@ -117,5 +117,8 @@
     "sonarqube-scanner": "^3.0.1",
     "source-map-support": "^0.5.21",
     "typescript": "~5.2.2"
+  },
+  "allowScripts": {
+    "@scarf/scarf": false
   }
 }
