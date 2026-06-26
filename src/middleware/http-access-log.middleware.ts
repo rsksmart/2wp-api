@@ -1,0 +1,110 @@
+import {randomBytes} from 'crypto';
+import {Next} from '@loopback/core';
+import {Middleware, MiddlewareContext, Request} from '@loopback/rest';
+import {getLogger} from '../utils/logger';
+import {runWithTraceId} from '../utils/trace-context';
+
+const logger = getLogger('http-access');
+
+const REQUEST_ID_HEADER = 'X-Request-Id';
+const MAX_CORRELATION_ID_LENGTH = 128;
+const SAFE_CORRELATION_ID_PATTERN = /^[A-Za-z0-9._:-]+$/;
+
+const STATIC_PATHS = new Set<string>([
+  '/',
+  '/index.html',
+  '/favicon.ico',
+  '/openapi.json',
+  '/openapi.yaml',
+]);
+const STATIC_PATH_PREFIXES = ['/explorer'];
+
+const isApiRequest = (path: string): boolean => {
+  if (STATIC_PATHS.has(path)) {
+    return false;
+  }
+  return !STATIC_PATH_PREFIXES.some(
+    prefix => path === prefix || path.startsWith(`${prefix}/`),
+  );
+};
+
+const isSafeCorrelationId = (value: string): boolean =>
+  value.length <= MAX_CORRELATION_ID_LENGTH && SAFE_CORRELATION_ID_PATTERN.test(value);
+
+const firstValidCorrelationIdHeader = (
+  request: Request,
+  ...names: string[]
+): string | undefined =>
+  names
+    .map(name => request.get(name)?.trim())
+    .find((value) => !!value && isSafeCorrelationId(value));
+
+// Extract the trace-id segment from a W3C traceparent header
+const extractTraceparentId = (traceparent?: string): string | null => {
+  if (!traceparent) {
+    return null;
+  }
+  const segments = traceparent.trim().split('-');
+  if (segments.length < 4) {
+    return null;
+  }
+  const traceId = segments[1];
+  if (!/^[0-9a-f]{32}$/i.test(traceId) || /^0+$/.test(traceId)) {
+    return null;
+  }
+  return traceId;
+};
+
+// Prefer an inbound trace id, then a request id, otherwise generate one so
+// every logged request can be correlated.
+const resolveTraceId = (request: Request): string => {
+  const traceparentId = extractTraceparentId(request.get('traceparent'));
+  if (traceparentId) {
+    return traceparentId;
+  }
+  const traceId = firstValidCorrelationIdHeader(request, 'x-trace-id', 'traceid');
+  if (traceId) {
+    return traceId;
+  }
+  const requestId = firstValidCorrelationIdHeader(request, 'x-request-id');
+  if (requestId) {
+    return requestId;
+  }
+
+  return randomBytes(16).toString('hex');
+};
+
+export const httpAccessLogMiddleware: Middleware = async (
+  ctx: MiddlewareContext,
+  next: Next,
+) => {
+  const {request, response} = ctx;
+  const traceId = resolveTraceId(request);
+
+  if (!response.headersSent) {
+    response.setHeader(REQUEST_ID_HEADER, traceId);
+  }
+
+  // Run the rest of the request within a trace context so every log line
+  // emitted by downstream controllers and services carries the traceId.
+  return runWithTraceId(traceId, () => {
+    if (isApiRequest(request.path)) {
+      const startedAt = Date.now();
+      response.once('finish', () => {
+        logger.info(
+          {
+            httpMethod: request.method,
+            httpPath: request.path,
+            httpStatusCode: response.statusCode,
+            durationMs: Date.now() - startedAt,
+            userAgent: request.get('user-agent'),
+            traceId,
+          },
+          'HTTP request completed',
+        );
+      });
+    }
+
+    return next();
+  });
+};

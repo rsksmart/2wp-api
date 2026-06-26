@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import {inject} from '@loopback/core';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../utils/logger';
 import {ConstantsBindings, ServicesBindings} from '../dependency-injection-bindings';
 import {RskBlock} from '../models/rsk/rsk-block.model';
 import {getMetricLogger} from '../utils/metric-logger';
@@ -52,7 +52,7 @@ export class DaemonService implements IDaemonService {
     try {
       await this.rskBlockProcessorPublisher.process(rskBlock);
     } catch (e) {
-      this.logger.warn('There was a problem handling the new block', e);
+      this.logger.warn({method: 'handleNewBestBlock', err: e}, 'There was a problem handling the new block');
     }
   }
 
@@ -61,7 +61,7 @@ export class DaemonService implements IDaemonService {
       await this.peginStatusStorageService.deleteByRskBlockHeight(block.height);
       await this.pegoutDataProcessor.deleteByRskBlockHeight(block.height);
     } catch (e) {
-      this.logger.warn('There was a problem handling the deleted block', e);
+      this.logger.warn({method: 'handleDeleteBlock', err: e}, 'There was a problem handling the deleted block');
     }
   }
 
@@ -81,11 +81,11 @@ export class DaemonService implements IDaemonService {
       if (this.lastSyncLog >= 5) {
         this.lastSyncLog = 0;
         const bestBlock = await this.syncService.getSyncStatus();
-        this.logger.debug(`Sync status => Best block is ${bestBlock.rskBlockHeight}[${bestBlock.rskBlockHash}]`);
+        this.logger.debug({method: 'sync', blockHeight: bestBlock.rskBlockHeight, blockHash: bestBlock.rskBlockHash}, 'Sync status');
       }
       await this.syncService.sync();
     } catch (error) {
-      this.logger.warn('Got an error syncing', error.message);
+      this.logger.warn({method: 'sync', err: error}, 'Got an error syncing');
     }
     logMetrics();
     this.startTimer();
@@ -95,7 +95,7 @@ export class DaemonService implements IDaemonService {
     if (this.started) {
       return;
     }
-    this.logger.trace('Starting');
+    this.logger.debug({method: 'start'}, 'Starting');
     await this.peginStatusStorageService.start();
 
     await this.syncService.start();
@@ -107,7 +107,7 @@ export class DaemonService implements IDaemonService {
     this.rskBlockProcessorPublisher.addSubscriber(this.peginDataProcessor);
     this.rskBlockProcessorPublisher.addSubscriber(this.pegoutDataProcessor);
 
-    this.logger.debug('Started');
+    this.logger.debug({method: 'start'}, 'Started');
     this.started = true;
 
     // Schedule daemon task
@@ -117,13 +117,13 @@ export class DaemonService implements IDaemonService {
   public async stop(): Promise<void> {
     if (this.started) {
       this.started = false;
-      this.logger.trace('Stopping');
+      this.logger.debug({method: 'stop'}, 'Stopping');
       clearInterval(this.dataFetchInterval);
       await this.peginStatusStorageService.stop()
       await this.syncService.stop();
       this.rskBlockProcessorPublisher.removeSubscriber(this.peginDataProcessor);
       this.rskBlockProcessorPublisher.removeSubscriber(this.pegoutDataProcessor);
-      this.logger.debug('Stopped');
+      this.logger.debug({method: 'stop'}, 'Stopped');
     }
   }
 

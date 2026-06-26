@@ -1,5 +1,5 @@
-import {config} from 'dotenv';
-import {configure, getLogger} from 'log4js';
+import 'dotenv/config';
+import {getLogger} from './utils/logger';
 import {ApplicationConfig, TwpapiApplication} from './application';
 import {DaemonRunner} from './daemon-runner';
 import { ENVIRONMENT_PRODUCTION } from './constants';
@@ -23,8 +23,6 @@ const searchAppMode = (): APP_MODE => {
 };
 
 export async function main(options: ApplicationConfig = {}): Promise<void> {
-  configure('./log-config.json');
-
   const logger = getLogger('app');
 
   let api: TwpapiApplication;
@@ -53,14 +51,13 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
 
   const appMode = searchAppMode();
 
-  config();
   if (appMode == APP_MODE.API || appMode == APP_MODE.ALL) {
     api = new TwpapiApplication(options);
     await api.boot();
     await api.start();
 
     const {url} = api.restServer;
-    logger.info(`Server is running at ${url}`);
+    logger.info({url}, 'Server is running');
   }
   if (appMode == APP_MODE.DAEMON || appMode == APP_MODE.ALL) {
     daemon = new DaemonRunner();
@@ -91,7 +88,7 @@ if (require.main === module) {
     },
   };
   main(config).catch(err => {
-    console.error('Cannot start the application.', err);
+    getLogger('app').fatal({err}, 'Cannot start the application');
     process.exit(1);
   });
 }

@@ -1,6 +1,6 @@
 import { inject } from '@loopback/core';
-import { getLogger, Logger } from 'log4js';
 import { RestBindings, get, getModelSchemaRef, Response, } from '@loopback/rest';
+import { getLogger, Logger } from '../utils/logger';
 import { ServicesBindings } from '../dependency-injection-bindings';
 import { FeaturesDataService } from '../services/features-data.service';
 import { FeaturesDbDataModel } from '../models/features-data.model';
@@ -50,18 +50,18 @@ export class FeaturesController {
     },
   })
   public async get(): Promise<Response> {
-    this.logger.debug('[get] started');
-    let retorno = [new FeaturesDbDataModel()];
+    this.logger.debug({method: 'get'}, 'started');
+    let features = [new FeaturesDbDataModel()];
     let responseCode = this.HTTP_ERROR;
     try {
-        retorno = await this.featuresDatService.getAll();
+        features = await this.featuresDatService.getAll();
         responseCode = this.HTTP_SUCCESS_OK;
-        this.logger.info(`[get] Retrieved the features: ${JSON.stringify(retorno)}`);
-    } catch (e) {
-        this.logger.warn(`[get] Got an error: ${e}`); 
+        this.logger.info({method: 'get', featureCount: features.length}, 'Retrieved the features');
+    } catch (err) {
+        this.logger.warn({method: 'get', err}, 'Failed to retrieve features');
     }
     this.response.contentType('application/json').status(responseCode).send(
-        retorno
+        features
     );
     return this.response;
   }

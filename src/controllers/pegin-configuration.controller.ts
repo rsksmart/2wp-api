@@ -1,6 +1,6 @@
 import {repository} from '@loopback/repository';
 import {get, getModelSchemaRef} from '@loopback/rest';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../utils/logger';
 import {PeginConfiguration} from '../models';
 import {PeginConfigurationRepository} from '../repositories';
 import {BridgeService} from '../services';
@@ -33,7 +33,7 @@ export class PeginConfigurationController {
     },
   })
   async get(): Promise<PeginConfiguration> {
-    this.logger.debug('[get] started');
+    this.logger.debug({method: 'get'}, 'started');
     const bridgeService = new BridgeService();
     return new Promise<PeginConfiguration>((resolve, reject) => {
       Promise.all([
@@ -48,12 +48,12 @@ export class PeginConfigurationController {
             federationAddress,
             btcConfirmations: Number(process.env.BTC_CONFIRMATIONS) || 100,
           });
-          this.logger.debug('[get] Finished');
+          this.logger.debug({method: 'get'}, 'Finished');
           resolve(peginConf);
         })
-        .catch((e) => {
-          this.logger.warn(`[get] Got an error: ${e}`);
-          reject(e);
+        .catch((err) => {
+          this.logger.warn({method: 'get', err});
+          reject(err);
         });
     });
   }

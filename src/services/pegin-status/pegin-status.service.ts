@@ -1,8 +1,8 @@
 import {inject} from '@loopback/core';
-import {getLogger, Logger} from 'log4js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
+import {getLogger, Logger} from '../../utils/logger';
 import {BitcoinService, BridgeService} from '..';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BtcPeginStatus, PeginStatus, RskPeginStatus, Status} from '../../models';
@@ -41,7 +41,7 @@ export class PeginStatusService {
   }
 
   public async getPeginStatusInfo(btcTxId: string): Promise<PeginStatus> {
-    this.logger.trace(`Get Pegin information for txId: ${btcTxId}`);
+    this.logger.debug({method: 'getPeginStatusInfo', txId: btcTxId}, 'Get Pegin information for txId');
     return this.getBtcInfo(btcTxId)
       .then((btcStatus) => {
         const peginStatusInfo = new PeginStatus(btcStatus);
@@ -54,13 +54,16 @@ export class PeginStatusService {
             .then((rskStatus) => {
               if (rskStatus.status !== undefined) {
                 peginStatusInfo.setRskPeginStatus(rskStatus);
-                this.logger.debug(`Tx: ${btcTxId} includes rsk info. RskAddress: ${rskStatus.recipientAddress} Pegin status: ${peginStatusInfo.status}`);
+                this.logger.debug(
+                  {method: 'getPeginStatusInfo', txId: btcTxId, rskAddress: rskStatus.recipientAddress, status: peginStatusInfo.status},
+                  'Tx includes rsk info',
+                );
                 return peginStatusInfo;
               } else {
                 const peginRskInfo = new RskPeginStatus();
                 peginRskInfo.recipientAddress = this.destinationAddress;
                 peginStatusInfo.status = Status.NOT_IN_RSK_YET;
-                this.logger.debug(`Tx: ${btcTxId} not in RSK yet. Pegin status: ${peginStatusInfo.status}`);
+                this.logger.debug({method: 'getPeginStatusInfo', txId: btcTxId, status: peginStatusInfo.status}, 'Tx not in RSK yet');
                 peginStatusInfo.setRskPeginStatus(peginRskInfo);
                 return peginStatusInfo;
               }
@@ -69,13 +72,13 @@ export class PeginStatusService {
           const peginRskInfo = new RskPeginStatus();
           peginRskInfo.recipientAddress = this.destinationAddress;
           peginStatusInfo.status = Status.WAITING_CONFIRMATIONS;
-          this.logger.debug(`Tx: ${btcTxId} waiting confirmations. Pegin status: ${peginStatusInfo.status}`);
+          this.logger.debug({method: 'getPeginStatusInfo', txId: btcTxId, status: peginStatusInfo.status}, 'Tx waiting confirmations');
           peginStatusInfo.setRskPeginStatus(peginRskInfo);
           return peginStatusInfo;
         }
       })
-      .catch((e) => {
-        this.logger.warn(`TxId:${btcTxId} Unexpected error trying to obtain information. Error: ${e}`);
+      .catch((err) => {
+        this.logger.warn({method: 'getPeginStatusInfo', err, txId: btcTxId});
         return new PeginStatusError(btcTxId);
       })
   };
@@ -87,9 +90,16 @@ export class PeginStatusService {
           const minPeginValue = await this.bridgeService.getMinPeginValue();
           if (this.fromSatoshiToBtc(minPeginValue) > btcTxInformation.amountTransferred) {
             const errorMessage = `Amount transferred is less than minimum pegin value.
-                Minimum value accepted: [" + ${this.fromSatoshiToBtc(minPeginValue)}BTC]. Value sent:
-                [${btcTxInformation.amountTransferred}BTC]`;
-            this.logger.debug(errorMessage);
+            Value transferred: ${btcTxInformation.amountTransferred} - Minimum Value: ${this.fromSatoshiToBtc(minPeginValue)}`;
+            this.logger.debug(
+              {
+                method: 'getBtcInfo',
+                txId: btcTxId,
+                minPeginValue: this.fromSatoshiToBtc(minPeginValue),
+                amountTransferred: btcTxInformation.amountTransferred,
+              },
+              errorMessage,
+            );
             this.status = Status.ERROR_BELOW_MIN;
           }
         }
@@ -131,8 +141,8 @@ export class PeginStatusService {
             this.destinationAddress = this.getxDestinationRskAddress(btcTx);
             btcStatus.senderAddress = btcTx.vin[0].addresses[0];
           }
-        } catch(e) {
-          this.logger.trace(e.message);
+        } catch(err) {
+          this.logger.debug({method: 'getBtcTxInfoFromService', err});
           this.status = Status.ERROR_NOT_A_PEGIN;
         }
         return btcStatus;
@@ -185,8 +195,7 @@ export class PeginStatusService {
       }
     }
     if (acummulatedAmount === 0) {
-      const errorMessage = `Can not get set amount for address: ${fedDestinationAddress} in tx: ${txId}`;
-      this.logger.error(errorMessage);
+      this.logger.warn({method: 'getTxSentAmountByAddress', fedDestinationAddress, txId});
     }
     return acummulatedAmount;
   }
@@ -200,7 +209,7 @@ export class PeginStatusService {
 
       if (this.hasOpReturn(btcTx.txid, voutData)) {
         returnValue = ensure0x(voutData.substring(14, 54));
-        this.logger.debug(`Destination RSK Address found: ${returnValue}`);
+        this.logger.debug({method: 'getxDestinationRskAddress', rskAddress: returnValue}, 'Destination RSK Address found');
         foundOpReturn = true;
       }
     }
@@ -219,13 +228,13 @@ export class PeginStatusService {
       const voutData = btcTx.vout[i].hex!;
       if (this.hasRefundOpReturn(btcTx.txid, voutData)) {
         returnValue = utility.getRefundAddress(voutData.substring(54, 96));
-        this.logger.debug(`RefundAddress found: ${returnValue}`);
+        this.logger.debug({method: 'getTxRefundAddress', refundAddress: returnValue}, 'RefundAddress found');
         foundOpReturn = true;
       }
     }
     if (!foundOpReturn) {
       returnValue = '';
-      this.logger.warn(`Empty value for refund address`);
+      this.logger.warn({method: 'getTxRefundAddress'}, 'Empty value for refund address');
     }
     return returnValue;
   }
@@ -242,11 +251,10 @@ export class PeginStatusService {
   private hasOpReturn(txId: string, data: string): boolean {
     if (data.startsWith('6a') && data.substr(4, 10).startsWith('52534b5401')) { // Includes version 01 in the same if
       if (data.length === 96 || data.length === 54) { //Contain refund address
-        this.logger.debug(`Tx contains OPT_RETURN value: ${txId}`);
+        this.logger.debug({method: 'hasOpReturn', txId}, 'Tx contains OPT_RETURN value');
         return (true);
       } else {
-        const errorMessage = `Can not parse OP_RETURN parameter. Invalid transaction: ${txId}`;
-        this.logger.warn(errorMessage);
+        this.logger.warn({method: 'hasOpReturn', txId}, 'Can not parse OP_RETURN parameter. Invalid transaction');
         return false;  //RSK will return invalid
       }
     }

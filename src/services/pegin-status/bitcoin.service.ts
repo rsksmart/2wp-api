@@ -1,5 +1,5 @@
 import {inject} from '@loopback/core';
-import {getLogger, Logger} from 'log4js';
+import {getLogger, Logger} from '../../utils/logger';
 import {AddressService, TxV2Service} from '..';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BitcoinAddress} from '../../models/bitcoin-address.model';
@@ -46,8 +46,8 @@ export class BitcoinService {
           responseTx.hex = tx[0].hex;
           resolve(responseTx);
         })
-        .catch(reason => {
-          this.logger.warn(`[getTx] Got an error: ${reason}`);
+        .catch(err => {
+          this.logger.warn({method: 'getTx', err, txId});
           reject(`Error getting tx ${txId}`);
         });
     });
