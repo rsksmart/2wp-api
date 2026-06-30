@@ -41,6 +41,9 @@ run:
     wget --quiet https://github.com/mozilla/sops/releases/download/v3.7.3/sops-v3.7.3.linux.amd64 -O /usr/bin/sops
     chmod +x /usr/bin/sops
 
+    export GNUPGHOME="$(pwd)/.gnupg"
+    mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
+
     gpg --import $sops_keyfile
     eval $(ssh-agent)
     ssh-add $ssh_deploy_keyfile $twowp_api_ssh_keyfile
