@@ -31,6 +31,23 @@ This table was created to guide and centralize the **environment variables** nec
 |LOG_LEVEL                     |`debug, info, warn, error, fatal` |'Minimum log level. Defaults to info'           |
 |METRICS_ENABLED               |`true or false`                |'enable metric debug log'                                |
 |NODE_ENV|`production or development`|'Indicates if the app should be built for a production environment or not'
+|BACKOFFICE_API_URL            |`http://localhost:3010`        |'Base URL of the backoffice API serving the feature flags. Empty disables the integration (local features only)'|
+|BACKOFFICE_API_EMAIL          |                               |'Backoffice service account email (read-only feature-flags role)'|
+|BACKOFFICE_API_PASSWORD       |                               |'Backoffice service account password. Secret — never commit'|
+|BACKOFFICE_FLAGS_CACHE_TTL_MS |60000                          |'How long retrieved flags are cached before re-fetching'|
+|BACKOFFICE_HTTP_TIMEOUT_MS    |2000                           |'Timeout for each backoffice HTTP request'|
+
+### Backoffice feature flags
+
+When the `BACKOFFICE_*` variables are set, the provider availability flags
+(`FLYOVER`, `UNION_BRIDGE`, `POWPEG`) are retrieved from the backoffice for
+the environment matching `NETWORK` and merged into the `/features` response as
+`flyover`/`union_bridge`/`powpeg` with value `enabled`/`disabled`.
+Values are cached for `BACKOFFICE_FLAGS_CACHE_TTL_MS`; once expired, the stale
+values keep being served while a refresh runs in the background, so only the
+very first retrieval waits on the backoffice. On backoffice downtime the last
+retrieved values are served (or the flags are simply omitted from `/features`),
+and failed or invalid retrievals are logged.
 
 
 ##Example for .env.local.test file
@@ -79,4 +96,11 @@ MAX_FEE_AMOUNT_ALLOWED=5000000
 BURN_DUST_VALUE=2000
 
 NODE_ENV=development
+
+# Backoffice feature flags (empty BACKOFFICE_API_URL disables the integration)
+BACKOFFICE_API_URL='http://localhost:3010'
+BACKOFFICE_API_EMAIL='2wp-api@example.com'
+BACKOFFICE_API_PASSWORD='replace-with-the-service-account-password'
+BACKOFFICE_FLAGS_CACHE_TTL_MS=60000
+BACKOFFICE_HTTP_TIMEOUT_MS=2000
 ```
