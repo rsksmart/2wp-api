@@ -32,6 +32,11 @@ export class PeginConfigurationController {
       },
     },
   })
+  /**
+   * `GET /pegin-configuration` — current peg-in configuration, read live from the RSK Bridge.
+   *
+   * @returns Minimum peg-in value, maximum value (the Bridge's current peg-in availability), the federation address, and the required BTC confirmations (`BTC_CONFIRMATIONS`, defaulting to 100).
+   */
   async get(): Promise<PeginConfiguration> {
     this.logger.debug({method: 'get'}, 'started');
     const bridgeService = new BridgeService();

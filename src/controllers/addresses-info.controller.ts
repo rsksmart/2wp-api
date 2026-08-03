@@ -23,6 +23,14 @@ export class AddressesInfoController {
     this.bitcoinService = bitcoinService;
   }
 
+  /**
+   * `POST /addresses-info` — resolves each address in `addressList` (in order,
+   * with up to `PROVIDER_CONCURRENCY` in flight at once) via the Bitcoin
+   * service, truncating each address's `txids` to `ADDRESS_INFO_MAX_TXIDS`.
+   *
+   * @param addressList - Body containing `addressList`, a deduplicated list of BTC addresses (max `ADDRESS_LIST_MAX_ITEMS`, validated against `BTC_ADDRESS_PATTERN`).
+   * @returns The per-address info, in the same order as the input list.
+   */
   @post('/addresses-info')
   @response(200, {
     description:

@@ -49,6 +49,17 @@ export class HealthCheckController {
       },
     },
   })
+  /**
+   * `GET /health` — aggregate health check across the app's four dependencies:
+   * the sync-status database, Blockbook, the RSK node, and the RSK Bridge.
+   * Each check runs independently and failures are caught individually, so one
+   * dependency being down doesn't prevent reporting on the others.
+   *
+   * Writes the JSON body directly onto the injected `Response`: status `200`
+   * if every check succeeded, `500` if any of them failed.
+   *
+   * @returns The `Response` object, already sent, containing `HealthInformation` with one `HealthInformationChecks`/`BlockBoock` entry per dependency.
+   */
   async health(): Promise<Response> {
     const version = packageJson.version;
     this.logger.debug({method: 'health', version});

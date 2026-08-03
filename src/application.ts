@@ -15,7 +15,17 @@ import { ENVIRONMENT_PRODUCTION } from './constants';
 
 export {ApplicationConfig};
 
+/**
+ * The 2wp-api REST application: a LoopBack 4 `RestApplication` with booting,
+ * repository, and datasource-proxy mixins applied. Boots controllers from
+ * `controllers/**\/*.controller.js`, serves `public/` as the home page, logs
+ * inbound HTTP requests/responses, and (outside `NODE_ENV=production`) exposes
+ * the `/explorer` REST Explorer UI. See `docs/setup.md` and `docs/api.md`.
+ */
 export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(RestApplication))) {
+  /**
+   * @param options - LoopBack `ApplicationConfig` (e.g. `rest.port`, `rest.host`) passed through to `RestApplication`.
+   */
   constructor(options: ApplicationConfig = {}) {
     super(options);
 
