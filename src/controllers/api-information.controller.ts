@@ -11,6 +11,11 @@ export class ApiInformationController {
     this.logger = getLogger('api-information-controller');
   }
 
+  /**
+   * `GET /api` — returns this running instance's API version, read from `package.json`.
+   *
+   * @returns API information containing the current `version`.
+   */
   @get('/api', {
     responses: {
       '200': {

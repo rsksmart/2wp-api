@@ -31,23 +31,9 @@ To only install resolved dependencies in `package-lock.json`:
 npm ci
 ```
 
-### Session DB
+### Database (MongoDB)
 
-Move to the `SessionDB` folder and run:
-
-```sh
-docker-compose up -d
-```
-
-### RSK DB
-
-Move to the `rsk-database` folder, copy your `.env` file in it and then run:
-
-```sh
-docker-compose up -d
-```
-
-For some reason passing `--env-file` argument to docker-compose doesn't seem to be working fine. That's why we need to copy the `.env` file here too.
+See [Docker Deployment](#docker-deployment) below to start MongoDB (and optionally the API) via `docker-compose`.
 
 ## Environment Variables
 
@@ -92,6 +78,19 @@ If you prefer to execute just the daemon run:
 
 ```sh
 npm run start-daemon
+```
+
+## Endpoints / API Reference
+
+The running application serves an interactive REST Explorer at `/explorer` and an OpenAPI spec at `/openapi.json` (both disabled when `NODE_ENV=production`). For the full route table plus the data-access extension point, see [`docs/api.md`](./docs/api.md) and [`docs/data-services.md`](./docs/data-services.md).
+
+## Testing
+
+```sh
+npm run unit-test        # dist/__tests__/**/*.unit.js
+npm run acceptance-test  # dist/__tests__/**/*.acceptance.js
+npm run test:all         # both suites
+npm run coverage         # nyc report (after a test run)
 ```
 
 ## Fix code style and formatting issues
@@ -155,6 +154,9 @@ The API will be accessible at `http://localhost:3000` and will automatically con
 
 - `npm run openapi-spec`: Generate OpenAPI spec into a file
 
+## Documentation
+
+See [`docs/`](./docs/) for setup details beyond this README ([`setup.md`](./docs/setup.md)), the full routes table and live API docs ([`api.md`](./docs/api.md)), and the `GenericDataService` storage extension point and its MongoDB implementations ([`data-services.md`](./docs/data-services.md)).
 
 [![LoopBack](<https://github.com/strongloop/loopback-next/raw/master/docs/site/imgs/branding/Powered-by-LoopBack-Badge-(blue)-@2x.png>)](http://loopback.io/)
 
