@@ -39,24 +39,9 @@ See [Docker Deployment](#docker-deployment) below to start MongoDB (and optional
 
 To verify all environment variables, please click [here](./ENV_VARIABLES.md) for environment variables details.
 
-## Create user with admin permissions to connect without errors to mongoDB
+## Connecting to MongoDB
 
-To connect without authentication errors to mongodb, in root directory run:
-
-```
-$ docker exec -it 2wp-rsk-mongo-database bash
-$ mongosh
-$ use rsk
-$ db.createUser(
-    {
-      user: "api-user",
-      pwd: "pwd",
-      roles: [
-        { role: "userAdmin" , db:"rsk"  }
-      ]
-    }
-  )
-```
+The database user is created automatically on the container's first startup from your `.env`'s `RSK_DB_CONNECTION_*` values (see [Docker Configuration Summary](#docker-configuration-summary) below and [`docs/setup.md`](./docs/setup.md) for the manual/edge-case fallback).
 
 ## Using npm to run the application
 

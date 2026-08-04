@@ -38,6 +38,9 @@ export class UtxoController {
       'Returns array of unspent transaction outputs from a list of addresses',
     content: {'application/json': {schema: getModelSchemaRef(UtxoResponse)}},
   })
+  @response(413, {
+    description: `UTXO response exceeds the maximum of ${UTXO_RESPONSE_MAX_ROWS} rows`,
+  })
   async getUtxos(
     @requestBody({
       content: {

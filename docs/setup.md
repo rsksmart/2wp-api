@@ -49,16 +49,15 @@ docker-compose up -d pp-api-db
 
 Make sure `RSK_DB_CONNECTION_HOST=localhost` in `.env` for this case.
 
-First time only, create the application's MongoDB user:
+The application's MongoDB user is created automatically on the container's first startup: `mongo-init.js` (mounted read-only into `/docker-entrypoint-initdb.d/`) creates a `readWrite` user on `RSK_DB_CONNECTION_DATABASE` using `RSK_DB_CONNECTION_USER`/`RSK_DB_CONNECTION_PASSWORD` from `.env` — no manual step needed. This only runs the first time the container initializes an empty data directory; if you need to (re)create the user against an existing `./rsk-database/db` volume, connect directly instead:
 
 ```sh
-docker exec -it 2wp-rsk-mongo-database bash
-mongosh
-use rsk
+docker exec -it ppa-api-mongo-db mongosh
+use <RSK_DB_CONNECTION_DATABASE>
 db.createUser({
-  user: "api-user",
-  pwd: "api-pwd",
-  roles: [{ role: "userAdmin", db: "rsk" }]
+  user: "<RSK_DB_CONNECTION_USER>",
+  pwd: "<RSK_DB_CONNECTION_PASSWORD>",
+  roles: [{ role: "readWrite", db: "<RSK_DB_CONNECTION_DATABASE>" }]
 })
 ```
 

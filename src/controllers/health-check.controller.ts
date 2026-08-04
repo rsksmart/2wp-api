@@ -47,6 +47,14 @@ export class HealthCheckController {
           },
         },
       },
+      '500': {
+        description: 'API information; at least one dependency check failed',
+        content: {
+          'application/json': {
+            schema: getModelSchemaRef(HealthInformation),
+          },
+        },
+      },
     },
   })
   /**
