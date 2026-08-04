@@ -138,17 +138,35 @@ describe('Service: BackofficeFeatureFlagsService', () => {
     expect(refreshed?.FLYOVER).to.be.false();
   });
 
-  it('re-logs in on the next cycle after a non-401 failure', async () => {
+  it('keeps the session after a non-401 failure and skips the login on the next cycle', async () => {
     const fetchStub = sinon.stub();
     fetchStub.onCall(0).resolves(loginResponse());
     fetchStub.onCall(1).resolves(new Response('', {status: 500}));
-    fetchStub.onCall(2).resolves(loginResponse());
-    fetchStub.onCall(3).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
+    fetchStub.onCall(2).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
     const service = newService(fetchStub);
     expect(await service.getProviderFlags()).to.be.null();
     const flags = await service.getProviderFlags();
     expect(flags?.FLYOVER).to.be.true();
-    expect(fetchStub.getCall(2).args[0]).to.equal('http://backoffice.local/api/auth/login');
+    sinon.assert.callCount(fetchStub, 3);
+    const retryCall = fetchStub.getCall(2);
+    expect(retryCall.args[0]).to.equal(
+      'http://backoffice.local/api/feature-flags?environment=testnet',
+    );
+    expect(retryCall.args[1].headers.cookie).to.equal('auth=session-token');
+  });
+
+  it('keeps the session after a network failure and skips the login on the next cycle', async () => {
+    const fetchStub = sinon.stub();
+    fetchStub.onCall(0).resolves(loginResponse());
+    fetchStub.onCall(1).rejects(new Error('connection refused'));
+    fetchStub.onCall(2).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
+    const service = newService(fetchStub);
+    expect(await service.getProviderFlags()).to.be.null();
+    const flags = await service.getProviderFlags();
+    expect(flags?.FLYOVER).to.be.true();
+    expect(fetchStub.getCall(2).args[0]).to.equal(
+      'http://backoffice.local/api/feature-flags?environment=testnet',
+    );
   });
 
   it('resolves null instead of rejecting when the first fetch fails', async () => {

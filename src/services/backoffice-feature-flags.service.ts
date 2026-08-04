@@ -48,7 +48,6 @@ export class BackofficeFeatureFlagsService {
       this.cache = { flags: this.parseFlags(await response.json()), fetchedAt: Date.now() };
       return this.cache.flags;
     } catch (err) {
-      this.sessionCookie = null;
       this.logger.warn(
         { method: 'refresh', err },
         'Failed to retrieve feature flags from backoffice; serving last known values',
