@@ -21,12 +21,9 @@ export class PeginConfigurationController {
         description: 'Pegin configuration info',
         content: {
           'application/json': {
-            schema: {
-              type: 'array',
-              items: getModelSchemaRef(PeginConfiguration, {
-                includeRelations: true,
-              }),
-            },
+            schema: getModelSchemaRef(PeginConfiguration, {
+              includeRelations: true,
+            }),
           },
         },
       },
