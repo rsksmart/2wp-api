@@ -2,9 +2,7 @@ import { getLogger, Logger } from '../utils/logger';
 import { FeaturesDbDataModel, SupportedBrowsers } from '../models/features-data.model';
 import { NETWORK_TESTNET } from '../constants';
 
-export const PROVIDER_FLAG_KEYS = ['FLYOVER', 'UNION_BRIDGE', 'POWPEG'] as const;
-export type ProviderFlagKey = (typeof PROVIDER_FLAG_KEYS)[number];
-export type ProviderFlags = Record<ProviderFlagKey, boolean>;
+export type ProviderFlags = Record<string, boolean>;
 
 const BROWSERS: (keyof SupportedBrowsers)[] = [
   'chrome', 'firefox', 'safari', 'edge', 'brave', 'chromium', 'opera',
@@ -22,7 +20,7 @@ export class BackofficeFeatureFlagsService {
   private cache: { flags: ProviderFlags; fetchedAt: number } | null = null;
   private inFlight: Promise<ProviderFlags | null> | null = null;
 
-  constructor(private readonly fetchFn: typeof fetch = fetch) {}
+  constructor(private readonly fetchFn: typeof fetch = fetch) { }
 
   public async getProviderFlags(): Promise<ProviderFlags | null> {
     if (!this.baseUrl || !this.email || !this.password) return null;
@@ -87,21 +85,27 @@ export class BackofficeFeatureFlagsService {
   }
 
   private parseFlags(payload: unknown): ProviderFlags {
-    const rows = (payload as { flags?: { key: string; value: unknown }[] })?.flags;
+    const rows = (payload as { flags?: { key: unknown; value: unknown }[] })?.flags;
     if (!Array.isArray(rows)) {
       throw new Error('Invalid backoffice /api/feature-flags response: missing "flags" array');
     }
-    const values = new Map(rows.map(row => [row.key, row.value]));
-    const missing = PROVIDER_FLAG_KEYS.filter(key => typeof values.get(key) !== 'boolean');
-    if (missing.length > 0) {
+    const flags: ProviderFlags = {};
+    const dropped: string[] = [];
+    rows.forEach(row => {
+      if (typeof row?.key !== 'string') return;
+      if (typeof row.value === 'boolean') {
+        flags[row.key] = row.value;
+      } else {
+        dropped.push(row.key);
+      }
+    });
+    if (dropped.length > 0) {
       this.logger.warn(
-        { method: 'parseFlags', missing },
-        'Flags missing or non-boolean in backoffice response; defaulting to disabled',
+        { method: 'parseFlags', dropped },
+        'Ignoring backoffice flags with non-boolean values',
       );
     }
-    return Object.fromEntries(
-      PROVIDER_FLAG_KEYS.map(key => [key, values.get(key) === true]),
-    ) as ProviderFlags;
+    return flags;
   }
 }
 
@@ -111,11 +115,14 @@ export function applyProviderFlags(
 ): FeaturesDbDataModel[] {
   const merged = [...features];
   const now = new Date();
-  PROVIDER_FLAG_KEYS.forEach(key => {
+  Object.entries(providerFlags).forEach(([key, enabled]) => {
     const name = key.toLowerCase();
-    const value = providerFlags[key] ? 'enabled' : 'disabled';
+    const value = enabled ? 'enabled' : 'disabled';
     const existing = merged.find(feature => feature.name === name);
     if (existing) {
+      if (existing.value !== 'enabled' && existing.value !== 'disabled') {
+        return;
+      }
       existing.value = value;
       existing.lastUpdateDate = now;
     } else {

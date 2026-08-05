@@ -39,10 +39,15 @@ This table was created to guide and centralize the **environment variables** nec
 
 ### Backoffice feature flags
 
-When the `BACKOFFICE_*` variables are set, the provider availability flags
-(`FLYOVER`, `UNION_BRIDGE`, `POWPEG`) are retrieved from the backoffice for
-the environment matching `NETWORK` and merged into the `/features` response as
-`flyover`/`union_bridge`/`powpeg` with value `enabled`/`disabled`.
+When the `BACKOFFICE_*` variables are set, every boolean feature flag
+configured on the backoffice (e.g. `FLYOVER`, `UNION_BRIDGE`, `POWPEG`,
+`MAINTENANCE_MODE`) is retrieved for the environment matching `NETWORK` and
+merged into the `/features` response under its lowercased key (e.g. `flyover`)
+with value `enabled`/`disabled`. New flags added on the backoffice flow
+through without code changes. Flags with non-boolean values are ignored (and
+logged), and a flag whose lowercased key matches an existing feature that does
+not hold an `enabled`/`disabled` value (e.g. `terms_and_conditions`) never
+overwrites it.
 Values are cached for `BACKOFFICE_FLAGS_CACHE_TTL_MS`; once expired, the stale
 values keep being served while a refresh runs in the background, so only the
 very first retrieval waits on the backoffice. On backoffice downtime the last

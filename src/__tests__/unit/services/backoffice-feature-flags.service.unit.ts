@@ -71,7 +71,12 @@ describe('Service: BackofficeFeatureFlagsService', () => {
     );
     const service = newService(fetchStub);
     const flags = await service.getProviderFlags();
-    expect(flags).to.eql({FLYOVER: true, UNION_BRIDGE: false, POWPEG: true});
+    expect(flags).to.eql({
+      FLYOVER: true,
+      UNION_BRIDGE: false,
+      POWPEG: true,
+      MAINTENANCE_MODE: false,
+    });
     const loginCall = fetchStub.getCall(0);
     expect(loginCall.args[0]).to.equal('http://backoffice.local/api/auth/login');
     const flagsCall = fetchStub.getCall(1);
@@ -183,18 +188,19 @@ describe('Service: BackofficeFeatureFlagsService', () => {
     expect(await service.getProviderFlags()).to.be.null();
   });
 
-  it('defaults missing or non-boolean flags to disabled', async () => {
+  it('forwards every boolean flag and drops non-boolean values', async () => {
     const fetchStub = sinon.stub();
     fetchStub.onCall(0).resolves(loginResponse());
     fetchStub.onCall(1).resolves(
       flagsResponse([
         {key: 'FLYOVER', value: 'yes'},
         {key: 'POWPEG', value: true},
+        {key: 'NEW_PROVIDER', value: false},
       ]),
     );
     const service = newService(fetchStub);
     const flags = await service.getProviderFlags();
-    expect(flags).to.eql({FLYOVER: false, UNION_BRIDGE: false, POWPEG: true});
+    expect(flags).to.eql({POWPEG: true, NEW_PROVIDER: false});
   });
 
   describe('applyProviderFlags()', () => {
@@ -207,12 +213,23 @@ describe('Service: BackofficeFeatureFlagsService', () => {
         FLYOVER: false,
         UNION_BRIDGE: true,
         POWPEG: false,
+        NEW_PROVIDER: true,
       });
       const byName = new Map(merged.map(feature => [feature.name, feature.value]));
-      expect(merged.length).to.equal(3);
+      expect(merged.length).to.equal(4);
       expect(byName.get('flyover')).to.equal('disabled');
       expect(byName.get('union_bridge')).to.equal('enabled');
       expect(byName.get('powpeg')).to.equal('disabled');
+      expect(byName.get('new_provider')).to.equal('enabled');
+    });
+
+    it('does not overwrite features whose value is not enabled/disabled', () => {
+      const terms = new FeaturesDbDataModel();
+      terms.name = 'terms_and_conditions';
+      terms.value = '# TERMS OF SERVICES';
+      const merged = applyProviderFlags([terms], {TERMS_AND_CONDITIONS: true});
+      expect(merged.length).to.equal(1);
+      expect(merged[0].value).to.equal('# TERMS OF SERVICES');
     });
   });
 });
