@@ -66,7 +66,10 @@ import { BackofficeFeatureFlagsService } from '../../services/backoffice-feature
           });
       });
       it('includes the backoffice provider availability flags in the response', async() => {
-        getProviderFlags.resolves({FLYOVER: true, UNION_BRIDGE: false, POWPEG: true});
+        getProviderFlags.resolves({
+          flags: {FLYOVER: true, UNION_BRIDGE: false, POWPEG: true},
+          providers: [],
+        });
         const controller = new FeaturesController(context.response, mockedService, mockedBackofficeService);
         await controller.get();
         let result = await context.result;
@@ -88,7 +91,10 @@ import { BackofficeFeatureFlagsService } from '../../services/backoffice-feature
       });
       it('overwrites a locally stored feature with the backoffice value', async() => {
         getAll.resolves([{name: 'flyover', value: 'enabled', version: 1}]);
-        getProviderFlags.resolves({FLYOVER: false, UNION_BRIDGE: false, POWPEG: false});
+        getProviderFlags.resolves({
+          flags: {FLYOVER: false, UNION_BRIDGE: false, POWPEG: false},
+          providers: [],
+        });
         const controller = new FeaturesController(context.response, mockedService, mockedBackofficeService);
         await controller.get();
         let result = await context.result;
@@ -96,6 +102,33 @@ import { BackofficeFeatureFlagsService } from '../../services/backoffice-feature
         const flyover = features.filter(feature => feature.name === 'flyover');
         expect(flyover.length).to.equal(1);
         expect(flyover[0].value).to.equal('disabled');
+      });
+      it('includes the backoffice providers with their enabled pairs', async() => {
+        const pairs = [
+          {
+            fromNetwork: 'BITCOIN',
+            toNetwork: 'ROOTSTOCK',
+            fromToken: 'BTC',
+            toToken: 'RBTC',
+            enabled: true,
+          },
+        ];
+        getProviderFlags.resolves({
+          flags: {},
+          providers: [
+            {key: 'BOLTZ', displayName: 'Boltz', enabled: true, pairs},
+            {key: 'CHANGELLY', displayName: 'Changelly', enabled: false, pairs: []},
+          ],
+        });
+        const controller = new FeaturesController(context.response, mockedService, mockedBackofficeService);
+        await controller.get();
+        let result = await context.result;
+        const features = <Array<FeaturesDbDataModel & {pairs?: unknown}>>JSON.parse(result.payload);
+        const byName = new Map(features.map(feature => [feature.name, feature]));
+        expect(byName.get('boltz')?.value).to.equal('enabled');
+        expect(byName.get('boltz')?.pairs).to.eql(pairs);
+        expect(byName.get('changelly')?.value).to.equal('disabled');
+        expect(byName.get('changelly')?.pairs).to.eql([]);
       });
     });
 
