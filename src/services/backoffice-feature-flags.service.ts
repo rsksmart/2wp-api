@@ -1,12 +1,24 @@
 import { getLogger, Logger } from '../utils/logger';
-import { FeaturesDbDataModel, SupportedBrowsers } from '../models/features-data.model';
+import { FeaturesDbDataModel } from '../models/features-data.model';
 import { NETWORK_TESTNET } from '../constants';
 
-export type ProviderFlags = Record<string, boolean>;
+export interface ProviderFlagValue {
+  enabled: boolean;
+  [property: string]: unknown;
+}
+export type ProviderFlags = Record<string, ProviderFlagValue>;
 
-const BROWSERS: (keyof SupportedBrowsers)[] = [
-  'chrome', 'firefox', 'safari', 'edge', 'brave', 'chromium', 'opera',
-];
+const featureModelProperties = (
+  FeaturesDbDataModel as unknown as { definition: { properties: Record<string, unknown> } }
+).definition.properties;
+
+const FEATURE_ATTRIBUTE_SUFFIXES: ReadonlyArray<{ suffix: string; property: string }> =
+  Object.keys(featureModelProperties)
+    .filter(property => property !== 'name' && property !== 'value')
+    .map(property => ({
+      property,
+      suffix: `_${property.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase()}`,
+    }));
 
 export class BackofficeFeatureFlagsService {
   logger: Logger = getLogger('backoffice-feature-flags-service');
@@ -90,19 +102,36 @@ export class BackofficeFeatureFlagsService {
       throw new Error('Invalid backoffice /api/feature-flags response: missing "flags" array');
     }
     const flags: ProviderFlags = {};
+    const attributes = new Map<string, Record<string, unknown>>();
     const dropped: string[] = [];
     rows.forEach(row => {
-      if (typeof row?.key !== 'string') return;
+      const key = row?.key;
+      if (typeof key !== 'string' || key.trim() === '') return;
       if (typeof row.value === 'boolean') {
-        flags[row.key] = row.value;
+        flags[key] = { enabled: row.value };
+        return;
+      }
+      const attribute = FEATURE_ATTRIBUTE_SUFFIXES.find(
+        ({ suffix }) => key.endsWith(suffix) && key.length > suffix.length,
+      );
+      if (attribute && row.value !== null && row.value !== undefined) {
+        const base = key.slice(0, -attribute.suffix.length);
+        attributes.set(base, { ...attributes.get(base), [attribute.property]: row.value });
       } else {
-        dropped.push(row.key);
+        dropped.push(key);
+      }
+    });
+    attributes.forEach((value, key) => {
+      if (flags[key]) {
+        Object.assign(flags[key], value);
+      } else {
+        dropped.push(key);
       }
     });
     if (dropped.length > 0) {
       this.logger.warn(
         { method: 'parseFlags', dropped },
-        'Ignoring backoffice flags with non-boolean values',
+        'Ignoring backoffice flags with unsupported value shapes',
       );
     }
     return flags;
@@ -114,8 +143,7 @@ export function applyProviderFlags(
   providerFlags: ProviderFlags,
 ): FeaturesDbDataModel[] {
   const merged = [...features];
-  const now = new Date();
-  Object.entries(providerFlags).forEach(([key, enabled]) => {
+  Object.entries(providerFlags).forEach(([key, { enabled, ...attributes }]) => {
     const name = key.toLowerCase();
     const value = enabled ? 'enabled' : 'disabled';
     const existing = merged.find(feature => feature.name === name);
@@ -124,20 +152,10 @@ export function applyProviderFlags(
         return;
       }
       existing.value = value;
-      existing.lastUpdateDate = now;
+      Object.assign(existing, attributes);
     } else {
       merged.push(
-        Object.assign(new FeaturesDbDataModel(), {
-          name,
-          value,
-          version: 0,
-          creationDate: now,
-          lastUpdateDate: now,
-          supportedBrowsers: BROWSERS.reduce(
-            (browsers, browser) => ({ ...browsers, [browser]: true }),
-            {} as SupportedBrowsers,
-          ),
-        }),
+        Object.assign(new FeaturesDbDataModel(), { name, value, version: 0 }, attributes),
       );
     }
   });

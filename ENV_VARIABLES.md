@@ -44,10 +44,14 @@ configured on the backoffice (e.g. `FLYOVER`, `UNION_BRIDGE`, `POWPEG`,
 `MAINTENANCE_MODE`) is retrieved for the environment matching `NETWORK` and
 merged into the `/features` response under its lowercased key (e.g. `flyover`)
 with value `enabled`/`disabled`. New flags added on the backoffice flow
-through without code changes. Flags with non-boolean values are ignored (and
-logged), and a flag whose lowercased key matches an existing feature that does
-not hold an `enabled`/`disabled` value (e.g. `terms_and_conditions`) never
-overwrites it.
+through without code changes. A json flag named `<KEY>_<PROPERTY>` sets that
+property on the `<key>` feature row, where `<PROPERTY>` is the upper-snake
+form of any feature model property (e.g. `WALLET_LEDGER_SUPPORTED_BROWSERS`
+sets `supportedBrowsers` of `wallet_ledger`); the accepted property names
+follow the feature model automatically. Flags with any other shape, and
+property flags without a matching boolean flag, are ignored (and logged). A
+flag whose lowercased key matches an existing feature that does not hold an
+`enabled`/`disabled` value (e.g. `terms_and_conditions`) never overwrites it.
 Values are cached for `BACKOFFICE_FLAGS_CACHE_TTL_MS`; once expired, the stale
 values keep being served while a refresh runs in the background, so only the
 very first retrieval waits on the backoffice. On backoffice downtime the last

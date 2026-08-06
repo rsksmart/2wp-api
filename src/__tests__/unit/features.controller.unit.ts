@@ -66,7 +66,11 @@ import { BackofficeFeatureFlagsService } from '../../services/backoffice-feature
           });
       });
       it('includes the backoffice provider availability flags in the response', async() => {
-        getProviderFlags.resolves({FLYOVER: true, UNION_BRIDGE: false, POWPEG: true});
+        getProviderFlags.resolves({
+          FLYOVER: {enabled: true},
+          UNION_BRIDGE: {enabled: false},
+          POWPEG: {enabled: true},
+        });
         const controller = new FeaturesController(context.response, mockedService, mockedBackofficeService);
         await controller.get();
         let result = await context.result;
@@ -88,7 +92,11 @@ import { BackofficeFeatureFlagsService } from '../../services/backoffice-feature
       });
       it('overwrites a locally stored feature with the backoffice value', async() => {
         getAll.resolves([{name: 'flyover', value: 'enabled', version: 1}]);
-        getProviderFlags.resolves({FLYOVER: false, UNION_BRIDGE: false, POWPEG: false});
+        getProviderFlags.resolves({
+          FLYOVER: {enabled: false},
+          UNION_BRIDGE: {enabled: false},
+          POWPEG: {enabled: false},
+        });
         const controller = new FeaturesController(context.response, mockedService, mockedBackofficeService);
         await controller.get();
         let result = await context.result;

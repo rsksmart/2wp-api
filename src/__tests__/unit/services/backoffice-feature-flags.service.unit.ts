@@ -72,10 +72,10 @@ describe('Service: BackofficeFeatureFlagsService', () => {
     const service = newService(fetchStub);
     const flags = await service.getProviderFlags();
     expect(flags).to.eql({
-      FLYOVER: true,
-      UNION_BRIDGE: false,
-      POWPEG: true,
-      MAINTENANCE_MODE: false,
+      FLYOVER: {enabled: true},
+      UNION_BRIDGE: {enabled: false},
+      POWPEG: {enabled: true},
+      MAINTENANCE_MODE: {enabled: false},
     });
     const loginCall = fetchStub.getCall(0);
     expect(loginCall.args[0]).to.equal('http://backoffice.local/api/auth/login');
@@ -93,7 +93,7 @@ describe('Service: BackofficeFeatureFlagsService', () => {
     const service = newService(fetchStub);
     await service.getProviderFlags();
     const again = await service.getProviderFlags();
-    expect(again?.FLYOVER).to.be.true();
+    expect(again?.FLYOVER.enabled).to.be.true();
     sinon.assert.callCount(fetchStub, 2);
   });
 
@@ -105,7 +105,7 @@ describe('Service: BackofficeFeatureFlagsService', () => {
     fetchStub.onCall(3).resolves(flagsResponse([{key: 'POWPEG', value: true}]));
     const service = newService(fetchStub);
     const flags = await service.getProviderFlags();
-    expect(flags?.POWPEG).to.be.true();
+    expect(flags?.POWPEG.enabled).to.be.true();
     sinon.assert.callCount(fetchStub, 4);
   });
 
@@ -117,10 +117,10 @@ describe('Service: BackofficeFeatureFlagsService', () => {
     fetchStub.onCall(2).rejects(new Error('connection refused'));
     const service = newService(fetchStub);
     const first = await service.getProviderFlags();
-    expect(first?.FLYOVER).to.be.true();
+    expect(first?.FLYOVER.enabled).to.be.true();
     await new Promise(resolve => setTimeout(resolve, 5));
     const second = await service.getProviderFlags();
-    expect(second?.FLYOVER).to.be.true();
+    expect(second?.FLYOVER.enabled).to.be.true();
   });
 
   it('serves the stale flags immediately and refreshes in the background once the TTL expires', async () => {
@@ -136,11 +136,11 @@ describe('Service: BackofficeFeatureFlagsService', () => {
     await service.getProviderFlags();
     await new Promise(resolve => setTimeout(resolve, 5));
     const stale = await service.getProviderFlags();
-    expect(stale?.FLYOVER).to.be.true();
+    expect(stale?.FLYOVER.enabled).to.be.true();
     resolveRefresh(flagsResponse([{key: 'FLYOVER', value: false}]));
     await new Promise(resolve => setImmediate(resolve));
     const refreshed = await service.getProviderFlags();
-    expect(refreshed?.FLYOVER).to.be.false();
+    expect(refreshed?.FLYOVER.enabled).to.be.false();
   });
 
   it('keeps the session after a non-401 failure and skips the login on the next cycle', async () => {
@@ -151,7 +151,7 @@ describe('Service: BackofficeFeatureFlagsService', () => {
     const service = newService(fetchStub);
     expect(await service.getProviderFlags()).to.be.null();
     const flags = await service.getProviderFlags();
-    expect(flags?.FLYOVER).to.be.true();
+    expect(flags?.FLYOVER.enabled).to.be.true();
     sinon.assert.callCount(fetchStub, 3);
     const retryCall = fetchStub.getCall(2);
     expect(retryCall.args[0]).to.equal(
@@ -168,7 +168,7 @@ describe('Service: BackofficeFeatureFlagsService', () => {
     const service = newService(fetchStub);
     expect(await service.getProviderFlags()).to.be.null();
     const flags = await service.getProviderFlags();
-    expect(flags?.FLYOVER).to.be.true();
+    expect(flags?.FLYOVER.enabled).to.be.true();
     expect(fetchStub.getCall(2).args[0]).to.equal(
       'http://backoffice.local/api/feature-flags?environment=testnet',
     );
@@ -188,7 +188,8 @@ describe('Service: BackofficeFeatureFlagsService', () => {
     expect(await service.getProviderFlags()).to.be.null();
   });
 
-  it('forwards every boolean flag and drops non-boolean values', async () => {
+  it('pairs feature property flags with their boolean flag and drops unsupported shapes', async () => {
+    const browsers = {chrome: true, firefox: false};
     const fetchStub = sinon.stub();
     fetchStub.onCall(0).resolves(loginResponse());
     fetchStub.onCall(1).resolves(
@@ -196,11 +197,20 @@ describe('Service: BackofficeFeatureFlagsService', () => {
         {key: 'FLYOVER', value: 'yes'},
         {key: 'POWPEG', value: true},
         {key: 'NEW_PROVIDER', value: false},
+        {key: 'WALLET_LEDGER', value: true},
+        {key: 'WALLET_LEDGER_SUPPORTED_BROWSERS', value: browsers},
+        {key: 'WALLET_LEDGER_VERSION', value: 3},
+        {key: 'ORPHAN_SUPPORTED_BROWSERS', value: browsers},
+        {key: 'WALLET_TREZOR_UNKNOWN_PROPERTY', value: browsers},
       ]),
     );
     const service = newService(fetchStub);
     const flags = await service.getProviderFlags();
-    expect(flags).to.eql({POWPEG: true, NEW_PROVIDER: false});
+    expect(flags).to.eql({
+      POWPEG: {enabled: true},
+      NEW_PROVIDER: {enabled: false},
+      WALLET_LEDGER: {enabled: true, supportedBrowsers: browsers, version: 3},
+    });
   });
 
   describe('applyProviderFlags()', () => {
@@ -210,10 +220,10 @@ describe('Service: BackofficeFeatureFlagsService', () => {
       existing.value = 'enabled';
       existing.version = 1;
       const merged = applyProviderFlags([existing], {
-        FLYOVER: false,
-        UNION_BRIDGE: true,
-        POWPEG: false,
-        NEW_PROVIDER: true,
+        FLYOVER: {enabled: false},
+        UNION_BRIDGE: {enabled: true},
+        POWPEG: {enabled: false},
+        NEW_PROVIDER: {enabled: true},
       });
       const byName = new Map(merged.map(feature => [feature.name, feature.value]));
       expect(merged.length).to.equal(4);
@@ -223,11 +233,38 @@ describe('Service: BackofficeFeatureFlagsService', () => {
       expect(byName.get('new_provider')).to.equal('enabled');
     });
 
+    const walletFeature = () => {
+      const wallet = new FeaturesDbDataModel();
+      wallet.name = 'wallet_ledger';
+      wallet.value = 'enabled';
+      wallet.supportedBrowsers = {
+        chrome: true, firefox: true, safari: true, edge: true, brave: true, chromium: true, opera: true,
+      };
+      return wallet;
+    };
+
+    it('applies flag attributes to existing and appended features', () => {
+      const browsers = {chrome: true, firefox: false, safari: false, edge: true, brave: false, chromium: true, opera: false};
+      const merged = applyProviderFlags([walletFeature()], {
+        WALLET_LEDGER: {enabled: true, supportedBrowsers: browsers},
+        FLYOVER: {enabled: true},
+      });
+      const byName = new Map(merged.map(feature => [feature.name, feature]));
+      expect(byName.get('wallet_ledger')?.supportedBrowsers).to.eql(browsers);
+      expect(byName.get('flyover')?.supportedBrowsers).to.be.undefined();
+    });
+
+    it('keeps the existing supportedBrowsers when the flag has none', () => {
+      const merged = applyProviderFlags([walletFeature()], {WALLET_LEDGER: {enabled: false}});
+      expect(merged[0].supportedBrowsers).to.eql(walletFeature().supportedBrowsers);
+      expect(merged[0].value).to.equal('disabled');
+    });
+
     it('does not overwrite features whose value is not enabled/disabled', () => {
       const terms = new FeaturesDbDataModel();
       terms.name = 'terms_and_conditions';
       terms.value = '# TERMS OF SERVICES';
-      const merged = applyProviderFlags([terms], {TERMS_AND_CONDITIONS: true});
+      const merged = applyProviderFlags([terms], {TERMS_AND_CONDITIONS: {enabled: true}});
       expect(merged.length).to.equal(1);
       expect(merged[0].value).to.equal('# TERMS OF SERVICES');
     });
