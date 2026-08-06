@@ -27,6 +27,15 @@ export class TxStatusController {
     this.logger = getLogger('tx-status-controller');
   }
 
+  /**
+   * `GET /tx-status/{txId}` — looks up a transaction's status without knowing
+   * its type ahead of time: verifies Blockbook is in sync, then tries native
+   * peg-in, native peg-out, and Flyover (in that order), returning the first
+   * one that has details.
+   *
+   * @param txId - Transaction id/hash, either `0x`-prefixed or bare 64-char hex.
+   * @returns A `TxStatus` describing the outcome: the matched type with its details, `INVALID_DATA` if `txId` is malformed or nothing matched, or `BLOCKBOOK_FAILED`/`UNEXPECTED_ERROR` on lookup failures.
+   */
   @get('/tx-status/{txId}')
   @response(200, {
     description: 'TxStatus model instance',
@@ -50,6 +59,14 @@ export class TxStatusController {
     return status;
   }
 
+  /**
+   * `GET /tx-status-by-type/{txId}/{txType}` — same lookup as `getTxStatus`,
+   * but scoped to a single known `txType` instead of trying every protocol in turn.
+   *
+   * @param txId - Transaction id/hash, either `0x`-prefixed or bare 64-char hex.
+   * @param txType - One of `TxStatusType`'s pegin/pegout/flyover-pegin/flyover-pegout values.
+   * @returns A `TxStatus` for the requested type/id, `INVALID_DATA` if `txId` is malformed, or `UNEXPECTED_ERROR` if nothing was found for the given `txType` (including an unrecognized `txType`) or the lookup failed.
+   */
   @get('/tx-status-by-type/{txId}/{txType}')
   @response(200, {
     description: 'TxStatus model instance',

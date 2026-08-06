@@ -36,6 +36,12 @@ export class TxController {
       },
     },
   })
+  /**
+   * `GET /tx?tx={txId}` — looks up transaction info by RSK transaction hash.
+   *
+   * @param txId - RSK transaction hash (64-char hex), passed via the `tx` query parameter.
+   * @returns The transaction info for `txId`.
+   */
   getTx(txId: string): Promise<Tx> {
     this.logger.debug({method: 'getTx', txId}, 'started');
     return new Promise<Tx>((resolve, reject) => {

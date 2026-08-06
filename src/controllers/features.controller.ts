@@ -52,6 +52,15 @@ export class FeaturesController {
       },
     },
   })
+  /**
+   * `GET /features` — returns the stored feature-flag documents.
+   *
+   * Writes the JSON body and status directly onto the injected `Response`
+   * (200 with the feature list on success, 500 with a placeholder single-item
+   * array if `FeaturesDataService.getAll()` throws) rather than returning a value.
+   *
+   * @returns The `Response` object, already sent.
+   */
   public async get(): Promise<Response> {
     this.logger.debug({method: 'get'}, 'started');
     let features = [new FeaturesDbDataModel()];

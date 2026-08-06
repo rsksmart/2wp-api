@@ -24,11 +24,22 @@ export class UtxoController {
     this.logger = getLogger('utxo-controller');
   }
 
+  /**
+   * `POST /utxo` — resolves the unspent transaction outputs for each address in
+   * `addressList` (in order, with up to `PROVIDER_CONCURRENCY` in flight at once).
+   *
+   * @param addressList - Body containing `addressList`, a deduplicated list of BTC addresses (max `ADDRESS_LIST_MAX_ITEMS`, validated against `BTC_ADDRESS_PATTERN`).
+   * @returns The flattened list of UTXOs across all addresses.
+   * @throws {HttpErrors.PayloadTooLarge} If the combined UTXO count exceeds `UTXO_RESPONSE_MAX_ROWS`.
+   */
   @post('/utxo')
   @response(200, {
     description:
       'Returns array of unspent transaction outputs from a list of addresses',
     content: {'application/json': {schema: getModelSchemaRef(UtxoResponse)}},
+  })
+  @response(413, {
+    description: `UTXO response exceeds the maximum of ${UTXO_RESPONSE_MAX_ROWS} rows`,
   })
   async getUtxos(
     @requestBody({

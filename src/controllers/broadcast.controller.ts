@@ -14,6 +14,12 @@ export class BroadcastController {
     this.logger = getLogger('broadcast-controller');
   }
 
+  /**
+   * `POST /broadcast` — broadcasts a raw signed Bitcoin transaction to the network.
+   *
+   * @param req - Broadcast request body containing `data`, the hex-encoded raw transaction.
+   * @returns The resulting `txId` on success, or `error` populated instead if the broadcast provider reported one.
+   */
   @post('/broadcast', {
     requestBody: {
       content: {

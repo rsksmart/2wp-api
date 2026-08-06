@@ -22,6 +22,15 @@ const searchAppMode = (): APP_MODE => {
   return APP_MODE.ALL;
 };
 
+/**
+ * Boots and starts the application in the mode selected by the `--appmode=` CLI
+ * argument (`API`, `DAEMON`, or both when omitted/unrecognized). Registers
+ * shutdown handlers for `SIGINT` and uncaught exceptions that stop whichever
+ * of the REST API / daemon were started.
+ *
+ * @param options - LoopBack `ApplicationConfig` forwarded to `TwpapiApplication` when the API is started.
+ * @returns Resolves once the selected component(s) have started; never resolves with a value.
+ */
 export async function main(options: ApplicationConfig = {}): Promise<void> {
   const logger = getLogger('app');
 
