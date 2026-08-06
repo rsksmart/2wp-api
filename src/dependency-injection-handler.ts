@@ -20,7 +20,6 @@ import {RskNodeService} from './services/rsk-node.service';
 import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 import { PegoutDataProcessor } from './services/pegout-data.processor';
 import { FeaturesMongoDbDataService } from './services/features-mongo.service';
-import { BackofficeFeatureFlagsService } from './services/backoffice-feature-flags.service';
 
 export class DependencyInjectionHandler {
   public static configureDependencies(app: Application): void {
@@ -155,9 +154,5 @@ export class DependencyInjectionHandler {
       .toClass(FeaturesMongoDbDataService)
       .inScope(BindingScope.SINGLETON);
 
-    app
-      .bind(ServicesBindings.BACKOFFICE_FEATURE_FLAGS_SERVICE)
-      .toClass(BackofficeFeatureFlagsService)
-      .inScope(BindingScope.SINGLETON);
   }
 }
