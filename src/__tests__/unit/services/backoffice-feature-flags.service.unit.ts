@@ -188,7 +188,7 @@ describe('Service: BackofficeFeatureFlagsService', () => {
     expect(await service.getProviderFlags()).to.be.null();
   });
 
-  it('pairs feature property flags with their boolean flag and drops unsupported shapes', async () => {
+  it('pairs property flags with their boolean flag and drops orphans and invalid shapes', async () => {
     const browsers = {chrome: true, firefox: false};
     const fetchStub = sinon.stub();
     fetchStub.onCall(0).resolves(loginResponse());
@@ -196,20 +196,20 @@ describe('Service: BackofficeFeatureFlagsService', () => {
       flagsResponse([
         {key: 'FLYOVER', value: 'yes'},
         {key: 'POWPEG', value: true},
+        {key: 'POWPEG_ANY_NEW_PROPERTY', value: {some: 'data'}},
         {key: 'NEW_PROVIDER', value: false},
         {key: 'WALLET_LEDGER', value: true},
         {key: 'WALLET_LEDGER_SUPPORTED_BROWSERS', value: browsers},
-        {key: 'WALLET_LEDGER_VERSION', value: 3},
+        {key: 'WALLET_LEDGER_VALUE', value: 'enabled'},
         {key: 'ORPHAN_SUPPORTED_BROWSERS', value: browsers},
-        {key: 'WALLET_TREZOR_UNKNOWN_PROPERTY', value: browsers},
       ]),
     );
     const service = newService(fetchStub);
     const flags = await service.getProviderFlags();
     expect(flags).to.eql({
-      POWPEG: {enabled: true},
+      POWPEG: {enabled: true, anyNewProperty: {some: 'data'}},
       NEW_PROVIDER: {enabled: false},
-      WALLET_LEDGER: {enabled: true, supportedBrowsers: browsers, version: 3},
+      WALLET_LEDGER: {enabled: true, supportedBrowsers: browsers},
     });
   });
 

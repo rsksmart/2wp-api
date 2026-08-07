@@ -8,17 +8,16 @@ export interface ProviderFlagValue {
 }
 export type ProviderFlags = Record<string, ProviderFlagValue>;
 
-const featureModelProperties = (
-  FeaturesDbDataModel as unknown as { definition: { properties: Record<string, unknown> } }
-).definition.properties;
-
-const FEATURE_ATTRIBUTE_SUFFIXES: ReadonlyArray<{ suffix: string; property: string }> =
-  Object.keys(featureModelProperties)
-    .filter(property => property !== 'name' && property !== 'value')
-    .map(property => ({
-      property,
-      suffix: `_${property.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase()}`,
-    }));
+function toPropertyName(suffix: string): string {
+  const parts = suffix.toLowerCase().split('_');
+  return (
+    parts[0] +
+    parts
+      .slice(1)
+      .map(part => (part ? part[0].toUpperCase() + part.slice(1) : part))
+      .join('')
+  );
+}
 
 export class BackofficeFeatureFlagsService {
   logger: Logger = getLogger('backoffice-feature-flags-service');
@@ -102,28 +101,24 @@ export class BackofficeFeatureFlagsService {
       throw new Error('Invalid backoffice /api/feature-flags response: missing "flags" array');
     }
     const flags: ProviderFlags = {};
-    const attributes = new Map<string, Record<string, unknown>>();
+    const properties: { key: string; value: unknown }[] = [];
     const dropped: string[] = [];
     rows.forEach(row => {
       const key = row?.key;
       if (typeof key !== 'string' || key.trim() === '') return;
       if (typeof row.value === 'boolean') {
         flags[key] = { enabled: row.value };
-        return;
-      }
-      const attribute = FEATURE_ATTRIBUTE_SUFFIXES.find(
-        ({ suffix }) => key.endsWith(suffix) && key.length > suffix.length,
-      );
-      if (attribute && row.value !== null && row.value !== undefined) {
-        const base = key.slice(0, -attribute.suffix.length);
-        attributes.set(base, { ...attributes.get(base), [attribute.property]: row.value });
       } else {
-        dropped.push(key);
+        properties.push({ key, value: row.value });
       }
     });
-    attributes.forEach((value, key) => {
-      if (flags[key]) {
-        Object.assign(flags[key], value);
+    properties.forEach(({ key, value }) => {
+      const base = Object.keys(flags)
+        .filter(flag => key.startsWith(`${flag}_`) && key.length > flag.length + 1)
+        .sort((a, b) => b.length - a.length)[0];
+      const property = base ? toPropertyName(key.slice(base.length + 1)) : null;
+      if (property && property !== 'name' && property !== 'value' && value !== null && value !== undefined) {
+        flags[base][property] = value;
       } else {
         dropped.push(key);
       }
