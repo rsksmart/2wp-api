@@ -17,7 +17,7 @@ export class DaemonService implements IDaemonService {
   pegoutDataProcessor: PegoutDataProcessor;
   rskBlockProcessorPublisher: RskBlockProcessorPublisher
 
-  dataFetchInterval: NodeJS.Timer;
+  dataFetchInterval: NodeJS.Timeout;
   started: boolean;
   logger: Logger;
 
