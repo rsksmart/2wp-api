@@ -3,7 +3,7 @@ import { RestBindings, get, getModelSchemaRef, Response, } from '@loopback/rest'
 import { getLogger, Logger } from '../utils/logger';
 import { ServicesBindings } from '../dependency-injection-bindings';
 import { FeaturesDataService } from '../services/features-data.service';
-import { BackofficeFeatureFlagsService, applyProviderFlags } from '../services/backoffice-feature-flags.service';
+import { BackofficeFeatureFlagsService, MergedFeature, applyProviderFlags } from '../services/backoffice-feature-flags.service';
 import { FeaturesDbDataModel } from '../models/features-data.model';
 
 export class FeaturesController {
@@ -63,14 +63,14 @@ export class FeaturesController {
    */
   public async get(): Promise<Response> {
     this.logger.debug({method: 'get'}, 'started');
-    let features = [new FeaturesDbDataModel()];
+    let features: MergedFeature[] = [new FeaturesDbDataModel()];
     let responseCode = this.HTTP_ERROR;
     try {
         features = await this.featuresDatService.getAll();
         responseCode = this.HTTP_SUCCESS_OK;
-        const providerFlags = await this.backofficeFeatureFlagsService.getProviderFlags();
-        if (providerFlags) {
-            features = applyProviderFlags(features, providerFlags);
+        const backofficeFlags = await this.backofficeFeatureFlagsService.getProviderFlags();
+        if (backofficeFlags) {
+            features = applyProviderFlags(features, backofficeFlags);
         }
         this.logger.info({method: 'get', featureCount: features.length}, 'Retrieved the features');
     } catch (err) {

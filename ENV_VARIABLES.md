@@ -31,6 +31,7 @@ This table was created to guide and centralize the **environment variables** nec
 |LOG_LEVEL                     |`debug, info, warn, error, fatal` |'Minimum log level. Defaults to info'           |
 |METRICS_ENABLED               |`true or false`                |'enable metric debug log'                                |
 |NODE_ENV|`production or development`|'Indicates if the app should be built for a production environment or not'
+|DEPLOY_ENV                    |`local`                        |'Deployment environment whose backoffice feature flags are retrieved. Defaults to local'|
 |BACKOFFICE_API_URL            |`http://localhost:3010`        |'Base URL of the backoffice API serving the feature flags. Empty disables the integration (local features only)'|
 |BACKOFFICE_API_EMAIL          |                               |'Backoffice service account email (read-only feature-flags role)'|
 |BACKOFFICE_API_PASSWORD       |                               |'Backoffice service account password. Secret — never commit'|
@@ -39,20 +40,46 @@ This table was created to guide and centralize the **environment variables** nec
 
 ### Backoffice feature flags
 
-When the `BACKOFFICE_*` variables are set, every boolean feature flag
-configured on the backoffice (e.g. `FLYOVER`, `UNION_BRIDGE`, `POWPEG`,
-`MAINTENANCE_MODE`) is retrieved for the environment matching `NETWORK` and
-merged into the `/features` response under its lowercased key (e.g. `flyover`)
-with value `enabled`/`disabled`. New flags added on the backoffice flow
-through without code changes. A json flag whose key extends a boolean flag's
-key sets a property on that feature row, named after the camelCased remainder
-(e.g. `WALLET_LEDGER_SUPPORTED_BROWSERS` sets `supportedBrowsers` of
+When the `BACKOFFICE_*` variables are set, every feature flag configured on the
+backoffice (e.g. `FLYOVER`, `UNION_BRIDGE`, `POWPEG`, `MAINTENANCE_MODE`) is
+retrieved for the environment matching `DEPLOY_ENV` and merged into the
+`/features` response under its lowercased key (e.g. `flyover`). New flags added
+on the backoffice flow through without code changes.
+
+A boolean flag is served as `enabled`/`disabled`; a string, number or JSON flag
+is served as it stands, so the backoffice can hold text (e.g.
+`terms_and_conditions`) or structured configuration. Flags holding no value at
+all (`null`, or none) are ignored and logged. A boolean flag never overwrites a
+stored feature holding neither `enabled` nor `disabled` — the backoffice can
+still replace that text by serving a value of its own.
+
+A non-boolean flag whose key extends a boolean flag's key sets a property on
+that feature row instead, named after the camelCased remainder (e.g.
+`WALLET_LEDGER_SUPPORTED_BROWSERS` sets `supportedBrowsers` of
 `wallet_ledger`), so new properties defined on the backoffice need no code
-changes either. `name` and
-`value` are reserved. Flags with any other shape, and property flags without
-a matching boolean flag, are ignored (and logged). A
-flag whose lowercased key matches an existing feature that does not hold an
-`enabled`/`disabled` value (e.g. `terms_and_conditions`) never overwrites it.
+changes either. `name`, `value` and `pairs` are reserved; a flag whose
+remainder camelCases to one of them, or that matches no boolean flag, is
+served as a flag of its own.
+
+The same retrieval asks for the backoffice providers (`include=providers`) and
+merges each one the same way, under its lowercased key (e.g. `boltz`), carrying
+the pairs it can serve in a nested `pairs` array:
+
+```json
+{"name": "boltz", "value": "enabled", "pairs": [
+  {"fromNetwork": "BITCOIN", "toNetwork": "ROOTSTOCK",
+   "fromToken": "BTC", "toToken": "RBTC", "enabled": true}
+]}
+```
+
+A pair is nested only when both the pair and its provider are enabled, so a
+disabled provider is served as `disabled` with an empty `pairs` array. A
+provider needs a `key` and a boolean `enabled` to be served at all (others are
+ignored and logged), and nothing else about it is exposed. A pair needs only
+`enabled` and is served exactly as it arrives, so attributes added on the
+backoffice reach `/features` without code changes. A payload carrying no
+`providers` is served as flags only.
+
 Values are cached for `BACKOFFICE_FLAGS_CACHE_TTL_MS`; once expired, the stale
 values keep being served while a refresh runs in the background, so only the
 very first retrieval waits on the backoffice. On backoffice downtime the last
