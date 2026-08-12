@@ -191,7 +191,7 @@ export function applyProviderFlags(
   return merged;
 }
 
-/** Attributes a feature already carries; a property flag can never shadow them. */
+/** Core feature fields that can never be set via property flags. */
 const RESERVED_PROPERTIES = ['name', 'value', 'pairs'];
 
 /**
@@ -206,15 +206,17 @@ function splitPropertyFlags(all: ProviderFlags): {
   flags: ProviderFlags;
   properties: Record<string, Record<string, FlagValue>>;
 } {
-  const booleanKeys = Object.keys(all).filter(key => typeof all[key] === 'boolean');
+  const booleanKeys = Object.keys(all)
+    .filter(key => typeof all[key] === 'boolean')
+    .sort((a, b) => b.length - a.length);
   const flags: ProviderFlags = {};
   const properties: Record<string, Record<string, FlagValue>> = {};
   Object.entries(all).forEach(([key, value]) => {
     const base = typeof value === 'boolean'
       ? undefined
-      : booleanKeys
-          .filter(candidate => key.startsWith(`${candidate}_`) && key.length > candidate.length + 1)
-          .sort((a, b) => b.length - a.length)[0];
+      : booleanKeys.find(
+          candidate => key.startsWith(`${candidate}_`) && key.length > candidate.length + 1,
+        );
     const property = base ? toPropertyName(key.slice(base.length + 1)) : null;
     if (base && property && !RESERVED_PROPERTIES.includes(property)) {
       (properties[base] ??= {})[property] = value;
