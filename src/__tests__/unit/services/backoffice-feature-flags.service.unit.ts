@@ -408,5 +408,86 @@ describe('Service: BackofficeFeatureFlagsService', () => {
       expect(merged[0].value).to.equal('enabled');
       expect(merged[0]).to.have.property('pairs', []);
     });
+
+    describe('property flags', () => {
+      const browsers = {
+        chrome: true, firefox: false, safari: false, edge: true, brave: false, chromium: true, opera: false,
+      };
+
+      const walletFeature = () => {
+        const wallet = new FeaturesDbDataModel();
+        wallet.name = 'wallet_ledger';
+        wallet.value = 'enabled';
+        wallet.supportedBrowsers = {
+          chrome: true, firefox: true, safari: true, edge: true, brave: true, chromium: true, opera: true,
+        };
+        return wallet;
+      };
+
+      it('sets a property flag on the feature of its boolean flag', () => {
+        const merged = applyProviderFlags([walletFeature()], {
+          flags: {
+            WALLET_LEDGER: true,
+            WALLET_LEDGER_SUPPORTED_BROWSERS: browsers,
+            FLYOVER: true,
+          },
+          providers: [],
+        });
+        const byName = new Map(merged.map(feature => [feature.name, feature]));
+        expect(merged.length).to.equal(2);
+        expect(byName.get('wallet_ledger')?.supportedBrowsers).to.eql(browsers);
+        expect(byName.get('flyover')?.supportedBrowsers).to.be.undefined();
+      });
+
+      it('appends a missing feature carrying its property flags', () => {
+        const merged = applyProviderFlags([], {
+          flags: {WALLET_LEDGER: false, WALLET_LEDGER_SUPPORTED_BROWSERS: browsers},
+          providers: [],
+        });
+        expect(merged.length).to.equal(1);
+        expect(merged[0].name).to.equal('wallet_ledger');
+        expect(merged[0].value).to.equal('disabled');
+        expect(merged[0].supportedBrowsers).to.eql(browsers);
+      });
+
+      it('keeps the existing supportedBrowsers when the flag has none', () => {
+        const merged = applyProviderFlags([walletFeature()], {
+          flags: {WALLET_LEDGER: false},
+          providers: [],
+        });
+        expect(merged[0].supportedBrowsers).to.eql(walletFeature().supportedBrowsers);
+        expect(merged[0].value).to.equal('disabled');
+      });
+
+      it('pairs a property flag with the longest matching boolean flag', () => {
+        const merged = applyProviderFlags([], {
+          flags: {WALLET: true, WALLET_LEDGER: true, WALLET_LEDGER_SUPPORTED_BROWSERS: browsers},
+          providers: [],
+        });
+        const byName = new Map(merged.map(feature => [feature.name, feature]));
+        expect(byName.get('wallet_ledger')?.supportedBrowsers).to.eql(browsers);
+        expect(byName.get('wallet')?.supportedBrowsers).to.be.undefined();
+      });
+
+      it('serves a property flag matching no boolean flag as a flag of its own', () => {
+        const merged = applyProviderFlags([], {
+          flags: {ORPHAN_SUPPORTED_BROWSERS: browsers},
+          providers: [],
+        });
+        expect(merged.length).to.equal(1);
+        expect(merged[0].name).to.equal('orphan_supported_browsers');
+        expect(merged[0].value).to.eql(browsers);
+      });
+
+      it('never lets a property flag shadow a reserved attribute', () => {
+        const merged = applyProviderFlags([], {
+          flags: {WALLET_LEDGER: true, WALLET_LEDGER_VALUE: 'tampered'},
+          providers: [],
+        });
+        const byName = new Map(merged.map(feature => [feature.name, feature.value]));
+        expect(byName.get('wallet_ledger')).to.equal('enabled');
+        expect(byName.get('wallet_ledger_value')).to.equal('tampered');
+      });
+    });
   });
 });

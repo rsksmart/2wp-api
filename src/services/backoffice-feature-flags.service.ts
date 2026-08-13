@@ -181,8 +181,9 @@ export function applyProviderFlags(
   backofficeFlags: BackofficeFeatureFlags,
 ): MergedFeature[] {
   const merged: MergedFeature[] = [...features];
-  Object.entries(backofficeFlags.flags).forEach(([key, value]) => {
-    upsertFeature(merged, key, value);
+  const { flags, properties } = splitPropertyFlags(backofficeFlags.flags);
+  Object.entries(flags).forEach(([key, value]) => {
+    upsertFeature(merged, key, value, undefined, properties[key]);
   });
   backofficeFlags.providers.forEach(provider => {
     upsertFeature(merged, provider.key, provider.enabled, provider.pairs);
@@ -190,18 +191,67 @@ export function applyProviderFlags(
   return merged;
 }
 
+/** Core feature fields that can never be set via property flags. */
+const RESERVED_PROPERTIES = ['name', 'value', 'pairs'];
+
+/**
+ * A non-boolean flag whose key extends a boolean flag's key sets a property
+ * on that feature, named after the camelCased remainder (e.g.
+ * `WALLET_LEDGER_SUPPORTED_BROWSERS` sets `supportedBrowsers` of
+ * `wallet_ledger`). The longest matching boolean flag wins. A flag whose
+ * remainder camelCases to a reserved name, or that matches no boolean flag,
+ * stays a flag of its own.
+ */
+function splitPropertyFlags(all: ProviderFlags): {
+  flags: ProviderFlags;
+  properties: Record<string, Record<string, FlagValue>>;
+} {
+  const booleanKeys = Object.keys(all)
+    .filter(key => typeof all[key] === 'boolean')
+    .sort((a, b) => b.length - a.length);
+  const flags: ProviderFlags = {};
+  const properties: Record<string, Record<string, FlagValue>> = {};
+  Object.entries(all).forEach(([key, value]) => {
+    const base = typeof value === 'boolean'
+      ? undefined
+      : booleanKeys.find(
+          candidate => key.startsWith(`${candidate}_`) && key.length > candidate.length + 1,
+        );
+    const property = base ? toPropertyName(key.slice(base.length + 1)) : null;
+    if (base && property && !RESERVED_PROPERTIES.includes(property)) {
+      (properties[base] ??= {})[property] = value;
+    } else {
+      flags[key] = value;
+    }
+  });
+  return { flags, properties };
+}
+
+function toPropertyName(suffix: string): string {
+  const parts = suffix.toLowerCase().split('_');
+  return (
+    parts[0] +
+    parts
+      .slice(1)
+      .map(part => (part ? part[0].toUpperCase() + part.slice(1) : part))
+      .join('')
+  );
+}
+
 /**
  * Writes `key` into the feature list, appending it when missing. A boolean
  * reads as `enabled`/`disabled`, every other value is served as it stands.
  * A boolean never overwrites a feature holding neither (e.g. the stored
  * `terms_and_conditions` text), which the backoffice can still replace by
- * serving a value of its own.
+ * serving a value of its own; a skipped feature takes no property flags
+ * either.
  */
 function upsertFeature(
   merged: MergedFeature[],
   key: string,
   flagValue: FlagValue,
   pairs?: ProviderPair[],
+  attributes?: Record<string, FlagValue>,
 ): void {
   const name = key.toLowerCase();
   const isBoolean = typeof flagValue === 'boolean';
@@ -211,7 +261,7 @@ function upsertFeature(
   }
   const existing = merged.find(feature => feature.name === name);
   if (!existing) {
-    merged.push(Object.assign(new FeaturesDbDataModel(), { name, value, pairs }));
+    merged.push(Object.assign(new FeaturesDbDataModel(), { name, value, pairs }, attributes));
     return;
   }
   if (isBoolean && existing.value !== 'enabled' && existing.value !== 'disabled') {
@@ -219,4 +269,5 @@ function upsertFeature(
   }
   existing.value = value;
   existing.pairs = pairs;
+  Object.assign(existing, attributes);
 }

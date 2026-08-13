@@ -53,6 +53,14 @@ all (`null`, or none) are ignored and logged. A boolean flag never overwrites a
 stored feature holding neither `enabled` nor `disabled` — the backoffice can
 still replace that text by serving a value of its own.
 
+A non-boolean flag whose key extends a boolean flag's key sets a property on
+that feature row instead, named after the camelCased remainder (e.g.
+`WALLET_LEDGER_SUPPORTED_BROWSERS` sets `supportedBrowsers` of
+`wallet_ledger`), so new properties defined on the backoffice need no code
+changes either. `name`, `value` and `pairs` are reserved; a flag whose
+remainder camelCases to one of them, or that matches no boolean flag, is
+served as a flag of its own.
+
 The same retrieval asks for the backoffice providers (`include=providers`) and
 merges each one the same way, under its lowercased key (e.g. `boltz`), carrying
 the pairs it can serve in a nested `pairs` array:
@@ -71,6 +79,7 @@ ignored and logged), and nothing else about it is exposed. A pair needs only
 `enabled` and is served exactly as it arrives, so attributes added on the
 backoffice reach `/features` without code changes. A payload carrying no
 `providers` is served as flags only.
+
 Values are cached for `BACKOFFICE_FLAGS_CACHE_TTL_MS`; once expired, the stale
 values keep being served while a refresh runs in the background, so only the
 very first retrieval waits on the backoffice. On backoffice downtime the last
