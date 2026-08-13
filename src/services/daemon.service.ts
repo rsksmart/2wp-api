@@ -62,6 +62,7 @@ export class DaemonService implements IDaemonService {
       await this.pegoutDataProcessor.deleteByRskBlockHeight(block.height);
     } catch (e) {
       this.logger.warn({method: 'handleDeleteBlock', err: e}, 'There was a problem handling the deleted block');
+      throw e;
     }
   }
 
@@ -101,7 +102,7 @@ export class DaemonService implements IDaemonService {
     await this.syncService.start();
     this.syncService.subscribe({
       blockAdded: (block) => { this.handleNewBestBlock(block) },
-      blockDeleted: (block) => { this.handleDeleteBlock(block) }
+      blockDeleted: (block) => this.handleDeleteBlock(block)
     });
 
     this.rskBlockProcessorPublisher.addSubscriber(this.peginDataProcessor);

@@ -55,11 +55,30 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
     return filter;
   }
 
-  public deleteByRskBlockHeight(rskBlockHeight: number): Promise<boolean> {
-    return this.getConnector()
-      .deleteMany({rskBlockHeight})
-      .exec()
-      .then(() => true);
+  public async deleteByRskBlockHeight(rskBlockHeight: number): Promise<boolean> {
+    const currentRows = await this.getConnector()
+      .find({rskBlockHeight, isNewestStatus: true})
+      .exec();
+
+    await this.getConnector().deleteMany({rskBlockHeight}).exec();
+
+    await Promise.all(currentRows.map(async row => {
+      const previous = await this.getConnector()
+        .find({originatingRskTxHash: row.originatingRskTxHash, rskBlockHeight: {$ne: rskBlockHeight}})
+        .sort({createdOn: -1})
+        .limit(1)
+        .exec();
+      if (previous.length) {
+        const [previousRow] = previous;
+        await this.getConnector().updateOne({rskTxHash: previousRow.rskTxHash}, {isNewestStatus: true}).exec();
+        this.logger.warn(
+          {method: 'deleteByRskBlockHeight', deletedHeight: rskBlockHeight, restoredRskTxHash: previousRow.rskTxHash},
+          'Restored previous pegout status after reorg deletion',
+        );
+      }
+    }));
+
+    return true;
   }
 
   public async getManyByOriginatingRskTxHash(originatingRskTxHash: string): Promise<PegoutStatusDbDataModel[]> {

@@ -101,7 +101,7 @@ describe('Service: RskChainSyncService', () => {
 
   it('allows subscribe and unsubscribe from events', async () => {
     const subscriber = {
-      blockDeleted: (block: RskBlock): void => { },
+      blockDeleted: async (block: RskBlock): Promise<void> => { },
       blockAdded: (block: RskBlock): void => { }
     };
 
@@ -142,7 +142,7 @@ describe('Service: RskChainSyncService', () => {
     mockedRskNodeService.getBlock.withArgs(2).resolves(<Block>secondBlock);
 
     const subscriber = sinon.spy({
-      blockDeleted: (): void => { },
+      blockDeleted: async (): Promise<void> => { },
       blockAdded: (): void => { }
     });
 
@@ -209,7 +209,7 @@ describe('Service: RskChainSyncService', () => {
     mockedRskNodeService.getBlock.withArgs(3).resolves(<Block>thirdBlockFromRsk);
 
     const subscriber = sinon.spy({
-      blockDeleted: (): void => { },
+      blockDeleted: async (): Promise<void> => { },
       blockAdded: (): void => { }
     });
 
@@ -228,6 +228,74 @@ describe('Service: RskChainSyncService', () => {
     // subscribers get called
     sinon.assert.calledTwice(subscriber.blockAdded);
     sinon.assert.calledOnce(subscriber.blockDeleted);
+  });
+
+  it('does not remove the sync pointer for a deleted block when a subscriber fails to clean up after it', async () => {
+    // Mock RSK and Sync statuses
+    // rsk main chain => [1 => 2 => 3 => 4]
+    // sync           => [1 => 2a]
+    // Expected: sync detects the fork at height 2 and asks subscribers to clean up 2a.
+    // If that cleanup fails, the sync pointer for 2a must NOT be deleted, so the fork can be retried later.
+    const firstBlock = new SyncStatusModel('0x0001', 1, '0x');
+
+    const secondBlockFromSync = new SyncStatusModel('0x0002a', firstBlock.rskBlockHeight + 1, firstBlock.rskBlockHash);
+
+    const transactions: TransactionInfo[] = [];
+
+    const firstBlockFromRsk = {
+      hash: firstBlock.rskBlockHash,
+      parentHash: firstBlock.rskBlockParentHash,
+      number: firstBlock.rskBlockHeight,
+      transactions
+    };
+    const secondBlockFromRsk = {
+      hash: '0x0002',
+      parentHash: firstBlockFromRsk.hash,
+      number: firstBlockFromRsk.number + 1,
+      transactions
+    };
+    const thirdBlockFromRsk = {
+      hash: '0x0003',
+      parentHash: secondBlockFromRsk.hash,
+      number: secondBlockFromRsk.number + 1,
+      transactions
+    };
+    const bestBlock = {
+      hash: '0x0004',
+      parentHash: thirdBlockFromRsk.hash,
+      number: thirdBlockFromRsk.number + 1,
+      transactions
+    };
+
+    const mockedSyncStatusDataService = mockSyncStatusDataService();
+    mockedSyncStatusDataService.getBestBlock.resolves(secondBlockFromSync);
+    mockedSyncStatusDataService.getById.withArgs(firstBlock.rskBlockHash).resolves(firstBlock);
+
+    const mockedRskNodeService = getRskNodeService();
+    mockedRskNodeService.getBlock.withArgs('latest').resolves(<Block>bestBlock);
+    mockedRskNodeService.getBlock.withArgs(1).resolves(<Block>secondBlockFromRsk);
+    mockedRskNodeService.getBlock.withArgs(2).resolves(<Block>secondBlockFromRsk);
+    mockedRskNodeService.getBlock.withArgs(3).resolves(<Block>thirdBlockFromRsk);
+
+    const cleanupError = new Error('cleanup failed');
+    const subscriber = sinon.spy({
+      blockDeleted: async (): Promise<void> => { throw cleanupError; },
+      blockAdded: (): void => { }
+    });
+
+    const thisService = new RskChainSyncService(mockedSyncStatusDataService, mockedRskNodeService, getInitialBlock(), 0);
+    await thisService.start();
+    thisService.subscribe(subscriber);
+
+    await expect(thisService.sync()).to.be.rejectedWith(cleanupError);
+
+    // The subscriber was asked to clean up the deleted block
+    sinon.assert.calledOnce(subscriber.blockDeleted);
+
+    // Since cleanup failed, the sync pointer must be preserved (not deleted) and no new blocks stored,
+    // so the reorg can be retried on the next sync instead of being silently lost.
+    sinon.assert.notCalled(mockedSyncStatusDataService.delete);
+    sinon.assert.notCalled(mockedSyncStatusDataService.set);
   });
 
   it('does not add blocks beyond the configured min depth', async () => {
@@ -251,7 +319,7 @@ describe('Service: RskChainSyncService', () => {
     mockedRskNodeService.getBlock.withArgs('latest').resolves(<Block>bestBlock);
 
     const subscriber = sinon.spy({
-      blockDeleted: (): void => { },
+      blockDeleted: async (): Promise<void> => { },
       blockAdded: (): void => { }
     });
 
@@ -358,7 +426,7 @@ describe('Service: RskChainSyncService', () => {
     mockedRskNodeService.getBlock.withArgs(5).resolves(<Block>blockFromRsk5);
 
     const subscriber = sinon.spy({
-      blockDeleted: (): void => { },
+      blockDeleted: async (): Promise<void> => { },
       blockAdded: (): void => { }
     });
 

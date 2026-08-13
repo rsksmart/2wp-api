@@ -8,7 +8,7 @@ import {RskNodeService} from './rsk-node.service';
 import {SyncStatusDataService} from './sync-status-data.service';
 
 export interface RskChainSyncSubscriber {
-  blockDeleted(block: RskBlock): void;
+  blockDeleted(block: RskBlock): Promise<void>;
   blockAdded(block: RskBlock): void;
 }
 
@@ -42,14 +42,18 @@ export class RskChainSyncService {
 
   private async deleteOldBlock(block: SyncStatusModel): Promise<void> {
     this.logger.debug({method: 'deleteOldBlock', blockHeight: block.rskBlockHeight, blockHash: block.rskBlockHash}, 'Going to delete block');
-    await this.syncStorageService.delete(block.rskBlockHash);
 
     const deletedBlock = new RskBlock(
       block.rskBlockHeight,
       block.rskBlockHash,
       block.rskBlockParentHash
     );
-    this.subscribers.forEach(s => s.blockDeleted(deletedBlock));
+
+    // Clean up subscriber data (pegout status rows) for the deleted block before removing
+    // its sync pointer. Otherwise a failed cleanup leaves the pointer gone with no retry path.
+    await Promise.all(this.subscribers.map(s => s.blockDeleted(deletedBlock)));
+
+    await this.syncStorageService.delete(block.rskBlockHash);
   }
 
   private async addNewBlocks(blocksToAdd: Array<RskBlock>): Promise<void> {
