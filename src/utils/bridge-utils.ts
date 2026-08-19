@@ -57,7 +57,34 @@ export function encodeBridgeMethodParameters(method: BRIDGE_METHODS, args: Array
 
 export function decodeBridgeMethodParameters(method: BRIDGE_METHODS, data: string): any {
   const abi = getBridgeMethodABI(method);
-
   const abiCoder = new ethers.AbiCoder();
   return abiCoder.decode(abi.inputs, data);
+}
+
+/**
+ * Was this transaction receipt produced by a *successful* EVM execution?
+ *
+ * This is the control that keeps adversarial Bridge calldata away from
+ * `decodeFunctionData`. A Bridge call only succeeds if RSKj accepted its
+ * arguments as semantically valid — 80-byte block headers, real DER signatures,
+ * real Bitcoin transactions — so a successful receipt bounds how much the ABI
+ * decoder can be made to allocate. A reverted call proves nothing about its
+ * arguments, and a truthy receipt object says nothing about its status: report
+ * 84419 turns exactly that gap into an unrecoverable out-of-memory abort.
+ *
+ * Status arrives in different shapes depending on whether the receipt came from
+ * web3 or ethers, so every known success representation is accepted. Anything
+ * else — missing, unrecognized, or a shape we do not know how to read — is
+ * treated as failed: this fails closed on purpose.
+ *
+ * @param receipt - Transaction receipt to inspect. May be `null`/`undefined`.
+ * @returns `true` only when the receipt is definitely a successful execution.
+ */
+export function isSuccessfulReceipt(receipt: {status?: unknown} | null | undefined): boolean {
+  if (!receipt) {
+    return false;
+  }
+  const {status} = receipt;
+  return status === 1 || status === 1n || status === true
+    || status === '0x1' || status === '1';
 }

@@ -36,6 +36,7 @@ The full variable reference (name, dev value, meaning) is kept in [`ENV_VARIABLE
 | `RSK_PEGOUT_MINIMUM_CONFIRMATIONS`, `BTC_CONFIRMATIONS` | Confirmation thresholds used by the pegin/pegout status services |
 | `SYNC_INITIAL_BLOCK_*`, `SYNC_INTERVAL_TIME` | Where the daemon starts syncing RSK blocks from, and how often |
 | `FEE_PER_KB_*`, `MAX_FEE_AMOUNT_ALLOWED`, `BURN_DUST_VALUE` | Fee estimation and pegout limits |
+| `MAX_*`, `PROVIDER_*`, `UTXO_RESPONSE_MAX_ROWS`, `ADDRESS_LIST_MAX_ITEMS` | Resource budgets — every one is optional and defaults to a safe value (see [`resource-budgets.md`](./resource-budgets.md)) |
 
 ## Run MongoDB
 

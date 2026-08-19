@@ -86,6 +86,23 @@ very first retrieval waits on the backoffice. On backoffice downtime the last
 retrieved values are served (or the flags are simply omitted from `/features`),
 and failed or invalid retrievals are logged.
 
+### Resource budgets
+
+Caps on how much memory, parsing, serialization and downstream provider work a single request (or provider response) may cause. All are optional — each falls back to a safe default. See [`docs/resource-budgets.md`](./docs/resource-budgets.md).
+
+|NAME                          |DEFAULT                        |DETAILS                                                  |
+|------------------------------|-------------------------------|---------------------------------------------------------|
+|MAX_REQUEST_BODY_BYTES        |262144                         |'Maximum inbound HTTP request body, in bytes'            |
+|MAX_PROVIDER_RESPONSE_BYTES   |4194304                        |'Maximum single outbound provider response, in bytes'    |
+|MAX_UTXOS_PER_ADDRESS         |1000                           |'Maximum UTXO rows retained for one address'             |
+|UTXO_RESPONSE_MAX_ROWS        |1000                           |'Maximum UTXO rows retained for one /utxo request'       |
+|MAX_ADDRESS_INFO_TXIDS        |100                            |'Maximum txids per address in /addresses-info (legacy alias: ADDRESS_INFO_MAX_TXIDS)'|
+|PROVIDER_TIMEOUT_MS           |15000                          |'Outbound provider request deadline, in milliseconds'    |
+|PROVIDER_MAX_RETRIES          |1                              |'Extra provider attempts after the first (0 disables retries)'|
+|PROVIDER_RETRY_BASE_DELAY_MS  |100                            |'Base backoff between provider retries, in milliseconds' |
+|ADDRESS_LIST_MAX_ITEMS        |50                             |'Maximum addresses accepted in one request'              |
+|PROVIDER_CONCURRENCY          |5                              |'Provider requests in flight per API request'            |
+
 
 ##Example for .env.local.test file
 

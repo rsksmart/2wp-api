@@ -39,6 +39,27 @@ describe('UtxoController (Acceptance)', () => {
     await app.stop();
   });
 
+  /**
+   * Posts a body the server is expected to refuse on its declared
+   * Content-Length. Accepts either a 413 or a connection reset: the server
+   * answers without draining the payload, so a client still writing it may never
+   * get to read the response.
+   */
+  async function expectRefusedWithoutReadingBody(
+    path: string,
+    body: object,
+  ): Promise<void> {
+    try {
+      const res = await client.post(path).send(body);
+      expect(res.status).to.equal(413);
+    } catch (err) {
+      expect((err as NodeJS.ErrnoException).code).to.be.oneOf([
+        'EPIPE',
+        'ECONNRESET',
+      ]);
+    }
+  }
+
   describe('POST /utxo', () => {
     describe('with different address types', () => {
       it('should handle legacy P2PKH mainnet addresses', async () => {
@@ -1066,6 +1087,30 @@ describe('UtxoController (Acceptance)', () => {
             ),
           };
 
+          // ~900 KB of addresses, so the request-body budget rejects it on the
+          // declared Content-Length before a byte is buffered — earlier than the
+          // 422 the address-list validator would have produced. Because the
+          // server answers and closes without draining the payload, a client
+          // still writing it can see the reset instead of the 413; either
+          // outcome proves the refusal.
+          await expectRefusedWithoutReadingBody('/utxo', requestBody);
+
+          sinon.assert.notCalled(utxoStub);
+        } finally {
+          utxoStub.restore();
+        }
+      }).timeout(10000);
+
+      it('should reject an over-long address list that fits inside the body budget with 422', async () => {
+        const utxoStub = sinon.stub(utxoProviderService, 'utxoProvider').resolves([]);
+        try {
+          const requestBody = {
+            addressList: Array.from(
+              {length: ADDRESS_LIST_MAX_ITEMS + 1},
+              (_, i) => `${testAddresses.legacyMainnet}${i}`,
+            ),
+          };
+
           await client
             .post('/utxo')
             .send(requestBody)
@@ -1075,7 +1120,7 @@ describe('UtxoController (Acceptance)', () => {
         } finally {
           utxoStub.restore();
         }
-      }).timeout(10000);
+      });
     });
   });
 });

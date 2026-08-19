@@ -8,12 +8,46 @@ import {
 } from '@loopback/rest-explorer';
 import {ServiceMixin} from '@loopback/service-proxy';
 import path from 'path';
+import {MAX_REQUEST_BODY_BYTES} from './config/resource-budgets';
 import {DependencyInjectionHandler} from './dependency-injection-handler';
 import {MySequence} from './sequence';
 import {httpAccessLogMiddleware} from './middleware/http-access-log.middleware';
+import {requestBodyBudgetMiddleware} from './middleware/request-body-budget.middleware';
 import { ENVIRONMENT_PRODUCTION } from './constants';
 
 export {ApplicationConfig};
+
+/**
+ * Applies the request-body budget to the REST server's body parsers, unless the
+ * caller already configured its own. `body-parser` answers an over-limit request
+ * with a bounded 413 instead of buffering it, which is the backstop behind
+ * `requestBodyBudgetMiddleware`.
+ *
+ * @param options - The application config supplied by the caller.
+ * @returns The config with `rest.requestBodyParser` limits filled in.
+ */
+export function withRequestBodyBudget(
+  options: ApplicationConfig,
+): ApplicationConfig {
+  const limit = MAX_REQUEST_BODY_BYTES;
+  const rest = options.rest ?? {};
+  if (rest.requestBodyParser) {
+    return options;
+  }
+  return {
+    ...options,
+    rest: {
+      ...rest,
+      requestBodyParser: {
+        limit,
+        json: {limit},
+        text: {limit},
+        urlencoded: {limit},
+        raw: {limit},
+      },
+    },
+  };
+}
 
 /**
  * The 2wp-api REST application: a LoopBack 4 `RestApplication` with booting,
@@ -28,13 +62,18 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
    * @param options - LoopBack `ApplicationConfig` (e.g. `rest.port`, `rest.host`) passed through to `RestApplication`.
    */
   constructor(options: ApplicationConfig = {}) {
-    super(options);
+    super(withRequestBodyBudget(options));
 
     // Set up the custom sequence
     this.sequence(MySequence);
 
     // Log inbound HTTP requests/responses for API routes
     this.middleware(httpAccessLogMiddleware);
+
+    // Reject oversized bodies on the declared Content-Length, before the
+    // body parsers buffer anything. Registered after the access log so the
+    // rejection is still correlated by traceId.
+    this.middleware(requestBodyBudgetMiddleware);
 
     // Set up default home page
     this.static('/', path.join(__dirname, '../public'));

@@ -6,7 +6,7 @@ import {ServicesBindings} from "../../dependency-injection-bindings";
 import {PegoutStatuses, PegoutStatusAppDataModel} from "../../models/rsk/pegout-status-data-model";
 import {PegoutStatusDataService} from "../pegout-status-data-services/pegout-status-data.service";
 import {RskNodeService} from "../rsk-node.service";
-import {BRIDGE_EVENTS} from '../../utils/bridge-utils';
+import {BRIDGE_EVENTS, isSuccessfulReceipt} from '../../utils/bridge-utils';
 import {RskTransaction} from "../../models/rsk/rsk-transaction.model";
 import {PegoutStatusBuilder} from "./pegout-status-builder";
 import ExtendedBridgeTx, {ExtendedBridgeTxModel} from '../extended-bridge-tx';
@@ -45,7 +45,7 @@ export class PegoutStatusService {
                             if (!rskTransaction) {
                                 pegoutStatus.status = PegoutStatuses.NOT_FOUND;
                             }
-                            if (rskTransaction.receipt) {
+                            if (rskTransaction.receipt && isSuccessfulReceipt(rskTransaction.receipt)) {
                                 const transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
                                 if (!transaction) {
                                     pegoutStatus.status = PegoutStatuses.NOT_FOUND;
@@ -53,6 +53,12 @@ export class PegoutStatusService {
                                     const extendedModel: ExtendedBridgeTxModel = new ExtendedBridgeTxModel(transaction, rskTransaction);
                                     pegoutStatus = await this.processTransaction(extendedModel);
                                 }
+                            } else if (rskTransaction.receipt) {
+                                // Mined but reverted (or an unreadable status). The EVM never
+                                // accepted these arguments, so nothing here may be handed to the
+                                // ABI decoder — see isSuccessfulReceipt and report 84419.
+                                this.logger.debug({method: 'getPegoutStatusByRskTxHash', txId: rskTxHash}, 'Transaction did not execute successfully, not parsing it');
+                                pegoutStatus.status = PegoutStatuses.NOT_FOUND;
                             } else {
                                 pegoutStatus.status = PegoutStatuses.PENDING;
                                 pegoutStatus.rskTxHash = rskTxHash;

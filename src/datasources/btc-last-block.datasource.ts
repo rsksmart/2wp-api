@@ -1,6 +1,10 @@
 import {inject, lifeCycleObserver, LifeCycleObserver} from '@loopback/core';
 import {juggler} from '@loopback/repository';
 import {config} from 'dotenv';
+import {
+  REST_DATASOURCE_OPTIONS,
+  REST_OPERATION_TIMEOUT_MS,
+} from './rest-datasource-budgets';
 
 config();
 
@@ -8,18 +12,14 @@ const confg = {
   name: 'lastBlockProvider',
   connector: 'rest',
   baseUrl: process.env.BLOCKBOOK_URL,
-  options: {
-    headers: {
-      accept: 'application/json',
-      'content-type': 'application/json',
-    },
-  },
+  options: REST_DATASOURCE_OPTIONS,
   operations: [
     {
       template: {
         method: 'GET',
         url: '{baseUrl}/api/blocks',
         responsePath: '$',
+        timeout: REST_OPERATION_TIMEOUT_MS,
       },
       functions: {
         lastBlockProvider: [],
