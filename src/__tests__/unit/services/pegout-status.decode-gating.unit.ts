@@ -29,8 +29,8 @@ const givenRskTransaction = (receipt: unknown): RskTransaction =>
  * `GET /tx-status-by-type/{txId}/pegout` falls back to re-parsing the
  * transaction on a database miss. That fallback is unauthenticated and
  * re-triggerable after every restart, so it must never hand calldata to the ABI
- * decoder unless the EVM executed the transaction successfully — see report
- * 84419 and `isSuccessfulReceipt`.
+ * decoder unless the EVM executed the transaction successfully — see
+ * `isSuccessfulReceipt`.
  */
 describe('Service: PegoutStatusService decode gating', () => {
   let pegoutStatusDataService: SinonStubbedInstance<PegoutStatusDataService>;

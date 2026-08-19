@@ -38,6 +38,12 @@ export interface ResourceBudgets {
   ADDRESS_LIST_MAX_ITEMS: number;
   /** Maximum provider requests in flight for a single API request. */
   PROVIDER_CONCURRENCY: number;
+  /** Hard cap on a serialized error response body, in bytes. */
+  MAX_ERROR_RESPONSE_BYTES: number;
+  /** Hard cap on the validation details returned to the client. */
+  MAX_VALIDATION_ERROR_DETAILS: number;
+  /** Hard cap on response bytes buffered for one connection, in bytes. */
+  MAX_CONNECTION_BUFFERED_BYTES: number;
 }
 
 /**
@@ -49,6 +55,13 @@ export interface ResourceBudgets {
  *   and is 4x tighter than the LoopBack/body-parser 1 MB default.
  * - 4 MiB provider response covers a 1000-row Blockbook UTXO page (~200 KB)
  *   and a `details=txids` address page with headroom.
+ *
+ * - 8 KiB error responses sit ~12x above the largest bounded error this service
+ *   produces, and roughly three orders of magnitude below what an unbounded Ajv
+ *   detail collection serializes to.
+ * - 1 MiB of buffered response per connection is far above any single bounded
+ *   response, but stops a peer that stops reading from accumulating pipelined
+ *   responses in the process.
  *
  * Bridge ABI decoding is deliberately absent from this list: it is bounded by
  * requiring a successful transaction receipt before decoding, not by a size
@@ -65,6 +78,9 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   PROVIDER_RETRY_BASE_DELAY_MS: 100,
   ADDRESS_LIST_MAX_ITEMS: 50,
   PROVIDER_CONCURRENCY: 5,
+  MAX_ERROR_RESPONSE_BYTES: 8 * 1024,
+  MAX_VALIDATION_ERROR_DETAILS: 3,
+  MAX_CONNECTION_BUFFERED_BYTES: 1024 * 1024,
 });
 
 /**
@@ -149,6 +165,18 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
       env.PROVIDER_CONCURRENCY,
       d.PROVIDER_CONCURRENCY,
     ),
+    MAX_ERROR_RESPONSE_BYTES: parsePositiveInt(
+      env.MAX_ERROR_RESPONSE_BYTES,
+      d.MAX_ERROR_RESPONSE_BYTES,
+    ),
+    MAX_VALIDATION_ERROR_DETAILS: parsePositiveInt(
+      env.MAX_VALIDATION_ERROR_DETAILS,
+      d.MAX_VALIDATION_ERROR_DETAILS,
+    ),
+    MAX_CONNECTION_BUFFERED_BYTES: parsePositiveInt(
+      env.MAX_CONNECTION_BUFFERED_BYTES,
+      d.MAX_CONNECTION_BUFFERED_BYTES,
+    ),
   };
 }
 
@@ -168,4 +196,7 @@ export const {
   PROVIDER_RETRY_BASE_DELAY_MS,
   ADDRESS_LIST_MAX_ITEMS,
   PROVIDER_CONCURRENCY,
+  MAX_ERROR_RESPONSE_BYTES,
+  MAX_VALIDATION_ERROR_DETAILS,
+  MAX_CONNECTION_BUFFERED_BYTES,
 } = RESOURCE_BUDGETS;

@@ -102,6 +102,9 @@ Caps on how much memory, parsing, serialization and downstream provider work a s
 |PROVIDER_RETRY_BASE_DELAY_MS  |100                            |'Base backoff between provider retries, in milliseconds' |
 |ADDRESS_LIST_MAX_ITEMS        |50                             |'Maximum addresses accepted in one request'              |
 |PROVIDER_CONCURRENCY          |5                              |'Provider requests in flight per API request'            |
+|MAX_ERROR_RESPONSE_BYTES      |8192                           |'Maximum serialized error response body, in bytes'       |
+|MAX_VALIDATION_ERROR_DETAILS  |3                              |'Maximum validation details returned to the client'      |
+|MAX_CONNECTION_BUFFERED_BYTES |1048576                        |'Response bytes buffered per connection before it is dropped'|
 
 
 ##Example for .env.local.test file

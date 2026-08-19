@@ -56,7 +56,7 @@ export class PegoutStatusService {
                             } else if (rskTransaction.receipt) {
                                 // Mined but reverted (or an unreadable status). The EVM never
                                 // accepted these arguments, so nothing here may be handed to the
-                                // ABI decoder — see isSuccessfulReceipt and report 84419.
+                                // ABI decoder — see isSuccessfulReceipt.
                                 this.logger.debug({method: 'getPegoutStatusByRskTxHash', txId: rskTxHash}, 'Transaction did not execute successfully, not parsing it');
                                 pegoutStatus.status = PegoutStatuses.NOT_FOUND;
                             } else {

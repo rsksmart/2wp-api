@@ -34,7 +34,7 @@ describe('Utils: bridge-utils', () => {
     });
 
     it('does not treat a truthy receipt object as success on its own', () => {
-      // This is the exact 84419 gap: the old guard was `if (receipt)`.
+      // This is the gap being closed: the previous guard was `if (receipt)`.
       const revertedButTruthy = {status: 0, blockNumber: 1, logs: []};
       expect(!!revertedButTruthy).to.be.true();
       expect(isSuccessfulReceipt(revertedButTruthy)).to.be.false();

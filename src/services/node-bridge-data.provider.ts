@@ -65,8 +65,8 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
 
       // Only decode what the EVM actually accepted. A reverted call proves
       // nothing about its arguments, and decoding one can be made to allocate
-      // without bound (report 84419). Skipping rather than throwing keeps a
-      // single hostile transaction from stopping the chain sync.
+      // without bound. Skipping rather than throwing keeps a single hostile
+      // transaction from stopping the chain sync.
       const receipt = await this.rskNodeService.getTransactionReceipt(transaction.hash);
       if (!isSuccessfulReceipt(receipt)) {
         this.logger.warn({method: 'process', txHash: transaction.hash}, 'Bridge tx did not execute successfully, skipping');

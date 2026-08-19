@@ -1,0 +1,247 @@
+import {Next} from '@loopback/core';
+import {HttpErrors, MiddlewareContext, Request, Response} from '@loopback/rest';
+import {
+  MAX_ERROR_RESPONSE_BYTES,
+  MAX_VALIDATION_ERROR_DETAILS,
+} from '../config/resource-budgets';
+import {getLogger} from '../utils/logger';
+import {recordBudgetViolation, ResourceBudgetName} from '../utils/resource-budget';
+import {getTraceId} from '../utils/trace-context';
+
+const logger = getLogger('error-writer');
+
+/** `code` returned for every request-validation failure. */
+export const VALIDATION_ERROR_CODE = 'VALIDATION_ERROR';
+
+/** Message returned when nothing more specific can be said safely. */
+export const GENERIC_ERROR_MESSAGE = 'Request could not be processed.';
+
+/** Message returned for any request-validation failure. */
+export const VALIDATION_ERROR_MESSAGE = 'Invalid request payload.';
+
+/** One bounded validation detail: where it failed and which rule failed. */
+export interface BoundedErrorDetail {
+  /** JSON pointer to the offending field, e.g. `/addressList/0`. */
+  path: string;
+  /** The validation keyword that failed, e.g. `pattern`. */
+  code: string;
+}
+
+/** The public error body. Deliberately small and fixed in shape. */
+export interface BoundedErrorBody {
+  error: {
+    statusCode: number;
+    code: string;
+    message: string;
+    details?: BoundedErrorDetail[];
+  };
+}
+
+/**
+ * A JSON pointer as LoopBack generates it. Anything else is dropped rather than
+ * echoed — `path` is the one field derived from the request, so it is the one
+ * field that has to be proven safe.
+ *
+ * Deliberately unbounded in length: `MAX_ERROR_RESPONSE_BYTES` is the single
+ * owner of response size. A second length cap here would make that budget
+ * unreachable, and an unreachable budget is worse than none — it reads as
+ * protection while never firing.
+ */
+const SAFE_POINTER = /^\/[A-Za-z0-9_\-/.[\]]*$/;
+
+/** Ajv keywords are short identifiers; treat anything else as untrusted. */
+const SAFE_KEYWORD = /^[A-Za-z][A-Za-z0-9_]{0,31}$/;
+
+/** Fixed, payload-free message per status class. */
+const messageFor = (statusCode: number, isValidation: boolean): string => {
+  if (isValidation) {
+    return VALIDATION_ERROR_MESSAGE;
+  }
+  switch (statusCode) {
+    case 404:
+      return 'Resource not found.';
+    case 413:
+      return 'Request payload too large.';
+    case 415:
+      return 'Unsupported media type.';
+    case 502:
+      return 'Upstream provider request failed.';
+    case 504:
+      return 'Upstream provider request timed out.';
+    default:
+      return GENERIC_ERROR_MESSAGE;
+  }
+};
+
+/** Is this a request-validation failure rather than some other 4xx? */
+const isValidationError = (err: {code?: unknown; details?: unknown}): boolean =>
+  err.code === 'VALIDATION_FAILED' ||
+  err.code === VALIDATION_ERROR_CODE ||
+  Array.isArray(err.details);
+
+/**
+ * Reduces the framework's validation details to at most
+ * `MAX_VALIDATION_ERROR_DETAILS` entries of `{path, code}`, dropping any entry
+ * whose values are not recognisably framework-generated.
+ */
+const boundDetails = (details: unknown): BoundedErrorDetail[] | undefined => {
+  if (!Array.isArray(details) || details.length === 0) {
+    return undefined;
+  }
+  const bounded: BoundedErrorDetail[] = [];
+  for (const entry of details) {
+    if (bounded.length === MAX_VALIDATION_ERROR_DETAILS) {
+      break;
+    }
+    const path = (entry as {path?: unknown}).path;
+    const code = (entry as {code?: unknown}).code;
+    if (
+      typeof path === 'string' &&
+      typeof code === 'string' &&
+      SAFE_POINTER.test(path) &&
+      SAFE_KEYWORD.test(code)
+    ) {
+      bounded.push({path, code});
+    }
+  }
+  return bounded.length > 0 ? bounded : undefined;
+};
+
+/**
+ * Builds the bounded public error body for an error and its resolved status.
+ *
+ * Nothing derived from the request reaches the output except a validated JSON
+ * pointer and an Ajv keyword. Messages are fixed strings chosen by status, so a
+ * framework message that embeds request data — `RestHttpErrors.invalidData`
+ * interpolates `JSON.stringify(data)` — cannot be reflected. Stack traces,
+ * schemas and Ajv `info` objects are never included.
+ *
+ * If the serialized result would still exceed `MAX_ERROR_RESPONSE_BYTES`, the
+ * details are dropped and a budget violation is recorded, so the response size
+ * is bounded no matter what the details contained.
+ *
+ * @param err - The error being reported.
+ * @param statusCode - The already-resolved HTTP status code, which is preserved verbatim.
+ * @returns The body to serialize.
+ */
+export function buildBoundedErrorBody(
+  err: object,
+  statusCode: number,
+): BoundedErrorBody {
+  const candidate = err as {code?: unknown; details?: unknown};
+  const validation = statusCode < 500 && isValidationError(candidate);
+  const body: BoundedErrorBody = {
+    error: {
+      statusCode,
+      code: validation ? VALIDATION_ERROR_CODE : `HTTP_${statusCode}`,
+      message: messageFor(statusCode, validation),
+    },
+  };
+
+  const details = validation ? boundDetails(candidate.details) : undefined;
+  if (!details) {
+    return body;
+  }
+
+  const withDetails: BoundedErrorBody = {
+    error: {...body.error, details},
+  };
+  const observed = Buffer.byteLength(JSON.stringify(withDetails));
+  if (observed > MAX_ERROR_RESPONSE_BYTES) {
+    recordBudgetViolation({
+      resource: ResourceBudgetName.ERROR_RESPONSE_BYTES,
+      configuredLimit: MAX_ERROR_RESPONSE_BYTES,
+      observedValue: observed,
+      detail: 'validation details dropped',
+    });
+    return body;
+  }
+  return withDetails;
+}
+
+/** Resolves the status code the same way LoopBack's default reject provider does. */
+const resolveStatusCode = (err: {status?: number; statusCode?: number}): number =>
+  err.statusCode ?? err.status ?? 500;
+
+/**
+ * Writes a bounded JSON error response, replacing LoopBack's default reject
+ * action.
+ *
+ * Always JSON: the default path hands the error graph to `strong-error-handler`,
+ * which negotiates on `Accept` *and* on an undocumented `?_format` query
+ * parameter, reaching recursive XML and HTML serializers. Setting
+ * `negotiateContentType: false` closes the header route but not `?_format`, so
+ * this writer ignores content negotiation entirely.
+ *
+ * @param request - The inbound request, used only for bounded log metadata.
+ * @param response - The response to write.
+ * @param err - The error to report.
+ */
+export function writeBoundedError(
+  request: Request,
+  response: Response,
+  err: Error & {code?: unknown; details?: unknown; status?: number; statusCode?: number},
+): void {
+  if (response.headersSent) {
+    request.socket.destroy();
+    return;
+  }
+
+  const statusCode = resolveStatusCode(err);
+  const body = buildBoundedErrorBody(err, statusCode);
+  const payload = JSON.stringify(body);
+
+  // Bounded metadata only: counts and categories, never the payload or the
+  // framework's (possibly input-bearing) message.
+  logger.warn(
+    {
+      httpMethod: request.method,
+      httpPath: request.path,
+      httpStatusCode: statusCode,
+      errorName: err.name,
+      validationErrorCount: Array.isArray(err.details) ? err.details.length : 0,
+      returnedErrorCount: body.error.details?.length ?? 0,
+      validationKeywords: body.error.details?.map(d => d.code),
+      responseBytes: Buffer.byteLength(payload),
+      traceId: getTraceId(),
+    },
+    'Request rejected',
+  );
+
+  response.setHeader('X-Content-Type-Options', 'nosniff');
+  response.setHeader('Content-Type', 'application/json; charset=utf-8');
+  response.status(statusCode).send(payload);
+}
+
+/**
+ * Middleware form of the bounded writer, for the `middleware` group.
+ *
+ * Catching here rather than only replacing the reject action means errors thrown
+ * by downstream middleware are bounded too, and the response is written before
+ * LoopBack's default writer ever sees the error.
+ *
+ * @param ctx - Middleware context.
+ * @param next - Downstream chain.
+ * @returns The downstream result, or nothing when an error was written.
+ */
+export const boundedErrorWriterMiddleware = async (
+  ctx: MiddlewareContext,
+  next: Next,
+) => {
+  try {
+    return await next();
+  } catch (err) {
+    writeBoundedError(
+      ctx.request,
+      ctx.response,
+      err as Error & {statusCode?: number},
+    );
+    return undefined;
+  }
+};
+
+/** Re-exported so callers can build the same errors the writer recognises. */
+export const validationError = (message: string): HttpErrors.HttpError =>
+  Object.assign(new HttpErrors.UnprocessableEntity(message), {
+    code: VALIDATION_ERROR_CODE,
+  });

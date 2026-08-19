@@ -69,8 +69,9 @@ export function decodeBridgeMethodParameters(method: BRIDGE_METHODS, data: strin
  * arguments as semantically valid — 80-byte block headers, real DER signatures,
  * real Bitcoin transactions — so a successful receipt bounds how much the ABI
  * decoder can be made to allocate. A reverted call proves nothing about its
- * arguments, and a truthy receipt object says nothing about its status: report
- * 84419 turns exactly that gap into an unrecoverable out-of-memory abort.
+ * arguments, and a truthy receipt object says nothing about its status. Testing
+ * only `if (receipt)` therefore lets a reverted transaction reach the decoder,
+ * where adversarial calldata can trigger an unrecoverable out-of-memory abort.
  *
  * Status arrives in different shapes depending on whether the receipt came from
  * web3 or ethers, so every known success representation is accepted. Anything

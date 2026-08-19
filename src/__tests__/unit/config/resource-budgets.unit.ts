@@ -24,6 +24,9 @@ describe('Config: resource budgets', () => {
         PROVIDER_RETRY_BASE_DELAY_MS: '0',
         ADDRESS_LIST_MAX_ITEMS: '3',
         PROVIDER_CONCURRENCY: '2',
+        MAX_ERROR_RESPONSE_BYTES: '512',
+        MAX_VALIDATION_ERROR_DETAILS: '2',
+        MAX_CONNECTION_BUFFERED_BYTES: '4096',
       });
 
       expect(budgets).to.deepEqual({
@@ -37,6 +40,9 @@ describe('Config: resource budgets', () => {
         PROVIDER_RETRY_BASE_DELAY_MS: 0,
         ADDRESS_LIST_MAX_ITEMS: 3,
         PROVIDER_CONCURRENCY: 2,
+        MAX_ERROR_RESPONSE_BYTES: 512,
+        MAX_VALIDATION_ERROR_DETAILS: 2,
+        MAX_CONNECTION_BUFFERED_BYTES: 4096,
       });
     });
 
@@ -53,6 +59,26 @@ describe('Config: resource budgets', () => {
           ADDRESS_INFO_MAX_TXIDS: '42',
         }).MAX_ADDRESS_INFO_TXIDS,
       ).to.equal(10);
+    });
+
+    it('never lets an unusable value disable the error-response budgets', () => {
+      // A zero or negative ceiling would mean "no bound at all", which is the
+      // opposite of what these budgets exist for.
+      const budgets = loadResourceBudgets({
+        MAX_ERROR_RESPONSE_BYTES: '0',
+        MAX_VALIDATION_ERROR_DETAILS: '-1',
+        MAX_CONNECTION_BUFFERED_BYTES: 'unbounded',
+      });
+
+      expect(budgets.MAX_ERROR_RESPONSE_BYTES).to.equal(
+        RESOURCE_BUDGET_DEFAULTS.MAX_ERROR_RESPONSE_BYTES,
+      );
+      expect(budgets.MAX_VALIDATION_ERROR_DETAILS).to.equal(
+        RESOURCE_BUDGET_DEFAULTS.MAX_VALIDATION_ERROR_DETAILS,
+      );
+      expect(budgets.MAX_CONNECTION_BUFFERED_BYTES).to.equal(
+        RESOURCE_BUDGET_DEFAULTS.MAX_CONNECTION_BUFFERED_BYTES,
+      );
     });
 
     it('ignores unusable values rather than disabling a budget', () => {

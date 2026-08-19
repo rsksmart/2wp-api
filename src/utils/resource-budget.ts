@@ -23,6 +23,9 @@ export enum ResourceBudgetName {
   UTXO_RESPONSE_ROWS = 'utxo_response_rows',
   ADDRESS_INFO_TXIDS = 'address_info_txids',
   ADDRESS_LIST_ITEMS = 'address_list_items',
+  ERROR_RESPONSE_BYTES = 'error_response_bytes',
+  VALIDATION_ERROR_DETAILS = 'validation_error_details',
+  CONNECTION_BUFFERED_BYTES = 'connection_buffered_bytes',
 }
 
 /**

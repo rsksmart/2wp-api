@@ -31,7 +31,7 @@ const subscribedCalldata = (): string =>
   ]).slice(2);
 
 /**
- * The report 84419 payload: `receiveHeaders(bytes[])` declaring 2 040 entries
+ * The amplification payload: `receiveHeaders(bytes[])` declaring 2 040 entries
  * whose element offsets all alias the same 64 KiB region. Every offset is in
  * bounds, so nothing about the bytes themselves is malformed — following them
  * is what materializes ~134 MB and aborts the process.
@@ -174,7 +174,7 @@ describe('Service: NodeBridgeDataProvider decode gating', () => {
     });
   });
 
-  describe('report 84419 regression', () => {
+  describe('aliased-offset calldata regression', () => {
     it('never hands the aliased receiveHeaders payload to the decoder', async () => {
       rskNodeService.getTransactionReceipt.resolves({status: 0});
 
