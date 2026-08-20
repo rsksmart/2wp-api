@@ -11,7 +11,12 @@ import {
   PROVIDER_TIMEOUT_MS,
 } from '../config/resource-budgets';
 import {getLogger} from './logger';
+import {
+  cancellationOf,
+  RequestCancelledError,
+} from './request-cancellation';
 import {recordBudgetViolation, ResourceBudgetName} from './resource-budget';
+import {getRequestSignal} from './trace-context';
 
 const logger = getLogger('bounded-http-client');
 
@@ -89,8 +94,16 @@ const sleep = (ms: number): Promise<void> =>
  * Transient failures worth one more attempt. Budget violations, malformed
  * responses and 4xx answers are never retried — retrying them would only
  * multiply the work an attacker gets for free.
+ *
+ * A cancellation is emphatically not retryable: nobody is waiting for the
+ * answer, so retrying would do the very work cancellation exists to avoid. It is
+ * checked first because it would otherwise be classified as a network failure,
+ * which *is* retryable.
  */
-const isRetryable = (err: unknown): boolean => {
+export const isRetryableError = (err: unknown): boolean => {
+  if (err instanceof RequestCancelledError) {
+    return false;
+  }
   if (err instanceof ProviderHttpStatusError) {
     return err.statusCode >= 500;
   }
@@ -106,6 +119,7 @@ function attempt<T>(
   timeoutMs: number,
   maxResponseBytes: number,
   headers: Record<string, string>,
+  signal?: AbortSignal,
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const transport = target.protocol === 'https:' ? https : http;
@@ -113,6 +127,7 @@ function attempt<T>(
     // Declared before the request so `finish` can always clear it, even if the
     // request errors before the timer is armed.
     let deadline: NodeJS.Timeout | undefined;
+    let onAbort: (() => void) | undefined;
 
     const finish = (err: Error | null, value?: T) => {
       if (settled) {
@@ -120,6 +135,9 @@ function attempt<T>(
       }
       settled = true;
       clearTimeout(deadline);
+      if (onAbort) {
+        signal?.removeEventListener('abort', onAbort);
+      }
       if (err) {
         reject(err);
       } else {
@@ -218,6 +236,15 @@ function attempt<T>(
       request.destroy(new ProviderTimeoutError(timeoutMs));
     }, timeoutMs);
 
+    // Destroying the request with a typed error is the same path the deadline
+    // uses, so the reason survives to the 'error' handler below and the
+    // `settled` guard makes the two idempotent against each other.
+    if (signal) {
+      onAbort = () =>
+        request.destroy(cancellationOf(signal) ?? new RequestCancelledError());
+      signal.addEventListener('abort', onAbort, {once: true});
+    }
+
     request.on('error', (err: Error) => {
       finish(
         err instanceof BoundedHttpError ? err : new ProviderNetworkError(err.message),
@@ -233,11 +260,16 @@ function attempt<T>(
  *
  * The LoopBack REST connector buffers a whole provider response before the
  * application sees it, so it cannot bound response size. This client is the
- * bounded replacement used on the high-risk Blockbook endpoints: it enforces an
- * overall deadline, rejects on the declared `Content-Length`, aborts the socket
- * as soon as the streamed byte tally passes the budget, insists the response is
- * declared as JSON, and retries only transient failures a bounded number of
- * times.
+ * bounded replacement used on the high-risk Blockbook endpoints: it enforces a
+ * per-attempt deadline, rejects on the declared `Content-Length`, aborts the
+ * socket as soon as the streamed byte tally passes the budget, insists the
+ * response is declared as JSON, and retries only transient failures a bounded
+ * number of times.
+ *
+ * `timeoutMs` bounds one attempt, so the worst case across retries is
+ * `(maxRetries + 1) * timeoutMs` plus backoff. The request-level deadline in
+ * `httpAccessLogMiddleware` is what bounds the total, and it cancels through the
+ * request signal rather than merely abandoning the promise.
  *
  * Budget violations emit `event=resource_budget_exceeded` and bump the
  * `resource_budget_exceeded_total` counter before the error is thrown.
@@ -270,10 +302,24 @@ export async function fetchJsonWithBudget<T = unknown>(
     );
   }
 
+  const signal = getRequestSignal();
+
   let lastError: unknown;
   for (let tryNumber = 0; tryNumber <= maxRetries; tryNumber += 1) {
+    // Checked before every attempt, so a cancellation that lands between
+    // retries stops the loop instead of funding another round trip.
+    const cancellation = cancellationOf(signal);
+    if (cancellation) {
+      throw cancellation;
+    }
     try {
-      return await attempt<T>(target, timeoutMs, maxResponseBytes, req.headers ?? {});
+      return await attempt<T>(
+        target,
+        timeoutMs,
+        maxResponseBytes,
+        req.headers ?? {},
+        signal,
+      );
     } catch (err) {
       lastError = err;
       if (err instanceof ProviderResponseTooLargeError) {
@@ -295,7 +341,7 @@ export async function fetchJsonWithBudget<T = unknown>(
           detail: req.operation,
         });
       }
-      if (!isRetryable(err) || tryNumber === maxRetries) {
+      if (!isRetryableError(err) || tryNumber === maxRetries) {
         throw err;
       }
       logger.warn(

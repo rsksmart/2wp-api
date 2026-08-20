@@ -107,7 +107,7 @@
     "@types/big.js": "^6.1.2",
     "@types/bs58": "^4.0.1",
     "@types/nock": "^10.0.3",
-    "@types/node": "^20.19.43",
+    "@types/node": "^24.9.2",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.48.0",

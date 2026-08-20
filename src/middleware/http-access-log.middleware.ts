@@ -1,8 +1,14 @@
 import {randomBytes} from 'crypto';
 import {Next} from '@loopback/core';
 import {Middleware, MiddlewareContext, Request} from '@loopback/rest';
+import {MAX_REQUEST_DURATION_MS} from '../config/resource-budgets';
 import {getLogger} from '../utils/logger';
-import {runWithTraceId} from '../utils/trace-context';
+import {
+  CancellationReason,
+  recordCancellation,
+  RequestCancelledError,
+} from '../utils/request-cancellation';
+import {runWithRequestContext} from '../utils/trace-context';
 
 const logger = getLogger('http-access');
 
@@ -80,27 +86,70 @@ export const httpAccessLogMiddleware: Middleware = async (
 ) => {
   const {request, response} = ctx;
   const traceId = resolveTraceId(request);
+  const startedAt = Date.now();
 
   if (!response.headersSent) {
     response.setHeader(REQUEST_ID_HEADER, traceId);
   }
 
-  // Run the rest of the request within a trace context so every log line
-  // emitted by downstream controllers and services carries the traceId.
-  return runWithTraceId(traceId, () => {
+  // One controller per request, tripped when nobody is waiting for the answer
+  // any more. Downstream work reads it via the request context rather than
+  // having it threaded through every signature.
+  const controller = new AbortController();
+  const elapsed = () => Date.now() - startedAt;
+  const route = `${request.method} ${request.path}`;
+
+  const cancel = (reason: CancellationReason) => {
+    if (controller.signal.aborted) {
+      return;
+    }
+    // Abort with the reason attached, so everything downstream reports why the
+    // work stopped rather than assuming.
+    controller.abort(new RequestCancelledError(reason));
+    recordCancellation({
+      reason,
+      route,
+      elapsedMs: elapsed(),
+      configuredLimitMs: reason === 'timeout' ? MAX_REQUEST_DURATION_MS : undefined,
+    });
+  };
+
+  // `unref` so a pending deadline cannot hold the process open at shutdown.
+  const deadline = setTimeout(() => cancel('timeout'), MAX_REQUEST_DURATION_MS);
+  deadline.unref();
+
+  // 'close' fires on success and on abort alike; `writableFinished` is what
+  // distinguishes them. `writableEnded` is not usable here — it flips to true
+  // even for a response the client never received, and `req.on('aborted')` has
+  // been documentation-deprecated since Node 17.
+  response.once('close', () => {
+    clearTimeout(deadline);
+    if (!response.writableFinished) {
+      cancel('client_aborted');
+    }
+  });
+
+  // Run the rest of the request within a request context so every log line
+  // emitted by downstream controllers and services carries the traceId, and so
+  // they can observe cancellation.
+  return runWithRequestContext({traceId, signal: controller.signal}, () => {
     if (isApiRequest(request.path)) {
-      const startedAt = Date.now();
-      response.once('finish', () => {
+      // 'close' rather than 'finish': 'finish' never fires for an abandoned
+      // request, which is precisely the case worth having in the log.
+      response.once('close', () => {
         logger.info(
           {
             httpMethod: request.method,
             httpPath: request.path,
             httpStatusCode: response.statusCode,
-            durationMs: Date.now() - startedAt,
+            durationMs: elapsed(),
+            completed: response.writableFinished,
             userAgent: request.get('user-agent'),
             traceId,
           },
-          'HTTP request completed',
+          response.writableFinished
+            ? 'HTTP request completed'
+            : 'HTTP request abandoned by client',
         );
       });
     }

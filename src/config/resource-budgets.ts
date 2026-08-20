@@ -44,6 +44,8 @@ export interface ResourceBudgets {
   MAX_VALIDATION_ERROR_DETAILS: number;
   /** Hard cap on response bytes buffered for one connection, in bytes. */
   MAX_CONNECTION_BUFFERED_BYTES: number;
+  /** Wall-clock deadline for handling one inbound request, in milliseconds. */
+  MAX_REQUEST_DURATION_MS: number;
 }
 
 /**
@@ -62,6 +64,10 @@ export interface ResourceBudgets {
  * - 1 MiB of buffered response per connection is far above any single bounded
  *   response, but stops a peer that stops reading from accumulating pipelined
  *   responses in the process.
+ * - A 30 s request deadline sits well above any legitimate request while
+ *   bounding the fan-out arithmetic: 50 addresses at a concurrency of 5, each
+ *   hop allowed `PROVIDER_TIMEOUT_MS` plus a retry, would otherwise let a
+ *   single request occupy the process for minutes.
  *
  * Bridge ABI decoding is deliberately absent from this list: it is bounded by
  * requiring a successful transaction receipt before decoding, not by a size
@@ -81,6 +87,7 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   MAX_ERROR_RESPONSE_BYTES: 8 * 1024,
   MAX_VALIDATION_ERROR_DETAILS: 3,
   MAX_CONNECTION_BUFFERED_BYTES: 1024 * 1024,
+  MAX_REQUEST_DURATION_MS: 30_000,
 });
 
 /**
@@ -177,6 +184,10 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
       env.MAX_CONNECTION_BUFFERED_BYTES,
       d.MAX_CONNECTION_BUFFERED_BYTES,
     ),
+    MAX_REQUEST_DURATION_MS: parsePositiveInt(
+      env.MAX_REQUEST_DURATION_MS,
+      d.MAX_REQUEST_DURATION_MS,
+    ),
   };
 }
 
@@ -199,4 +210,5 @@ export const {
   MAX_ERROR_RESPONSE_BYTES,
   MAX_VALIDATION_ERROR_DETAILS,
   MAX_CONNECTION_BUFFERED_BYTES,
+  MAX_REQUEST_DURATION_MS,
 } = RESOURCE_BUDGETS;

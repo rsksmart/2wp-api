@@ -10,6 +10,7 @@ import {
   GENERIC_ERROR_MESSAGE,
   recordFormatRejection,
   VALIDATION_ERROR_CODE,
+  writeBoundedError,
 } from '../../../middleware/bounded-error-writer';
 import {
   getMetricCounter,
@@ -254,5 +255,70 @@ describe('Middleware: format rejection metrics', () => {
         );
       });
     });
+  });
+});
+
+describe('Middleware: writing to a finished response', () => {
+  /** A minimal response double recording whether anything was written. */
+  const givenResponse = (state: {
+    headersSent?: boolean;
+    writableEnded?: boolean;
+    destroyed?: boolean;
+  }) => {
+    const sent: string[] = [];
+    return {
+      sent,
+      response: {
+        headersSent: false,
+        writableEnded: false,
+        destroyed: false,
+        ...state,
+        setHeader: () => undefined,
+        status() {
+          return this;
+        },
+        send(payload: string) {
+          sent.push(payload);
+          return this;
+        },
+      },
+    };
+  };
+
+  const givenRequest = (socket?: {destroy: () => void}) =>
+    ({method: 'POST', path: '/utxo', socket} as never);
+
+  it('writes normally to a live response', () => {
+    const {response, sent} = givenResponse({});
+
+    writeBoundedError(givenRequest({destroy: () => undefined}), response as never, new Error('x'));
+
+    expect(sent).to.have.length(1);
+  });
+
+  it('does not write to a response that already ended', () => {
+    const {response, sent} = givenResponse({writableEnded: true});
+
+    writeBoundedError(givenRequest({destroy: () => undefined}), response as never, new Error('x'));
+
+    expect(sent).to.be.empty();
+  });
+
+  it('does not write to a destroyed response', () => {
+    const {response, sent} = givenResponse({destroyed: true});
+
+    writeBoundedError(givenRequest({destroy: () => undefined}), response as never, new Error('x'));
+
+    expect(sent).to.be.empty();
+  });
+
+  it('does not throw when the socket is already gone', () => {
+    // A torn-down request can have no socket at all. Throwing here would escape
+    // the catch block that called us and reach the framework's own writer.
+    const {response} = givenResponse({headersSent: true});
+
+    expect(() =>
+      writeBoundedError(givenRequest(undefined), response as never, new Error('x')),
+    ).to.not.throw();
   });
 });

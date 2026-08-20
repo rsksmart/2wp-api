@@ -128,8 +128,12 @@ const messageFor = (statusCode: number, isValidation: boolean): string => {
       return 'Request payload too large.';
     case 415:
       return 'Unsupported media type.';
+    case 499:
+      return 'Client closed the request.';
     case 502:
       return 'Upstream provider request failed.';
+    case 503:
+      return 'Request exceeded its time budget.';
     case 504:
       return 'Upstream provider request timed out.';
     default:
@@ -246,8 +250,16 @@ export function writeBoundedError(
   response: Response,
   err: Error & {code?: unknown; details?: unknown; status?: number; statusCode?: number},
 ): void {
+  // Nothing can be written to a response that is already finished or gone. A
+  // client that disappears mid-request leaves exactly this state, and writing
+  // anyway throws from inside whatever callback we were invoked from.
+  if (response.writableEnded || response.destroyed) {
+    return;
+  }
   if (response.headersSent) {
-    request.socket.destroy();
+    // Part of the response is already on the wire, so it cannot be replaced with
+    // an error body; drop the connection instead. The socket may already be gone.
+    request.socket?.destroy();
     return;
   }
 

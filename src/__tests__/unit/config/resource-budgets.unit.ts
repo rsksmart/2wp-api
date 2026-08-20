@@ -27,6 +27,7 @@ describe('Config: resource budgets', () => {
         MAX_ERROR_RESPONSE_BYTES: '512',
         MAX_VALIDATION_ERROR_DETAILS: '2',
         MAX_CONNECTION_BUFFERED_BYTES: '4096',
+        MAX_REQUEST_DURATION_MS: '9000',
       });
 
       expect(budgets).to.deepEqual({
@@ -43,6 +44,7 @@ describe('Config: resource budgets', () => {
         MAX_ERROR_RESPONSE_BYTES: 512,
         MAX_VALIDATION_ERROR_DETAILS: 2,
         MAX_CONNECTION_BUFFERED_BYTES: 4096,
+        MAX_REQUEST_DURATION_MS: 9000,
       });
     });
 
@@ -59,6 +61,17 @@ describe('Config: resource budgets', () => {
           ADDRESS_INFO_MAX_TXIDS: '42',
         }).MAX_ADDRESS_INFO_TXIDS,
       ).to.equal(10);
+    });
+
+    it('never lets an unusable value disable the request deadline', () => {
+      // A zero or negative deadline would mean "no deadline", the opposite of
+      // what the budget exists for.
+      expect(
+        loadResourceBudgets({MAX_REQUEST_DURATION_MS: '0'}).MAX_REQUEST_DURATION_MS,
+      ).to.equal(RESOURCE_BUDGET_DEFAULTS.MAX_REQUEST_DURATION_MS);
+      expect(
+        loadResourceBudgets({MAX_REQUEST_DURATION_MS: 'forever'}).MAX_REQUEST_DURATION_MS,
+      ).to.equal(RESOURCE_BUDGET_DEFAULTS.MAX_REQUEST_DURATION_MS);
     });
 
     it('never lets an unusable value disable the error-response budgets', () => {

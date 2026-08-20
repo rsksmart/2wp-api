@@ -26,6 +26,7 @@ export enum ResourceBudgetName {
   ERROR_RESPONSE_BYTES = 'error_response_bytes',
   VALIDATION_ERROR_DETAILS = 'validation_error_details',
   CONNECTION_BUFFERED_BYTES = 'connection_buffered_bytes',
+  REQUEST_DURATION_MS = 'request_duration_ms',
 }
 
 /**

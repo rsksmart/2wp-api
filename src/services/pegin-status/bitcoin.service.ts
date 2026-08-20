@@ -53,30 +53,43 @@ export class BitcoinService {
     });
   }
 
-  getAddressInfo(address: string): Promise<BitcoinAddress> {
-    return new Promise<BitcoinAddress>((resolve, reject) => {
-      this.addressService.addressProvider(address)
-        .then((tx: any) => {
-          const responseAddress = new BitcoinAddress();
-          responseAddress.address = tx[0].address;
-          responseAddress.balance = tx[0].balance;
-          responseAddress.page = tx[0].page;
-          responseAddress.totalPages = tx[0].totalPages;
-          responseAddress.itemsOnPage = tx[0].itemsOnPage;
-          responseAddress.totalReceived = tx[0].totalReceived;
-          responseAddress.totalSent = tx[0].totalSent;
-          responseAddress.unconfirmedBalance = tx[0].unconfirmedBalance;
-          responseAddress.unconfirmedTxs = tx[0].unconfirmedTxs;
-          responseAddress.txs = tx[0].txs;
-          if (responseAddress.txs > 0) {
-            responseAddress.txids = tx[0].txids;
-          }
-          resolve(responseAddress);
-        })
-        .catch(() => {
-          reject(`Error getting address ${address}`);
-        });
-    });
+  /**
+   * Address information from the provider.
+   *
+   * Provider failures are rethrown unchanged. They already carry a meaningful
+   * status — a timeout is a 504, an oversized response a 502, a cancellation a
+   * 499 — and replacing them with a string erased all of that, collapsing every
+   * upstream condition into a 500 and destroying any cancellation travelling
+   * this path. The address goes to the log as a field rather than into the error
+   * message, so nothing request-derived rides along with the error.
+   *
+   * @param address - BTC address to resolve.
+   * @returns The provider's address information.
+   */
+  async getAddressInfo(address: string): Promise<BitcoinAddress> {
+    let tx;
+    try {
+      tx = (await this.addressService.addressProvider(address)) as any;
+    } catch (err) {
+      this.logger.warn({method: 'getAddressInfo', err, address}, 'Address lookup failed');
+      throw err;
+    }
+
+    const responseAddress = new BitcoinAddress();
+    responseAddress.address = tx[0].address;
+    responseAddress.balance = tx[0].balance;
+    responseAddress.page = tx[0].page;
+    responseAddress.totalPages = tx[0].totalPages;
+    responseAddress.itemsOnPage = tx[0].itemsOnPage;
+    responseAddress.totalReceived = tx[0].totalReceived;
+    responseAddress.totalSent = tx[0].totalSent;
+    responseAddress.unconfirmedBalance = tx[0].unconfirmedBalance;
+    responseAddress.unconfirmedTxs = tx[0].unconfirmedTxs;
+    responseAddress.txs = tx[0].txs;
+    if (responseAddress.txs > 0) {
+      responseAddress.txids = tx[0].txids;
+    }
+    return responseAddress;
   }
 
   getLastBlock(): Promise<LastBlockInfo> {

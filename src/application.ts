@@ -7,7 +7,6 @@ import {
   RestExplorerComponent,
 } from '@loopback/rest-explorer';
 import {ServiceMixin} from '@loopback/service-proxy';
-import path from 'path';
 import {MAX_REQUEST_BODY_BYTES} from './config/resource-budgets';
 import {
   boundedAjvFactory,
@@ -113,8 +112,10 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
     // cannot accumulate in the process.
     this.middleware(connectionOutputBudgetMiddleware);
 
-    // Set up default home page
-    this.static('/', path.join(__dirname, '../public'));
+    // The landing page is served by HomePageController, not by serve-static.
+    // serve-static resolves a directory request without a trailing slash from
+    // an fs.stat callback that can outlive the response and then set headers on
+    // it, throwing from inside the library where nothing can catch it.
 
     // For production environments we will not load the explorer component
     if (process.env.NODE_ENV !== ENVIRONMENT_PRODUCTION) {

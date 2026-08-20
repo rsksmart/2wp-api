@@ -31,6 +31,45 @@ const searchAppMode = (): APP_MODE => {
  * @param options - LoopBack `ApplicationConfig` forwarded to `TwpapiApplication` when the API is started.
  * @returns Resolves once the selected component(s) have started; never resolves with a value.
  */
+/**
+ * Error codes that mean one request's response lifecycle broke, not that the
+ * process is unsound.
+ *
+ * A client that disappears mid-response leaves framework and library callbacks
+ * still holding a reference to a finished response; when one of them writes, Node
+ * raises one of these. The affected request is already lost either way, but the
+ * process is completely healthy — so tearing it down converts a per-request
+ * defect into an outage that any client can trigger at will. These are logged
+ * and survived; everything else keeps the shutdown behaviour.
+ */
+const RESPONSE_LIFECYCLE_ERROR_CODES: ReadonlySet<string> = new Set([
+  'ERR_HTTP_HEADERS_SENT',
+  'ERR_STREAM_WRITE_AFTER_END',
+  'ERR_STREAM_ALREADY_FINISHED',
+  'ERR_STREAM_DESTROYED',
+  'ECONNRESET',
+  'EPIPE',
+]);
+
+/** How long shutdown may take before the process exits regardless. */
+const SHUTDOWN_TIMEOUT_MS = 5_000;
+
+/**
+ * Exit code used after a fatal condition.
+ *
+ * Deliberately `0`. A supervisor configured with `restart: unless-stopped` (see
+ * `docker-compose.yml`) recovers the process either way; switching to a nonzero
+ * code is a one-line change here if a deployment ever needs `on-failure`
+ * semantics instead.
+ */
+const EXIT_CODE = 0;
+
+/** Is this a broken-response-lifecycle error rather than a fatal fault? */
+export function isResponseLifecycleError(reason: unknown): boolean {
+  const code = (reason as {code?: unknown} | undefined)?.code;
+  return typeof code === 'string' && RESPONSE_LIFECYCLE_ERROR_CODES.has(code);
+}
+
 export async function main(options: ApplicationConfig = {}): Promise<void> {
   const logger = getLogger('app');
 
@@ -39,24 +78,59 @@ export async function main(options: ApplicationConfig = {}): Promise<void> {
 
   let shuttingDown = false;
   async function shutdown() {
-    if (!shuttingDown) {
-      shuttingDown = true;
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
+    // Stop cleanly, but never let cleanup itself keep a dying process alive: a
+    // hung stop() would otherwise wedge it indefinitely.
+    const stopAll = (async () => {
       if (api) {
         await api.stop();
       }
       if (daemon) {
         await daemon.stop();
       }
-      logger.info('Shutting down');
-      process.exit(0);
+    })();
+    const timeout = new Promise<void>(resolve => {
+      setTimeout(resolve, SHUTDOWN_TIMEOUT_MS).unref();
+    });
+    try {
+      await Promise.race([stopAll, timeout]);
+    } catch (err) {
+      logger.warn({err}, 'Shutdown did not complete cleanly');
     }
+    logger.info('Shutting down');
+    process.exit(EXIT_CODE);
   }
 
+  /**
+   * Logs a process-level failure and shuts down unless it is a broken response
+   * lifecycle, which affects one request and not the process.
+   */
+  const handleFatal = (kind: string) => (reason: unknown) => {
+    if (isResponseLifecycleError(reason)) {
+      logger.warn(
+        {event: 'response_lifecycle_error', kind, err: reason as Error},
+        'Response lifecycle error; request abandoned, process continues',
+      );
+      return;
+    }
+    logger.fatal({event: kind, err: reason as Error}, 'Fatal error');
+    shutdown().catch(err => logger.error({err}, 'Shutdown failed'));
+  };
+
   //catches ctrl+c event
-  process.on('SIGINT', () => { shutdown().catch(logger.error); });
+  process.on('SIGINT', () => {
+    shutdown().catch(err => logger.error({err}, 'Shutdown failed'));
+  });
 
   //catches uncaught exceptions
-  process.on('uncaughtException', () => { shutdown().catch(logger.error); });
+  process.on('uncaughtException', handleFatal('uncaughtException'));
+
+  // Without this listener Node treats an unhandled rejection as fatal. Late
+  // response writes from ignored framework promises land here.
+  process.on('unhandledRejection', handleFatal('unhandledRejection'));
 
   const appMode = searchAppMode();
 

@@ -2,6 +2,8 @@ services:
   api:
     build: .
     container_name: pp-api-loopback
+    # A fatal fault exits 0, so recovery must not depend on the exit code.
+    restart: unless-stopped
     ports:
     - "3000:3000"
     env_file:

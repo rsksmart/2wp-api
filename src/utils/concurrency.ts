@@ -1,3 +1,5 @@
+import {throwIfCancelled} from './request-cancellation';
+
 export async function withConcurrency<T, R>(
   items: T[],
   limit: number,
@@ -17,6 +19,8 @@ export async function withConcurrency<T, R>(
   return chunks.reduce(
     (chain, chunk) =>
       chain.then(async acc => {
+        // Never dispatch another batch for a request nobody is waiting on.
+        throwIfCancelled();
         const chunkResults = await Promise.all(chunk.map(fn));
         return acc.concat(chunkResults);
       }),
@@ -56,6 +60,9 @@ export async function reduceWithConcurrency<T, R, A>(
   let acc = initial;
 
   for (let i = 0; i < items.length; i += size) {
+    // Never dispatch another batch for a request nobody is waiting on. This
+    // reuses the same abort-by-throw path the row budget already uses.
+    throwIfCancelled();
     const chunk = items.slice(i, i + size);
     const results = await Promise.all(chunk.map(fn));
     // Fold immediately so an over-budget accumulator throws before the next

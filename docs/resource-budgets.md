@@ -31,6 +31,7 @@ back rather than disabling a budget.
 | `MAX_ERROR_RESPONSE_BYTES` | 8192 (8 KiB) | One serialized error response body |
 | `MAX_VALIDATION_ERROR_DETAILS` | 3 | Validation details returned to the client |
 | `MAX_CONNECTION_BUFFERED_BYTES` | 1048576 (1 MiB) | Response bytes buffered per connection |
+| `MAX_REQUEST_DURATION_MS` | 30000 (30 s) | Wall-clock handling of one inbound request |
 
 `ADDRESS_INFO_MAX_TXIDS` is still honoured as a legacy alias for
 `MAX_ADDRESS_INFO_TXIDS`. `src/config/limits.ts` re-exports the historical names
@@ -154,6 +155,54 @@ code, so a client cannot tell the two 422 producers apart.
 Result on the measurement above: **24.81 MB → 145 bytes**, for
 `application/json`, `text/xml` and `?_format=xml` alike.
 
+### Abandoned and over-long requests
+
+Work used to outlive the client that asked for it. A `/utxo` fan-out over 50
+addresses whose client resets after 150 ms issued **40 of its 50 provider calls
+after the client was gone**, and nothing bounded the total: `PROVIDER_TIMEOUT_MS`
+applies per attempt, so with one retry a single hop can take ~30 s and ten
+sequential batches could occupy the process for minutes.
+
+Every request now carries a cancellation signal, created in
+`httpAccessLogMiddleware` and read through the request context in
+`src/utils/trace-context.ts` — the same AsyncLocalStorage that already carries the
+traceId. That matters because the provider services are module-scope singletons
+shared by every concurrent request, so per-request state cannot live on them.
+
+The signal trips on either of two things:
+
+- **the client going away** — `res.on('close')` when `res.writableFinished` is
+  false. That is the discriminator: `'close'` fires on success and abort alike,
+  and `writableEnded` flips to true even for a response nobody received.
+  `req.on('aborted')` has been documentation-deprecated since Node 17.
+- **the deadline** — `MAX_REQUEST_DURATION_MS`.
+
+Once tripped, two things stop:
+
+1. **Dispatch.** Both fan-out helpers in `src/utils/concurrency.ts` check before
+   each batch, reusing the abort-by-throw path the UTXO row budget already uses.
+   Up to `PROVIDER_CONCURRENCY` in-flight calls may still settle; the next batch
+   never starts.
+2. **In-flight calls.** The bounded HTTP client destroys the outbound socket with
+   the cancellation as the reason, the same typed-destroy path the provider
+   deadline uses. A cancellation is explicitly **not** retryable — it would
+   otherwise be classified as a network failure and retried, doing exactly the
+   work cancellation exists to avoid.
+
+The abort carries a reason, so consumers report why work stopped: a client abort
+is logged as `499` (conventional for "client closed the request", and never
+delivered), a deadline breach as `503`. Both increment
+`request_cancelled_total{reason}`; a deadline additionally records a
+`request_duration_ms` budget violation, because unlike a vanished client it *is*
+a ceiling the service set for itself.
+
+Aborted requests also now appear in the access log at all — it listened on
+`'finish'`, which never fires for an abandoned request.
+
+Not cancellable: anything going through `loopback-connector-rest`, since neither
+the connector nor `postman-request` accepts a signal. `/broadcast` and the
+tx/fee/last-block providers are bounded only by their timeout.
+
 ### Bridge calldata decoding
 
 Bridge ABI decoding is **not** governed by a size budget. It is governed by a
@@ -225,7 +274,7 @@ registry.
 `ResourceBudgetName`: `request_body_bytes`, `provider_response_bytes`,
 `provider_timeout_ms`, `utxos_per_address`, `utxo_response_rows`,
 `address_info_txids`, `address_list_items`, `error_response_bytes`,
-`validation_error_details`, `connection_buffered_bytes`.
+`validation_error_details`, `connection_buffered_bytes`, `request_duration_ms`.
 
 ## Responses
 
@@ -237,6 +286,8 @@ Violations always produce a bounded response and never terminate the process:
 | The address list is invalid or too long (schema/validator) | `422 Unprocessable Entity` |
 | A provider breached its size budget, or failed | `502 Bad Gateway` |
 | A provider breached its time budget | `504 Gateway Timeout` |
+| The client abandoned the request | `499` (logged, never delivered) |
+| The request breached its own deadline | `503 Service Unavailable` |
 
 Every error body is JSON, bounded by `MAX_ERROR_RESPONSE_BYTES`, and carries no
 attacker-controlled content — see **Validation error responses** above.
@@ -264,4 +315,9 @@ value:
 - `src/__tests__/unit/middleware/connection-output-budget.middleware.unit.ts`
 - `src/__tests__/unit/utils/address-list-validation.unit.ts`
 - `src/__tests__/acceptance/bounded-validation-errors.acceptance.ts`
+- `src/__tests__/unit/utils/request-cancellation.unit.ts`
+- `src/__tests__/unit/utils/trace-context.unit.ts`
+- `src/__tests__/unit/utils/bounded-http-client.cancellation.unit.ts`
+- `src/__tests__/acceptance/request-cancellation.acceptance.ts`
+- `src/__tests__/acceptance/response-lifecycle.acceptance.ts`
 - `src/__tests__/unit/addressesInfo.controller.budgets.unit.ts`
