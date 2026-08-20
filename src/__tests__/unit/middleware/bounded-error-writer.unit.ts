@@ -6,11 +6,14 @@ import {
 } from '../../../config/resource-budgets';
 import {
   buildBoundedErrorBody,
+  FORMAT_REJECTED_METRIC,
   GENERIC_ERROR_MESSAGE,
+  recordFormatRejection,
   VALIDATION_ERROR_CODE,
 } from '../../../middleware/bounded-error-writer';
 import {
   getMetricCounter,
+  getMetricCounters,
   resetMetricCounters,
 } from '../../../utils/metric-logger';
 import {
@@ -160,6 +163,96 @@ describe('Middleware: bounded error writer', () => {
           resource: ResourceBudgetName.ERROR_RESPONSE_BYTES,
         }),
       ).to.equal(0);
+    });
+  });
+});
+
+describe('Middleware: format rejection metrics', () => {
+  beforeEach(resetMetricCounters);
+
+  const rejected = (reason: string) =>
+    getMetricCounter(FORMAT_REJECTED_METRIC, {reason});
+
+  const givenError = (
+    statusCode: number,
+    extra: Record<string, unknown> = {},
+  ) => Object.assign(new Error('framework message'), {statusCode, ...extra});
+
+  describe('classification', () => {
+    it('counts an unsupported content encoding', () => {
+      recordFormatRejection(givenError(415, {type: 'encoding.unsupported'}));
+
+      expect(rejected('content_encoding')).to.equal(1);
+      expect(rejected('media_type')).to.equal(0);
+    });
+
+    it('counts an unsupported media type', () => {
+      recordFormatRejection(givenError(415, {type: 'entity.parse.failed'}));
+
+      expect(rejected('media_type')).to.equal(1);
+      expect(rejected('content_encoding')).to.equal(0);
+    });
+
+    it('counts a bare 415 as a media type rejection', () => {
+      recordFormatRejection(givenError(415));
+
+      expect(rejected('media_type')).to.equal(1);
+    });
+
+    it('counts an unroutable request as a method rejection', () => {
+      recordFormatRejection(givenError(404));
+      recordFormatRejection(givenError(405));
+
+      expect(rejected('method')).to.equal(2);
+    });
+
+    it('counts an oversized body', () => {
+      recordFormatRejection(givenError(413));
+
+      expect(rejected('body_size')).to.equal(1);
+    });
+
+    it('does not count statuses that are not format rejections', () => {
+      recordFormatRejection(givenError(422));
+      recordFormatRejection(givenError(500));
+      recordFormatRejection(givenError(502));
+
+      expect(getMetricCounters()).to.deepEqual({});
+    });
+
+    it('counts each rejection exactly once', () => {
+      recordFormatRejection(givenError(415, {type: 'encoding.unsupported'}));
+      recordFormatRejection(givenError(415, {type: 'encoding.unsupported'}));
+
+      expect(rejected('content_encoding')).to.equal(2);
+    });
+  });
+
+  describe('labels never carry request data', () => {
+    it('ignores an attacker-supplied encoding value', () => {
+      // The rejected header value is attacker-controlled and unbounded, so it
+      // must never become a metric label - that would be both a cardinality
+      // explosion and a data leak into the metrics pipeline.
+      recordFormatRejection(
+        givenError(415, {
+          type: 'encoding.unsupported',
+          encoding: 'MARKER_LABEL_LEAK',
+        }),
+      );
+
+      const keys = Object.keys(getMetricCounters()).join('|');
+      expect(keys).to.not.match(/MARKER_LABEL_LEAK/);
+      expect(keys).to.match(/reason="content_encoding"/);
+    });
+
+    it('keeps the label set to a fixed vocabulary', () => {
+      [413, 415, 404].forEach(status => recordFormatRejection(givenError(status)));
+
+      Object.keys(getMetricCounters()).forEach(key => {
+        expect(key).to.match(
+          /^format_rejected_total\{reason="(content_encoding|media_type|method|body_size)"\}$/,
+        );
+      });
     });
   });
 });

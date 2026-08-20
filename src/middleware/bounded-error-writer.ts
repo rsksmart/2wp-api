@@ -5,6 +5,7 @@ import {
   MAX_VALIDATION_ERROR_DETAILS,
 } from '../config/resource-budgets';
 import {getLogger} from '../utils/logger';
+import {incrementMetricCounter} from '../utils/metric-logger';
 import {recordBudgetViolation, ResourceBudgetName} from '../utils/resource-budget';
 import {getTraceId} from '../utils/trace-context';
 
@@ -18,6 +19,69 @@ export const GENERIC_ERROR_MESSAGE = 'Request could not be processed.';
 
 /** Message returned for any request-validation failure. */
 export const VALIDATION_ERROR_MESSAGE = 'Invalid request payload.';
+
+/** Counter incremented when a request is refused on format grounds. */
+export const FORMAT_REJECTED_METRIC = 'format_rejected_total';
+
+/**
+ * The fixed vocabulary of format-rejection reasons. Kept closed so the metric
+ * stays low-cardinality: the rejected header values are attacker-controlled and
+ * unbounded, so they must never reach a label.
+ */
+export type FormatRejectionReason =
+  | 'content_encoding'
+  | 'media_type'
+  | 'method'
+  | 'body_size';
+
+/**
+ * Classifies a refusal by *why* the request was unacceptable, from the status
+ * code and the framework's own error type — never from request data.
+ *
+ * Returns `undefined` for anything that is not a format refusal, so validation
+ * failures and upstream errors are not counted here.
+ */
+const rejectionReason = (
+  err: {statusCode?: number; status?: number; type?: unknown},
+): FormatRejectionReason | undefined => {
+  const statusCode = err.statusCode ?? err.status;
+  switch (statusCode) {
+    case 415:
+      // body-parser distinguishes the two 415 causes by `type`; an unsupported
+      // encoding is refused before any decompressor is constructed.
+      return err.type === 'encoding.unsupported'
+        ? 'content_encoding'
+        : 'media_type';
+    case 413:
+      return 'body_size';
+    case 404:
+    case 405:
+      return 'method';
+    default:
+      return undefined;
+  }
+};
+
+/**
+ * Records a format refusal on the metrics channel.
+ *
+ * Separate from `recordBudgetViolation` on purpose: a budget violation means a
+ * configured ceiling was exceeded, which a rejected media type is not. Folding
+ * them together would make `resource_budget_exceeded_total` mean two different
+ * things and make either signal useless to alert on.
+ *
+ * @param err - The error being reported. Only its status and framework-set `type` are read.
+ */
+export function recordFormatRejection(err: {
+  statusCode?: number;
+  status?: number;
+  type?: unknown;
+}): void {
+  const reason = rejectionReason(err);
+  if (reason) {
+    incrementMetricCounter(logger, FORMAT_REJECTED_METRIC, {reason});
+  }
+}
 
 /** One bounded validation detail: where it failed and which rule failed. */
 export interface BoundedErrorDetail {
@@ -190,6 +254,8 @@ export function writeBoundedError(
   const statusCode = resolveStatusCode(err);
   const body = buildBoundedErrorBody(err, statusCode);
   const payload = JSON.stringify(body);
+
+  recordFormatRejection(err as {statusCode?: number; type?: unknown});
 
   // Bounded metadata only: counts and categories, never the payload or the
   // framework's (possibly input-bearing) message.

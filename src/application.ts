@@ -40,6 +40,13 @@ export {ApplicationConfig};
  *   caps whatever survives. Without this, Ajv retains one error object per
  *   invalid array item — tens of MB of heap for a single request, which is the
  *   allocation a malformed-payload denial of service relies on.
+ * - **Request-body encodings.** `inflate: false` restricts bodies to `identity`.
+ *   body-parser checks this *before* constructing a decompression stream, so no
+ *   zlib or Brotli decoder is reachable from a public route; every other
+ *   encoding becomes a bounded 415. This is deliberately not configurable —
+ *   the flag is all-or-nothing, so re-enabling gzip would re-enable Brotli with
+ *   it. Since nothing may be compressed, wire size equals decoded size and the
+ *   body limit above bounds both.
  *
  * @param options - The application config supplied by the caller.
  * @returns The config with `rest.requestBodyParser` filled in.
@@ -58,10 +65,10 @@ export function withResourceBudgets(
       ...rest,
       requestBodyParser: {
         limit,
-        json: {limit},
-        text: {limit},
-        urlencoded: {limit},
-        raw: {limit},
+        json: {limit, inflate: false},
+        text: {limit, inflate: false},
+        urlencoded: {limit, inflate: false},
+        raw: {limit, inflate: false},
         validation: {
           ajvFactory: boundedAjvFactory,
           ajvErrorTransformer: truncateValidationErrors,

@@ -29,6 +29,22 @@ An OpenAPI spec can also be generated to a file offline with `npm run openapi-sp
 
 Request/response shapes (path parameters, body schemas, response models) are documented on each handler via `@loopback/rest` decorators (`@get`/`@post`/`@param`/`@requestBody`/`@response`) and are what populates the REST Explorer and generated OpenAPI spec above — that's the definitive, always-current version of the contract.
 
+## Request and response formats
+
+The API is JSON-only, and the policy is enforced rather than assumed.
+
+| Axis | Policy |
+|---|---|
+| Request `Content-Type` | `application/json` only (a `charset` parameter is fine). Anything else, or an absent header, is refused with a bounded `415`. |
+| Request `Content-Encoding` | `identity` only. `gzip`, `deflate` and `br` are refused with a bounded `415` **before** any decompressor is constructed, so no zlib or Brotli decoder is reachable from a public route. |
+| Response format | Always `application/json`. An `Accept` value asking for XML or HTML, and the legacy `?_format=xml|html` query parameter, are **ignored** rather than rejected — the response stays JSON. This is the chosen contract: unsupported `Accept` values do not produce a `406`. |
+| HTTP methods | Only the methods declared per route. Anything else is refused by routing and never reaches a handler. |
+| Request body | Required where declared, and bounded by `MAX_REQUEST_BODY_BYTES`. Since nothing may be compressed, wire size equals decoded size and one limit bounds both. |
+
+Refusals are counted on the `format_rejected_total` metric, labelled `reason` =
+`content_encoding` | `media_type` | `method` | `body_size`. The rejected header
+value is never used as a label.
+
 ## Resource budgets
 
 Requests and provider responses are bounded by explicit, environment-driven resource budgets — request body size, provider response size and deadline, UTXO row counts, address-info `txids`, and Bridge calldata decode size. Violations produce a bounded `413`/`502`/`504` and a structured `event=resource_budget_exceeded` log. See [`resource-budgets.md`](./resource-budgets.md).

@@ -74,6 +74,10 @@ export class UtxoController {
           },
         },
       },
+      // Without this the framework passes `undefined` straight through on a
+      // request that declares no media type, and the handler below dereferences
+      // it — an unhandled TypeError surfacing as a 500 instead of a bounded 4xx.
+      required: true,
     })
     addressList: AddressList,
   ): Promise<UtxoResponse> {

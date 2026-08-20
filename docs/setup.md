@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-- **Node.js `>=20.0.0`** (`.nvmrc` pins `v20.18.2` — run `nvm use`)
+- **Node.js `>=24.0.0 <25.0.0`** (`.nvmrc` pins `v24.18.0` — run `nvm use`). The `Dockerfile` builds from `node:24-alpine`, so CI, local development and the container all run the same major.
 - **npm** (dependencies are locked with `package-lock.json`; use `npm ci`)
 - **Docker** and **Docker Compose**, to run MongoDB (and optionally the API) locally
 - Access to a running **[Blockbook](https://github.com/trezor/blockbook)** server for the target Bitcoin network (its URL goes in `BLOCKBOOK_URL`)
