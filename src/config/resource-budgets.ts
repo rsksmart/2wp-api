@@ -46,6 +46,12 @@ export interface ResourceBudgets {
   MAX_CONNECTION_BUFFERED_BYTES: number;
   /** Wall-clock deadline for handling one inbound request, in milliseconds. */
   MAX_REQUEST_DURATION_MS: number;
+  /** Hard cap on Blockbook operations in flight across the whole process. */
+  BLOCKBOOK_MAX_IN_FLIGHT: number;
+  /** Hard cap on callers waiting for a Blockbook permit. */
+  BLOCKBOOK_QUEUE_MAX_DEPTH: number;
+  /** Hard cap on how long a caller waits for a permit, in milliseconds. */
+  BLOCKBOOK_QUEUE_MAX_WAIT_MS: number;
 }
 
 /**
@@ -55,8 +61,18 @@ export interface ResourceBudgets {
  * - 256 KiB request body covers the largest legitimate payload (a raw signed
  *   Bitcoin transaction, max ~100 KB, hex-encoded to ~200 KB) with headroom,
  *   and is 4x tighter than the LoopBack/body-parser 1 MB default.
- * - 4 MiB provider response covers a 1000-row Blockbook UTXO page (~200 KB)
- *   and a `details=txids` address page with headroom.
+ * - 1.5 MiB provider response clears the largest response observed in practice
+ *   (~0.93 MB for a heavily-used address) with room to spare. It is kept tight
+ *   deliberately: it is the multiplier on every in-flight provider call, so
+ *   worst-case buffered bytes is `BLOCKBOOK_MAX_IN_FLIGHT x` this value.
+ * - 50 Blockbook operations in flight allows ten concurrent requests fanning
+ *   out at full `PROVIDER_CONCURRENCY` while bounding worst-case buffering to
+ *   roughly 75 MB. `PROVIDER_CONCURRENCY` bounds one request; this bounds the
+ *   process, which is what concurrent callers would otherwise multiply.
+ * - A queue of 100 with a 5 s ceiling absorbs bursts without becoming the next
+ *   unbounded thing. The wait sits inside both `PROVIDER_TIMEOUT_MS` and
+ *   `MAX_REQUEST_DURATION_MS`, so a queued request fails on the queue rather
+ *   than by deadline.
  *
  * - 8 KiB error responses sit ~12x above the largest bounded error this service
  *   produces, and roughly three orders of magnitude below what an unbounded Ajv
@@ -75,7 +91,7 @@ export interface ResourceBudgets {
  */
 export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze({
   MAX_REQUEST_BODY_BYTES: 256 * 1024,
-  MAX_PROVIDER_RESPONSE_BYTES: 4 * 1024 * 1024,
+  MAX_PROVIDER_RESPONSE_BYTES: 1536 * 1024,
   MAX_UTXOS_PER_ADDRESS: 1000,
   UTXO_RESPONSE_MAX_ROWS: 1000,
   MAX_ADDRESS_INFO_TXIDS: 100,
@@ -88,6 +104,9 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   MAX_VALIDATION_ERROR_DETAILS: 3,
   MAX_CONNECTION_BUFFERED_BYTES: 1024 * 1024,
   MAX_REQUEST_DURATION_MS: 30_000,
+  BLOCKBOOK_MAX_IN_FLIGHT: 50,
+  BLOCKBOOK_QUEUE_MAX_DEPTH: 100,
+  BLOCKBOOK_QUEUE_MAX_WAIT_MS: 5_000,
 });
 
 /**
@@ -188,6 +207,18 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
       env.MAX_REQUEST_DURATION_MS,
       d.MAX_REQUEST_DURATION_MS,
     ),
+    BLOCKBOOK_MAX_IN_FLIGHT: parsePositiveInt(
+      env.BLOCKBOOK_MAX_IN_FLIGHT,
+      d.BLOCKBOOK_MAX_IN_FLIGHT,
+    ),
+    BLOCKBOOK_QUEUE_MAX_DEPTH: parsePositiveInt(
+      env.BLOCKBOOK_QUEUE_MAX_DEPTH,
+      d.BLOCKBOOK_QUEUE_MAX_DEPTH,
+    ),
+    BLOCKBOOK_QUEUE_MAX_WAIT_MS: parsePositiveInt(
+      env.BLOCKBOOK_QUEUE_MAX_WAIT_MS,
+      d.BLOCKBOOK_QUEUE_MAX_WAIT_MS,
+    ),
   };
 }
 
@@ -211,4 +242,7 @@ export const {
   MAX_VALIDATION_ERROR_DETAILS,
   MAX_CONNECTION_BUFFERED_BYTES,
   MAX_REQUEST_DURATION_MS,
+  BLOCKBOOK_MAX_IN_FLIGHT,
+  BLOCKBOOK_QUEUE_MAX_DEPTH,
+  BLOCKBOOK_QUEUE_MAX_WAIT_MS,
 } = RESOURCE_BUDGETS;

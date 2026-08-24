@@ -11,10 +11,8 @@ import {
   PROVIDER_TIMEOUT_MS,
 } from '../config/resource-budgets';
 import {getLogger} from './logger';
-import {
-  cancellationOf,
-  RequestCancelledError,
-} from './request-cancellation';
+import {blockbookPermits, Semaphore} from './provider-permits';
+import {cancellationOf, RequestCancelledError} from './request-cancellation';
 import {recordBudgetViolation, ResourceBudgetName} from './resource-budget';
 import {getRequestSignal} from './trace-context';
 
@@ -34,7 +32,10 @@ export class BoundedHttpError extends Error {
  * running byte tally while streaming, at which point the socket is destroyed.
  */
 export class ProviderResponseTooLargeError extends BoundedHttpError {
-  constructor(readonly observedBytes: number, readonly limitBytes: number) {
+  constructor(
+    readonly observedBytes: number,
+    readonly limitBytes: number,
+  ) {
     super(
       `Provider response exceeds the configured budget of ${limitBytes} bytes ` +
         `(observed at least ${observedBytes} bytes)`,
@@ -83,6 +84,12 @@ export interface BoundedJsonRequest {
   retryBaseDelayMs?: number;
   /** Extra request headers. `accept` is always forced to `application/json`. */
   headers?: Record<string, string>;
+  /**
+   * Pool the call takes a permit from. Defaults to the process-wide Blockbook
+   * pool, which is the only provider reached through this client today.
+   * Overridable so a test can exercise a pool it fully controls.
+   */
+  permits?: Semaphore;
 }
 
 const sleep = (ms: number): Promise<void> =>
@@ -107,7 +114,9 @@ export const isRetryableError = (err: unknown): boolean => {
   if (err instanceof ProviderHttpStatusError) {
     return err.statusCode >= 500;
   }
-  return err instanceof ProviderTimeoutError || err instanceof ProviderNetworkError;
+  return (
+    err instanceof ProviderTimeoutError || err instanceof ProviderNetworkError
+  );
 };
 
 /**
@@ -178,7 +187,10 @@ function attempt<T>(
         // Cheapest possible enforcement: reject on the declared size, before a
         // single body byte is buffered.
         const declaredLength = Number(res.headers['content-length']);
-        if (Number.isFinite(declaredLength) && declaredLength > maxResponseBytes) {
+        if (
+          Number.isFinite(declaredLength) &&
+          declaredLength > maxResponseBytes
+        ) {
           abortWith(
             new ProviderResponseTooLargeError(declaredLength, maxResponseBytes),
           );
@@ -195,7 +207,10 @@ function attempt<T>(
             // response never survives as retained heap.
             chunks = [];
             abortWith(
-              new ProviderResponseTooLargeError(receivedBytes, maxResponseBytes),
+              new ProviderResponseTooLargeError(
+                receivedBytes,
+                maxResponseBytes,
+              ),
             );
             return;
           }
@@ -247,7 +262,9 @@ function attempt<T>(
 
     request.on('error', (err: Error) => {
       finish(
-        err instanceof BoundedHttpError ? err : new ProviderNetworkError(err.message),
+        err instanceof BoundedHttpError
+          ? err
+          : new ProviderNetworkError(err.message),
       );
     });
 
@@ -271,6 +288,13 @@ function attempt<T>(
  * `httpAccessLogMiddleware` is what bounds the total, and it cancels through the
  * request signal rather than merely abandoning the promise.
  *
+ * Every call also takes a permit from a process-wide pool before it opens a
+ * socket. The per-request fan-out limit bounds one request; without the pool,
+ * concurrent requests multiply it, so total provider work in flight — and the
+ * response bytes buffered behind it — grows with inbound concurrency instead of
+ * being capped. The permit is held across the retry loop and its backoff, which
+ * is the honest definition of "in flight".
+ *
  * Budget violations emit `event=resource_budget_exceeded` and bump the
  * `resource_budget_exceeded_total` counter before the error is thrown.
  *
@@ -281,6 +305,7 @@ function attempt<T>(
  * @throws {ProviderHttpStatusError} If the provider answers non-2xx (redirects included).
  * @throws {ProviderInvalidResponseError} If the response is not JSON.
  * @throws {ProviderNetworkError} If the request never completed.
+ * @throws {PermitRejectedError} If the provider pool and its queue are both full.
  */
 export async function fetchJsonWithBudget<T = unknown>(
   req: BoundedJsonRequest,
@@ -304,61 +329,65 @@ export async function fetchJsonWithBudget<T = unknown>(
 
   const signal = getRequestSignal();
 
-  let lastError: unknown;
-  for (let tryNumber = 0; tryNumber <= maxRetries; tryNumber += 1) {
-    // Checked before every attempt, so a cancellation that lands between
-    // retries stops the loop instead of funding another round trip.
-    const cancellation = cancellationOf(signal);
-    if (cancellation) {
-      throw cancellation;
+  // Malformed input is refused above without touching the pool: a permit is for
+  // work that is about to occupy the provider, not for work that never starts.
+  return (req.permits ?? blockbookPermits).run(async () => {
+    let lastError: unknown;
+    for (let tryNumber = 0; tryNumber <= maxRetries; tryNumber += 1) {
+      // Checked before every attempt, so a cancellation that lands between
+      // retries stops the loop instead of funding another round trip.
+      const cancellation = cancellationOf(signal);
+      if (cancellation) {
+        throw cancellation;
+      }
+      try {
+        return await attempt<T>(
+          target,
+          timeoutMs,
+          maxResponseBytes,
+          req.headers ?? {},
+          signal,
+        );
+      } catch (err) {
+        lastError = err;
+        if (err instanceof ProviderResponseTooLargeError) {
+          recordBudgetViolation({
+            resource: ResourceBudgetName.PROVIDER_RESPONSE_BYTES,
+            configuredLimit: err.limitBytes,
+            observedValue: err.observedBytes,
+            route: req.route,
+            detail: req.operation,
+          });
+          throw err;
+        }
+        if (err instanceof ProviderTimeoutError) {
+          recordBudgetViolation({
+            resource: ResourceBudgetName.PROVIDER_TIMEOUT_MS,
+            configuredLimit: err.timeoutMs,
+            observedValue: err.timeoutMs,
+            route: req.route,
+            detail: req.operation,
+          });
+        }
+        if (!isRetryableError(err) || tryNumber === maxRetries) {
+          throw err;
+        }
+        logger.warn(
+          {
+            method: 'fetchJsonWithBudget',
+            operation: req.operation,
+            route: req.route,
+            attempt: tryNumber + 1,
+            maxAttempts: maxRetries + 1,
+            err: err as Error,
+          },
+          'Retrying provider request',
+        );
+        await sleep(retryBaseDelayMs * 2 ** tryNumber);
+      }
     }
-    try {
-      return await attempt<T>(
-        target,
-        timeoutMs,
-        maxResponseBytes,
-        req.headers ?? {},
-        signal,
-      );
-    } catch (err) {
-      lastError = err;
-      if (err instanceof ProviderResponseTooLargeError) {
-        recordBudgetViolation({
-          resource: ResourceBudgetName.PROVIDER_RESPONSE_BYTES,
-          configuredLimit: err.limitBytes,
-          observedValue: err.observedBytes,
-          route: req.route,
-          detail: req.operation,
-        });
-        throw err;
-      }
-      if (err instanceof ProviderTimeoutError) {
-        recordBudgetViolation({
-          resource: ResourceBudgetName.PROVIDER_TIMEOUT_MS,
-          configuredLimit: err.timeoutMs,
-          observedValue: err.timeoutMs,
-          route: req.route,
-          detail: req.operation,
-        });
-      }
-      if (!isRetryableError(err) || tryNumber === maxRetries) {
-        throw err;
-      }
-      logger.warn(
-        {
-          method: 'fetchJsonWithBudget',
-          operation: req.operation,
-          route: req.route,
-          attempt: tryNumber + 1,
-          maxAttempts: maxRetries + 1,
-          err: err as Error,
-        },
-        'Retrying provider request',
-      );
-      await sleep(retryBaseDelayMs * 2 ** tryNumber);
-    }
-  }
 
-  /* istanbul ignore next -- the loop always returns or throws */
-  throw lastError;
+    /* istanbul ignore next -- the loop always returns or throws */
+    throw lastError;
+  });
 }

@@ -9,7 +9,9 @@ import {
 describe('Config: resource budgets', () => {
   describe('loadResourceBudgets', () => {
     it('falls back to the safe defaults when nothing is configured', () => {
-      expect(loadResourceBudgets({})).to.deepEqual({...RESOURCE_BUDGET_DEFAULTS});
+      expect(loadResourceBudgets({})).to.deepEqual({
+        ...RESOURCE_BUDGET_DEFAULTS,
+      });
     });
 
     it('reads every budget from the environment', () => {
@@ -28,6 +30,9 @@ describe('Config: resource budgets', () => {
         MAX_VALIDATION_ERROR_DETAILS: '2',
         MAX_CONNECTION_BUFFERED_BYTES: '4096',
         MAX_REQUEST_DURATION_MS: '9000',
+        BLOCKBOOK_MAX_IN_FLIGHT: '7',
+        BLOCKBOOK_QUEUE_MAX_DEPTH: '11',
+        BLOCKBOOK_QUEUE_MAX_WAIT_MS: '2500',
       });
 
       expect(budgets).to.deepEqual({
@@ -45,12 +50,16 @@ describe('Config: resource budgets', () => {
         MAX_VALIDATION_ERROR_DETAILS: 2,
         MAX_CONNECTION_BUFFERED_BYTES: 4096,
         MAX_REQUEST_DURATION_MS: 9000,
+        BLOCKBOOK_MAX_IN_FLIGHT: 7,
+        BLOCKBOOK_QUEUE_MAX_DEPTH: 11,
+        BLOCKBOOK_QUEUE_MAX_WAIT_MS: 2500,
       });
     });
 
     it('honours ADDRESS_INFO_MAX_TXIDS as a legacy alias', () => {
       expect(
-        loadResourceBudgets({ADDRESS_INFO_MAX_TXIDS: '42'}).MAX_ADDRESS_INFO_TXIDS,
+        loadResourceBudgets({ADDRESS_INFO_MAX_TXIDS: '42'})
+          .MAX_ADDRESS_INFO_TXIDS,
       ).to.equal(42);
     });
 
@@ -63,14 +72,47 @@ describe('Config: resource budgets', () => {
       ).to.equal(10);
     });
 
+    it('never lets an unusable value disable the concurrency limit', () => {
+      // A zero permit count would deadlock every request rather than relaxing
+      // a bound, so an unusable value must fall back, not pass through.
+      const budgets = loadResourceBudgets({
+        BLOCKBOOK_MAX_IN_FLIGHT: '0',
+        BLOCKBOOK_QUEUE_MAX_DEPTH: '-5',
+        BLOCKBOOK_QUEUE_MAX_WAIT_MS: 'never',
+      });
+
+      expect(budgets.BLOCKBOOK_MAX_IN_FLIGHT).to.equal(
+        RESOURCE_BUDGET_DEFAULTS.BLOCKBOOK_MAX_IN_FLIGHT,
+      );
+      expect(budgets.BLOCKBOOK_QUEUE_MAX_DEPTH).to.equal(
+        RESOURCE_BUDGET_DEFAULTS.BLOCKBOOK_QUEUE_MAX_DEPTH,
+      );
+      expect(budgets.BLOCKBOOK_QUEUE_MAX_WAIT_MS).to.equal(
+        RESOURCE_BUDGET_DEFAULTS.BLOCKBOOK_QUEUE_MAX_WAIT_MS,
+      );
+    });
+
+    it('keeps the provider response cap below the in-flight multiplier', () => {
+      // Worst-case buffering is in_flight x response cap; the pair has to stay
+      // sane together, not just individually.
+      const {BLOCKBOOK_MAX_IN_FLIGHT, MAX_PROVIDER_RESPONSE_BYTES} =
+        RESOURCE_BUDGET_DEFAULTS;
+
+      expect(
+        BLOCKBOOK_MAX_IN_FLIGHT * MAX_PROVIDER_RESPONSE_BYTES,
+      ).to.be.lessThan(128 * 1024 * 1024);
+    });
+
     it('never lets an unusable value disable the request deadline', () => {
       // A zero or negative deadline would mean "no deadline", the opposite of
       // what the budget exists for.
       expect(
-        loadResourceBudgets({MAX_REQUEST_DURATION_MS: '0'}).MAX_REQUEST_DURATION_MS,
+        loadResourceBudgets({MAX_REQUEST_DURATION_MS: '0'})
+          .MAX_REQUEST_DURATION_MS,
       ).to.equal(RESOURCE_BUDGET_DEFAULTS.MAX_REQUEST_DURATION_MS);
       expect(
-        loadResourceBudgets({MAX_REQUEST_DURATION_MS: 'forever'}).MAX_REQUEST_DURATION_MS,
+        loadResourceBudgets({MAX_REQUEST_DURATION_MS: 'forever'})
+          .MAX_REQUEST_DURATION_MS,
       ).to.equal(RESOURCE_BUDGET_DEFAULTS.MAX_REQUEST_DURATION_MS);
     });
 
@@ -130,6 +172,34 @@ describe('Config: resource budgets', () => {
       expect(parseNonNegativeInt('-1', 3)).to.equal(3);
       expect(parseNonNegativeInt('  ', 3)).to.equal(3);
       expect(parseNonNegativeInt(undefined, 3)).to.equal(3);
+    });
+  });
+
+  describe('worst-case provider buffering', () => {
+    // The memory a burst can occupy is the product of these two budgets, not
+    // either one alone. Raising either without checking the product is how a
+    // bounded service becomes unbounded again, so the product is asserted
+    // rather than left implicit.
+    const MAX_WORST_CASE_BYTES = 128 * 1024 * 1024;
+
+    it('keeps in-flight bytes within a documented ceiling', () => {
+      const {BLOCKBOOK_MAX_IN_FLIGHT, MAX_PROVIDER_RESPONSE_BYTES} =
+        RESOURCE_BUDGET_DEFAULTS;
+
+      expect(
+        BLOCKBOOK_MAX_IN_FLIGHT * MAX_PROVIDER_RESPONSE_BYTES,
+      ).to.be.lessThanOrEqual(MAX_WORST_CASE_BYTES);
+    });
+
+    it('bounds the queue by the same reasoning', () => {
+      // A queued caller holds no response bytes, so the queue is cheap — but
+      // it must still be finite, or the queue becomes the unbounded thing.
+      expect(
+        Number.isFinite(RESOURCE_BUDGET_DEFAULTS.BLOCKBOOK_QUEUE_MAX_DEPTH),
+      ).to.be.true();
+      expect(
+        RESOURCE_BUDGET_DEFAULTS.BLOCKBOOK_QUEUE_MAX_DEPTH,
+      ).to.be.greaterThan(0);
     });
   });
 });

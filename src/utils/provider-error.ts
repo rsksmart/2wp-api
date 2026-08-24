@@ -4,6 +4,8 @@ import {
   ProviderTimeoutError,
 } from './bounded-http-client';
 import {getLogger} from './logger';
+import {PermitRejectedError} from './provider-permits';
+import {RequestCancelledError} from './request-cancellation';
 
 const logger = getLogger('provider-error');
 
@@ -15,14 +17,27 @@ const logger = getLogger('provider-error');
  * reflected to the caller. Budget violations were already recorded by the
  * client, so this does not emit a second observability signal.
  *
+ * Two failures are deliberately *not* translated, because the provider was
+ * never reached: a refusal by the local concurrency pool (this service is at
+ * capacity, which is a 503) and a cancellation (nobody is waiting for the
+ * answer). Reporting either as a bad gateway would blame the provider for a
+ * decision taken here, and would make the two indistinguishable in monitoring.
+ *
  * @param err - The error thrown by the bounded HTTP client.
  * @param ctx - Provider operation and (optionally) the route being served, for logs.
- * @returns The HTTP error to throw.
+ * @returns The HTTP error to throw, or the original error when it already carries its own status.
  */
 export function toHttpProviderError(
   err: unknown,
   ctx: {operation: string; route?: string},
-): HttpErrors.HttpError {
+): Error {
+  if (
+    err instanceof PermitRejectedError ||
+    err instanceof RequestCancelledError
+  ) {
+    return err;
+  }
+
   logger.warn(
     {method: 'toHttpProviderError', ...ctx, err: err as Error},
     'Provider request failed',

@@ -6,13 +6,26 @@ import {
 } from '../config/resource-budgets';
 import {getLogger} from '../utils/logger';
 import {incrementMetricCounter} from '../utils/metric-logger';
-import {recordBudgetViolation, ResourceBudgetName} from '../utils/resource-budget';
+import {
+  recordBudgetViolation,
+  ResourceBudgetName,
+} from '../utils/resource-budget';
 import {getTraceId} from '../utils/trace-context';
 
 const logger = getLogger('error-writer');
 
 /** `code` returned for every request-validation failure. */
 export const VALIDATION_ERROR_CODE = 'VALIDATION_ERROR';
+
+/**
+ * Codes an error may publish for itself, beyond the generic `HTTP_<status>`.
+ *
+ * A closed set on purpose: the code is part of the public contract, so it must
+ * not become a passthrough for whatever string an upstream error object carries.
+ * These exist because a status alone is ambiguous — two different conditions
+ * both answer 503, and only one of them is worth retrying.
+ */
+const SELF_DESCRIBING_CODES = new Set(['SERVICE_OVERLOADED']);
 
 /** Message returned when nothing more specific can be said safely. */
 export const GENERIC_ERROR_MESSAGE = 'Request could not be processed.';
@@ -41,9 +54,11 @@ export type FormatRejectionReason =
  * Returns `undefined` for anything that is not a format refusal, so validation
  * failures and upstream errors are not counted here.
  */
-const rejectionReason = (
-  err: {statusCode?: number; status?: number; type?: unknown},
-): FormatRejectionReason | undefined => {
+const rejectionReason = (err: {
+  statusCode?: number;
+  status?: number;
+  type?: unknown;
+}): FormatRejectionReason | undefined => {
   const statusCode = err.statusCode ?? err.status;
   switch (statusCode) {
     case 415:
@@ -198,10 +213,17 @@ export function buildBoundedErrorBody(
 ): BoundedErrorBody {
   const candidate = err as {code?: unknown; details?: unknown};
   const validation = statusCode < 500 && isValidationError(candidate);
+  const declared =
+    typeof candidate.code === 'string' &&
+    SELF_DESCRIBING_CODES.has(candidate.code)
+      ? candidate.code
+      : undefined;
   const body: BoundedErrorBody = {
     error: {
       statusCode,
-      code: validation ? VALIDATION_ERROR_CODE : `HTTP_${statusCode}`,
+      code: validation
+        ? VALIDATION_ERROR_CODE
+        : (declared ?? `HTTP_${statusCode}`),
       message: messageFor(statusCode, validation),
     },
   };
@@ -228,8 +250,10 @@ export function buildBoundedErrorBody(
 }
 
 /** Resolves the status code the same way LoopBack's default reject provider does. */
-const resolveStatusCode = (err: {status?: number; statusCode?: number}): number =>
-  err.statusCode ?? err.status ?? 500;
+const resolveStatusCode = (err: {
+  status?: number;
+  statusCode?: number;
+}): number => err.statusCode ?? err.status ?? 500;
 
 /**
  * Writes a bounded JSON error response, replacing LoopBack's default reject
@@ -248,7 +272,12 @@ const resolveStatusCode = (err: {status?: number; statusCode?: number}): number 
 export function writeBoundedError(
   request: Request,
   response: Response,
-  err: Error & {code?: unknown; details?: unknown; status?: number; statusCode?: number},
+  err: Error & {
+    code?: unknown;
+    details?: unknown;
+    status?: number;
+    statusCode?: number;
+  },
 ): void {
   // Nothing can be written to a response that is already finished or gone. A
   // client that disappears mid-request leaves exactly this state, and writing
@@ -286,6 +315,16 @@ export function writeBoundedError(
     'Request rejected',
   );
 
+  // A refusal that carries a retry hint publishes it, so a client backs off on
+  // instruction rather than hammering a service that is already at capacity.
+  const retryAfter = (err as {retryAfterSeconds?: unknown}).retryAfterSeconds;
+  if (
+    typeof retryAfter === 'number' &&
+    Number.isFinite(retryAfter) &&
+    retryAfter > 0
+  ) {
+    response.setHeader('Retry-After', String(Math.ceil(retryAfter)));
+  }
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('Content-Type', 'application/json; charset=utf-8');
   response.status(statusCode).send(payload);

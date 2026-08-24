@@ -321,4 +321,36 @@ describe('Middleware: writing to a finished response', () => {
       writeBoundedError(givenRequest(undefined), response as never, new Error('x')),
     ).to.not.throw();
   });
+
+  describe('distinguishable refusals', () => {
+    // Two different 503s exist now — a request that outlived its own deadline,
+    // and a service at capacity. A client that cannot tell them apart cannot
+    // decide whether backing off would help.
+    it('reports an overload refusal with its own code', () => {
+      const body = buildBoundedErrorBody(
+        {code: 'SERVICE_OVERLOADED', statusCode: 503},
+        503,
+      );
+
+      expect(body.error.code).to.equal('SERVICE_OVERLOADED');
+      expect(body.error.statusCode).to.equal(503);
+    });
+
+    it('still reports an unlabelled 503 generically', () => {
+      const body = buildBoundedErrorBody({statusCode: 503}, 503);
+
+      expect(body.error.code).to.equal('HTTP_503');
+    });
+
+    it('does not reflect a code it does not recognize', () => {
+      const body = buildBoundedErrorBody(
+        {code: '<script>alert(1)</script>', statusCode: 503},
+        503,
+      );
+
+      // The code is part of the public contract, not a passthrough for
+      // whatever an upstream error object happened to carry.
+      expect(body.error.code).to.equal('HTTP_503');
+    });
+  });
 });

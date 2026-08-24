@@ -19,7 +19,7 @@ back rather than disabling a budget.
 | Budget | Default | What it bounds |
 |---|---|---|
 | `MAX_REQUEST_BODY_BYTES` | 262144 (256 KiB) | Inbound HTTP request body |
-| `MAX_PROVIDER_RESPONSE_BYTES` | 4194304 (4 MiB) | One outbound provider response |
+| `MAX_PROVIDER_RESPONSE_BYTES` | 1572864 (1.5 MiB) | One outbound provider response |
 | `MAX_UTXOS_PER_ADDRESS` | 1000 | UTXO rows retained for one address |
 | `UTXO_RESPONSE_MAX_ROWS` | 1000 | UTXO rows retained for one `/utxo` request |
 | `MAX_ADDRESS_INFO_TXIDS` | 100 | `txids` per address in `/addresses-info` |
@@ -28,6 +28,9 @@ back rather than disabling a budget.
 | `PROVIDER_RETRY_BASE_DELAY_MS` | 100 | Base backoff between provider retries |
 | `ADDRESS_LIST_MAX_ITEMS` | 50 | Addresses accepted in one request |
 | `PROVIDER_CONCURRENCY` | 5 | Provider requests in flight per API request |
+| `BLOCKBOOK_MAX_IN_FLIGHT` | 50 | Blockbook operations in flight process-wide |
+| `BLOCKBOOK_QUEUE_MAX_DEPTH` | 100 | Callers queued for a Blockbook permit |
+| `BLOCKBOOK_QUEUE_MAX_WAIT_MS` | 5000 | Longest wait for a permit before a 503 |
 | `MAX_ERROR_RESPONSE_BYTES` | 8192 (8 KiB) | One serialized error response body |
 | `MAX_VALIDATION_ERROR_DETAILS` | 3 | Validation details returned to the client |
 | `MAX_CONNECTION_BUFFERED_BYTES` | 1048576 (1 MiB) | Response bytes buffered per connection |
@@ -95,6 +98,49 @@ Two transports, for two different needs:
   **cannot** bound response size — it buffers the whole body before the
   application sees it — and has no retry policy to bound. That limitation is
   precisely why the two high-risk endpoints use the bounded client instead.
+
+### Process-wide provider concurrency
+
+`PROVIDER_CONCURRENCY` bounds fan-out *within* one request. It says nothing about
+how many requests are being served at once, so concurrent callers multiply it:
+total provider work in flight is `PROVIDER_CONCURRENCY x concurrent requests`,
+and the memory buffered behind it is that count times
+`MAX_PROVIDER_RESPONSE_BYTES`. Both grow with inbound traffic, which is exactly
+what a budget is supposed to prevent.
+
+[`src/utils/provider-permits.ts`](../src/utils/provider-permits.ts) adds a
+process-wide counting semaphore. Every call through the bounded HTTP client takes
+a permit before it opens a socket and releases it in a `finally`, so the total is
+capped at `BLOCKBOOK_MAX_IN_FLIGHT` regardless of how many requests are in
+flight.
+
+Three properties are deliberate:
+
+- **The permit is held across the retry loop**, including its backoff. That is
+  the honest definition of "in flight"; releasing between attempts would let the
+  real count drift above the bound.
+- **Waiting is bounded twice** — by queue depth (`BLOCKBOOK_QUEUE_MAX_DEPTH`) and
+  by wait time (`BLOCKBOOK_QUEUE_MAX_WAIT_MS`). An unbounded queue would simply
+  move the growth from sockets to promises. Exceeding either is a bounded
+  `503 Service Unavailable` with `Retry-After`, not a hang. Its body carries the
+  code `SERVICE_OVERLOADED`, which is what separates it from the other 503 — a
+  request that outlived its own deadline — since the status alone is ambiguous.
+- **Waiting is cancellation-aware.** A queued caller registers on the request's
+  abort signal and leaves the queue the moment its client disappears, so
+  abandoned work never reaches the provider and never holds capacity against live
+  traffic. Work with no request behind it (the daemon) has no signal and simply
+  never cancels.
+
+The pool is acquired at the leaf rather than in the controller, which keeps
+acquisition non-nested: one request holds at most `PROVIDER_CONCURRENCY` permits,
+releases them between batches, and never waits for a second permit while holding
+one — so the pool cannot deadlock against itself.
+
+Worth stating explicitly: only the two fan-out endpoints (`/utxo`,
+`/addresses-info`) go through the bounded client and therefore through the pool.
+`/broadcast`, `/estimate-fee`, `/tx` and the `/tx-status` pre-check use the
+LoopBack REST connector, which offers no per-call seam; each issues a single call
+per request rather than fanning out, so they do not multiply the same way.
 
 ### Validation error responses
 
@@ -274,7 +320,23 @@ registry.
 `ResourceBudgetName`: `request_body_bytes`, `provider_response_bytes`,
 `provider_timeout_ms`, `utxos_per_address`, `utxo_response_rows`,
 `address_info_txids`, `address_list_items`, `error_response_bytes`,
-`validation_error_details`, `connection_buffered_bytes`, `request_duration_ms`.
+`validation_error_details`, `connection_buffered_bytes`, `request_duration_ms`,
+`provider_permits`.
+
+The provider pool additionally publishes its own series, since "how many are in
+flight right now" is a gauge and cannot be expressed as a monotonic counter:
+
+| Metric | Type | Labels |
+|---|---|---|
+| `provider_permits_active` | gauge | `pool` |
+| `provider_permits_queued` | gauge | `pool` |
+| `provider_permits_granted_total` | counter | `pool` |
+| `provider_permits_rejected_total` | counter | `pool`, `reason` |
+
+`reason` is a closed vocabulary of `queue_full` and `wait_timeout`. Saturation is
+`active / BLOCKBOOK_MAX_IN_FLIGHT`, derived rather than stored. Wait times are
+aggregated as a sum/count/max triple on the pool, which is enough for a mean and
+a tail without inventing histogram buckets nothing consumes yet.
 
 ## Responses
 
@@ -288,6 +350,7 @@ Violations always produce a bounded response and never terminate the process:
 | A provider breached its time budget | `504 Gateway Timeout` |
 | The client abandoned the request | `499` (logged, never delivered) |
 | The request breached its own deadline | `503 Service Unavailable` |
+| The provider pool and its queue are both full | `503 Service Unavailable` + `Retry-After`, code `SERVICE_OVERLOADED` |
 
 Every error body is JSON, bounded by `MAX_ERROR_RESPONSE_BYTES`, and carries no
 attacker-controlled content — see **Validation error responses** above.

@@ -16,6 +16,7 @@ import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
   ResourceBudgetName,
 } from '../../../utils/resource-budget';
+import {MAX_PROVIDER_RESPONSE_BYTES} from '../../../config/resource-budgets';
 
 const HOST = 'http://provider.test';
 const PATH = '/api/v1/rows';
@@ -60,6 +61,41 @@ describe('Utils: bounded HTTP client', () => {
     nock.cleanAll();
   });
 
+  describe('the configured default response budget', () => {
+    // Worst-case memory is `in flight x response cap`, so the cap is half of
+    // that product and these two cases pin where it sits. A response larger
+    // than any the provider has been observed to produce must be refused.
+    const UNDER = 1_200_000;
+    const OVER = 2_000_000;
+
+    it('accepts a response below the configured default', async () => {
+      const body = jsonOfExactSize(UNDER);
+      nock(HOST).get(PATH).reply(200, body, {
+        'content-type': 'application/json',
+      });
+
+      const rows = await call({maxResponseBytes: undefined});
+
+      expect(rows).to.be.an.Array();
+    });
+
+    it('refuses a response above the configured default', async () => {
+      const body = jsonOfExactSize(OVER);
+      nock(HOST).get(PATH).reply(200, body, {
+        'content-type': 'application/json',
+      });
+
+      await expect(call({maxResponseBytes: undefined})).to.be.rejectedWith(
+        ProviderResponseTooLargeError,
+      );
+    });
+
+    it('sits between the two', () => {
+      expect(MAX_PROVIDER_RESPONSE_BYTES).to.be.greaterThan(UNDER);
+      expect(MAX_PROVIDER_RESPONSE_BYTES).to.be.lessThan(OVER);
+    });
+  });
+
   describe('response size budget', () => {
     it('accepts a response exactly at the byte budget', async () => {
       const body = jsonOfExactSize(1024);
@@ -73,10 +109,12 @@ describe('Utils: bounded HTTP client', () => {
 
     it('rejects a response one byte over the budget on the declared length', async () => {
       const body = jsonOfExactSize(1025);
-      nock(HOST).get(PATH).reply(200, body, {
-        'content-type': 'application/json',
-        'content-length': String(Buffer.byteLength(body)),
-      });
+      nock(HOST)
+        .get(PATH)
+        .reply(200, body, {
+          'content-type': 'application/json',
+          'content-length': String(Buffer.byteLength(body)),
+        });
 
       await expect(call()).to.be.rejectedWith(ProviderResponseTooLargeError);
     });
@@ -139,7 +177,9 @@ describe('Utils: bounded HTTP client', () => {
         .delay(300)
         .reply(200, '[1]', {'content-type': 'application/json'});
 
-      await expect(call({timeoutMs: 50})).to.be.rejectedWith(ProviderTimeoutError);
+      await expect(call({timeoutMs: 50})).to.be.rejectedWith(
+        ProviderTimeoutError,
+      );
     });
 
     it('records the timeout as a structured budget signal', async () => {
@@ -185,7 +225,9 @@ describe('Utils: bounded HTTP client', () => {
 
   describe('status handling and bounded retries', () => {
     it('does not follow redirects', async () => {
-      nock(HOST).get(PATH).reply(302, '', {location: `${HOST}/elsewhere`});
+      nock(HOST)
+        .get(PATH)
+        .reply(302, '', {location: `${HOST}/elsewhere`});
 
       await expect(call()).to.be.rejectedWith(ProviderHttpStatusError);
     });
@@ -202,8 +244,12 @@ describe('Utils: bounded HTTP client', () => {
     });
 
     it('retries a 5xx up to the configured bound and then succeeds', async () => {
-      nock(HOST).get(PATH).reply(503, '{}', {'content-type': 'application/json'});
-      nock(HOST).get(PATH).reply(200, '[7]', {'content-type': 'application/json'});
+      nock(HOST)
+        .get(PATH)
+        .reply(503, '{}', {'content-type': 'application/json'});
+      nock(HOST)
+        .get(PATH)
+        .reply(200, '[7]', {'content-type': 'application/json'});
 
       expect(await call({maxRetries: 1})).to.deepEqual([7]);
     });

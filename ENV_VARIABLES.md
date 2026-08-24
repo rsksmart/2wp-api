@@ -93,7 +93,7 @@ Caps on how much memory, parsing, serialization and downstream provider work a s
 |NAME                          |DEFAULT                        |DETAILS                                                  |
 |------------------------------|-------------------------------|---------------------------------------------------------|
 |MAX_REQUEST_BODY_BYTES        |262144                         |'Maximum inbound HTTP request body, in bytes'            |
-|MAX_PROVIDER_RESPONSE_BYTES   |4194304                        |'Maximum single outbound provider response, in bytes'    |
+|MAX_PROVIDER_RESPONSE_BYTES   |1572864                        |'Maximum single outbound provider response, in bytes'    |
 |MAX_UTXOS_PER_ADDRESS         |1000                           |'Maximum UTXO rows retained for one address'             |
 |UTXO_RESPONSE_MAX_ROWS        |1000                           |'Maximum UTXO rows retained for one /utxo request'       |
 |MAX_ADDRESS_INFO_TXIDS        |100                            |'Maximum txids per address in /addresses-info (legacy alias: ADDRESS_INFO_MAX_TXIDS)'|
@@ -102,6 +102,9 @@ Caps on how much memory, parsing, serialization and downstream provider work a s
 |PROVIDER_RETRY_BASE_DELAY_MS  |100                            |'Base backoff between provider retries, in milliseconds' |
 |ADDRESS_LIST_MAX_ITEMS        |50                             |'Maximum addresses accepted in one request'              |
 |PROVIDER_CONCURRENCY          |5                              |'Provider requests in flight per API request'            |
+|BLOCKBOOK_MAX_IN_FLIGHT       |50                             |'Blockbook operations in flight across the whole process'|
+|BLOCKBOOK_QUEUE_MAX_DEPTH     |100                            |'Callers allowed to queue for a Blockbook permit'        |
+|BLOCKBOOK_QUEUE_MAX_WAIT_MS   |5000                           |'Longest wait for a Blockbook permit before a 503, in milliseconds'|
 |MAX_ERROR_RESPONSE_BYTES      |8192                           |'Maximum serialized error response body, in bytes'       |
 |MAX_VALIDATION_ERROR_DETAILS  |3                              |'Maximum validation details returned to the client'      |
 |MAX_CONNECTION_BUFFERED_BYTES |1048576                        |'Response bytes buffered per connection before it is dropped'|
