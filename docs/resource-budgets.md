@@ -26,7 +26,7 @@ back rather than disabling a budget.
 | `PROVIDER_TIMEOUT_MS` | 15000 | Outbound provider request deadline |
 | `PROVIDER_MAX_RETRIES` | 1 | Extra attempts after the first (0 disables retries) |
 | `PROVIDER_RETRY_BASE_DELAY_MS` | 100 | Base backoff between provider retries |
-| `ADDRESS_LIST_MAX_ITEMS` | 50 | Addresses accepted in one request |
+| `ADDRESS_LIST_MAX_ITEMS` | 120 | Addresses accepted in one request |
 | `PROVIDER_CONCURRENCY` | 5 | Provider requests in flight per API request |
 | `BLOCKBOOK_MAX_IN_FLIGHT` | 50 | Blockbook operations in flight process-wide |
 | `BLOCKBOOK_QUEUE_MAX_DEPTH` | 100 | Callers queued for a Blockbook permit |
@@ -79,6 +79,22 @@ preferred protection applies: `fetchAddressInfo` pins `pageSize` to
 bodies out of the response entirely. The provider never sends more `txids` than
 the budget allows. The controller's truncation remains as the backstop for a
 provider that ignores `pageSize`, and it records a violation when it fires.
+
+**Worst case at the shipped budgets.** `ADDRESS_LIST_MAX_ITEMS` is 120 — what the
+frontend derives from one extended public key — so a single request can retain
+`120 x MAX_ADDRESS_INFO_TXIDS` = **12,000 txids**, and walks the list
+`120 / PROVIDER_CONCURRENCY` = **24 sequential batches** deep. Both products are
+asserted by the budget invariant tests rather than left to be re-derived by hand.
+
+The batch count is the interesting one, because it interacts with the request
+deadline: 24 batches fit comfortably in `MAX_REQUEST_DURATION_MS` at ordinary
+per-batch latency, but a uniformly slow provider cannot fit, and such a request
+now ends in a bounded `503` rather than a slow success. That is a deliberate
+trade — a request that cannot finish inside its own deadline was never going to
+be useful — and it is asserted, not assumed.
+
+`/utxo` is unaffected by the list length: its row budget still dominates, at
+`UTXO_RESPONSE_MAX_ROWS + PROVIDER_CONCURRENCY x MAX_UTXOS_PER_ADDRESS`.
 
 ### Outbound provider calls
 

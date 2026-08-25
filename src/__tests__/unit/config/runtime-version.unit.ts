@@ -25,11 +25,21 @@ describe('Config: declared runtime version', () => {
     return Number(match![1]);
   };
 
+  const dockerfileMajors = (): number[] => {
+    const matches = [
+      ...read('Dockerfile').matchAll(/^FROM\s+node:(\d+)[.\d]*-alpine/gm),
+    ];
+    // Every stage must build FROM a pinned node:<major>-alpine tag. A build
+    // stage on one major and a runtime stage on another compiles against one
+    // runtime and ships on a different one.
+    expect(matches.length).to.be.greaterThan(0);
+    return matches.map(m => Number(m[1]));
+  };
+
   const dockerfileMajor = (): number => {
-    const match = /^FROM\s+node:(\d+)[.\d]*-alpine/m.exec(read('Dockerfile'));
-    // The Dockerfile must build FROM a pinned node:<major>-alpine tag.
-    expect(match).to.be.ok();
-    return Number(match![1]);
+    const majors = dockerfileMajors();
+    expect([...new Set(majors)]).to.have.length(1);
+    return majors[0];
   };
 
   const enginesRange = (): string => {
@@ -62,5 +72,11 @@ describe('Config: declared runtime version', () => {
     // runtime without a code change.
     expect(range).to.match(/</);
     expect(range).to.match(new RegExp(`<\\s*${major + 1}\\.`));
+  });
+
+  it('uses the same Node major in every build stage', () => {
+    const majors = dockerfileMajors();
+
+    expect([...new Set(majors)]).to.have.length(1);
   });
 });

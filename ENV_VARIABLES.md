@@ -100,7 +100,7 @@ Caps on how much memory, parsing, serialization and downstream provider work a s
 |PROVIDER_TIMEOUT_MS           |15000                          |'Outbound provider request deadline, in milliseconds'    |
 |PROVIDER_MAX_RETRIES          |1                              |'Extra provider attempts after the first (0 disables retries)'|
 |PROVIDER_RETRY_BASE_DELAY_MS  |100                            |'Base backoff between provider retries, in milliseconds' |
-|ADDRESS_LIST_MAX_ITEMS        |50                             |'Maximum addresses accepted in one request'              |
+|ADDRESS_LIST_MAX_ITEMS        |120                            |'Maximum addresses accepted in one request'              |
 |PROVIDER_CONCURRENCY          |5                              |'Provider requests in flight per API request'            |
 |BLOCKBOOK_MAX_IN_FLIGHT       |50                             |'Blockbook operations in flight across the whole process'|
 |BLOCKBOOK_QUEUE_MAX_DEPTH     |100                            |'Callers allowed to queue for a Blockbook permit'        |

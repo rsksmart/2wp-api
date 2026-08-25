@@ -94,16 +94,6 @@ describe('Config: resource budgets', () => {
       );
     });
 
-    it('keeps the provider response cap below the in-flight multiplier', () => {
-      // Worst-case buffering is in_flight x response cap; the pair has to stay
-      // sane together, not just individually.
-      const {BLOCKBOOK_MAX_IN_FLIGHT, MAX_PROVIDER_RESPONSE_BYTES} =
-        RESOURCE_BUDGET_DEFAULTS;
-
-      expect(
-        BLOCKBOOK_MAX_IN_FLIGHT * MAX_PROVIDER_RESPONSE_BYTES,
-      ).to.be.lessThan(128 * 1024 * 1024);
-    });
 
     it('never lets an unusable value disable the request deadline', () => {
       // A zero or negative deadline would mean "no deadline", the opposite of
@@ -191,6 +181,54 @@ describe('Config: resource budgets', () => {
       expect(
         BLOCKBOOK_MAX_IN_FLIGHT * MAX_PROVIDER_RESPONSE_BYTES,
       ).to.be.lessThanOrEqual(MAX_WORST_CASE_BYTES);
+    });
+
+    it('accepts the whole address list the frontend actually sends', () => {
+      // The frontend derives up to 120 addresses from one extended public key,
+      // and every environment file overrode the built-in 50 to say so. A default
+      // that no deployment uses is a default that misleads: the code, the docs
+      // and the environment now agree, and the ceilings above are what keep 120
+      // bounded rather than a lower list length nobody runs.
+      expect(RESOURCE_BUDGET_DEFAULTS.ADDRESS_LIST_MAX_ITEMS).to.equal(120);
+    });
+
+    it('keeps the retained txid count within a documented ceiling', () => {
+      // `/addresses-info` retains up to MAX_ADDRESS_INFO_TXIDS per address for
+      // every address in the list, so the product is what bounds the response —
+      // raising the list length alone silently multiplies it.
+      const MAX_RETAINED_TXIDS = 20_000;
+      const {ADDRESS_LIST_MAX_ITEMS, MAX_ADDRESS_INFO_TXIDS} =
+        RESOURCE_BUDGET_DEFAULTS;
+
+      expect(
+        ADDRESS_LIST_MAX_ITEMS * MAX_ADDRESS_INFO_TXIDS,
+      ).to.be.lessThanOrEqual(MAX_RETAINED_TXIDS);
+    });
+
+    it('keeps the fan-out within the request deadline', () => {
+      // The list is walked PROVIDER_CONCURRENCY at a time, so the list length
+      // decides how many sequential batches a request needs. Each batch can take
+      // up to PROVIDER_TIMEOUT_MS, and a request that cannot finish inside its
+      // own deadline now ends in a 503 rather than a slow success.
+      const {
+        ADDRESS_LIST_MAX_ITEMS,
+        PROVIDER_CONCURRENCY,
+        MAX_REQUEST_DURATION_MS,
+        PROVIDER_TIMEOUT_MS,
+      } = RESOURCE_BUDGET_DEFAULTS;
+      const batches = Math.ceil(ADDRESS_LIST_MAX_ITEMS / PROVIDER_CONCURRENCY);
+
+      // Deliberately asserted against a *typical* per-batch latency rather than
+      // the timeout: at PROVIDER_TIMEOUT_MS per batch nothing this size could
+      // ever fit, so that arithmetic would only ever say "impossible". What is
+      // worth guarding is that the ordinary case has headroom.
+      const TYPICAL_BATCH_MS = 400;
+      expect(batches * TYPICAL_BATCH_MS).to.be.lessThan(MAX_REQUEST_DURATION_MS);
+      // And record the worst case explicitly, so it is a known trade-off rather
+      // than a surprise: a uniformly slow provider cannot fit.
+      expect(batches * PROVIDER_TIMEOUT_MS).to.be.greaterThan(
+        MAX_REQUEST_DURATION_MS,
+      );
     });
 
     it('bounds the queue by the same reasoning', () => {

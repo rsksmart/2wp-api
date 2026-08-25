@@ -103,7 +103,12 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   PROVIDER_TIMEOUT_MS: 15_000,
   PROVIDER_MAX_RETRIES: 1,
   PROVIDER_RETRY_BASE_DELAY_MS: 100,
-  ADDRESS_LIST_MAX_ITEMS: 50,
+  // 120, because that is what the frontend derives from one extended public key
+  // and what every environment file already overrode the old 50 to. The bounds
+  // that keep it safe are the products, not the list length: retained txids are
+  // ADDRESS_LIST_MAX_ITEMS x MAX_ADDRESS_INFO_TXIDS, and the fan-out runs
+  // ADDRESS_LIST_MAX_ITEMS / PROVIDER_CONCURRENCY sequential batches.
+  ADDRESS_LIST_MAX_ITEMS: 120,
   PROVIDER_CONCURRENCY: 5,
   MAX_ERROR_RESPONSE_BYTES: 8 * 1024,
   MAX_VALIDATION_ERROR_DETAILS: 3,

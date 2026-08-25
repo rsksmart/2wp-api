@@ -21,6 +21,18 @@ const GRACE_MS = 250;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+/** Deterministic unique legacy addresses: '1' + 33 base58 characters. */
+function uniqueLegacyMainnet(index: number): string {
+  const base58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  let n = index + 1;
+  let suffix = '';
+  while (suffix.length < 33) {
+    suffix = base58[n % base58.length] + suffix;
+    n = Math.floor(n / base58.length) + 1;
+  }
+  return `1${suffix}`;
+}
+
 /** A provider that connects and then stays silent forever. */
 function startSilentProvider() {
   const sockets: import('net').Socket[] = [];
@@ -39,6 +51,37 @@ function startSilentProvider() {
           }),
       }),
     ),
+  );
+}
+
+/**
+ * A provider that answers, but slowly. Models the case that actually threatens
+ * `/addresses-info` at the full list length: nothing is broken, every call
+ * succeeds, and the request still cannot finish inside its own deadline.
+ */
+function startSlowProvider(perCallMs: number) {
+  let served = 0;
+  const body = JSON.stringify({page: 1, totalPages: 1, txids: []});
+  const server = http.createServer((_req, res) => {
+    served += 1;
+    setTimeout(() => {
+      res.setHeader('content-type', 'application/json');
+      res.end(body);
+    }, perCallMs);
+  });
+  return new Promise<{url: string; served: () => number; stop: () => Promise<void>}>(
+    resolve =>
+      server.listen(0, '127.0.0.1', () =>
+        resolve({
+          url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+          served: () => served,
+          stop: () =>
+            new Promise<void>(done => {
+              server.closeAllConnections?.();
+              server.close(() => done());
+            }),
+        }),
+      ),
   );
 }
 
@@ -98,7 +141,7 @@ describe('Request deadline (Acceptance)', () => {
     const res = await fetch(`${BASE_URL}/utxo`, {
       method: 'POST',
       headers: {'content-type': 'application/json'},
-      body: JSON.stringify({addressList: ['1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2']}),
+      body: JSON.stringify({addressList: [uniqueLegacyMainnet(0)]}),
       signal: AbortSignal.timeout(20000),
     });
     const elapsed = Date.now() - startedAt;
@@ -140,3 +183,92 @@ describe('Request deadline (Acceptance)', () => {
     expect(res.status).to.equal(200);
   }).timeout(30000);
 });
+
+/**
+ * `ADDRESS_LIST_MAX_ITEMS` is 120, so `/addresses-info` walks 24 sequential
+ * batches. This is the deliberate decision recorded in the docs: against a
+ * uniformly slow provider such a request cannot fit its deadline, and the right
+ * answer is a bounded 503 rather than a connection held open for minutes.
+ */
+describe('Full fan-out against a slow provider (Acceptance)', () => {
+  const SLOW_PORT = 43214;
+  const SLOW_BASE = `http://127.0.0.1:${SLOW_PORT}`;
+  const SLOW_DEADLINE_MS = 2000;
+  const PER_CALL_MS = 300;
+  let child: ChildProcess;
+  let provider: Awaited<ReturnType<typeof startSlowProvider>>;
+
+  const slowIsServing = async () => {
+    try {
+      const res = await fetch(`${SLOW_BASE}/api`, {signal: AbortSignal.timeout(1000)});
+      return res.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  before(async function () {
+    this.timeout(90000);
+    provider = await startSlowProvider(PER_CALL_MS);
+    child = spawn(process.execPath, ['dist/index.js', '--appmode=API'], {
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        PORT: String(SLOW_PORT),
+        HOST: '127.0.0.1',
+        NODE_ENV: 'development',
+        BLOCKBOOK_URL: provider.url,
+        // Scaled down from the shipped 30 s so the shape is testable; the
+        // arithmetic that matters is batches x per-batch latency vs the deadline.
+        MAX_REQUEST_DURATION_MS: String(SLOW_DEADLINE_MS),
+        REQUEST_DEADLINE_GRACE_MS: '250',
+        PROVIDER_MAX_RETRIES: '0',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    for (let i = 0; i < 120; i += 1) {
+      if (await slowIsServing()) return;
+      await delay(250);
+    }
+    child.kill('SIGKILL');
+    throw new Error('slow-provider API did not start');
+  });
+
+  after(async () => {
+    child?.kill('SIGKILL');
+    await provider?.stop();
+  });
+
+  it('refuses a full-length request it cannot finish, rather than hanging', async () => {
+    const addressList = Array.from({length: 120}, (_, i) =>
+      uniqueLegacyMainnet(i),
+    );
+    const startedAt = Date.now();
+    const res = await fetch(`${SLOW_BASE}/addresses-info`, {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({addressList}),
+      signal: AbortSignal.timeout(30000),
+    });
+    const elapsed = Date.now() - startedAt;
+
+    // 503 is the documented answer here, and it arrives near the deadline
+    // instead of after every one of the 24 batches has run.
+    expect(res.status).to.equal(503);
+    expect(elapsed).to.be.lessThan(SLOW_DEADLINE_MS + 5000);
+  }).timeout(60000);
+
+  it('completes a short request against the same slow provider', async () => {
+    const res = await fetch(`${SLOW_BASE}/addresses-info`, {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({addressList: [uniqueLegacyMainnet(0)]}),
+      signal: AbortSignal.timeout(20000),
+    });
+
+    // The deadline must bound the pathological case without penalising ordinary
+    // traffic through the same slow provider.
+    expect(res.status).to.equal(200);
+  }).timeout(60000);
+});
+
