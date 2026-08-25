@@ -35,6 +35,7 @@ back rather than disabling a budget.
 | `MAX_VALIDATION_ERROR_DETAILS` | 3 | Validation details returned to the client |
 | `MAX_CONNECTION_BUFFERED_BYTES` | 1048576 (1 MiB) | Response bytes buffered per connection |
 | `MAX_REQUEST_DURATION_MS` | 30000 (30 s) | Wall-clock handling of one inbound request |
+| `REQUEST_DEADLINE_GRACE_MS` | 250 | Grace for cooperative unwinding after the deadline |
 
 `ADDRESS_INFO_MAX_TXIDS` is still honoured as a legacy alias for
 `MAX_ADDRESS_INFO_TXIDS`. `src/config/limits.ts` re-exports the historical names
@@ -244,6 +245,29 @@ a ceiling the service set for itself.
 
 Aborted requests also now appear in the access log at all — it listened on
 `'finish'`, which never fires for an abandoned request.
+
+#### The deadline ends the request, it does not merely mark it
+
+Aborting a signal only reaches work that observes it. `web3`, `ethers`,
+`mongoose` and `loopback-connector-rest` do not, so a deadline that stopped at
+the abort would leave those requests holding an open connection with no response
+— from the client's side, indistinguishable from a hung service.
+
+So after the deadline trips, cooperative unwinding gets
+`REQUEST_DEADLINE_GRACE_MS` to produce its own answer. If the response is still
+unwritten when that elapses, the bounded 503 is written on the request's behalf
+through the same error writer every other refusal uses, which already declines a
+response that has ended and drops the connection when headers are already on the
+wire.
+
+Two deliberate asymmetries:
+
+- **Only a deadline forces a response, never a client abort.** Nobody is
+  listening on an abandoned request, and `499` is documented above as logged and
+  never delivered.
+- **A route that cancels cooperatively answers sooner** — at the deadline rather
+  than after the grace. The acceptance suite asserts both timings, which is what
+  distinguishes the two mechanisms rather than assuming one covers the other.
 
 Not cancellable: anything going through `loopback-connector-rest`, since neither
 the connector nor `postman-request` accepts a signal. `/broadcast` and the

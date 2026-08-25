@@ -46,6 +46,11 @@ export interface ResourceBudgets {
   MAX_CONNECTION_BUFFERED_BYTES: number;
   /** Wall-clock deadline for handling one inbound request, in milliseconds. */
   MAX_REQUEST_DURATION_MS: number;
+  /**
+   * How long cooperative unwinding is given after a request's deadline trips,
+   * before the response is written for it.
+   */
+  REQUEST_DEADLINE_GRACE_MS: number;
   /** Hard cap on Blockbook operations in flight across the whole process. */
   BLOCKBOOK_MAX_IN_FLIGHT: number;
   /** Hard cap on callers waiting for a Blockbook permit. */
@@ -104,6 +109,10 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   MAX_VALIDATION_ERROR_DETAILS: 3,
   MAX_CONNECTION_BUFFERED_BYTES: 1024 * 1024,
   MAX_REQUEST_DURATION_MS: 30_000,
+  // Long enough for work that observes the abort signal to unwind and produce
+  // its own answer, short enough that a caller is not left waiting on work that
+  // ignores the signal entirely.
+  REQUEST_DEADLINE_GRACE_MS: 250,
   BLOCKBOOK_MAX_IN_FLIGHT: 50,
   BLOCKBOOK_QUEUE_MAX_DEPTH: 100,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS: 5_000,
@@ -207,6 +216,10 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
       env.MAX_REQUEST_DURATION_MS,
       d.MAX_REQUEST_DURATION_MS,
     ),
+    REQUEST_DEADLINE_GRACE_MS: parsePositiveInt(
+      env.REQUEST_DEADLINE_GRACE_MS,
+      d.REQUEST_DEADLINE_GRACE_MS,
+    ),
     BLOCKBOOK_MAX_IN_FLIGHT: parsePositiveInt(
       env.BLOCKBOOK_MAX_IN_FLIGHT,
       d.BLOCKBOOK_MAX_IN_FLIGHT,
@@ -242,6 +255,7 @@ export const {
   MAX_VALIDATION_ERROR_DETAILS,
   MAX_CONNECTION_BUFFERED_BYTES,
   MAX_REQUEST_DURATION_MS,
+  REQUEST_DEADLINE_GRACE_MS,
   BLOCKBOOK_MAX_IN_FLIGHT,
   BLOCKBOOK_QUEUE_MAX_DEPTH,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS,

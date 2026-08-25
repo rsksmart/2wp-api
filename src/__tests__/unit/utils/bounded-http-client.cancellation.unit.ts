@@ -75,6 +75,34 @@ describe('Utils: bounded HTTP client cancellation', () => {
       }
     }).timeout(20000);
 
+    it('reports a cancellation as a cancellation, not a provider failure', async () => {
+      // With retries available, the loop's pre-attempt check throws the
+      // cancellation and hides how the in-flight abort was classified. With no
+      // retries left, whatever the attempt produced is what the caller sees —
+      // and a cancellation misreported as a network failure becomes a 502
+      // blaming the provider for a decision taken here.
+      const server = await givenSilentServer();
+      const controller = new AbortController();
+      try {
+        const call = runWithRequestContext(
+          {traceId: 't', signal: controller.signal},
+          () =>
+            fetchJsonWithBudget({
+              url: server.url,
+              operation: 'test.silent',
+              maxRetries: 0,
+              retryBaseDelayMs: 0,
+              timeoutMs: 5000,
+            }),
+        );
+        setTimeout(() => controller.abort(), 100);
+
+        await expect(call).to.be.rejectedWith(RequestCancelledError);
+      } finally {
+        await server.stop();
+      }
+    }).timeout(20000);
+
     it('does not even start when the signal is already aborted', async () => {
       const server = await givenSilentServer();
       const controller = new AbortController();

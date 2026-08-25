@@ -1,7 +1,11 @@
 import {randomBytes} from 'crypto';
 import {Next} from '@loopback/core';
 import {Middleware, MiddlewareContext, Request} from '@loopback/rest';
-import {MAX_REQUEST_DURATION_MS} from '../config/resource-budgets';
+import {
+  MAX_REQUEST_DURATION_MS,
+  REQUEST_DEADLINE_GRACE_MS,
+} from '../config/resource-budgets';
+import {writeBoundedError} from './bounded-error-writer';
 import {getLogger} from '../utils/logger';
 import {
   CancellationReason,
@@ -112,6 +116,26 @@ export const httpAccessLogMiddleware: Middleware = async (
       elapsedMs: elapsed(),
       configuredLimitMs: reason === 'timeout' ? MAX_REQUEST_DURATION_MS : undefined,
     });
+
+    // Aborting the signal only reaches work that observes it. `web3`, `ethers`,
+    // `mongoose` and the REST connector do not, so without this the deadline
+    // marks a request as over while the connection stays open with no response —
+    // indistinguishable, from the client's side, from a hung service.
+    //
+    // Deliberately not done for `client_aborted`: nobody is listening, and 499
+    // is documented as logged-never-delivered.
+    if (reason === 'timeout') {
+      const grace = setTimeout(() => {
+        // `writeBoundedError` owns every guard here: it declines a response that
+        // already ended or was destroyed, and drops the connection when headers
+        // are already on the wire.
+        runWithRequestContext({traceId, signal: controller.signal}, () =>
+          writeBoundedError(request, response, new RequestCancelledError(reason)),
+        );
+      }, REQUEST_DEADLINE_GRACE_MS);
+      grace.unref();
+      response.once('close', () => clearTimeout(grace));
+    }
   };
 
   // `unref` so a pending deadline cannot hold the process open at shutdown.

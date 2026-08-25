@@ -261,11 +261,13 @@ function attempt<T>(
     }
 
     request.on('error', (err: Error) => {
-      finish(
-        err instanceof BoundedHttpError
-          ? err
-          : new ProviderNetworkError(err.message),
-      );
+      // A cancellation arrives here too: aborting destroys the request with the
+      // cancellation as its reason. Wrapping it as a network failure would blame
+      // the provider for a decision taken locally, turning a 499/503 into a 502
+      // — visible only when no retry remains to re-check the signal.
+      const preserve =
+        err instanceof BoundedHttpError || err instanceof RequestCancelledError;
+      finish(preserve ? err : new ProviderNetworkError(err.message));
     });
 
     request.end();

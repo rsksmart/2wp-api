@@ -109,6 +109,7 @@ Caps on how much memory, parsing, serialization and downstream provider work a s
 |MAX_VALIDATION_ERROR_DETAILS  |3                              |'Maximum validation details returned to the client'      |
 |MAX_CONNECTION_BUFFERED_BYTES |1048576                        |'Response bytes buffered per connection before it is dropped'|
 |MAX_REQUEST_DURATION_MS       |30000                          |'Wall-clock deadline for handling one inbound request, in ms'|
+|REQUEST_DEADLINE_GRACE_MS     |250                            |'Grace for cooperative unwinding after the request deadline, in milliseconds'|
 
 
 ##Example for .env.local.test file
