@@ -114,6 +114,29 @@ describe('Format restrictions (Acceptance)', () => {
     await app.stop();
   });
 
+  /**
+   * SECURITY-CRITICAL. These assertions are the entire protection against a
+   * remote process kill.
+   *
+   * The runtime's Brotli decoder has a state-corruption defect that faults
+   * natively during request parsing — before any controller runs, and
+   * uncatchable by `try/catch`. Upstream has cut no release containing the fix,
+   * so the decoder is still in the process image; what is gone is its
+   * *reachability*, via a single `inflate: false` in `withResourceBudgets`
+   * (`src/application.ts`). That makes this the permanent control, not an
+   * interim one, and these tests the only thing between a routine refactor and a
+   * one-request remote kill.
+   *
+   * **Relaxing `inflate` to accommodate a client that compresses its requests
+   * reintroduces that kill.** If such a client ever appears, the change is a
+   * codec-specific guard, never flipping the flag.
+   *
+   * The payloads here are deliberately *not* the crafted block-switch vector
+   * from the report: that vector is only meaningful against a vulnerable decoder,
+   * and carrying a live process-kill payload in a suite that has to survive is a
+   * worse trade than asserting the refusal with ordinary compressed bodies. The
+   * substitution is deliberate, not an oversight.
+   */
   describe('Content-Encoding is restricted to identity', () => {
     const compressed: [string, Buffer][] = [
       ['gzip', zlib.gzipSync(VALID_BODY)],
@@ -121,20 +144,37 @@ describe('Format restrictions (Acceptance)', () => {
       ['br', zlib.brotliCompressSync(VALID_BODY)],
     ];
 
-    compressed.forEach(([encoding, payload]) => {
-      it(`rejects Content-Encoding: ${encoding} with a bounded 415`, async () => {
-        const res = await postRaw(
-          baseUrl,
-          '/utxo',
-          {'content-type': 'application/json', 'content-encoding': encoding},
-          payload,
-        );
+    // `/broadcast` is the route the report names; `/utxo` is where the control
+    // was first asserted. The control is parser-level so behaviour is identical,
+    // but the suite should answer the report directly rather than by argument.
+    const encodedRoutes: [string, string][] = [
+      ['/utxo', VALID_BODY],
+      ['/broadcast', JSON.stringify({data: '0x00'})],
+    ];
 
-        expect(res.statusCode).to.equal(415);
-        expect(res.contentType).to.equal('application/json');
-        // Refused outright: the request never reaches a controller, so no
-        // decompressor ran on attacker-controlled bytes.
-        sinon.assert.notCalled(utxoStub);
+    encodedRoutes.forEach(([route, body]) => {
+      compressed.forEach(([encoding]) => {
+        it(`rejects Content-Encoding: ${encoding} on ${route} with a bounded 415`, async () => {
+          const payload =
+            encoding === 'gzip'
+              ? zlib.gzipSync(body)
+              : encoding === 'deflate'
+                ? zlib.deflateSync(body)
+                : zlib.brotliCompressSync(body);
+
+          const res = await postRaw(
+            baseUrl,
+            route,
+            {'content-type': 'application/json', 'content-encoding': encoding},
+            payload,
+          );
+
+          expect(res.statusCode).to.equal(415);
+          expect(res.contentType).to.equal('application/json');
+          // Refused outright: the request never reaches a controller, so no
+          // decompressor ran on attacker-controlled bytes.
+          sinon.assert.notCalled(utxoStub);
+        });
       });
     });
 
@@ -192,6 +232,24 @@ describe('Format restrictions (Acceptance)', () => {
 
       expect(res.statusCode).to.equal(415);
       sinon.assert.notCalled(utxoStub);
+    }).timeout(30000);
+
+    it('refuses the same large compressed chunked body on /broadcast', async () => {
+      // The route the report names, exercised the same way: no Content-Length,
+      // so nothing but the encoding allowlist can refuse these bytes.
+      const wire = Buffer.concat([
+        zlib.brotliCompressSync(JSON.stringify({data: '0x00'})),
+        Buffer.alloc(8 * 1024 * 1024, 0),
+      ]);
+
+      const res = await postChunked(
+        baseUrl,
+        '/broadcast',
+        {'content-type': 'application/json', 'content-encoding': 'br'},
+        wire,
+      );
+
+      expect(res.statusCode).to.equal(415);
     }).timeout(30000);
 
     it('still bounds an oversized uncompressed chunked body', async () => {

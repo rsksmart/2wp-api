@@ -36,7 +36,7 @@ The API is JSON-only, and the policy is enforced rather than assumed.
 | Axis | Policy |
 |---|---|
 | Request `Content-Type` | `application/json` only (a `charset` parameter is fine). Anything else, or an absent header, is refused with a bounded `415`. |
-| Request `Content-Encoding` | `identity` only. `gzip`, `deflate` and `br` are refused with a bounded `415` **before** any decompressor is constructed, so no zlib or Brotli decoder is reachable from a public route. |
+| Request `Content-Encoding` | `identity` only. `gzip`, `deflate` and `br` are refused with a bounded `415` **before** any decompressor is constructed, so no zlib or Brotli decoder is reachable from a public route. This is a security control, not a preference — the runtime's Brotli decoder has an unpatched state-corruption defect that faults natively during request parsing, so relaxing it to accommodate a client that compresses requests reintroduces a remote process kill. Asserted for `/utxo` and `/broadcast` in `src/__tests__/acceptance/format-restrictions.acceptance.ts`, where the block is labelled security-critical. |
 | Response format | Always `application/json`. An `Accept` value asking for XML or HTML, and the legacy `?_format=xml|html` query parameter, are **ignored** rather than rejected — the response stays JSON. This is the chosen contract: unsupported `Accept` values do not produce a `406`. |
 | HTTP methods | Only the methods declared per route. Anything else is refused by routing and never reaches a handler. |
 | Request body | Required where declared, and bounded by `MAX_REQUEST_BODY_BYTES`. Since nothing may be compressed, wire size equals decoded size and one limit bounds both. |

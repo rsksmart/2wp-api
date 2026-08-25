@@ -262,6 +262,29 @@ a ceiling the service set for itself.
 Aborted requests also now appear in the access log at all — it listened on
 `'finish'`, which never fires for an abandoned request.
 
+#### A broken response lifecycle is survived; a broken dependency is not
+
+A client that disappears mid-response leaves framework and library callbacks
+holding a reference to a finished response. When one of them writes, Node raises
+`ERR_HTTP_HEADERS_SENT`, `ERR_STREAM_WRITE_AFTER_END`,
+`ERR_STREAM_ALREADY_FINISHED` or `ERR_STREAM_DESTROYED` — possibly as an
+`uncaughtException`, from a callback the application has no seam to catch. Those
+four are logged and survived: the request is lost either way, and tearing the
+process down would convert a per-request defect into an outage any client can
+trigger at will.
+
+`ECONNRESET` and `EPIPE` are treated differently, because they are **not**
+response-specific — Mongo, the RSK node and the providers raise the same codes.
+Surviving them unconditionally would leave a possibly degraded process alive with
+nothing to restart it. They are survived only with provenance pointing at a
+response: the failure happened on a `write`, and the error carries no remote-peer
+identity (`address` / `port` / `hostname`), which an outbound connection's errors
+do and an inbound response write does not.
+
+That is a heuristic, and it is deliberately biased towards restarting — an
+unattributable reset is fatal, because a process in an unknown state serving
+traffic is worse than a restart. The four codes above need no heuristic.
+
 #### The deadline ends the request, it does not merely mark it
 
 Aborting a signal only reaches work that observes it. `web3`, `ethers`,

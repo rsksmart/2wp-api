@@ -41,15 +41,62 @@ const searchAppMode = (): APP_MODE => {
  * process is completely healthy — so tearing it down converts a per-request
  * defect into an outage that any client can trigger at will. These are logged
  * and survived; everything else keeps the shutdown behaviour.
+ *
+ * Scope matters as much as membership: this list is for codes that *only* a
+ * response lifecycle produces. Codes that a dependency can also raise are
+ * handled separately below, with provenance required.
  */
 const RESPONSE_LIFECYCLE_ERROR_CODES: ReadonlySet<string> = new Set([
   'ERR_HTTP_HEADERS_SENT',
   'ERR_STREAM_WRITE_AFTER_END',
   'ERR_STREAM_ALREADY_FINISHED',
   'ERR_STREAM_DESTROYED',
+]);
+
+/**
+ * Reset codes that are *not* specific to a response.
+ *
+ * The same two codes arise when Mongo, the RSK node or a provider drops a
+ * connection. Surviving them unconditionally — as this list first did — leaves a
+ * possibly degraded process alive with nothing to restart it, which is a worse
+ * outcome than the per-request failure the allowlist exists for. So they are
+ * survivable only with provenance pointing at a response.
+ */
+const PEER_RESET_ERROR_CODES: ReadonlySet<string> = new Set([
   'ECONNRESET',
   'EPIPE',
 ]);
+
+/**
+ * Does this reset look like a client that vanished while we were writing to it?
+ *
+ * Node attaches no reference to the stream that failed, so provenance has to come
+ * from what it does attach. Two signals, both necessary:
+ *
+ * - **`syscall === 'write'`** — the failure happened while sending, which is what
+ *   a disappearing client produces. A dependency dropping a connection surfaces
+ *   on the read side.
+ * - **no remote-peer identity** — an outbound connection's errors name the far
+ *   end (`address`, `port`, `hostname`). An inbound response write does not.
+ *
+ * This is a heuristic, deliberately biased towards restarting: an unattributable
+ * reset is treated as fatal, because a process in an unknown state serving
+ * traffic is worse than a restart. The four codes above need no heuristic — they
+ * can only come from a response.
+ */
+function isVanishedClientWrite(reason: unknown): boolean {
+  const err = reason as
+    | {syscall?: unknown; address?: unknown; port?: unknown; hostname?: unknown}
+    | undefined;
+  if (err?.syscall !== 'write') {
+    return false;
+  }
+  return (
+    err.address === undefined &&
+    err.port === undefined &&
+    err.hostname === undefined
+  );
+}
 
 /** How long shutdown may take before the process exits regardless. */
 const SHUTDOWN_TIMEOUT_MS = 5_000;
@@ -67,7 +114,13 @@ const EXIT_CODE = 0;
 /** Is this a broken-response-lifecycle error rather than a fatal fault? */
 export function isResponseLifecycleError(reason: unknown): boolean {
   const code = (reason as {code?: unknown} | undefined)?.code;
-  return typeof code === 'string' && RESPONSE_LIFECYCLE_ERROR_CODES.has(code);
+  if (typeof code !== 'string') {
+    return false;
+  }
+  if (RESPONSE_LIFECYCLE_ERROR_CODES.has(code)) {
+    return true;
+  }
+  return PEER_RESET_ERROR_CODES.has(code) && isVanishedClientWrite(reason);
 }
 
 export async function main(options: ApplicationConfig = {}): Promise<void> {
