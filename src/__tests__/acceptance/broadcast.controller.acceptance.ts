@@ -1,6 +1,6 @@
 import {Client} from '@loopback/testlab';
 import {TwpapiApplication} from '../..';
-import {setupApplication} from './test-helper';
+import {setupApplication, bindPermissiveRateLimiter} from './test-helper';
 
 describe('Broadcast Controller', () => {
   let app: TwpapiApplication;
@@ -8,6 +8,7 @@ describe('Broadcast Controller', () => {
 
   before('setupApplication', async () => {
     ({app, client} = await setupApplication());
+    bindPermissiveRateLimiter(app);
   });
 
   after(async () => {

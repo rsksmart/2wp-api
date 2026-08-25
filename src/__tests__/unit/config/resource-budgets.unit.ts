@@ -31,6 +31,10 @@ describe('Config: resource budgets', () => {
         MAX_CONNECTION_BUFFERED_BYTES: '4096',
         MAX_REQUEST_DURATION_MS: '9000',
         REQUEST_DEADLINE_GRACE_MS: '250',
+        RATE_LIMIT_WINDOW_MS: '30000',
+        RATE_LIMIT_MAX_REQUESTS: '90',
+        RATE_LIMIT_MAX_FANOUT_REQUESTS: '15',
+        RATE_LIMIT_MAX_TRACKED_CLIENTS: '4096',
         BLOCKBOOK_MAX_IN_FLIGHT: '7',
         BLOCKBOOK_QUEUE_MAX_DEPTH: '11',
         BLOCKBOOK_QUEUE_MAX_WAIT_MS: '2500',
@@ -52,6 +56,10 @@ describe('Config: resource budgets', () => {
         MAX_CONNECTION_BUFFERED_BYTES: 4096,
         MAX_REQUEST_DURATION_MS: 9000,
         REQUEST_DEADLINE_GRACE_MS: 250,
+        RATE_LIMIT_WINDOW_MS: 30000,
+        RATE_LIMIT_MAX_REQUESTS: 90,
+        RATE_LIMIT_MAX_FANOUT_REQUESTS: 15,
+        RATE_LIMIT_MAX_TRACKED_CLIENTS: 4096,
         BLOCKBOOK_MAX_IN_FLIGHT: 7,
         BLOCKBOOK_QUEUE_MAX_DEPTH: 11,
         BLOCKBOOK_QUEUE_MAX_WAIT_MS: 2500,
@@ -228,6 +236,34 @@ describe('Config: resource budgets', () => {
       // than a surprise: a uniformly slow provider cannot fit.
       expect(batches * PROVIDER_TIMEOUT_MS).to.be.greaterThan(
         MAX_REQUEST_DURATION_MS,
+      );
+    });
+
+    it('bounds what the rate limiter itself can retain', () => {
+      // A limiter that tracks every source address it sees is a memory
+      // amplifier: an attacker with many addresses fills the map. The tracked
+      // client count is therefore a budget in its own right, and the per-entry
+      // cost times that bound is what has to stay small.
+      const MAX_LIMITER_BYTES = 4 * 1024 * 1024;
+      // A key (an address string) plus a count and a window stamp. Generous on
+      // purpose: the assertion should hold without depending on V8 internals.
+      const BYTES_PER_TRACKED_CLIENT = 256;
+
+      expect(
+        RESOURCE_BUDGET_DEFAULTS.RATE_LIMIT_MAX_TRACKED_CLIENTS *
+          BYTES_PER_TRACKED_CLIENT,
+      ).to.be.lessThanOrEqual(MAX_LIMITER_BYTES);
+    });
+
+    it('limits the expensive routes more tightly than the cheap ones', () => {
+      // The fan-out POSTs each cost up to PROVIDER_CONCURRENCY provider calls,
+      // so an allowance that made sense for GET /api would be far too generous
+      // for them.
+      const {RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_MAX_FANOUT_REQUESTS} =
+        RESOURCE_BUDGET_DEFAULTS;
+
+      expect(RATE_LIMIT_MAX_FANOUT_REQUESTS).to.be.lessThan(
+        RATE_LIMIT_MAX_REQUESTS,
       );
     });
 

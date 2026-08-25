@@ -5,7 +5,7 @@ import {
   ADDRESS_INFO_MAX_TXIDS,
   ADDRESS_LIST_MAX_ITEMS,
 } from '../../config/limits';
-import {setupApplication} from './test-helper';
+import {setupApplication, bindPermissiveRateLimiter} from './test-helper';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BitcoinAddress} from '../../models/bitcoin-address.model';
 
@@ -46,6 +46,7 @@ describe('AddressesInfoController (Acceptance)', () => {
 
   before('setupApplication', async () => {
     ({app, client} = await setupApplication());
+    bindPermissiveRateLimiter(app);
   });
 
   after(async () => {

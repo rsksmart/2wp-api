@@ -2,6 +2,7 @@ import http from 'http';
 import {AddressInfo} from 'net';
 import {expect} from '@loopback/testlab';
 import {TwpapiApplication} from '../..';
+import {bindPermissiveRateLimiter} from './test-helper';
 import {
   ADDRESS_LIST_MAX_ITEMS,
   BLOCKBOOK_MAX_IN_FLIGHT,
@@ -138,6 +139,7 @@ describe('Provider concurrency (Acceptance)', () => {
     process.env.BLOCKBOOK_URL = blockbook.url;
 
     app = new TwpapiApplication({rest: {port: 0, host: '127.0.0.1'}});
+    bindPermissiveRateLimiter(app);
     await app.boot();
     await app.start();
     baseUrl = app.restServer.url!;

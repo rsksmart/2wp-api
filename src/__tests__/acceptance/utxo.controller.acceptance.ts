@@ -2,7 +2,7 @@ import {Client, expect} from '@loopback/testlab';
 import sinon from 'sinon';
 import {TwpapiApplication} from '../..';
 import {ADDRESS_LIST_MAX_ITEMS} from '../../config/limits';
-import {setupApplication} from './test-helper';
+import {setupApplication, bindPermissiveRateLimiter} from './test-helper';
 import {UtxoProvider} from '../../services';
 
 describe('UtxoController (Acceptance)', () => {
@@ -30,6 +30,7 @@ describe('UtxoController (Acceptance)', () => {
 
   before('setupApplication', async () => {
     ({app, client} = await setupApplication());
+    bindPermissiveRateLimiter(app);
     
     // Get the UtxoProvider service to mock it
     utxoProviderService = await app.get('services.UtxoProvider');

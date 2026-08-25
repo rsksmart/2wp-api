@@ -6,7 +6,7 @@ import {
   MAX_REQUEST_BODY_BYTES,
 } from '../../config/resource-budgets';
 import {VALIDATION_ERROR_CODE} from '../../middleware/bounded-error-writer';
-import {setupApplication} from './test-helper';
+import {setupApplication, bindPermissiveRateLimiter} from './test-helper';
 
 /** Builds the densest invalid body that still fits the request-body budget. */
 function bodyAtBudget(item: () => string): string {
@@ -37,6 +37,7 @@ describe('Bounded validation errors (Acceptance)', () => {
 
   before('setupApplication', async () => {
     ({app, client} = await setupApplication());
+    bindPermissiveRateLimiter(app);
     baseUrl = app.restServer.url!;
   });
 

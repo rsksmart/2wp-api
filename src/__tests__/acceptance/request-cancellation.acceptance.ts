@@ -8,7 +8,7 @@ import {
 } from '../../config/resource-budgets';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {UtxoProvider} from '../../services';
-import {setupApplication} from './test-helper';
+import {setupApplication, bindPermissiveRateLimiter} from './test-helper';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -32,10 +32,14 @@ describe('Request cancellation (Acceptance)', () => {
 
   before('setupApplication', async () => {
     ({app} = await setupApplication());
+    bindPermissiveRateLimiter(app);
     baseUrl = app.restServer.url!;
     // Process-wide singleton: the original has to go back on it in `after`.
     utxoProviderService = await app.get(ServicesBindings.UTXO_PROVIDER_SERVICE);
     originalUtxoProvider = utxoProviderService.utxoProvider;
+  });
+
+  beforeEach(() => {
   });
 
   after(async () => {

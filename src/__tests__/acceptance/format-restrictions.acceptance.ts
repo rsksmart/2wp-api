@@ -7,7 +7,7 @@ import {TwpapiApplication} from '../..';
 import {MAX_REQUEST_BODY_BYTES} from '../../config/resource-budgets';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {UtxoProvider} from '../../services';
-import {setupApplication} from './test-helper';
+import {setupApplication, bindPermissiveRateLimiter} from './test-helper';
 
 const ADDRESS = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa';
 const VALID_BODY = JSON.stringify({addressList: [ADDRESS]});
@@ -97,6 +97,7 @@ describe('Format restrictions (Acceptance)', () => {
 
   before('setupApplication', async () => {
     ({app, client} = await setupApplication());
+    bindPermissiveRateLimiter(app);
     baseUrl = app.restServer.url!;
     // The bound provider is a process-wide singleton, so the original has to go
     // back on it or later suites inherit the stub.

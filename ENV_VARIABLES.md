@@ -110,6 +110,11 @@ Caps on how much memory, parsing, serialization and downstream provider work a s
 |MAX_CONNECTION_BUFFERED_BYTES |1048576                        |'Response bytes buffered per connection before it is dropped'|
 |MAX_REQUEST_DURATION_MS       |30000                          |'Wall-clock deadline for handling one inbound request, in ms'|
 |REQUEST_DEADLINE_GRACE_MS     |250                            |'Grace for cooperative unwinding after the request deadline, in milliseconds'|
+|RATE_LIMIT_WINDOW_MS          |30000                          |'Rate-limit window length, in milliseconds'               |
+|RATE_LIMIT_MAX_REQUESTS       |90                             |'Requests per window per client on ordinary routes'       |
+|RATE_LIMIT_MAX_FANOUT_REQUESTS|15                             |'Requests per window per client on /utxo and /addresses-info'|
+|RATE_LIMIT_MAX_TRACKED_CLIENTS|4096                           |'Hard cap on clients the limiter tracks at once'          |
+|RATE_LIMIT_TRUSTED_PROXIES    |(empty)                        |'Comma-separated peers whose X-Forwarded-For is believed; empty ignores the header'|
 
 
 ##Example for .env.local.test file

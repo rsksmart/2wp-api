@@ -36,6 +36,10 @@ back rather than disabling a budget.
 | `MAX_CONNECTION_BUFFERED_BYTES` | 1048576 (1 MiB) | Response bytes buffered per connection |
 | `MAX_REQUEST_DURATION_MS` | 30000 (30 s) | Wall-clock handling of one inbound request |
 | `REQUEST_DEADLINE_GRACE_MS` | 250 | Grace for cooperative unwinding after the deadline |
+| `RATE_LIMIT_WINDOW_MS` | 30000 (30 s) | Rate-limit window length |
+| `RATE_LIMIT_MAX_REQUESTS` | 90 | Requests per window per client, ordinary routes |
+| `RATE_LIMIT_MAX_FANOUT_REQUESTS` | 15 | Requests per window per client, fan-out POSTs |
+| `RATE_LIMIT_MAX_TRACKED_CLIENTS` | 4096 | Clients the limiter tracks at once |
 
 `ADDRESS_INFO_MAX_TXIDS` is still honoured as a legacy alias for
 `MAX_ADDRESS_INFO_TXIDS`. `src/config/limits.ts` re-exports the historical names
@@ -158,6 +162,65 @@ Worth stating explicitly: only the two fan-out endpoints (`/utxo`,
 `/broadcast`, `/estimate-fee`, `/tx` and the `/tx-status` pre-check use the
 LoopBack REST connector, which offers no per-call seam; each issues a single call
 per request rather than fanning out, so they do not multiply the same way.
+
+### Rate limiting
+
+Public, unauthenticated routes had no access control at all: every other budget
+here bounds what *one* request can cost, and nothing bounded how many requests
+one client could make.
+
+`src/middleware/rate-limit.middleware.ts` counts requests in fixed windows, per
+client and per route class, registered as the cheapest possible refusal — one
+header read and a map lookup, after the bounded error writer (so the 429 is
+bounded and carries the traceId) and **before** the body budget, so an over-limit
+client's payload is never buffered at all.
+
+Fixed windows rather than a sliding log on purpose: a log grows per request,
+which would make the limiter the thing that consumes memory under attack. Two
+counters and a timestamp per client is the whole state.
+
+Two allowances, because the routes are not equally expensive:
+`RATE_LIMIT_MAX_FANOUT_REQUESTS` for `/utxo` and `/addresses-info`, which each
+cost up to `PROVIDER_CONCURRENCY` provider calls, and `RATE_LIMIT_MAX_REQUESTS`
+for everything else. They are separate buckets, not one counter with two
+ceilings. `GET /health` is exempt: monitoring polls it continuously, and sharing a
+bucket with public traffic would let an attacker blind the operators.
+
+#### Client identity behind a proxy
+
+The decision that matters. Behind a proxy every request carries the *proxy's*
+socket address, so keying on the socket alone puts the whole internet in one
+bucket — simultaneously useless and an outage. Keying on `X-Forwarded-For`
+unconditionally is worse: the header is attacker-controlled, so anyone could mint
+unlimited identities, or impersonate another client into a block.
+
+So `X-Forwarded-For` is honoured only when the immediate socket peer is listed in
+`RATE_LIMIT_TRUSTED_PROXIES`, and then only its **left-most** hop. With no
+trusted proxies configured — the default — the header is ignored entirely, which
+is correct for a directly exposed API. Unlike the `inflate` flag, this is
+legitimate configuration rather than a footgun: the *unsafe* state is the empty
+default being wrong for your topology, and turning it on narrows trust to named
+peers rather than widening it.
+
+Claimed values are validated as address-shaped before becoming map keys, so a
+long or exotic header cannot grow an entry or inflate label cardinality.
+
+#### The limiter must not become the amplifier
+
+An attacker with many source addresses would otherwise fill the key map, so
+tracked clients are bounded by `RATE_LIMIT_MAX_TRACKED_CLIENTS` with
+least-recently-seen eviction, swept on an `unref`'d timer so it cannot hold the
+process open at shutdown. Eviction never removes the client currently being
+counted — doing so would hand an attacker a free reset: flood the map to displace
+your own counter, then resume.
+
+Refusals are `429` with `Retry-After` and code `RATE_LIMITED`, and are counted by
+`rate_limit_rejected_total{route}` where `route` is the **closed** vocabulary
+`fanout` / `other` — never the raw path, which is attacker-controlled.
+
+**This is half of what the finding asks for.** It recommends authentication as
+well; rate limiting is the only access control implemented here, and the API
+remains unauthenticated.
 
 ### Validation error responses
 
@@ -382,7 +445,7 @@ registry.
 `resource` values, one per budget category, are the members of
 `ResourceBudgetName`: `request_body_bytes`, `provider_response_bytes`,
 `provider_timeout_ms`, `utxos_per_address`, `utxo_response_rows`,
-`address_info_txids`, `address_list_items`, `error_response_bytes`,
+`address_info_txids`, `address_list_items`, `error_response_bytes`, `rate_limit`,
 `validation_error_details`, `connection_buffered_bytes`, `request_duration_ms`,
 `provider_permits`.
 
@@ -414,6 +477,7 @@ Violations always produce a bounded response and never terminate the process:
 | The client abandoned the request | `499` (logged, never delivered) |
 | The request breached its own deadline | `503 Service Unavailable` |
 | The provider pool and its queue are both full | `503 Service Unavailable` + `Retry-After`, code `SERVICE_OVERLOADED` |
+| The client is over its rate-limit allowance | `429 Too Many Requests` + `Retry-After`, code `RATE_LIMITED` |
 
 Every error body is JSON, bounded by `MAX_ERROR_RESPONSE_BYTES`, and carries no
 attacker-controlled content — see **Validation error responses** above.

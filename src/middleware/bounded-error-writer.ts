@@ -25,7 +25,7 @@ export const VALIDATION_ERROR_CODE = 'VALIDATION_ERROR';
  * These exist because a status alone is ambiguous — two different conditions
  * both answer 503, and only one of them is worth retrying.
  */
-const SELF_DESCRIBING_CODES = new Set(['SERVICE_OVERLOADED']);
+const SELF_DESCRIBING_CODES = new Set(['SERVICE_OVERLOADED', 'RATE_LIMITED']);
 
 /** Message returned when nothing more specific can be said safely. */
 export const GENERIC_ERROR_MESSAGE = 'Request could not be processed.';
@@ -143,6 +143,8 @@ const messageFor = (statusCode: number, isValidation: boolean): string => {
       return 'Request payload too large.';
     case 415:
       return 'Unsupported media type.';
+    case 429:
+      return 'Too many requests.';
     case 499:
       return 'Client closed the request.';
     case 502:

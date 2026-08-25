@@ -1,6 +1,6 @@
 import {Client, createRestAppClient, expect} from '@loopback/testlab';
 import {TwpapiApplication} from '../..';
-import {setupApplication} from './test-helper';
+import {setupApplication, bindPermissiveRateLimiter} from './test-helper';
 import sinon from 'sinon';
 import { ServicesBindings } from '../../dependency-injection-bindings';
 
@@ -14,6 +14,7 @@ describe('Input Sanitization (Acceptance)', function() {
   before('setupApplication', async function() {
     this.timeout(60000); // Allow more time for initial setup
     ({app, client} = await setupApplication());
+    bindPermissiveRateLimiter(app);
   });
 
   after(async function() {

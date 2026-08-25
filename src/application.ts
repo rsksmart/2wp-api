@@ -21,6 +21,7 @@ import {
   writeBoundedError,
 } from './middleware/bounded-error-writer';
 import {connectionOutputBudgetMiddleware} from './middleware/connection-output-budget.middleware';
+import {rateLimitMiddleware} from './middleware/rate-limit.middleware';
 import { ENVIRONMENT_PRODUCTION } from './constants';
 
 export {ApplicationConfig};
@@ -102,6 +103,11 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
     // replaces the framework reject action below, so no error path can reach
     // strong-error-handler's XML/HTML serializers.
     this.middleware(boundedErrorWriterMiddleware);
+
+    // Refuse a client that is over its allowance. The cheapest possible
+    // rejection — one header read and a map lookup — and deliberately ahead of
+    // the body budget, so an over-limit client's payload is never buffered.
+    this.middleware(rateLimitMiddleware);
 
     // Reject oversized bodies on the declared Content-Length, before the
     // body parsers buffer anything. Registered after the access log so the
