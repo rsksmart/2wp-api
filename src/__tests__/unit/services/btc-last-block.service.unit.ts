@@ -48,9 +48,14 @@ describe('Service: BitcoinService', () => {
         expect(block[0].bestHeight).greaterThanOrEqual(initialBlockNumber);
     });
 
-    it('Verify ${process.env.BLOCKBOOK_URL} configuration', async () => {
+    it('is configured with an absolute provider URL', async () => {
+        // Asserts the shape of the configuration, not one specific host: pinning
+        // the literal made the suite fail whenever the provider moved, which is
+        // an environment change rather than a code defect.
         const nodeHost = process.env.BLOCKBOOK_URL;
-        sinon.assert.match(nodeHost, 'https://blockbook.testnet.2wp.iovlabs.net:19130/');
+        expect(nodeHost).not.undefined;
+        expect(() => new URL(nodeHost!)).not.throw();
+        expect(new URL(nodeHost!).protocol).to.equal('https:');
     });
     
 });
