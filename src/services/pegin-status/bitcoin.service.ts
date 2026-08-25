@@ -25,6 +25,18 @@ export class BitcoinService {
     this.lastBlockService = lastBlockService;
   }
 
+  /**
+   * Transaction information from the provider.
+   *
+   * Provider failures are rethrown unchanged, for the same reason as
+   * {@link getAddressInfo}: they already carry a meaningful status, and
+   * rejecting with a bare string erases it — a 502 or 504 arrives as a 500, and
+   * any cancellation travelling the path is destroyed with it.
+   *
+   * @param txId - Transaction id to look up.
+   * @returns The transaction.
+   * @throws The provider's own error, unchanged.
+   */
   getTx(txId: string): Promise<BitcoinTx> {
     return new Promise<BitcoinTx>((resolve, reject) => {
       this.txV2Service
@@ -47,8 +59,8 @@ export class BitcoinService {
           resolve(responseTx);
         })
         .catch(err => {
-          this.logger.warn({method: 'getTx', err, txId});
-          reject(`Error getting tx ${txId}`);
+          this.logger.warn({method: 'getTx', err, txId}, 'Transaction lookup failed');
+          reject(err);
         });
     });
   }
@@ -92,6 +104,16 @@ export class BitcoinService {
     return responseAddress;
   }
 
+  /**
+   * Provider chain tip, used by the health probe.
+   *
+   * Rethrows the provider's error unchanged, as {@link getTx} does. Interpolating
+   * it into a string also embedded provider text in the rejection, which the
+   * caller may surface.
+   *
+   * @returns The provider's last-block information.
+   * @throws The provider's own error, unchanged.
+   */
   getLastBlock(): Promise<LastBlockInfo> {
     return new Promise<LastBlockInfo>((resolve, reject) => {
       this.lastBlockService.lastBlockProvider()
@@ -107,8 +129,9 @@ export class BitcoinService {
           lastBlockInfo.syncMode = lbir[0].blockbook.syncMode;
           resolve(lastBlockInfo);
         })
-        .catch((e) => {
-          reject(`Error getting last block ${e}`);
+        .catch((err) => {
+          this.logger.warn({method: 'getLastBlock', err}, 'Last block lookup failed');
+          reject(err);
         });
     });
   }

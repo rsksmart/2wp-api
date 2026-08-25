@@ -40,6 +40,8 @@ back rather than disabling a budget.
 | `RATE_LIMIT_MAX_REQUESTS` | 90 | Requests per window per client, ordinary routes |
 | `RATE_LIMIT_MAX_FANOUT_REQUESTS` | 15 | Requests per window per client, fan-out POSTs |
 | `RATE_LIMIT_MAX_TRACKED_CLIENTS` | 4096 | Clients the limiter tracks at once |
+| `MONGO_MAX_DOCUMENTS` | 250 | Documents returned by one database read |
+| `HEALTH_CACHE_TTL_MS` | 2000 (2 s) | How long a `/health` result may be reused |
 
 `ADDRESS_INFO_MAX_TXIDS` is still honoured as a legacy alias for
 `MAX_ADDRESS_INFO_TXIDS`. `src/config/limits.ts` re-exports the historical names
@@ -221,6 +223,27 @@ Refusals are `429` with `Retry-After` and code `RATE_LIMITED`, and are counted b
 **This is half of what the finding asks for.** It recommends authentication as
 well; rate limiting is the only access control implemented here, and the API
 remains unauthenticated.
+
+### Public reads that fan out
+
+Two paths the earlier phases left unbounded, both public and unauthenticated.
+
+**`GET /features`** read the whole collection with `find({})`. The collection is
+small and operator-managed — 14 flags today — so `MONGO_MAX_DOCUMENTS` is a
+ceiling rather than a page size: it exists so a collection that grew unexpectedly
+cannot turn a public request into unbounded memory. The bound is applied in the
+query, not to the result; capping an already-materialized array would buy
+nothing. Filling the budget records a violation, because it means the collection
+outgrew the assumption.
+
+**`GET /health`** fans out to four dependencies per call and is deliberately
+exempt from rate limiting, so that monitoring can never be blocked. Those two
+facts together make it the one route where request volume multiplies upstream
+load with nothing to bound it, so the result is cached for
+`HEALTH_CACHE_TTL_MS`. The `200`/`500` semantics are unchanged — operators depend
+on this as a readiness signal — and failures are cached too, because a failing
+dependency is exactly when polling intensifies. A cached failure still reports
+down.
 
 ### Validation error responses
 
@@ -447,6 +470,7 @@ registry.
 `provider_timeout_ms`, `utxos_per_address`, `utxo_response_rows`,
 `address_info_txids`, `address_list_items`, `error_response_bytes`, `rate_limit`,
 `validation_error_details`, `connection_buffered_bytes`, `request_duration_ms`,
+`mongo_documents`,
 `provider_permits`.
 
 The provider pool additionally publishes its own series, since "how many are in

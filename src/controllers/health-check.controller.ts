@@ -9,10 +9,30 @@ import { RskNodeService } from '../services/rsk-node.service';
 import { SyncStatusDataService } from '../services/sync-status-data.service';
 import { SyncStatusModel } from '../models/rsk/sync-status.model';
 import { LastBlockInfo } from '../models/btc-last-block.model';
+import { HEALTH_CACHE_TTL_MS } from '../config/resource-budgets';
 
 const packageJson = require('../../package.json');
 
+/** A health result and when it was produced. */
+interface CachedHealth {
+  producedAt: number;
+  health: HealthInformation;
+}
+
 export class HealthCheckController {
+  /**
+   * Last result, shared across requests.
+   *
+   * `/health` is public, unauthenticated, exempt from rate limiting so that
+   * monitoring can never be blocked, and fans out to four dependencies per call.
+   * That combination makes request volume multiply upstream load with nothing to
+   * bound it. Caching briefly bounds the fan-out without changing what the
+   * endpoint reports.
+   *
+   * Static because a controller instance is created per request.
+   */
+  private static cached: CachedHealth | undefined;
+
   logger: Logger;
   private syncStorageService: SyncStatusDataService;
   private rskNodeService: RskNodeService;
@@ -69,6 +89,33 @@ export class HealthCheckController {
    * @returns The `Response` object, already sent, containing `HealthInformation` with one `HealthInformationChecks`/`BlockBoock` entry per dependency.
    */
   async health(): Promise<Response> {
+    const health = await this.healthSnapshot();
+
+    // Status semantics are unchanged, cached or not: operators depend on this
+    // being a readiness signal.
+    this.response.contentType('application/json').status(health.up! ? 200 : 500).send(
+      health
+    );
+
+    return this.response;
+  }
+
+  /**
+   * The health result, from cache when it is still current.
+   *
+   * A failing dependency is exactly when polling intensifies, so failures are
+   * cached too — but the cached result still says "down". The TTL is
+   * `HEALTH_CACHE_TTL_MS`.
+   *
+   * @returns The aggregate health information.
+   */
+  async healthSnapshot(): Promise<HealthInformation> {
+    const now = Date.now();
+    const cached = HealthCheckController.cached;
+    if (cached && now - cached.producedAt < HEALTH_CACHE_TTL_MS) {
+      return cached.health;
+    }
+
     const version = packageJson.version;
     this.logger.debug({method: 'health', version});
     const health = new HealthInformation();
@@ -85,11 +132,13 @@ export class HealthCheckController {
     health.rskNode = rskNode;
     health.bridgeService = bridgeService;
 
-    this.response.contentType('application/json').status(health.up! ? 200 : 500).send(
-      health
-    );
-    
-    return this.response;
+    HealthCheckController.cached = {producedAt: now, health};
+    return health;
+  }
+
+  /** Forgets the cached result. Intended for tests. */
+  static clearCache(): void {
+    HealthCheckController.cached = undefined;
   }
 
   private async getBridgeInfo(health: HealthInformation): Promise<HealthInformationChecks> {

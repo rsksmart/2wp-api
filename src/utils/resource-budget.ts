@@ -29,6 +29,7 @@ export enum ResourceBudgetName {
   REQUEST_DURATION_MS = 'request_duration_ms',
   PROVIDER_PERMITS = 'provider_permits',
   RATE_LIMIT = 'rate_limit',
+  MONGO_DOCUMENTS = 'mongo_documents',
 }
 
 /**

@@ -59,6 +59,10 @@ export interface ResourceBudgets {
   RATE_LIMIT_MAX_FANOUT_REQUESTS: number;
   /** Hard cap on how many clients the limiter will track at once. */
   RATE_LIMIT_MAX_TRACKED_CLIENTS: number;
+  /** Hard cap on documents returned by one database read. */
+  MONGO_MAX_DOCUMENTS: number;
+  /** How long a health result may be reused, in milliseconds. */
+  HEALTH_CACHE_TTL_MS: number;
   /** Hard cap on Blockbook operations in flight across the whole process. */
   BLOCKBOOK_MAX_IN_FLIGHT: number;
   /** Hard cap on callers waiting for a Blockbook permit. */
@@ -138,6 +142,14 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   // The limiter must not become the amplifier: an attacker with many source
   // addresses would otherwise grow this map without bound.
   RATE_LIMIT_MAX_TRACKED_CLIENTS: 4096,
+  // The collections behind the public routes are small and operator-managed —
+  // there are 14 feature flags today. This is not a page size, it is a ceiling
+  // that stops an unbounded read from becoming unbounded memory if a collection
+  // ever grows unexpectedly.
+  MONGO_MAX_DOCUMENTS: 250,
+  // Short enough that a readiness signal stays current, long enough that a
+  // monitoring loop — or an attacker in one — cannot multiply upstream load.
+  HEALTH_CACHE_TTL_MS: 2_000,
   BLOCKBOOK_MAX_IN_FLIGHT: 50,
   BLOCKBOOK_QUEUE_MAX_DEPTH: 100,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS: 5_000,
@@ -261,6 +273,14 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
       env.RATE_LIMIT_MAX_TRACKED_CLIENTS,
       d.RATE_LIMIT_MAX_TRACKED_CLIENTS,
     ),
+    MONGO_MAX_DOCUMENTS: parsePositiveInt(
+      env.MONGO_MAX_DOCUMENTS,
+      d.MONGO_MAX_DOCUMENTS,
+    ),
+    HEALTH_CACHE_TTL_MS: parsePositiveInt(
+      env.HEALTH_CACHE_TTL_MS,
+      d.HEALTH_CACHE_TTL_MS,
+    ),
     BLOCKBOOK_MAX_IN_FLIGHT: parsePositiveInt(
       env.BLOCKBOOK_MAX_IN_FLIGHT,
       d.BLOCKBOOK_MAX_IN_FLIGHT,
@@ -301,6 +321,8 @@ export const {
   RATE_LIMIT_MAX_REQUESTS,
   RATE_LIMIT_MAX_FANOUT_REQUESTS,
   RATE_LIMIT_MAX_TRACKED_CLIENTS,
+  MONGO_MAX_DOCUMENTS,
+  HEALTH_CACHE_TTL_MS,
   BLOCKBOOK_MAX_IN_FLIGHT,
   BLOCKBOOK_QUEUE_MAX_DEPTH,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS,
