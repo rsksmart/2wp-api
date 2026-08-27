@@ -13,6 +13,8 @@ services:
     depends_on:
       pp-api-db:
         condition: service_healthy
+      localstack:
+        condition: service_healthy
   pp-api-db:
     image: mongo
     container_name: 'ppa-api-mongo-db'
@@ -31,6 +33,25 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+  localstack:
+    image: localstack/localstack:3
+    container_name: pp-api-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs
+      AWS_DEFAULT_REGION: us-east-1
+      DEBUG: 0
+    volumes:
+      - ./ci/localstack-init:/etc/localstack/init/ready.d
+    networks:
+      - pp-api-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
       start_period: 10s
 networks:
   pp-api-network:

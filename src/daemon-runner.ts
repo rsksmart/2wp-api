@@ -2,12 +2,14 @@ import {Application} from '@loopback/core';
 import {ServicesBindings} from './dependency-injection-bindings';
 import {DependencyInjectionHandler} from './dependency-injection-handler';
 import {DaemonService} from './services/daemon.service';
+import {assertNetworkConfigured} from './models/atlas/atlas-chain';
 
 export class DaemonRunner extends Application {
   daemonService: DaemonService;
 
   constructor() {
     super();
+    assertNetworkConfigured();
 
     DependencyInjectionHandler.configureDependencies(this);
   }

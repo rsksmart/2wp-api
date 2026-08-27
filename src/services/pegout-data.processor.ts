@@ -17,20 +17,26 @@ import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 import { sha256 } from '../utils/sha256-utils';
 import { FullRskTransaction } from '../models/rsk/full-rsk-transaction.model';
+import { AtlasEventPublisher } from './atlas/atlas-event-publisher';
+import { PegoutAtlasEventBuilder, PegoutAtlasEventContext } from './atlas/pegout-atlas-event.builder';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
   private pegoutStatusDataService: PegoutStatusDataService;
   private bridgeService: BridgeService;
+  private atlasEventPublisher: AtlasEventPublisher;
 
   constructor(
     @inject(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
     pegoutStatusDataService: PegoutStatusDataService,
     @inject(ServicesBindings.BRIDGE_SERVICE)
-    bridgeService: BridgeService) {
+    bridgeService: BridgeService,
+    @inject(ServicesBindings.ATLAS_EVENT_PUBLISHER)
+    atlasEventPublisher: AtlasEventPublisher) {
     this.logger = getLogger('pegoutDataProcessor');
     this.pegoutStatusDataService = pegoutStatusDataService;
     this.bridgeService = bridgeService;
+    this.atlasEventPublisher = atlasEventPublisher;
   }
 
   getFilters(): BridgeDataFilterModel[] {
@@ -166,6 +172,9 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
         thePegout.isNewestStatus = false;
         await this.save(thePegout);
         await this.save(newPegoutStatus);
+        await this.publishAtlasEvent(newPegoutStatus, {
+          receivedCreatedOn: await this.getReceivedCreatedOn(newPegoutStatus.originatingRskTxHash),
+        });
       } catch(e) {
         this.logger.warn({method: 'processSignedStatusByRtx', err: e}, 'There was a problem with the storage');
       }
@@ -226,6 +235,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
         const allPegouts = [oldPegoutStatus, newClonedPegoutStatus];
         await this.saveMany(allPegouts);
         this.logger.debug({method: 'processBatchPegouts', count: allPegouts.length}, 'Pegouts were updated');
+        await this.publishAtlasEvent(newClonedPegoutStatus);
       } catch(e) {
         this.logger.warn({method: 'processBatchPegouts', err: e}, 'There was a problem with the storage');
       }
@@ -332,6 +342,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     try {
       await this.save(oldPegoutStatus);
       await this.save(newPegoutStatus);
+      await this.publishAtlasEvent(newPegoutStatus);
     } catch(e) {
       this.logger.warn({method: 'processIndividualPegout', err: e}, 'There was a problem with the storage');
     }
@@ -385,6 +396,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     try {
       await this.save(status);
       this.logger.debug({method: 'processReleaseRequestReceivedStatus', txHash: extendedBridgeTx.txHash}, 'Tx registered');
+      await this.publishAtlasEvent(status);
     } catch(e) {
       this.logger.warn({method: 'processReleaseRequestReceivedStatus', err: e}, 'There was a problem with the storage');
     }
@@ -405,6 +417,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     try {
       await this.save(status);
       this.logger.debug({method: 'processReleaseRequestRejectedStatus', txHash: extendedBridgeTx.txHash}, 'Tx registered');
+      await this.publishAtlasEvent(status);
     } catch(e) {
       this.logger.warn({method: 'processReleaseRequestRejectedStatus', err: e}, 'There was a problem with the storage');
     }
@@ -429,6 +442,55 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     this.logger.info({method: 'save'}, 'Pegout saved on the storage');
     this.logPegoutData(pegout);
     return this.pegoutStatusDataService.set(pegout);
+  }
+
+  /**
+   * Publishes the Atlas SWAP event of a peg-out transition that has already
+   * been written to the database. Statuses with no equivalent in the v1.0
+   * schema (e.g. `WAITING_FOR_SIGNATURE`) publish nothing.
+   *
+   * Nothing here is allowed to fail the caller: a peg-out status is never
+   * rolled back because analytics could not be notified.
+   *
+   * @param pegout - The status just persisted.
+   * @param context - Extra data the builder cannot derive from `pegout` alone.
+   */
+  private async publishAtlasEvent(
+    pegout: PegoutStatusDbDataModel,
+    context?: PegoutAtlasEventContext,
+  ): Promise<void> {
+    try {
+      const event = PegoutAtlasEventBuilder.build(pegout, context);
+      if (!event) {
+        return;
+      }
+      await this.atlasEventPublisher.publish(event);
+    } catch (e) {
+      this.logger.error(
+        {method: 'publishAtlasEvent', err: e, originatingRskTxHash: pegout.originatingRskTxHash},
+        'Could not build or publish the Atlas event',
+      );
+    }
+  }
+
+  /**
+   * Looks up when the peg-out was first received, so `swap.completed` can carry
+   * the elapsed time of the whole peg-out rather than of its last transition.
+   *
+   * @param originatingRskTxHash - The peg-out identifier.
+   * @returns The `createdOn` of the `RECEIVED` status, or `undefined` when it cannot be found.
+   */
+  private async getReceivedCreatedOn(originatingRskTxHash: string): Promise<Date | undefined> {
+    try {
+      const statuses = await this.pegoutStatusDataService.getManyByOriginatingRskTxHash(originatingRskTxHash) ?? [];
+      return statuses.find(status => status.status === PegoutStatuses.RECEIVED)?.createdOn;
+    } catch (e) {
+      this.logger.warn(
+        {method: 'getReceivedCreatedOn', err: e, originatingRskTxHash},
+        'Could not read the RECEIVED status to compute the pegout duration',
+      );
+      return undefined;
+    }
   }
 
   private logPegoutData(pegout: PegoutStatusDbDataModel) {

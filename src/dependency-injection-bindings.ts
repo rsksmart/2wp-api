@@ -8,7 +8,8 @@ export const ConstantsBindings = {
   MONGO_DB_AUTH_SOURCE: 'constants.mongoDbAuthSource',
   INITIAL_BLOCK: 'constants.initialBlock',
   MIN_DEPTH_FOR_SYNC: 'constants.minDepthForSync',
-  SYNC_INTERVAL_TIME: 'constants.syncIntervalTime'
+  SYNC_INTERVAL_TIME: 'constants.syncIntervalTime',
+  ATLAS_EVENTS_ENABLED: 'constants.atlasEventsEnabled'
 };
 
 export const DatasourcesBindings = {
@@ -38,4 +39,5 @@ export const ServicesBindings = {
   FEATURES_SERVICE: 'services.FeaturesDataService',
   FLYOVER_SERVICE: 'services.FlyoverService',
   BACKOFFICE_FEATURE_FLAGS_SERVICE: 'services.BackofficeFeatureFlagsService',
+  ATLAS_EVENT_PUBLISHER: 'services.AtlasEventPublisher',
 };

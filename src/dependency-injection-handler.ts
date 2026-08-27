@@ -1,4 +1,4 @@
-import {Application, BindingScope} from '@loopback/core';
+import {Application, BindingScope, Constructor} from '@loopback/core';
 import {TxV2ProviderDataSource} from './datasources';
 import {MongoDbDataSource} from './datasources/mongodb.datasource';
 import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from './dependency-injection-bindings';
@@ -21,6 +21,9 @@ import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 import { PegoutDataProcessor } from './services/pegout-data.processor';
 import { FeaturesMongoDbDataService } from './services/features-mongo.service';
 import { BackofficeFeatureFlagsService } from './services/backoffice-feature-flags.service';
+import { AtlasEventPublisher, isAtlasEventsEnabled } from './services/atlas/atlas-event-publisher';
+import { SqsAtlasEventPublisher } from './services/atlas/sqs-atlas-event-publisher';
+import { NoopAtlasEventPublisher } from './services/atlas/noop-atlas-event-publisher';
 
 export class DependencyInjectionHandler {
   public static configureDependencies(app: Application): void {
@@ -64,6 +67,10 @@ export class DependencyInjectionHandler {
     app
       .bind(ConstantsBindings.SYNC_INTERVAL_TIME)
       .to(process.env.SYNC_INTERVAL_TIME || '30000');
+
+    app
+      .bind(ConstantsBindings.ATLAS_EVENTS_ENABLED)
+      .to(isAtlasEventsEnabled());
   }
 
   private static configureDatasources(app: Application): void {
@@ -158,6 +165,16 @@ export class DependencyInjectionHandler {
     app
       .bind(ServicesBindings.BACKOFFICE_FEATURE_FLAGS_SERVICE)
       .toClass(BackofficeFeatureFlagsService)
+      .inScope(BindingScope.SINGLETON);
+
+    // The kill switch decides the transport, never the callers: PegoutDataProcessor
+    // always depends on the AtlasEventPublisher interface.
+    const atlasEventPublisher: Constructor<AtlasEventPublisher> = isAtlasEventsEnabled()
+      ? SqsAtlasEventPublisher
+      : NoopAtlasEventPublisher;
+    app
+      .bind<AtlasEventPublisher>(ServicesBindings.ATLAS_EVENT_PUBLISHER)
+      .toClass(atlasEventPublisher)
       .inScope(BindingScope.SINGLETON);
   }
 }

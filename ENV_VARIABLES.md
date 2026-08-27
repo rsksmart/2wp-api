@@ -24,7 +24,7 @@ This table was created to guide and centralize the **environment variables** nec
 |FEE_PER_KB_SLOW_MIN           |100                            |'Fee per kb slow'                                        |
 |BURN_DUST_VALUE               |2000                           |'Burn dust value'                                        |
 |BTC_CONFIRMATIONS             |100                            |'testnet or mainnet'                                     |
-|NETWORK                       |`testnet or mainnet`           |'testnet or mainnet'                                     |
+|NETWORK                       |`testnet or mainnet`           |'testnet or mainnet. Required: the daemon refuses to start with any other value' |
 |BLOCKBOOK_URL                 |                               |'Blockbook url'                                          |
 |MAX_AMOUNT_ALLOWED_IN_SATOSHI |                               |'Pegin Pegout max allowed in satoshis'                   |
 |LOG_FORMAT                    |`json or pretty`               |'Log output format. Defaults to json'                    |
@@ -37,6 +37,39 @@ This table was created to guide and centralize the **environment variables** nec
 |BACKOFFICE_API_PASSWORD       |                               |'Backoffice service account password. Secret — never commit'|
 |BACKOFFICE_FLAGS_CACHE_TTL_MS |60000                          |'How long retrieved flags are cached before re-fetching'|
 |BACKOFFICE_HTTP_TIMEOUT_MS    |2000                           |'Timeout for each backoffice HTTP request'|
+|ATLAS_EVENTS_ENABLED          |`false`                        |'Kill switch for Atlas SWAP event publication. Only the literal `true` enables it'|
+|ATLAS_SQS_QUEUE_URL           |                               |'URL of the SQS FIFO queue the Atlas events are published to'|
+|AWS_REGION                    |`us-east-1`                    |'AWS region of the Atlas SQS queue'                      |
+|ATLAS_SQS_ENDPOINT            |`http://localhost:4566`        |'Custom SQS endpoint. Local development and tests only (LocalStack); leave empty in deployments'|
+
+### Atlas SWAP events
+
+While `ATLAS_EVENTS_ENABLED=true`, the daemon publishes one Atlas SWAP event per
+native peg-out transition to the SQS FIFO queue at `ATLAS_SQS_QUEUE_URL`:
+`swap.created` (RECEIVED), `swap.pending` (WAITING_FOR_CONFIRMATION),
+`swap.completed` (RELEASE_BTC) and `swap.rejected` (REJECTED).
+`WAITING_FOR_SIGNATURE` publishes nothing: it is an internal federation
+sub-state with no equivalent in the v1.0 schema.
+
+Every event carries the `originatingRskTxHash` as `swap_id`, and the queue's
+`MessageGroupId` is that same `swap_id`, so the transitions of one peg-out stay
+ordered while different peg-outs are processed in parallel. The queue must have
+content based deduplication **disabled**: `MessageDeduplicationId` is the
+`event_id`.
+
+The network travels in the chain ids (`rootstock_testnet` / `bitcoin_testnet`),
+derived from `NETWORK`. Because a wrong network would silently contaminate the
+analytics database, `NETWORK` is validated when the daemon starts and the daemon
+aborts if it is neither `mainnet` nor `testnet`.
+
+Publication happens after the status has been written to Mongo and never fails
+the caller: if SQS is unreachable the failure is logged at error level and block
+processing continues. Events lost in that window are not recovered.
+
+Credentials come from the standard AWS SDK chain (an IAM role in deployments,
+`test`/`test` against LocalStack). `docker compose up` starts a LocalStack
+container that creates the queue from `ci/localstack-init`; from inside the
+compose network the endpoint host is `localstack`, not `localhost`.
 
 ### Backoffice feature flags
 

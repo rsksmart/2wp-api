@@ -13,6 +13,8 @@ import * as constants from '../../../constants';
 import { BridgeState } from '@rsksmart/bridge-state-data-parser';
 import { ExtendedBridgeEvent } from '../../../models/types/bridge-transaction-parser';
 import { remove0x, ensure0x } from '../../../utils/hex-utils';
+import { AtlasEventPublisher } from '../../../services/atlas/atlas-event-publisher';
+import { AtlasEvent, AtlasEventType } from '../../../models/atlas/atlas-event.model';
 
 const sandbox = sinon.createSandbox();
 
@@ -39,7 +41,20 @@ const bridgeState: BridgeState = {
 const NETWORK = process.env.NETWORK;
 process.env.RSK_PEGOUT_MINIMUM_CONFIRMATIONS = '10';
 
+type StubbedAtlasEventPublisher = AtlasEventPublisher & {publish: sinon.SinonStub};
+
+const givenAtlasEventPublisher = (): StubbedAtlasEventPublisher => ({publish: sinon.stub().resolves()});
+
+let atlasEventPublisher: StubbedAtlasEventPublisher = givenAtlasEventPublisher();
+
+const publishedEvents = (publisher: StubbedAtlasEventPublisher): AtlasEvent[] =>
+  publisher.publish.getCalls().map(call => call.args[0] as AtlasEvent);
+
 describe('Service: PegoutDataProcessor', () => {
+
+  beforeEach(() => {
+    atlasEventPublisher = givenAtlasEventPublisher();
+  });
 
   afterEach(() => {
     sandbox.stub(process.env, 'NETWORK').value(NETWORK);
@@ -48,7 +63,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('returns filters', () => {
     const mockedPegoutStatusDataService = <PegoutStatusDataService>{};
     const bridgeService: BridgeService = <BridgeService> {};
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, atlasEventPublisher);
     expect(thisService.getFilters()).to.be.Array;
     expect(thisService.getFilters()).to.not.be.empty;
     expect(thisService.getFilters().length).to.equal(4);
@@ -57,7 +72,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('handles RECEIVED status', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const bridgeService: BridgeService = <BridgeService> {};
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, atlasEventPublisher);
     const rskSenderAddress = '0x40d2878B98A9C5A5b7bc3B2FC0e26dfDefCfe737';
     const btcDestinationAddress = '0x09197f6153cb3a91bb51eec373360a1cb3b7c0e0';
     const amount = 566666;
@@ -126,7 +141,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('verify method isMethodAccepted returns true for RECEIVED status', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const bridgeService: BridgeService = <BridgeService> {};
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, atlasEventPublisher);
     const rskSenderAddress = '0x40d2878B98A9C5A5b7bc3B2FC0e26dfDefCfe737';
     const btcDestinationAddress = '0x09197f6153cb3a91bb51eec373360a1cb3b7c0e0';
     const amount = 566666;
@@ -242,7 +257,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('validate accepted methods for method "" ', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const bridgeService: BridgeService = <BridgeService> {};
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, atlasEventPublisher);
     const rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
     const btcDestinationAddress = 'mreuQThm58CrYL4WCuY4SmDqiAQzWSy9GR';
     const amount = 504237;
@@ -290,7 +305,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('validate accepted methods for a valid method ', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const bridgeService: BridgeService = <BridgeService> {};
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, atlasEventPublisher);
     const rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
     const btcDestinationAddress = 'mreuQThm58CrYL4WCuY4SmDqiAQzWSy9GR';
     const amount = 504237;
@@ -339,7 +354,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('validate accepted methods for a invalid method ', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const bridgeService: BridgeService = <BridgeService> {};
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, atlasEventPublisher);
     const rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
     const btcDestinationAddress = 'mreuQThm58CrYL4WCuY4SmDqiAQzWSy9GR';
     const amount = 504237;
@@ -387,7 +402,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('handles REJECTED status', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const bridgeService: BridgeService = <BridgeService> {};
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, atlasEventPublisher);
     const rskSenderAddress = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
     const reason = '3';
 
@@ -446,7 +461,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('handles RELEASE_REQUEST_RECEIVED status, testnet', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService, atlasEventPublisher);
     const rskTxSender = '0x1234567890123456789012345678901234567890';
     const btcDestinationAddress = 'mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8';
     const amount = 500000;
@@ -497,7 +512,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('handles RELEASE_REJECTED status', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService, atlasEventPublisher);
     const rskTxHash = '0x3769e1117683faa318c683af5fb763dc03d431580ecf2ad1271ff25bf946fe9c';
     const btcTxHash = '0xfbfbc14548d7a352287b5f02199ac909d473333f7c2a072eb4dfda30f97a84e2';
     const amount = 500000;
@@ -550,7 +565,7 @@ describe('Service: PegoutDataProcessor', () => {
 
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService, atlasEventPublisher);
 
     const createdOn = new Date();
 
@@ -631,7 +646,7 @@ describe('Service: PegoutDataProcessor', () => {
 
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService, atlasEventPublisher);
 
     const createdOn = new Date();
 
@@ -749,7 +764,7 @@ describe('Service: PegoutDataProcessor', () => {
       };
 
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService, atlasEventPublisher);
     const createdOn = new Date();
     mockedBridgeService.getBridgeState.resolves(bridgeState);
     const getLastByOriginatingRskTxHash = mockedPegoutStatusDataService.getLastByOriginatingRskTxHashNewest as sinon.SinonStub;
@@ -863,7 +878,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('returns same valueInSatoshisToBeReceived when did not find pegout in pegoutsWaitingForConfirmations', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService, atlasEventPublisher);
     const mockedPegoutStatus = new PegoutStatusDbDataModel();
     mockedPegoutStatus.originatingRskTxHash = rskTxHash;
     mockedPegoutStatus.valueInSatoshisToBeReceived = 1000;
@@ -875,7 +890,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('returns same valueInSatoshisToBeReceived when found a pegout but did not find an output containing the btcRecipientAddress', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService, atlasEventPublisher);
     const mockedPegoutStatus = new PegoutStatusDbDataModel();
     mockedPegoutStatus.originatingRskTxHash = '0x5628682b56ef179e066fd12ee25a84436def371b0a11b45cf1d8308ed06f4698';
     mockedPegoutStatus.valueInSatoshisToBeReceived = 1000;
@@ -887,7 +902,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('returns calculated valueInSatoshisToBeReceived when found pegout in pegoutsWaitingForConfirmations', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService, atlasEventPublisher);
     const mockedPegoutStatus = new PegoutStatusDbDataModel();
     mockedPegoutStatus.originatingRskTxHash = '0x5628682b56ef179e066fd12ee25a84436def371b0a11b45cf1d8308ed06f4698';
     mockedPegoutStatus.btcRawTransaction = btcRawTx2;
@@ -900,7 +915,7 @@ describe('Service: PegoutDataProcessor', () => {
   it('processIndividualPegout', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService, atlasEventPublisher);
 
     const extendedBridgeTx: ExtendedBridgeTx = {
       sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
@@ -957,4 +972,247 @@ describe('Service: PegoutDataProcessor', () => {
     await thisService['processIndividualPegout'](extendedBridgeTx);
     sinon.assert.calledTwice(mockedPegoutStatusDataService.set);
   })
+
+  describe('Atlas events', () => {
+    const ATLAS_ORIGINATING_RSK_TX_HASH = '0x3ca5051117e635df4e77a66214d3a0805904c1b86357d5c43279d73f7baad8d9';
+    const ATLAS_BATCH_RSK_TX_HASH = '0x6843cfeaafe38e1044ec5638877ff766015b44887d32c7aef7daec84aa3af7c5';
+    const ATLAS_SENDER = '0x3A29282d5144cEa68cb33995Ce82212f4B21ccEc';
+
+    let network: string | undefined;
+
+    beforeEach(() => {
+      network = process.env.NETWORK;
+      process.env.NETWORK = constants.NETWORK_TESTNET;
+    });
+
+    afterEach(() => {
+      if (network === undefined) {
+        delete process.env.NETWORK;
+      } else {
+        process.env.NETWORK = network;
+      }
+    });
+
+    function givenProcessor() {
+      const pegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
+      const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
+      mockedBridgeService.getBridgeState.resolves(bridgeState);
+      const publisher = givenAtlasEventPublisher();
+      const processor = new PegoutDataProcessor(pegoutStatusDataService, mockedBridgeService, publisher);
+      // The processor reads the originating tx from an RSK node only to enrich a
+      // debug log; the unit suite must not reach the network for it.
+      sinon.stub(<any>processor, 'getTxFromRskTransaction').resolves({valueInWeis: '0'});
+      return {pegoutStatusDataService, mockedBridgeService, publisher, processor};
+    }
+
+    function givenExtendedBridgeTx(
+      txHash: string,
+      events: Array<{name: string; signature: string; arguments: any}>,
+      createdOn = new Date(),
+      methodName = '',
+    ): ExtendedBridgeTx {
+      return {
+        sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+        blockTimestamp: 1626736729000,
+        blockHash,
+        txHash,
+        createdOn,
+        blockNumber: 2869973,
+        to: bridge.address,
+        method: {name: methodName, signature: '', arguments: new Map()},
+        events,
+      };
+    }
+
+    function givenReleaseRequestReceivedTx(createdOn = new Date()): ExtendedBridgeTx {
+      return givenExtendedBridgeTx(ATLAS_ORIGINATING_RSK_TX_HASH, [{
+        name: BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED,
+        signature: '0x8e04e2f2c246a91202761c435d6a4971bdc7af0617f0c739d900ecd12a6d7266',
+        arguments: {
+          sender: ATLAS_SENDER,
+          btcDestinationAddress: '0x09197f6153cb3a91bb51eec373360a1cb3b7c0e0',
+          amount: 10000000000000000,
+        },
+      }], createdOn);
+    }
+
+    function givenReleaseRequestRejectedTx(): ExtendedBridgeTx {
+      return givenExtendedBridgeTx(ATLAS_ORIGINATING_RSK_TX_HASH, [{
+        name: BRIDGE_EVENTS.RELEASE_REQUEST_REJECTED,
+        signature: '0xb607c3e1fbe6b38cd145b15b837f7b722b199caa60e3057b36c141adee3b75e7',
+        arguments: {sender: ATLAS_SENDER, amount: 10000000000000000, reason: '1'},
+      }]);
+    }
+
+    it('publishes exactly one swap.created after saving a RECEIVED status', async () => {
+      const {pegoutStatusDataService, publisher, processor} = givenProcessor();
+
+      await processor.process(givenReleaseRequestReceivedTx());
+
+      sinon.assert.calledOnce(publisher.publish);
+      const [event] = publishedEvents(publisher);
+      expect(event.event_type).to.equal(AtlasEventType.SWAP_CREATED);
+      expect(event.swap_id).to.equal(ATLAS_ORIGINATING_RSK_TX_HASH);
+      sinon.assert.callOrder(pegoutStatusDataService.set, publisher.publish);
+    });
+
+    it('publishes exactly one swap.rejected after saving a REJECTED status', async () => {
+      const {pegoutStatusDataService, publisher, processor} = givenProcessor();
+
+      await processor.process(givenReleaseRequestRejectedTx());
+
+      sinon.assert.calledOnce(publisher.publish);
+      const [event] = publishedEvents(publisher);
+      expect(event.event_type).to.equal(AtlasEventType.SWAP_REJECTED);
+      expect(event.swap_id).to.equal(ATLAS_ORIGINATING_RSK_TX_HASH);
+      sinon.assert.callOrder(pegoutStatusDataService.set, publisher.publish);
+    });
+
+    it('publishes one swap.pending per pegout of a batch, keyed by originatingRskTxHash', async () => {
+      const {pegoutStatusDataService, publisher, processor} = givenProcessor();
+      const originatingHashes = [
+        '0xed0b3849b1087653d916f490392b7c7578c4611ef4b0ec1063d6bcd393fb6080',
+        '0x6205c184b4039891bfeea7c9f1198851dc71906afd677098618cdcb81a17b484',
+        '0xa7d55089e1339a7ca1fce6d2f8014ad9f03897982f77ca8af756c8ad25903b49',
+      ];
+
+      originatingHashes.forEach(originatingRskTxHash => {
+        const stored = new PegoutStatusDbDataModel();
+        stored.originatingRskTxHash = originatingRskTxHash;
+        stored.rskTxHash = originatingRskTxHash;
+        stored.rskSenderAddress = ATLAS_SENDER;
+        stored.btcRecipientAddress = 'mpKPLWXnmqjtXyoqi5yRBYgmF4PswMGj55';
+        stored.status = PegoutStatuses.RECEIVED;
+        stored.isNewestStatus = true;
+        stored.valueRequestedInSatoshis = 521000;
+        pegoutStatusDataService.getLastByOriginatingRskTxHashNewest
+          .withArgs(originatingRskTxHash)
+          .resolves(stored);
+      });
+
+      await processor.process(givenExtendedBridgeTx(ATLAS_BATCH_RSK_TX_HASH, [{
+        name: BRIDGE_EVENTS.BATCH_PEGOUT_CREATED,
+        signature: '0x483d0191cc4e784b04a41f6c4801a0766b43b1fdd0b9e3e6bfdca74e5b05c2eb',
+        arguments: {
+          btcTxHash: '0x14b8033bda330b5aba325040188419129c60762e852d7add97f40d14bbdc6931',
+          releaseRskTxHashes: ensure0x(originatingHashes.map(remove0x).join('')),
+        },
+      }], new Date(), BRIDGE_METHODS.UPDATE_COLLECTIONS));
+
+      const events = publishedEvents(publisher);
+      expect(events).to.have.length(3);
+      events.forEach(event => expect(event.event_type).to.equal(AtlasEventType.SWAP_PENDING));
+      const swapIds = events.map(event => event.swap_id);
+      expect(swapIds).to.eql(originatingHashes);
+      expect(new Set(swapIds).size).to.equal(3);
+      sinon.assert.callOrder(pegoutStatusDataService.set, publisher.publish);
+    });
+
+    it('publishes one swap.completed after saving a RELEASE_BTC status', async () => {
+      const {pegoutStatusDataService, publisher, processor} = givenProcessor();
+      const receivedCreatedOn = new Date('2024-05-01T10:00:00.000Z');
+      const releasedOn = new Date(receivedCreatedOn.getTime() + 184000);
+      const batchPegoutRskTxHash = 'testhash';
+
+      const dbPegoutWaitingForSignature = new PegoutStatusDbDataModel();
+      dbPegoutWaitingForSignature.rskTxHash = '0x7bdcfca72ea7103a804f9f9013bfb205c8c61fe9deb903a9923e03b80a16bfd2';
+      dbPegoutWaitingForSignature.btcRecipientAddress = 'mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8';
+      dbPegoutWaitingForSignature.createdOn = receivedCreatedOn;
+      dbPegoutWaitingForSignature.originatingRskTxHash = ATLAS_ORIGINATING_RSK_TX_HASH;
+      dbPegoutWaitingForSignature.rskSenderAddress = ATLAS_SENDER;
+      dbPegoutWaitingForSignature.status = PegoutStatuses.WAITING_FOR_SIGNATURE;
+      dbPegoutWaitingForSignature.btcRawTransaction = btcRawTx1;
+      dbPegoutWaitingForSignature.valueRequestedInSatoshis = 400000;
+      dbPegoutWaitingForSignature.batchPegoutRskTxHash = batchPegoutRskTxHash;
+
+      const dbPegoutReceived = new PegoutStatusDbDataModel();
+      dbPegoutReceived.originatingRskTxHash = ATLAS_ORIGINATING_RSK_TX_HASH;
+      dbPegoutReceived.status = PegoutStatuses.RECEIVED;
+      dbPegoutReceived.createdOn = receivedCreatedOn;
+
+      pegoutStatusDataService.getPegoutByRecipientAndCreationTx
+        .withArgs(dbPegoutWaitingForSignature.btcRecipientAddress, batchPegoutRskTxHash)
+        .resolves([dbPegoutWaitingForSignature]);
+      pegoutStatusDataService.getManyByOriginatingRskTxHash
+        .withArgs(ATLAS_ORIGINATING_RSK_TX_HASH)
+        .resolves([dbPegoutReceived, dbPegoutWaitingForSignature]);
+
+      await processor.process(givenExtendedBridgeTx(
+        dbPegoutWaitingForSignature.rskTxHash,
+        [{
+          name: BRIDGE_EVENTS.RELEASE_BTC,
+          signature: '0x655929b56d5c5a24f81ee80267d5151b9d680e7e703387999922e9070bc98a02',
+          arguments: {btcRawTransaction: btcRawTx3, releaseRskTxHash: batchPegoutRskTxHash},
+        }],
+        releasedOn,
+        BRIDGE_METHODS.ADD_SIGNATURE,
+      ));
+
+      sinon.assert.calledOnce(publisher.publish);
+      const [event] = publishedEvents(publisher);
+      expect(event.event_type).to.equal(AtlasEventType.SWAP_COMPLETED);
+      expect(event.swap_id).to.equal(ATLAS_ORIGINATING_RSK_TX_HASH);
+      expect(event.emitted_at).to.equal(releasedOn.toISOString());
+      expect((<any>event.data).duration_ms).to.equal(184000);
+      expect((<any>event.data).output_amount).to.equal('0.00393100');
+      expect((<any>event.data).fee).to.equal('0.00006900');
+      sinon.assert.callOrder(pegoutStatusDataService.set, publisher.publish);
+    });
+
+    it('publishes nothing for a pegout_confirmed transition', async () => {
+      const {pegoutStatusDataService, publisher, processor} = givenProcessor();
+
+      const dbPegoutWaitingForConfirmation = new PegoutStatusDbDataModel();
+      dbPegoutWaitingForConfirmation.originatingRskTxHash = ATLAS_ORIGINATING_RSK_TX_HASH;
+      dbPegoutWaitingForConfirmation.rskTxHash = ATLAS_ORIGINATING_RSK_TX_HASH;
+      dbPegoutWaitingForConfirmation.status = PegoutStatuses.WAITING_FOR_CONFIRMATION;
+      dbPegoutWaitingForConfirmation.createdOn = new Date();
+      pegoutStatusDataService.getManyWaitingForConfirmationNewestCreatedOnBlock
+        .resolves([dbPegoutWaitingForConfirmation]);
+
+      const pegoutConfirmedEventArgs = new Map();
+      pegoutConfirmedEventArgs.set('btcTxHash', '');
+      pegoutConfirmedEventArgs.set('pegoutCreationRskBlockNumber', 2869973);
+
+      await processor.process(givenExtendedBridgeTx(ATLAS_ORIGINATING_RSK_TX_HASH, [{
+        name: BRIDGE_EVENTS.PEGOUT_CONFIRMED,
+        signature: '',
+        arguments: pegoutConfirmedEventArgs,
+      }]));
+
+      sinon.assert.calledTwice(pegoutStatusDataService.set);
+      sinon.assert.notCalled(publisher.publish);
+    });
+
+    it('does not publish when the status could not be saved', async () => {
+      const {pegoutStatusDataService, publisher, processor} = givenProcessor();
+      pegoutStatusDataService.set.rejects(new Error('mongo is down'));
+
+      await processor.process(givenReleaseRequestReceivedTx());
+
+      sinon.assert.called(pegoutStatusDataService.set);
+      sinon.assert.notCalled(publisher.publish);
+    });
+
+    it('keeps the status persisted when publishing fails', async () => {
+      const {pegoutStatusDataService, publisher, processor} = givenProcessor();
+      publisher.publish.rejects(new Error('sqs is down'));
+
+      await processor.process(givenReleaseRequestReceivedTx());
+
+      sinon.assert.calledOnce(pegoutStatusDataService.set);
+      sinon.assert.calledOnce(publisher.publish);
+    });
+
+    it('does not publish when NETWORK is not configured', async () => {
+      delete process.env.NETWORK;
+      const {pegoutStatusDataService, publisher, processor} = givenProcessor();
+
+      await processor.process(givenReleaseRequestReceivedTx());
+
+      sinon.assert.calledOnce(pegoutStatusDataService.set);
+      sinon.assert.notCalled(publisher.publish);
+    });
+  });
+
 });
