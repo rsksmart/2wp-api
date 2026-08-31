@@ -1,3 +1,4 @@
+import {PassThrough} from 'stream';
 import {expect} from '@loopback/testlab';
 import nock from 'nock';
 import {
@@ -180,6 +181,69 @@ describe('Utils: bounded HTTP client', () => {
       await expect(call({timeoutMs: 50})).to.be.rejectedWith(
         ProviderTimeoutError,
       );
+    });
+
+    // The three below cover the deadline firing *after* the response has begun,
+    // which the two above do not: `delay()` withholds the whole reply, so the
+    // client is still waiting for a first byte when the timer fires.
+    //
+    // A review raised the mid-stream case as a suspected misclassification:
+    // `request.destroy(new ProviderTimeoutError(...))` tears down a socket that
+    // is already delivering a response, and if the response's `aborted` event
+    // reached `finish()` before the request's `error` event, first-write-wins
+    // would keep a ProviderNetworkError and drop the timeout — which changes the
+    // client's status from 504 to 502 and loses the PROVIDER_TIMEOUT_MS budget
+    // record.
+    //
+    // It does not happen on the runtime this was measured on: destroying a
+    // request emits its own `error` first, and `aborted`/`error` on the response
+    // arrive afterwards, so the typed reason wins. These assertions are what
+    // keeps that true. The ordering is an internal detail of the runtime, not a
+    // documented guarantee, so a runtime upgrade is exactly when it could change
+    // — and then these go red instead of a 504 quietly becoming a 502.
+    // Only a stream that has actually emitted a byte reaches the state this is
+    // about. `delayBody` withholds the whole response object, and an unwritten
+    // stream never makes nock send the head — both leave the client waiting for
+    // a first byte, which is the case the two tests above already cover. Both
+    // were tried here and removed rather than kept under a name they did not
+    // earn: a mutation that makes the response win the race left them green.
+    it('classifies a deadline that fires mid-body as a timeout', async () => {
+      // Bytes actually delivered, then silence — the shape a provider that dies
+      // half-way through a large page produces.
+      const stalled = new PassThrough();
+      stalled.write('[1');
+
+      nock(HOST)
+        .get(PATH)
+        .reply(200, () => stalled, {'content-type': 'application/json'});
+
+      await expect(call({timeoutMs: 50})).to.be.rejectedWith(
+        ProviderTimeoutError,
+      );
+
+      stalled.destroy();
+    });
+
+    it('records a mid-stream timeout as a budget signal, not a network failure', async () => {
+      // The observable the review was actually worried about: a timeout
+      // misclassified as a network error still retries the same way, so the only
+      // thing lost is the record that a budget was breached.
+      const stalled = new PassThrough();
+      stalled.write('[1');
+
+      nock(HOST)
+        .get(PATH)
+        .reply(200, () => stalled, {'content-type': 'application/json'});
+
+      await expect(call({timeoutMs: 50})).to.be.rejected();
+
+      expect(
+        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+          resource: ResourceBudgetName.PROVIDER_TIMEOUT_MS,
+        }),
+      ).to.equal(1);
+
+      stalled.destroy();
     });
 
     it('records the timeout as a structured budget signal', async () => {

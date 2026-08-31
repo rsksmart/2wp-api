@@ -3,13 +3,35 @@ import {BridgeService} from '../../services';
 import BridgeTransactionParser from '@rsksmart/bridge-transaction-parser';
 import { ethers } from 'ethers';
 import * as constants from '../../constants';
+import {
+  installRskRpcMock,
+  restoreRskRpcMock,
+} from '../fixtures/rsk-rpc.mock';
 
 const rskTxHash = '0xd2852f38fedf1915978715b8a0dc0670040ac4e9065989c810a5bf29c1e006fb';
 const btcValidTxHash = '7006c53b81e644367bf736e07456af8a1ce487174fc6b5e398f6fa7b8d069daa';
 const btcInvalidTxHash = '1234c53b81e644367bf736e07456af8a1ce487174fc6b5e398f6fa7b8d069daa';
 
 describe('Service: Bridge', () => {
-  const bridgeService = new BridgeService();
+  // Recorded RSK responses, replayed. These were live calls, which made the
+  // suite fail on a VPN blip or a busy public node with nothing wrong in the
+  // code. The fixtures are real captures, so the assertions still check against
+  // genuine Bridge data.
+  before(() => {
+    installRskRpcMock();
+  });
+
+  after(() => {
+    restoreRskRpcMock();
+  });
+
+  // Constructed inside the suite: the service reads the node host at
+  // construction, and the mock pins it.
+  let bridgeService: BridgeService;
+
+  beforeEach(() => {
+    bridgeService = new BridgeService();
+  });
 
   it('should return a valid BTC segwit or legacy federation address', async () => {
     const legacyRegex = new RegExp('^[mn][1-9A-HJ-NP-Za-km-z]{26,35}');

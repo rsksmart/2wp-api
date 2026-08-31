@@ -30,6 +30,37 @@ describe('Rate limiting (Acceptance)', () => {
     // Process-wide singleton: the original has to go back on it in `after`.
     utxoProviderService = await app.get(ServicesBindings.UTXO_PROVIDER_SERVICE);
     originalUtxoProvider = utxoProviderService.utxoProvider;
+
+    // `/addresses-info` and `/health` reach Blockbook through BitcoinService.
+    // The subject here is how requests are *counted*, which no provider needs to
+    // participate in — and leaving them live made the burst 18 real round trips,
+    // so an unreachable provider timed the suite out rather than telling us
+    // anything about rate limiting.
+    app.getBinding(ServicesBindings.BITCOIN_SERVICE).to({
+      getAddressInfo: async (address: string) => ({
+        address,
+        balance: '0',
+        totalReceived: '0',
+        totalSent: '0',
+        unconfirmedBalance: '0',
+        unconfirmedTxs: '0',
+        txs: 0,
+        txids: [],
+        page: 1,
+        totalPages: 1,
+        itemsOnPage: 0,
+      }),
+      getLastBlock: async () => ({
+        bestBlockHash: 'h',
+        bestHeight: 1,
+        blocks: 1,
+        chain: 'test',
+        coin: 'Testnet',
+        inSync: true,
+        initialSync: false,
+        syncMode: true,
+      }),
+    } as never);
   });
 
   after(async () => {

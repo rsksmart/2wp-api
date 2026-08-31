@@ -3,10 +3,23 @@ import { BridgeEvent } from '@rsksmart/bridge-transaction-parser';
 import {RskBlock} from '../../../models/rsk/rsk-block.model';
 import {RskNodeService} from '../../../services/rsk-node.service';
 import { BRIDGE_EVENTS } from '../../../utils/bridge-utils';
+import {
+  installRskRpcMock,
+  restoreRskRpcMock,
+} from '../../fixtures/rsk-rpc.mock';
 
 const getInitialBlock = () => new RskBlock(2863627, '0xba5e', '0x');
 
 describe('Service: RskNodeService', () => {
+    // Recorded RSK responses, replayed — see rsk-rpc.mock.ts for why.
+    before(() => {
+        installRskRpcMock();
+    });
+
+    after(() => {
+        restoreRskRpcMock();
+    });
+
     it('Searches the block using initial block conf', async () => {
         const thisService = new RskNodeService();
         const block = await thisService.getBlock(getInitialBlock().height);
