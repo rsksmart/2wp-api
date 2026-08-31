@@ -1,4 +1,5 @@
 import {expect} from '@loopback/testlab';
+import {HttpErrors, MiddlewareContext, RestBindings} from '@loopback/rest';
 import sinon from 'sinon';
 import {
   RATE_LIMIT_MAX_TRACKED_CLIENTS,
@@ -6,6 +7,8 @@ import {
 } from '../../../config/resource-budgets';
 import {
   RATE_LIMIT_REJECTED_METRIC,
+  RATE_LIMITER_KEY,
+  rateLimitMiddleware,
   RateLimitedError,
   RateLimiter,
   resolveClientKey,
@@ -239,6 +242,123 @@ describe('Middleware: rate limiting', () => {
 
     it('tolerates a missing socket address', () => {
       expect(resolveClientKey(undefined, undefined, new Set())).to.be.a.String();
+    });
+  });
+
+  describe('the route class comes from the router, not the request path', () => {
+    // The router accepts several spellings of one route — `/utxo` and `/utxo/`
+    // both reach the controller — so a classifier keyed on the text the client
+    // sent puts the same expensive route in two different buckets. Asking the
+    // component that actually routes removes the whole family of variants
+    // instead of the ones someone thought to enumerate.
+
+    /** A router that resolves everything to one template, like the real one does. */
+    const routerResolving = (template: string) => ({
+      find: () => ({path: template}),
+    });
+
+    /** A router that refuses, the way `RoutingTable.find` does: by throwing. */
+    const routerRefusing = () => ({
+      find: () => {
+        throw new HttpErrors.NotFound('Endpoint "POST /nope" not found.');
+      },
+    });
+
+    const givenContext = (
+      path: string,
+      limiter: RateLimiter,
+      router?: unknown,
+    ) =>
+      ({
+        request: {
+          path,
+          method: 'POST',
+          socket: {remoteAddress: '1.1.1.1'},
+          headers: {},
+        },
+        get: async (key: unknown) => {
+          const address = String(key);
+          if (address === RATE_LIMITER_KEY) return limiter;
+          if (address === String(RestBindings.ROUTER)) return router;
+          return undefined;
+        },
+      }) as unknown as MiddlewareContext;
+
+    const callTimes = async (
+      times: number,
+      path: string,
+      limiter: RateLimiter,
+      router?: unknown,
+    ) => {
+      const next = sinon.stub().resolves();
+      for (let i = 0; i < times; i += 1) {
+        await rateLimitMiddleware(givenContext(path, limiter, router), next);
+      }
+      return next;
+    };
+
+    it('counts a trailing-slash spelling against the fan-out allowance', async () => {
+      const limiter = givenLimiter();
+
+      await callTimes(2, '/utxo/', limiter, routerResolving('/utxo'));
+
+      // The third would be the fourth of the cheap allowance, so a classifier
+      // reading the raw path would still be admitting it here.
+      await expect(
+        rateLimitMiddleware(
+          givenContext('/utxo/', limiter, routerResolving('/utxo')),
+          sinon.stub().resolves(),
+        ),
+      ).to.be.rejectedWith(RateLimitedError);
+    });
+
+    it('keeps the health exemption for a spelling the router normalizes', async () => {
+      const limiter = givenLimiter();
+
+      const next = await callTimes(
+        10,
+        '/health/',
+        limiter,
+        routerResolving('/health'),
+      );
+
+      // Ten calls is well past both allowances: an exempt route is not counted
+      // at all, so it cannot be spent.
+      expect(next.callCount).to.equal(10);
+    });
+
+    it('treats an unroutable request as an ordinary route', async () => {
+      const limiter = givenLimiter();
+      const router = routerRefusing();
+
+      // A refusing router must not become an error path of its own: the request
+      // is simply not a fan-out request, and the 404 is the router's business.
+      const next = await callTimes(3, '/utxo/not-a-route', limiter, router);
+
+      expect(next.callCount).to.equal(3);
+      await expect(
+        rateLimitMiddleware(
+          givenContext('/utxo/not-a-route', limiter, router),
+          sinon.stub().resolves(),
+        ),
+      ).to.be.rejectedWith(RateLimitedError);
+    });
+
+    it('falls back to the request path when no router is reachable', async () => {
+      const limiter = givenLimiter();
+
+      // Documented degradation: with no router bound the classifier is exactly
+      // as good as it was before — never worse. Making the fallback "ordinary
+      // route" instead would turn a missing binding into a silent six-fold
+      // widening of the fan-out allowance.
+      await callTimes(2, '/utxo', limiter);
+
+      await expect(
+        rateLimitMiddleware(
+          givenContext('/utxo', limiter, undefined),
+          sinon.stub().resolves(),
+        ),
+      ).to.be.rejectedWith(RateLimitedError);
     });
   });
 });

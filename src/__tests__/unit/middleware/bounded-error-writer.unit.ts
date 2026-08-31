@@ -336,6 +336,78 @@ describe('Middleware: writing to a finished response', () => {
       expect(body.error.statusCode).to.equal(503);
     });
 
+    // The code tells a machine which 503 this is; the message is what a person
+    // reads at 3am. These pin the *pair* for every self-describing refusal, so a
+    // code cannot drift away from the sentence that justifies it.
+    it('pairs an overload refusal with a message about capacity', () => {
+      const body = buildBoundedErrorBody(
+        {code: 'SERVICE_OVERLOADED', statusCode: 503},
+        503,
+      );
+
+      expect(body.error.code).to.equal('SERVICE_OVERLOADED');
+      // The pool refuses immediately and spends no part of the time budget, so
+      // the deadline message is not merely vague here, it is false.
+      expect(body.error.message).to.equal(
+        'Service is at capacity. Retry after the interval given.',
+      );
+      expect(body.error.message).to.not.match(/time budget/);
+    });
+
+    it('pairs a deadline refusal with a message about the time budget', () => {
+      // Same status, no code of its own: this is the 503 the status message was
+      // written for, and it keeps it.
+      const body = buildBoundedErrorBody({statusCode: 503}, 503);
+
+      expect(body.error.code).to.equal('HTTP_503');
+      expect(body.error.message).to.equal('Request exceeded its time budget.');
+    });
+
+    it('pairs a rate-limit refusal with its own message', () => {
+      const body = buildBoundedErrorBody(
+        {code: 'RATE_LIMITED', statusCode: 429},
+        429,
+      );
+
+      expect(body.error.code).to.equal('RATE_LIMITED');
+      expect(body.error.message).to.equal('Too many requests.');
+    });
+
+    it('still answers an uncoded 429 accurately', () => {
+      // The status fallback has to stand on its own: the mutation that deletes
+      // it survived every other assertion here, because the coded refusal reads
+      // its message from the table and never touches the switch.
+      const body = buildBoundedErrorBody({statusCode: 429}, 429);
+
+      expect(body.error.code).to.equal('HTTP_429');
+      expect(body.error.message).to.equal('Too many requests.');
+    });
+
+    it('gives the two 503s different messages', () => {
+      // The property, stated without naming the strings: whatever they say, a
+      // client has to be able to tell the two conditions apart from the body
+      // alone. This is the assertion that survives a rewording.
+      const overloaded = buildBoundedErrorBody(
+        {code: 'SERVICE_OVERLOADED', statusCode: 503},
+        503,
+      );
+      const deadline = buildBoundedErrorBody({statusCode: 503}, 503);
+
+      expect(overloaded.error.message).to.not.equal(deadline.error.message);
+    });
+
+    it('does not let an unrecognized code choose the message', () => {
+      // The message table is keyed by code, so it has to be as closed as the
+      // code allowlist — a near-miss must select nothing.
+      const body = buildBoundedErrorBody(
+        {code: 'SERVICE_OVERLOADED_BUT_NOT_REALLY', statusCode: 503},
+        503,
+      );
+
+      expect(body.error.code).to.equal('HTTP_503');
+      expect(body.error.message).to.equal('Request exceeded its time budget.');
+    });
+
     it('still reports an unlabelled 503 generically', () => {
       const body = buildBoundedErrorBody({statusCode: 503}, 503);
 

@@ -1,7 +1,12 @@
 /* eslint-disable max-classes-per-file -- the limiter and the refusal it raises
    are one concept: the control and the way it says no. */
 import {Next} from '@loopback/core';
-import {Middleware, MiddlewareContext} from '@loopback/rest';
+import {
+  Middleware,
+  MiddlewareContext,
+  RestBindings,
+  RestRouter,
+} from '@loopback/rest';
 import {
   RATE_LIMIT_MAX_FANOUT_REQUESTS,
   RATE_LIMIT_MAX_REQUESTS,
@@ -28,8 +33,14 @@ export const RATE_LIMIT_REJECTED_METRIC = 'rate_limit_rejected_total';
  */
 export type RateLimitRouteClass = 'fanout' | 'other';
 
-/** The expensive POSTs: each fans out to many provider calls. */
-const FANOUT_PATHS: ReadonlySet<string> = new Set(['/utxo', '/addresses-info']);
+/**
+ * The expensive POSTs: each fans out to many provider calls.
+ *
+ * These are route *templates*, matched against what the router resolved — not
+ * against the text a client sent. `/utxo` and `/utxo/` are the same route to the
+ * router, so they have to be the same route to the limiter.
+ */
+const FANOUT_ROUTES: ReadonlySet<string> = new Set(['/utxo', '/addresses-info']);
 
 /**
  * Paths the limiter does not count.
@@ -38,7 +49,7 @@ const FANOUT_PATHS: ReadonlySet<string> = new Set(['/utxo', '/addresses-info']);
  * public traffic would mean an attacker could blind the operators by tripping
  * it. Its cost is bounded by its own budgets, not by this one.
  */
-const EXEMPT_PATHS: ReadonlySet<string> = new Set(['/health']);
+const EXEMPT_ROUTES: ReadonlySet<string> = new Set(['/health']);
 
 /** Addresses are the map keys, so the shape is constrained deliberately. */
 const ADDRESS_TOKEN = /^[0-9a-fA-F:.]{3,45}$/;
@@ -182,14 +193,15 @@ export class RateLimiter {
    * Counts a request and refuses it if the client is over its allowance.
    *
    * @param clientKey - Identity from {@link resolveClientKey}.
-   * @param path - Request path, used only to pick the route class.
+   * @param route - The resolved route template, used only to pick the route
+   *   class. Not the raw request path: see {@link FANOUT_ROUTES}.
    * @throws {RateLimitedError} When the client is over its allowance.
    */
-  check(clientKey: string, path: string): void {
-    if (EXEMPT_PATHS.has(path)) {
+  check(clientKey: string, route: string): void {
+    if (EXEMPT_ROUTES.has(route)) {
       return;
     }
-    const routeClass: RateLimitRouteClass = FANOUT_PATHS.has(path)
+    const routeClass: RateLimitRouteClass = FANOUT_ROUTES.has(route)
       ? 'fanout'
       : 'other';
     const limit =
@@ -307,6 +319,41 @@ const sweeper = setInterval(
 sweeper.unref();
 
 /**
+ * The route a request resolves to, as a template, or `undefined` when it does
+ * not resolve to one.
+ *
+ * Asking the router instead of reading `request.path` is what makes the
+ * classification immune to spelling. The router accepts `/utxo` and `/utxo/` for
+ * the same route, so anything keyed on the text the client sent files one
+ * expensive route under two allowances — and the cheap one is six times wider.
+ * Enumerating variants only covers the ones somebody thought of; asking the
+ * component that routes covers the ones nobody did.
+ *
+ * The two router shapes disagree about how to say "no route": `RestRouter.find`
+ * answers `undefined`, `RoutingTable.find` throws `NotFound`. Both collapse to
+ * `undefined` here — an unroutable request is simply not a fan-out request, and
+ * the 404 is the router's business, not this middleware's.
+ *
+ * @param ctx - The middleware context for this request.
+ * @returns The route template, or `undefined` if the request resolves to no route.
+ */
+async function resolveRouteTemplate(
+  ctx: MiddlewareContext,
+): Promise<string | undefined> {
+  const router = await ctx.get<RestRouter>(RestBindings.ROUTER, {
+    optional: true,
+  });
+  if (!router) {
+    return undefined;
+  }
+  try {
+    return router.find(ctx.request)?.path;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Refuses requests from a client that is over its allowance.
  *
  * Registered as the cheapest possible refusal: one header read and a map lookup,
@@ -327,6 +374,11 @@ export const rateLimitMiddleware: Middleware = async (
     request.headers['x-forwarded-for'] as string | undefined,
     trustedProxies,
   );
-  limiter.check(clientKey, request.path);
+  // Falling back to the raw path leaves this no worse than classifying on the
+  // path alone, which is what it did before. Falling back to "ordinary route"
+  // instead would turn a missing router binding into a silent six-fold widening
+  // of the fan-out allowance — a weakening with no symptom.
+  const route = (await resolveRouteTemplate(ctx)) ?? request.path;
+  limiter.check(clientKey, route);
   return next();
 };

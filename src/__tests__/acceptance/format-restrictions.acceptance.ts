@@ -390,3 +390,122 @@ describe('Format restrictions (Acceptance)', () => {
     });
   });
 });
+
+/**
+ * SECURITY-CRITICAL — the same control as the encoding matrix above, asserted
+ * against the one configuration that used to switch it off.
+ *
+ * `withResourceBudgets` (`src/application.ts`) used to return the caller's
+ * options untouched whenever they carried any `requestBodyParser` of their own,
+ * which silently dropped `inflate: false` along with the body limit and the
+ * bounded Ajv hooks. Nothing supplied that config, so nothing exercised the
+ * branch: the suite was green with the Brotli decoder one line away from being
+ * reachable again from an unauthenticated route.
+ *
+ * So this suite boots the app the way that one-line change would have — a caller
+ * asking for `inflate: true` outright — and asserts the refusal holds anyway.
+ *
+ * The payloads are ordinary compressed bodies, not the crafted block-switch
+ * vector from the report, for the reason given above the encoding matrix: that
+ * vector faults natively, so it would take the test runner down instead of
+ * failing an assertion. The garbage-Brotli case below is the one that matters
+ * for reachability — it is the body that a live decoder would try to decode and
+ * fail on, so a status other than 415 means a decoder was constructed.
+ */
+describe('Format restrictions: caller-supplied body-parser config (Acceptance)', () => {
+  let app: TwpapiApplication;
+  let baseUrl: string;
+  let utxoProviderService: UtxoProvider;
+  let originalUtxoProvider: UtxoProvider['utxoProvider'];
+  let utxoStub: sinon.SinonStub;
+
+  before('setupApplication', async () => {
+    // The adversarial caller: explicitly asking for request decompression.
+    app = new TwpapiApplication({
+      rest: {
+        port: 0,
+        host: '127.0.0.1',
+        requestBodyParser: {json: {inflate: true}},
+      },
+    });
+    bindPermissiveRateLimiter(app);
+    await app.boot();
+    await app.start();
+    baseUrl = app.restServer.url!;
+    utxoProviderService = await app.get(ServicesBindings.UTXO_PROVIDER_SERVICE);
+    originalUtxoProvider = utxoProviderService.utxoProvider;
+  });
+
+  beforeEach(() => {
+    utxoStub = sinon.stub().resolves([]);
+    utxoProviderService.utxoProvider = utxoStub;
+  });
+
+  after(async () => {
+    utxoProviderService.utxoProvider = originalUtxoProvider;
+    await app.stop();
+  });
+
+  const encodings: [string, () => Buffer][] = [
+    ['gzip', () => zlib.gzipSync(VALID_BODY)],
+    ['deflate', () => zlib.deflateSync(VALID_BODY)],
+    ['br', () => zlib.brotliCompressSync(VALID_BODY)],
+  ];
+
+  encodings.forEach(([encoding, payload]) => {
+    it(`still refuses Content-Encoding: ${encoding} with a bounded 415`, async () => {
+      const res = await postRaw(
+        baseUrl,
+        '/utxo',
+        {'content-type': 'application/json', 'content-encoding': encoding},
+        payload(),
+      );
+
+      expect(res.statusCode).to.equal(415);
+      expect(res.contentType).to.equal('application/json');
+      sinon.assert.notCalled(utxoStub);
+    });
+  });
+
+  it('refuses a body that is not valid Brotli, without constructing a decoder', async () => {
+    // A live decoder would fail on these bytes and surface that failure as some
+    // other status. 415 means the request was refused on the header alone, 23
+    // lines before body-parser would have called zlib.createBrotliDecompress().
+    const res = await postRaw(
+      baseUrl,
+      '/utxo',
+      {'content-type': 'application/json', 'content-encoding': 'br'},
+      Buffer.from('not brotli at all'),
+    );
+
+    expect(res.statusCode).to.equal(415);
+    sinon.assert.notCalled(utxoStub);
+  });
+
+  it('still serves an uncompressed request normally', async () => {
+    const res = await postRaw(
+      baseUrl,
+      '/utxo',
+      {'content-type': 'application/json'},
+      VALID_BODY,
+    );
+
+    expect(res.statusCode).to.equal(200);
+  });
+
+  it('still bounds the request body end to end', async () => {
+    // Note which control answers here: `requestBodyBudgetMiddleware` refuses on
+    // the declared Content-Length before the parsers see anything, so this stays
+    // green even with the parser limit dropped. It pins the boundary, not the
+    // parser's own limit — that one is pinned by the unit suite.
+    const res = await postRaw(
+      baseUrl,
+      '/utxo',
+      {'content-type': 'application/json'},
+      Buffer.alloc(MAX_REQUEST_BODY_BYTES + 1, 0x20),
+    );
+
+    expect(res.statusCode).to.equal(413);
+    sinon.assert.notCalled(utxoStub);
+  });
+});

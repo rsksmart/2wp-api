@@ -18,14 +18,35 @@ const logger = getLogger('error-writer');
 export const VALIDATION_ERROR_CODE = 'VALIDATION_ERROR';
 
 /**
+ * The message a self-describing code publishes, beyond what its status says.
+ *
+ * Keyed by code, because the codes are precisely what separates conditions that
+ * share a status: two different 503s exist, and a client reading only the status
+ * cannot tell "the pool is full, come back shortly" from "you outlived your own
+ * deadline". Keeping the sentence beside the code that justifies it also makes
+ * the next such condition one entry here, instead of two switches that have to
+ * be remembered together.
+ */
+const MESSAGE_BY_CODE: ReadonlyMap<string, string> = new Map([
+  [
+    'SERVICE_OVERLOADED',
+    'Service is at capacity. Retry after the interval given.',
+  ],
+  ['RATE_LIMITED', 'Too many requests.'],
+]);
+
+/**
  * Codes an error may publish for itself, beyond the generic `HTTP_<status>`.
  *
- * A closed set on purpose: the code is part of the public contract, so it must
- * not become a passthrough for whatever string an upstream error object carries.
- * These exist because a status alone is ambiguous — two different conditions
- * both answer 503, and only one of them is worth retrying.
+ * Derived from {@link MESSAGE_BY_CODE} rather than listed a second time: a code
+ * is self-describing exactly when it has something of its own to say, so the two
+ * cannot drift apart. Still a closed set — the code is part of the public
+ * contract, so it must not become a passthrough for whatever string an upstream
+ * error object carries.
  */
-const SELF_DESCRIBING_CODES = new Set(['SERVICE_OVERLOADED', 'RATE_LIMITED']);
+const SELF_DESCRIBING_CODES: ReadonlySet<string> = new Set(
+  MESSAGE_BY_CODE.keys(),
+);
 
 /** Message returned when nothing more specific can be said safely. */
 export const GENERIC_ERROR_MESSAGE = 'Request could not be processed.';
@@ -131,10 +152,29 @@ const SAFE_POINTER = /^\/[A-Za-z0-9_\-/.[\]]*$/;
 /** Ajv keywords are short identifiers; treat anything else as untrusted. */
 const SAFE_KEYWORD = /^[A-Za-z][A-Za-z0-9_]{0,31}$/;
 
-/** Fixed, payload-free message per status class. */
-const messageFor = (statusCode: number, isValidation: boolean): string => {
+/**
+ * Fixed, payload-free message for a refusal.
+ *
+ * A declared code wins over the status: a status can cover two conditions, a
+ * code cannot. Everything else falls back to the status, which is what an error
+ * with no code of its own gets.
+ *
+ * @param statusCode - The already-resolved HTTP status.
+ * @param isValidation - Whether this is a request-validation failure.
+ * @param declaredCode - The already-allowlisted self-describing code, if any.
+ * @returns The message to publish.
+ */
+const messageFor = (
+  statusCode: number,
+  isValidation: boolean,
+  declaredCode?: string,
+): string => {
   if (isValidation) {
     return VALIDATION_ERROR_MESSAGE;
+  }
+  const byCode = declaredCode ? MESSAGE_BY_CODE.get(declaredCode) : undefined;
+  if (byCode) {
+    return byCode;
   }
   switch (statusCode) {
     case 404:
@@ -144,12 +184,18 @@ const messageFor = (statusCode: number, isValidation: boolean): string => {
     case 415:
       return 'Unsupported media type.';
     case 429:
+      // A coded refusal reads this from the table; this is for a 429 raised
+      // without one, which still has to say something accurate.
       return 'Too many requests.';
     case 499:
       return 'Client closed the request.';
     case 502:
       return 'Upstream provider request failed.';
     case 503:
+      // The 503 with no code of its own: a request that outlived the deadline.
+      // The other one — a full provider pool — is refused instantly and spends
+      // none of that budget, so it carries `SERVICE_OVERLOADED` and takes its
+      // message from the table above.
       return 'Request exceeded its time budget.';
     case 504:
       return 'Upstream provider request timed out.';
@@ -226,7 +272,7 @@ export function buildBoundedErrorBody(
       code: validation
         ? VALIDATION_ERROR_CODE
         : (declared ?? `HTTP_${statusCode}`),
-      message: messageFor(statusCode, validation),
+      message: messageFor(statusCode, validation, declared),
     },
   };
 

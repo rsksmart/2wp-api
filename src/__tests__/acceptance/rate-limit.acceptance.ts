@@ -139,4 +139,36 @@ describe('Rate limiting (Acceptance)', () => {
     // Tripping this would blind the operators rather than protect anything.
     expect(health.status).to.not.equal(429);
   }).timeout(60000);
+
+  // The router accepts more than one spelling of the same route, so the limiter
+  // has to count every spelling in the same bucket. Classifying on the text the
+  // client sent rather than the route it resolved to made `/utxo/` cost 90 per
+  // window instead of 15 — six times the fan-out allowance, from one character.
+  const fanoutSpellings = ['/utxo', '/utxo/', '/addresses-info', '/addresses-info/'];
+
+  fanoutSpellings.forEach(path => {
+    it(`spends the fan-out allowance on ${path}, not the cheap one`, async () => {
+      const burst = RATE_LIMIT_MAX_FANOUT_REQUESTS + 3;
+      const statuses: number[] = [];
+      for (let i = 0; i < burst; i += 1) {
+        const res = await fetch(`${baseUrl}${path}`, {
+          method: 'POST',
+          headers: {'content-type': 'application/json'},
+          body: JSON.stringify({addressList: [ADDRESS]}),
+        });
+        statuses.push(res.status);
+      }
+
+      // Asserting the *count*, not merely that a 429 appears somewhere: with the
+      // cheap allowance of 90 a burst of 18 is refused too — just never. The
+      // number of requests that get through is the only thing that tells the two
+      // buckets apart.
+      expect(statuses.filter(s => s !== 429).length).to.equal(
+        RATE_LIMIT_MAX_FANOUT_REQUESTS,
+      );
+      expect(statuses.filter(s => s === 429).length).to.equal(
+        burst - RATE_LIMIT_MAX_FANOUT_REQUESTS,
+      );
+    }).timeout(60000);
+  });
 });

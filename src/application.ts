@@ -1,7 +1,13 @@
 import {BootMixin} from '@loopback/boot';
 import {ApplicationConfig} from '@loopback/core';
 import {RepositoryMixin} from '@loopback/repository';
-import {Request, Response, RestApplication, RestBindings} from '@loopback/rest';
+import {
+  Request,
+  Response,
+  RestApplication,
+  RestBindings,
+  TrieRouter,
+} from '@loopback/rest';
 import {
   RestExplorerBindings,
   RestExplorerComponent,
@@ -22,13 +28,64 @@ import {
 } from './middleware/bounded-error-writer';
 import {connectionOutputBudgetMiddleware} from './middleware/connection-output-budget.middleware';
 import {rateLimitMiddleware} from './middleware/rate-limit.middleware';
+import {getLogger} from './utils/logger';
 import { ENVIRONMENT_PRODUCTION } from './constants';
 
 export {ApplicationConfig};
 
+const logger = getLogger('application');
+
+/** Loose view of LoopBack's parser options, which are an open key space. */
+type ParserOptions = Record<string, unknown>;
+
 /**
- * Applies the request-body and validation budgets to the REST server, unless the
- * caller already configured its own body parsers.
+ * Parsers that read the request body, and can therefore construct a
+ * decompression stream.
+ *
+ * `stream` is deliberately absent: it hands the raw stream to the controller
+ * without reading it, so there is no decompressor to disable and nothing here to
+ * decide about it.
+ */
+const BODY_READING_PARSERS = ['json', 'text', 'urlencoded', 'raw'] as const;
+
+/**
+ * The body-size budget, honouring a caller value only when it is stricter.
+ *
+ * body-parser also accepts a size string (`'1mb'`), which cannot be compared
+ * against the budget without parsing it. An unparsed value is discarded in
+ * favour of the budget rather than trusted: failing closed costs a caller its
+ * stricter `'64kb'`, while trusting it could cost the budget entirely.
+ *
+ * @param callerLimit - Whatever the caller put in this `limit` slot.
+ * @param where - Which slot, for the log line.
+ * @returns A byte count no larger than `MAX_REQUEST_BODY_BYTES`.
+ */
+function cappedLimit(callerLimit: unknown, where: string): number {
+  if (typeof callerLimit === 'number' && Number.isFinite(callerLimit)) {
+    return Math.min(callerLimit, MAX_REQUEST_BODY_BYTES);
+  }
+  if (callerLimit !== undefined) {
+    logger.warn(
+      {method: 'withResourceBudgets', where, callerLimit},
+      'Ignoring a non-numeric body-parser limit; applying the configured budget',
+    );
+  }
+  return MAX_REQUEST_BODY_BYTES;
+}
+
+/**
+ * Applies the request-body and validation budgets to the REST server.
+ *
+ * The caller's own body-parser configuration is honoured, and then the budgets
+ * are applied over it. That order is the point: these are not defaults that a
+ * caller may replace, they are controls. What a caller may still decide is
+ * everything else — media types, per-parser options, a *stricter* limit, and any
+ * parser this function does not govern.
+ *
+ * This function used to return the caller's options untouched whenever they
+ * carried any `requestBodyParser` at all, which dropped all three controls at
+ * once. Nothing supplied that config, so no test exercised the branch: the suite
+ * stayed green with the Brotli decoder one line away from being reachable again.
  *
  * Two things are wired here:
  *
@@ -54,26 +111,39 @@ export {ApplicationConfig};
 export function withResourceBudgets(
   options: ApplicationConfig,
 ): ApplicationConfig {
-  const limit = MAX_REQUEST_BODY_BYTES;
   const rest = options.rest ?? {};
-  if (rest.requestBodyParser) {
-    return options;
-  }
+  const caller = (rest.requestBodyParser ?? {}) as ParserOptions;
+
+  // The caller's keys come first, so anything this function does not govern —
+  // `stream`, or whatever LoopBack adds next — survives untouched.
+  const requestBodyParser: ParserOptions = {
+    ...caller,
+    limit: cappedLimit(caller.limit, 'limit'),
+  };
+
+  BODY_READING_PARSERS.forEach(name => {
+    const callerParser = (caller[name] ?? {}) as ParserOptions;
+    // `inflate` sits after the spread on purpose: that is what makes it
+    // non-negotiable rather than a default.
+    requestBodyParser[name] = {
+      ...callerParser,
+      limit: cappedLimit(callerParser.limit, name),
+      inflate: false,
+    };
+  });
+
+  requestBodyParser.validation = {
+    ...((caller.validation ?? {}) as ParserOptions),
+    ajvFactory: boundedAjvFactory,
+    ajvErrorTransformer: truncateValidationErrors,
+  };
+
   return {
     ...options,
     rest: {
       ...rest,
-      requestBodyParser: {
-        limit,
-        json: {limit, inflate: false},
-        text: {limit, inflate: false},
-        urlencoded: {limit, inflate: false},
-        raw: {limit, inflate: false},
-        validation: {
-          ajvFactory: boundedAjvFactory,
-          ajvErrorTransformer: truncateValidationErrors,
-        },
-      },
+      requestBodyParser:
+        requestBodyParser as typeof rest.requestBodyParser,
     },
   };
 }
@@ -95,6 +165,15 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
 
     // Set up the custom sequence
     this.sequence(MySequence);
+
+    // Bind the router explicitly so middleware can ask the component that
+    // actually routes which route a request resolves to. When this binding is
+    // absent the server builds an equivalent router privately, and a private
+    // router is invisible to the rate limiter — which then has to guess the
+    // route from the request path, and guesses wrong for every spelling it did
+    // not enumerate. Constructed with whatever router options the caller
+    // configured, so this stays a wiring change and not a behaviour change.
+    this.bind(RestBindings.ROUTER).to(new TrieRouter(options.rest?.router));
 
     // Log inbound HTTP requests/responses for API routes
     this.middleware(httpAccessLogMiddleware);
