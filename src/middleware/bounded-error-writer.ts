@@ -1,5 +1,5 @@
 import {Next} from '@loopback/core';
-import {HttpErrors, MiddlewareContext, Request, Response} from '@loopback/rest';
+import {MiddlewareContext, Request, Response} from '@loopback/rest';
 import {
   MAX_ERROR_RESPONSE_BYTES,
   MAX_VALIDATION_ERROR_DETAILS,
@@ -11,11 +11,18 @@ import {
   ResourceBudgetName,
 } from '../utils/resource-budget';
 import {getTraceId} from '../utils/trace-context';
+import {VALIDATION_ERROR_CODE} from '../utils/validation-error';
 
 const logger = getLogger('error-writer');
 
-/** `code` returned for every request-validation failure. */
-export const VALIDATION_ERROR_CODE = 'VALIDATION_ERROR';
+/**
+ * `code` returned for every request-validation failure.
+ *
+ * Defined in `utils/validation-error.ts` alongside the constructor that stamps
+ * it, and re-exported here because this is where the writer that renders it
+ * lives. One definition, two places to import it from.
+ */
+export {VALIDATION_ERROR_CODE};
 
 /**
  * The message a self-describing code publishes, beyond what its status says.
@@ -405,8 +412,8 @@ export const boundedErrorWriterMiddleware = async (
   }
 };
 
-/** Re-exported so callers can build the same errors the writer recognises. */
-export const validationError = (message: string): HttpErrors.HttpError =>
-  Object.assign(new HttpErrors.UnprocessableEntity(message), {
-    code: VALIDATION_ERROR_CODE,
-  });
+// `validationError` now lives in `utils/validation-error.ts`, so that
+// `utils/address-list-validation.ts` no longer has to import the middleware
+// layer to raise one. Re-exported here because this module is where the code and
+// the writer that renders it are documented together.
+export {validationError} from '../utils/validation-error';

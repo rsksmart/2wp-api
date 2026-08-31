@@ -17,6 +17,23 @@ describe('Utils: bridge-utils', () => {
       });
     });
 
+    // Some nodes report the status as padded hex. Failing closed means an
+    // unrecognized spelling is read as a revert, so an unlisted one costs a
+    // legitimate pegout its parse — quiet, and visible only as a status that
+    // never resolves.
+    ['0x01', '0x001', '0x0001'].forEach(status => {
+      it(`accepts a successful receipt reported as padded hex ${status}`, () => {
+        expect(isSuccessfulReceipt({status})).to.be.true();
+      });
+    });
+
+    // The allowlist has to stay anchored: near misses are not successes.
+    ['0x11', '0x10', '1x0', '0x1x', ' 0x1', '0x1 ', '', '0x'].forEach(status => {
+      it(`rejects a near miss ${JSON.stringify(status)}`, () => {
+        expect(isSuccessfulReceipt({status})).to.be.false();
+      });
+    });
+
     it('rejects a missing receipt', () => {
       expect(isSuccessfulReceipt(null)).to.be.false();
       expect(isSuccessfulReceipt(undefined)).to.be.false();

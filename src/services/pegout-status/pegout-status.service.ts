@@ -43,9 +43,16 @@ export class PegoutStatusService {
                         try {
                             const rskTransaction: RskTransaction = await this.rskNodeService.getTransaction(rskTxHash, this.ATTACH_TRANSACTION_RECEIPT);
                             if (!rskTransaction) {
+                                // `else if` rather than an early `return`: this
+                                // runs inside a `.then()` that resolves at the
+                                // end, so returning here would leave the request
+                                // hanging — the defect phase 06 removed from
+                                // this service. Without the `else` the next
+                                // branch dereferences the falsy value, and the
+                                // surrounding catch turns a programming error
+                                // into a status.
                                 pegoutStatus.status = PegoutStatuses.NOT_FOUND;
-                            }
-                            if (rskTransaction.receipt && isSuccessfulReceipt(rskTransaction.receipt)) {
+                            } else if (rskTransaction.receipt && isSuccessfulReceipt(rskTransaction.receipt)) {
                                 const transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
                                 if (!transaction) {
                                     pegoutStatus.status = PegoutStatuses.NOT_FOUND;

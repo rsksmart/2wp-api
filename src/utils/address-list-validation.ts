@@ -1,4 +1,4 @@
-import {validationError} from '../middleware/bounded-error-writer';
+import {validationError} from './validation-error';
 
 /**
  * Business-level checks on an address list, beyond what the request schema

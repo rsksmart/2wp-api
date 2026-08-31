@@ -117,6 +117,12 @@ describe('Request deadline (Acceptance)', () => {
         // One attempt: retries would multiply the deadline rather than test it.
         PROVIDER_MAX_RETRIES: '0',
         PROVIDER_TIMEOUT_MS: '60000',
+        // The readiness probe below polls up to 120 times at 250 ms against a
+        // child running the real limiter, whose default allowance is 90 per
+        // 30 s on this route. Past ~90 polls the probe starts refusing itself,
+        // so a slow start would fail this suite for a reason unrelated to what
+        // it tests.
+        RATE_LIMIT_MAX_REQUESTS: '100000',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -223,6 +229,9 @@ describe('Full fan-out against a slow provider (Acceptance)', () => {
         MAX_REQUEST_DURATION_MS: String(SLOW_DEADLINE_MS),
         REQUEST_DEADLINE_GRACE_MS: '250',
         PROVIDER_MAX_RETRIES: '0',
+        // Same reason as the first child: the readiness probe must not spend the
+        // limiter's allowance on itself.
+        RATE_LIMIT_MAX_REQUESTS: '100000',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });

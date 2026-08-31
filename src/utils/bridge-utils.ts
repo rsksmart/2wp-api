@@ -62,6 +62,21 @@ export function decodeBridgeMethodParameters(method: BRIDGE_METHODS, data: strin
 }
 
 /**
+ * Exactly one, written as text: decimal or hex, with any amount of zero padding.
+ *
+ * Anchored on purpose. A node that reports `'0x01'` means success as plainly as
+ * one that reports `'0x1'`, and reading the first as a revert costs a legitimate
+ * pegout its parse — a failure that is invisible except as a status that never
+ * resolves. `'0x11'` and `'0x10'` are not successes, so a substring match would
+ * be worse than the enumeration it replaces.
+ *
+ * The same predicate is being added to `@rsksmart/bridge-transaction-parser`
+ * (release 3.1.0 of the 84419 remediation). When that ships, consume it from
+ * there rather than keeping two definitions of "this receipt succeeded".
+ */
+const SUCCESS_STATUS_TEXT = /^(?:0x)?0*1$/;
+
+/**
  * Was this transaction receipt produced by a *successful* EVM execution?
  *
  * This is the control that keeps adversarial Bridge calldata away from
@@ -86,6 +101,8 @@ export function isSuccessfulReceipt(receipt: {status?: unknown} | null | undefin
     return false;
   }
   const {status} = receipt;
-  return status === 1 || status === 1n || status === true
-    || status === '0x1' || status === '1';
+  if (typeof status === 'string') {
+    return SUCCESS_STATUS_TEXT.test(status);
+  }
+  return status === 1 || status === 1n || status === true;
 }

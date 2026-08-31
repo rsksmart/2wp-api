@@ -83,6 +83,25 @@ describe('Service: PegoutStatusService decode gating', () => {
     });
   });
 
+  describe('a transaction the node does not return', () => {
+    it('answers NOT_FOUND, and answers at all', async () => {
+      // `getTransaction` throws when the node has no such transaction, so this
+      // branch is unreachable today. Unreachable is not the same as harmless:
+      // the guard below it has no `else`, so the next line dereferences the
+      // falsy value and the surrounding catch turns a programming error into a
+      // status. And it must not be fixed with a bare `return` either — this code
+      // runs inside a `.then()` that resolves at the end, so returning early
+      // would leave the request hanging, which is the defect phase 06 removed
+      // from this very service.
+      rskNodeService.getTransaction.resolves(undefined as never);
+
+      const result = await service.getPegoutStatusByRskTxHash(rskTxHash);
+
+      expect(result.status).to.equal(PegoutStatuses.NOT_FOUND);
+      sinon.assert.notCalled(rskNodeService.getBridgeTransaction);
+    }).timeout(2000);
+  });
+
   describe('transactions the EVM executed successfully', () => {
     [1, 1n, true, '0x1', '1'].forEach(status => {
       it(`parses the transaction when status is ${String(status)}`, async () => {
