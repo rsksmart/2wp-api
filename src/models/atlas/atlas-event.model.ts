@@ -1,9 +1,13 @@
 import {ChainId} from './atlas-chain';
 
 /**
- * Event types of the Atlas SWAP Event Schema v1.0 emitted for native peg-out.
+ * Event types of the Atlas SWAP Event Schema v1.0 emitted for native pegs.
  * `expired`, `refund_pending`, `refunded`, `claim_pending` and `claimed` do not
- * apply to native peg-out and are therefore out of scope.
+ * apply to native peg-in / peg-out and are therefore out of scope.
+ *
+ * Peg-in only reaches `swap.created` and `swap.rejected`: the daemon observes
+ * Rootstock alone, so the deposit on Bitcoin is never seen and `swap.pending`
+ * has no trigger. `swap.completed` is deliberately left out for now.
  */
 export enum AtlasEventType {
   SWAP_CREATED = 'swap.created',
@@ -16,8 +20,10 @@ export const ATLAS_SCHEMA_VERSION = '1.0';
 export const ATLAS_SOURCE = 'PWP';
 export const ATLAS_SWAP_TYPE = 'powpeg';
 export const ATLAS_PROVIDER = 'powpeg';
-export const ATLAS_INPUT_ASSET = 'RBTC';
-export const ATLAS_OUTPUT_ASSET = 'BTC';
+/** Assets of the BTC <-> RBTC pair. Which one is input and which is output
+ * depends on the direction, so each builder pairs them itself. */
+export const ASSET_BTC = 'BTC';
+export const ASSET_RBTC = 'RBTC';
 
 export interface SwapCreatedData {
   provider: string;
@@ -27,7 +33,8 @@ export interface SwapCreatedData {
   output_asset: string;
   input_amount: string;
   input_amount_usd: null;
-  wallet_address: string;
+  /** Null when the Bridge log carries no address, as in a rejected peg-in. */
+  wallet_address: string | null;
   wallet_type: null;
   quote_id: null;
 }

@@ -14,7 +14,7 @@ export const CHAIN_IDS = {
 
 export type ChainId = (typeof CHAIN_IDS)[keyof typeof CHAIN_IDS];
 
-export interface PegoutChainIds {
+export interface SwapChainIds {
   sourceChain: ChainId;
   destinationChain: ChainId;
 }
@@ -49,7 +49,7 @@ export function assertNetworkConfigured(): string {
  * @returns The qualified `sourceChain` / `destinationChain` pair for the configured network.
  * @throws Error when `NETWORK` is not configured. See {@link assertNetworkConfigured}.
  */
-export function resolveChainIds(): PegoutChainIds {
+export function resolvePegoutChainIds(): SwapChainIds {
   const network = assertNetworkConfigured();
   if (network === constants.NETWORK_MAINNET) {
     return {
@@ -61,4 +61,16 @@ export function resolveChainIds(): PegoutChainIds {
     sourceChain: CHAIN_IDS.ROOTSTOCK_TESTNET,
     destinationChain: CHAIN_IDS.BITCOIN_TESTNET,
   };
+}
+
+/**
+ * Resolves the chain ids of a native peg-in, the mirror image of a peg-out:
+ * Bitcoin is always the source chain and Rootstock always the destination.
+ *
+ * @returns The qualified `sourceChain` / `destinationChain` pair for the configured network.
+ * @throws Error when `NETWORK` is not configured. See {@link assertNetworkConfigured}.
+ */
+export function resolvePeginChainIds(): SwapChainIds {
+  const {sourceChain, destinationChain} = resolvePegoutChainIds();
+  return {sourceChain: destinationChain, destinationChain: sourceChain};
 }

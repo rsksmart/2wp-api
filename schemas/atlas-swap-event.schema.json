@@ -39,6 +39,17 @@
     "decimalAmount": {
       "type": "string",
       "pattern": "^[0-9]+\\.[0-9]{8}$"
+    },
+    "asset": {
+      "type": "string",
+      "enum": ["BTC", "RBTC"]
+    },
+    "errorCode": {
+      "type": "string",
+      "anyOf": [
+        {"enum": ["LOW_AMOUNT", "CALLER_CONTRACT", "FEE_ABOVE_VALUE", "UNKNOWN"]},
+        {"pattern": "^PEGIN_(REJECTION|UNREFUNDABLE)_[0-9A-Z]+$"}
+      ]
     }
   },
   "allOf": [
@@ -65,11 +76,11 @@
               "provider": {"type": "string", "const": "powpeg"},
               "source_chain": {"$ref": "#/definitions/chainId"},
               "destination_chain": {"$ref": "#/definitions/chainId"},
-              "input_asset": {"type": "string", "const": "RBTC"},
-              "output_asset": {"type": "string", "const": "BTC"},
+              "input_asset": {"$ref": "#/definitions/asset"},
+              "output_asset": {"$ref": "#/definitions/asset"},
               "input_amount": {"$ref": "#/definitions/decimalAmount"},
               "input_amount_usd": {"type": "null"},
-              "wallet_address": {"type": "string", "minLength": 1},
+              "wallet_address": {"type": ["string", "null"], "minLength": 1},
               "wallet_type": {"type": "null"},
               "quote_id": {"type": "null"}
             }
@@ -128,11 +139,8 @@
             "required": ["error_category", "error_code", "error_message", "refund_applicable"],
             "additionalProperties": false,
             "properties": {
-              "error_category": {"type": "string", "const": "validation"},
-              "error_code": {
-                "type": "string",
-                "enum": ["LOW_AMOUNT", "CALLER_CONTRACT", "FEE_ABOVE_VALUE", "UNKNOWN"]
-              },
+              "error_category": {"type": "string", "enum": ["validation", "protocol_violation"]},
+              "error_code": {"$ref": "#/definitions/errorCode"},
               "error_message": {"type": "string", "minLength": 1},
               "refund_applicable": {"type": "boolean"}
             }

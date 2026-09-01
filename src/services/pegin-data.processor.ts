@@ -9,14 +9,20 @@ import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-
 import {ServicesBindings} from '../dependency-injection-bindings';
 import ExtendedBridgeTx from './extended-bridge-tx';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
+import {AtlasEventPublisher} from './atlas/atlas-event-publisher';
+import {PeginAtlasEventBuilder} from './atlas/pegin-atlas-event.builder';
 
 export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
   peginStatusStorageService: PeginStatusDataService;
+  atlasEventPublisher: AtlasEventPublisher;
   logger: Logger;
   constructor(@inject(ServicesBindings.PEGIN_STATUS_DATA_SERVICE)
-  peginStatusStorageService: PeginStatusDataService,) {
+  peginStatusStorageService: PeginStatusDataService,
+  @inject(ServicesBindings.ATLAS_EVENT_PUBLISHER)
+  atlasEventPublisher: AtlasEventPublisher,) {
     this.logger = getLogger('peginDataProcessor');
     this.peginStatusStorageService = peginStatusStorageService;
+    this.atlasEventPublisher = atlasEventPublisher;
   }
 
   async process(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
@@ -33,6 +39,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
       }
       await this.peginStatusStorageService.set(peginStatus);
       this.logger.info({method: 'process', txHash: extendedBridgeTx.txHash, btcTxId: peginStatus.btcTxId, status: peginStatus.status}, 'Tx registered');
+      await this.publishAtlasEvents(peginStatus, extendedBridgeTx);
     } catch (e) {
       this.logger.warn({method: 'process', err: e}, 'There was a problem with the storage');
     }
@@ -106,6 +113,37 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
     }
     catch(e) {
       this.logger.error({method: 'logPeginData', err: e}, 'There was a problem with the conversion of pegin');
+    }
+  }
+
+  /**
+   * Publishes the Atlas SWAP events of a peg-in that has just been written to
+   * the database. A rejection publishes two events, in the order the builder
+   * returns them; a status with no equivalent in the v1.0 schema publishes none.
+   *
+   * Nothing here is allowed to fail the caller: a peg-in status is never rolled
+   * back because analytics could not be notified.
+   *
+   * @param peginStatus - The status just persisted.
+   * @param extendedBridgeTx - The Bridge transaction it was parsed from, which
+   * carries the amount and addresses the persisted status does not keep.
+   */
+  private async publishAtlasEvents(
+    peginStatus: PeginStatusDataModel,
+    extendedBridgeTx: ExtendedBridgeTx,
+  ): Promise<void> {
+    try {
+      const context = PeginAtlasEventBuilder.extractContext(extendedBridgeTx);
+      const events = PeginAtlasEventBuilder.build(peginStatus, context);
+      await events.reduce(async (promise, event) => {
+        await promise;
+        await this.atlasEventPublisher.publish(event);
+      }, Promise.resolve());
+    } catch (e) {
+      this.logger.error(
+        {method: 'publishAtlasEvents', err: e, btcTxId: peginStatus.btcTxId},
+        'Could not build or publish the Atlas events',
+      );
     }
   }
 

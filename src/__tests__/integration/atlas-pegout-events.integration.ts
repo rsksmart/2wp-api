@@ -18,6 +18,11 @@ import {
   PegoutStatusDbDataModel,
   PegoutStatuses,
 } from '../../models/rsk/pegout-status-data-model';
+import {PeginAtlasEventBuilder} from '../../services/atlas/pegin-atlas-event.builder';
+import {
+  PeginStatus,
+  PeginStatusDataModel,
+} from '../../models/rsk/pegin-status-data.model';
 
 const QUEUE_NAME = 'atlas-swap-events.fifo';
 const SCHEMA_PATH = path.resolve(process.cwd(), 'schemas/atlas-swap-event.schema.json');
@@ -39,6 +44,17 @@ function givenSwapId(): string {
   return `0x${randomBytes(32).toString('hex')}`;
 }
 
+function givenPegin(swapId: string, status: PeginStatus): PeginStatusDataModel {
+  const pegin = new PeginStatusDataModel();
+  pegin.btcTxId = swapId;
+  pegin.status = status;
+  pegin.createdOn = new Date('2024-05-01T10:00:00.000Z');
+  pegin.rskTxId = `0x${randomBytes(32).toString('hex')}`;
+  pegin.rskBlockHeight = 1;
+  pegin.rskRecipient = '0x2D623170Cb518434af6c02602334610f194818c1';
+  return pegin;
+}
+
 function givenPegout(
   swapId: string,
   status: PegoutStatuses,
@@ -56,7 +72,7 @@ function givenPegout(
   return Object.assign(pegout, data);
 }
 
-describe('Integration: Atlas peg-out events over SQS', function () {
+describe('Integration: Atlas peg events over SQS', function () {
   this.timeout(30000);
 
   let client: SQSClient;
@@ -225,4 +241,56 @@ describe('Integration: Atlas peg-out events over SQS', function () {
     expect(event.event_type).to.equal(AtlasEventType.SWAP_REJECTED);
     expectValid(event);
   });
+
+  describe('peg-in', () => {
+    const context = {
+      amountInWeis: '500000000000000000',
+      rskRecipient: '0x2D623170Cb518434af6c02602334610f194818c1',
+    };
+
+    it('delivers a single swap.created for a locked peg-in', async () => {
+      const swapId = givenSwapId();
+      const events = PeginAtlasEventBuilder.build(givenPegin(swapId, PeginStatus.LOCKED), context);
+
+      for (const event of events) {
+        await publisher.publish(event);
+      }
+
+      const messages = await drain(5, 1);
+      expect(messages).to.have.length(1);
+
+      const received = parse(messages[0]);
+      expectValid(received);
+      expect(received.event_type).to.equal(AtlasEventType.SWAP_CREATED);
+      expect(received.swap_id).to.equal(swapId);
+      expect(messages[0].Attributes?.MessageGroupId).to.equal(swapId);
+    });
+
+    it('delivers created before rejected for a rejected peg-in', async () => {
+      const swapId = givenSwapId();
+      const events = PeginAtlasEventBuilder.build(
+        givenPegin(swapId, PeginStatus.REJECTED_NO_REFUND),
+        {unrefundableReason: '1'},
+      );
+      expect(events).to.have.length(2);
+
+      for (const event of events) {
+        await publisher.publish(event);
+      }
+
+      const messages = await drain(5, 2);
+      expect(messages).to.have.length(2);
+
+      const received = messages.map(parse);
+      received.forEach(expectValid);
+      expect(received.map(event => event.event_type)).to.eql([
+        AtlasEventType.SWAP_CREATED,
+        AtlasEventType.SWAP_REJECTED,
+      ]);
+      // Both transitions of one peg-in share the group, so order is guaranteed.
+      expect(messages.map(m => m.Attributes?.MessageGroupId)).to.eql([swapId, swapId]);
+      expect(received[0].event_id).to.not.equal(received[1].event_id);
+    });
+  });
+
 });

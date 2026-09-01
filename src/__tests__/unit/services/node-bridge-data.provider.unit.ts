@@ -7,6 +7,7 @@ import ExtendedBridgeTx from '../../../services/extended-bridge-tx'
 import FilteredBridgeTransactionProcessor from '../../../services/filtered-bridge-transaction-processor';
 import {BRIDGE_METHODS, getBridgeSignature} from '../../../utils/bridge-utils';
 import { PeginDataProcessor } from '../../../services/pegin-data.processor';
+import { NoopAtlasEventPublisher } from '../../../services/atlas/noop-atlas-event-publisher';
 import { RskBlock } from '../../../models/rsk/rsk-block.model';
 import { RskTransaction } from '../../../models/rsk/rsk-transaction.model';
 import { PeginStatusDataService } from '../../../services/pegin-status-data-services/pegin-status-data.service';
@@ -50,7 +51,7 @@ describe('Service: NodeBridgeDataProvider', () => {
     mockedPeginStatusDataService.stop = sinon.stub();
     const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const thisService = new NodeBridgeDataProvider(bridgeService);
-    const peginDataProcessorSubscriber = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
+    const peginDataProcessorSubscriber = new PeginDataProcessor(mockedPeginStatusDataService, new NoopAtlasEventPublisher()) as FilteredBridgeTransactionProcessor;
     expect(thisService.getSubscribers()).to.be.empty;
 
     // Adds a subscriber
@@ -71,7 +72,7 @@ describe('Service: NodeBridgeDataProvider', () => {
     mockedPeginStatusDataService.stop = sinon.stub();
     const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const thisService = new NodeBridgeDataProvider(bridgeService);
-    const peginDataProcessorSubscriber = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
+    const peginDataProcessorSubscriber = new PeginDataProcessor(mockedPeginStatusDataService, new NoopAtlasEventPublisher()) as FilteredBridgeTransactionProcessor;
     expect(thisService.getSubscribers()).to.be.empty;
 
     // Adds the same subscriber multiple times
@@ -99,8 +100,8 @@ describe('Service: NodeBridgeDataProvider', () => {
     const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
     const thisService = new NodeBridgeDataProvider(bridgeService);
     
-    const peginDataProcessorSubscriber1 = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
-    const peginDataProcessorSubscriber2 = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
+    const peginDataProcessorSubscriber1 = new PeginDataProcessor(mockedPeginStatusDataService, new NoopAtlasEventPublisher()) as FilteredBridgeTransactionProcessor;
+    const peginDataProcessorSubscriber2 = new PeginDataProcessor(mockedPeginStatusDataService, new NoopAtlasEventPublisher()) as FilteredBridgeTransactionProcessor;
 
     expect(thisService.getSubscribers()).to.be.empty;
 

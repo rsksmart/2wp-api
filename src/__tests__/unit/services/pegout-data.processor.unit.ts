@@ -13,6 +13,7 @@ import * as constants from '../../../constants';
 import { BridgeState } from '@rsksmart/bridge-state-data-parser';
 import { ExtendedBridgeEvent } from '../../../models/types/bridge-transaction-parser';
 import { remove0x, ensure0x } from '../../../utils/hex-utils';
+import * as bitcoin from 'bitcoinjs-lib';
 import { AtlasEventPublisher } from '../../../services/atlas/atlas-event-publisher';
 import { AtlasEvent, AtlasEventType } from '../../../models/atlas/atlas-event.model';
 
@@ -1157,6 +1158,93 @@ describe('Service: PegoutDataProcessor', () => {
       expect((<any>event.data).output_amount).to.equal('0.00393100');
       expect((<any>event.data).fee).to.equal('0.00006900');
       sinon.assert.callOrder(pegoutStatusDataService.set, publisher.publish);
+    });
+
+    it('matches each output of a batch that pays one address twice', async () => {
+      const {pegoutStatusDataService, publisher, processor} = givenProcessor();
+      const batchPegoutRskTxHash = 'sharedbatch';
+      // btcRawTx3 pays mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8 at output 0.
+      const sharedAddress = 'mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8';
+
+      const givenBatched = (originating: string, batchPegoutIndex: number) => {
+        const row = new PegoutStatusDbDataModel();
+        row.originatingRskTxHash = originating;
+        row.rskTxHash = `${originating}__${batchPegoutIndex}`;
+        row.btcRecipientAddress = sharedAddress;
+        row.rskSenderAddress = ATLAS_SENDER;
+        row.status = PegoutStatuses.WAITING_FOR_SIGNATURE;
+        row.btcRawTransaction = btcRawTx1;
+        row.valueRequestedInSatoshis = 400000;
+        row.batchPegoutRskTxHash = batchPegoutRskTxHash;
+        // Mongo stores batchPegoutIndex as a String even though the model types
+        // it as a number, so rows read back carry "0"/"1". The matcher must
+        // cope with what the database actually returns.
+        row.batchPegoutIndex = <number><unknown>String(batchPegoutIndex);
+        row.createdOn = new Date('2024-05-01T10:00:00.000Z');
+        return row;
+      };
+
+      const first = givenBatched('0x1111111111111111111111111111111111111111111111111111111111111111', 0);
+      const second = givenBatched('0x2222222222222222222222222222222222222222222222222222222222222222', 1);
+
+      // Both rows share the recipient address, so the lookup returns two.
+      pegoutStatusDataService.getPegoutByRecipientAndCreationTx
+        .withArgs(sharedAddress, batchPegoutRskTxHash)
+        .resolves([first, second]);
+
+      await processor.process(givenExtendedBridgeTx(
+        '0x7bdcfca72ea7103a804f9f9013bfb205c8c61fe9deb903a9923e03b80a16bfd2',
+        [{
+          name: BRIDGE_EVENTS.RELEASE_BTC,
+          signature: '0x655929b56d5c5a24f81ee80267d5151b9d680e7e703387999922e9070bc98a02',
+          arguments: {btcRawTransaction: btcRawTx3, releaseRskTxHash: batchPegoutRskTxHash},
+        }],
+        new Date('2024-05-01T10:03:04.000Z'),
+        BRIDGE_METHODS.ADD_SIGNATURE,
+      ));
+
+      // Output 0 belongs to the row whose batchPegoutIndex is 0.
+      const events = publishedEvents(publisher);
+      expect(events).to.have.length(1);
+      expect(events[0].event_type).to.equal(AtlasEventType.SWAP_COMPLETED);
+      expect(events[0].swap_id).to.equal(first.originatingRskTxHash);
+    });
+
+    it('publishes the canonical Bitcoin txid as destination_tx_hash', async () => {
+      const {pegoutStatusDataService, publisher, processor} = givenProcessor();
+      const batchPegoutRskTxHash = 'testhash';
+
+      const stored = new PegoutStatusDbDataModel();
+      stored.rskTxHash = '0x7bdcfca72ea7103a804f9f9013bfb205c8c61fe9deb903a9923e03b80a16bfd2';
+      stored.btcRecipientAddress = 'mgM4vPBnDKa8cKkXki4Bp5nQ7hgTGd4va8';
+      stored.createdOn = new Date('2024-05-01T10:00:00.000Z');
+      stored.originatingRskTxHash = ATLAS_ORIGINATING_RSK_TX_HASH;
+      stored.rskSenderAddress = ATLAS_SENDER;
+      stored.status = PegoutStatuses.WAITING_FOR_SIGNATURE;
+      stored.btcRawTransaction = btcRawTx1;
+      stored.valueRequestedInSatoshis = 400000;
+      stored.batchPegoutRskTxHash = batchPegoutRskTxHash;
+
+      pegoutStatusDataService.getPegoutByRecipientAndCreationTx
+        .withArgs(stored.btcRecipientAddress, batchPegoutRskTxHash)
+        .resolves([stored]);
+
+      await processor.process(givenExtendedBridgeTx(
+        stored.rskTxHash,
+        [{
+          name: BRIDGE_EVENTS.RELEASE_BTC,
+          signature: '0x655929b56d5c5a24f81ee80267d5151b9d680e7e703387999922e9070bc98a02',
+          arguments: {btcRawTransaction: btcRawTx3, releaseRskTxHash: batchPegoutRskTxHash},
+        }],
+        new Date('2024-05-01T10:03:04.000Z'),
+        BRIDGE_METHODS.ADD_SIGNATURE,
+      ));
+
+      const expectedTxId = bitcoin.Transaction.fromHex(btcRawTx3).getId();
+      const internalHash = bitcoin.Transaction.fromHex(btcRawTx3).getHash().toString('hex');
+      const [event] = publishedEvents(publisher);
+      expect((<any>event.data).destination_tx_hash).to.equal(expectedTxId);
+      expect((<any>event.data).destination_tx_hash).to.not.equal(internalHash);
     });
 
     it('publishes nothing for a pegout_confirmed transition', async () => {

@@ -1,8 +1,7 @@
-import Big from 'big.js';
 import {randomUUID} from 'crypto';
 import {
-  ATLAS_INPUT_ASSET,
-  ATLAS_OUTPUT_ASSET,
+  ASSET_RBTC,
+  ASSET_BTC,
   ATLAS_PROVIDER,
   ATLAS_SCHEMA_VERSION,
   ATLAS_SOURCE,
@@ -15,14 +14,13 @@ import {
   SwapPendingData,
   SwapRejectedData,
 } from '../../models/atlas/atlas-event.model';
-import {resolveChainIds} from '../../models/atlas/atlas-chain';
+import {resolvePegoutChainIds} from '../../models/atlas/atlas-chain';
+import {satoshisToDecimalString} from '../../models/atlas/atlas-amount';
 import {
   PegoutStatusDbDataModel,
   PegoutStatuses,
 } from '../../models/rsk/pegout-status-data-model';
 
-const SATOSHIS_PER_BTC = 100_000_000;
-const AMOUNT_DECIMALS = 8;
 const REJECTION_ERROR_CATEGORY = 'validation';
 const REJECTION_ERROR_MESSAGE = 'Pegout request rejected by the Bridge';
 const UNKNOWN_REJECTION_REASON = 'UNKNOWN';
@@ -42,14 +40,13 @@ export interface PegoutAtlasEventContext {
 export class PegoutAtlasEventBuilder {
 
   /**
-   * Formats an amount in satoshis as a fixed 8-decimal string. `big.js` is used
-   * throughout so large values never lose precision through `Number` arithmetic.
+   * Formats an amount in satoshis as a fixed 8-decimal string.
    *
    * @param satoshis - Amount in satoshis. Nullish values are treated as zero.
    * @returns The amount in BTC/RBTC, e.g. `"0.12345678"`.
    */
   public static toDecimalAmount(satoshis: number | undefined | null): string {
-    return new Big(satoshis ?? 0).div(SATOSHIS_PER_BTC).toFixed(AMOUNT_DECIMALS);
+    return satoshisToDecimalString(satoshis);
   }
 
   /**
@@ -101,13 +98,13 @@ export class PegoutAtlasEventBuilder {
   }
 
   private static createdData(pegout: PegoutStatusDbDataModel): SwapCreatedData {
-    const {sourceChain, destinationChain} = resolveChainIds();
+    const {sourceChain, destinationChain} = resolvePegoutChainIds();
     return {
       provider: ATLAS_PROVIDER,
       source_chain: sourceChain,
       destination_chain: destinationChain,
-      input_asset: ATLAS_INPUT_ASSET,
-      output_asset: ATLAS_OUTPUT_ASSET,
+      input_asset: ASSET_RBTC,
+      output_asset: ASSET_BTC,
       input_amount: this.toDecimalAmount(pegout.valueRequestedInSatoshis),
       input_amount_usd: null,
       wallet_address: pegout.rskSenderAddress,

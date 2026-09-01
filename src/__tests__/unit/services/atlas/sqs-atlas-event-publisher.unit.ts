@@ -124,7 +124,7 @@ describe('Service: SqsAtlasEventPublisher', () => {
       process.env.ATLAS_EVENTS_ENABLED = 'false';
       const send = sandbox.stub(SQSClient.prototype, 'send').resolves({} as never);
       const app = new Application();
-      DependencyInjectionHandler.configureDependencies(app);
+      DependencyInjectionHandler.configureDaemonDependencies(app);
 
       expect(await app.get(ConstantsBindings.ATLAS_EVENTS_ENABLED)).to.be.false();
       const publisher = await app.get<NoopAtlasEventPublisher>(ServicesBindings.ATLAS_EVENT_PUBLISHER);
@@ -137,7 +137,7 @@ describe('Service: SqsAtlasEventPublisher', () => {
     it('binds the SQS publisher when enabled', async () => {
       process.env.ATLAS_EVENTS_ENABLED = 'true';
       const app = new Application();
-      DependencyInjectionHandler.configureDependencies(app);
+      DependencyInjectionHandler.configureDaemonDependencies(app);
 
       expect(await app.get(ConstantsBindings.ATLAS_EVENTS_ENABLED)).to.be.true();
       const publisher = await app.get<SqsAtlasEventPublisher>(ServicesBindings.ATLAS_EVENT_PUBLISHER);

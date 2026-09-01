@@ -40,7 +40,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor(mockedPeginStatusDataService),
+      new PeginDataProcessor(mockedPeginStatusDataService, new NoopAtlasEventPublisher()),
       new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, new NoopAtlasEventPublisher())
     );
 
@@ -72,7 +72,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor(mockedPeginStatusDataService),
+      new PeginDataProcessor(mockedPeginStatusDataService, new NoopAtlasEventPublisher()),
       new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, new NoopAtlasEventPublisher())
     );
 
@@ -136,7 +136,7 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor(mockedPeginStatusDataService),
+      new PeginDataProcessor(mockedPeginStatusDataService, new NoopAtlasEventPublisher()),
       new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, new NoopAtlasEventPublisher())
     );
 

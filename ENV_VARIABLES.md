@@ -44,12 +44,22 @@ This table was created to guide and centralize the **environment variables** nec
 
 ### Atlas SWAP events
 
-While `ATLAS_EVENTS_ENABLED=true`, the daemon publishes one Atlas SWAP event per
-native peg-out transition to the SQS FIFO queue at `ATLAS_SQS_QUEUE_URL`:
-`swap.created` (RECEIVED), `swap.pending` (WAITING_FOR_CONFIRMATION),
-`swap.completed` (RELEASE_BTC) and `swap.rejected` (REJECTED).
-`WAITING_FOR_SIGNATURE` publishes nothing: it is an internal federation
-sub-state with no equivalent in the v1.0 schema.
+While `ATLAS_EVENTS_ENABLED=true`, the daemon publishes Atlas SWAP events to the
+SQS FIFO queue at `ATLAS_SQS_QUEUE_URL` as it processes Bridge transactions.
+**Only the daemon publishes**: the publisher is registered by
+`configureDaemonDependencies` and is simply not bound in the API process.
+
+Peg-out, one event per transition: `swap.created` (RECEIVED), `swap.pending`
+(WAITING_FOR_CONFIRMATION), `swap.completed` (RELEASE_BTC) and `swap.rejected`
+(REJECTED). `WAITING_FOR_SIGNATURE` publishes nothing: it is an internal
+federation sub-state with no equivalent in the v1.0 schema.
+
+Peg-in, keyed by `btcTxId`: `LOCKED` publishes `swap.created`, and each rejection
+publishes `swap.created` followed by `swap.rejected`. The daemon observes only
+Rootstock, so the deposit on Bitcoin is never seen and `swap.pending` has no
+trigger. `swap.completed` is **not** emitted yet, which means a successful peg-in
+stays PENDING on the analytics side and peg-in is absent from the transaction
+count and volume metrics.
 
 Every event carries the `originatingRskTxHash` as `swap_id`, and the queue's
 `MessageGroupId` is that same `swap_id`, so the transitions of one peg-out stay

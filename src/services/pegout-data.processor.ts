@@ -142,15 +142,21 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
     const batchPegoutCreationTx = releaseBTCEvent.arguments.releaseRskTxHash;
 
-    for(let output of parsedBtcTransaction.outs) {
-      const address = bitcoin.address.fromOutputScript(output.script, btcNetwork);
-
-      const dbPegout = await this.pegoutStatusDataService.getPegoutByRecipientAndCreationTx(address, batchPegoutCreationTx);
-      if(!dbPegout || dbPegout.length !== 1 ) {
-        this.logger.debug({method: 'processSignedStatusByRtx', address, batchPegoutCreationTx}, 'Not found any pegout related to this output');
+    for(const [outputIndex, output] of parsedBtcTransaction.outs.entries()) {
+      let address;
+      try {
+        address = bitcoin.address.fromOutputScript(output.script, btcNetwork);
+      } catch (e) {
+        // Federation change outputs are not addressable pegout recipients.
         continue;
       }
-      const [thePegout] = dbPegout;
+
+      const dbPegout = await this.pegoutStatusDataService.getPegoutByRecipientAndCreationTx(address, batchPegoutCreationTx);
+      const thePegout = this.selectPegoutForOutput(dbPegout, outputIndex);
+      if(!thePegout) {
+        this.logger.debug({method: 'processSignedStatusByRtx', address, batchPegoutCreationTx, outputIndex, candidates: dbPegout?.length ?? 0}, 'Not found any pegout related to this output');
+        continue;
+      }
       this.logger.debug({method: 'processSignedStatusByRtx', originatingRskTxHash: thePegout.originatingRskTxHash}, 'Found a pegout to be released');
 
       this.logPegoutData(thePegout);
@@ -158,7 +164,9 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       const newPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(thePegout);
       newPegoutStatus.setRskTxInformation(extendedBridgeTx);
       newPegoutStatus.btcRawTransaction = rawTx;
-      newPegoutStatus.btcTxHash = parsedBtcTransaction.getHash().toString('hex');
+      // getId() is the canonical big-endian txid; getHash() is the internal
+      // little-endian hash, which no explorer or Bitcoin node resolves.
+      newPegoutStatus.btcTxHash = parsedBtcTransaction.getId();
       newPegoutStatus.isNewestStatus = true;
       newPegoutStatus.status = PegoutStatuses.RELEASE_BTC;
       newPegoutStatus.valueInSatoshisToBeReceived = output.value;
@@ -179,6 +187,39 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
         this.logger.warn({method: 'processSignedStatusByRtx', err: e}, 'There was a problem with the storage');
       }
     }
+  }
+
+  /**
+   * Picks which peg-out a `release_btc` output belongs to.
+   *
+   * A single match is unambiguous. When a batch pays the same Bitcoin address
+   * more than once — the same user requesting two peg-outs to one address — the
+   * lookup by recipient returns several rows, and the tie is broken by
+   * `batchPegoutIndex`, which the Bridge assigns in the same order as the
+   * outputs of the batch transaction.
+   *
+   * Before this disambiguation both rows were skipped, so peg-outs that really
+   * were paid on Bitcoin never left `WAITING_FOR_SIGNATURE`.
+   *
+   * The index is compared numerically on purpose: `PegoutStatusDbDataModel`
+   * types it as a number, but the Mongo schema stores it as a String, so rows
+   * read back from the database carry `"0"` rather than `0`.
+   *
+   * @param candidates - Rows matching the recipient address and the batch tx.
+   * @param outputIndex - Index of the output being processed.
+   * @returns The peg-out that owns this output, or `undefined` when none does.
+   */
+  private selectPegoutForOutput(
+    candidates: PegoutStatusDbDataModel[] | undefined,
+    outputIndex: number,
+  ): PegoutStatusDbDataModel | undefined {
+    if (!candidates || candidates.length === 0) {
+      return undefined;
+    }
+    if (candidates.length === 1) {
+      return candidates[0];
+    }
+    return candidates.find(pegout => Number(pegout.batchPegoutIndex) === outputIndex);
   }
 
   private async processBatchPegouts(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {

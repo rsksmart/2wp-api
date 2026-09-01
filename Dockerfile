@@ -12,4 +12,8 @@ COPY --chown=node:node . ./
 
 RUN npm run build
 
-CMD ["node", "."]
+# API and daemon are deployed as separate processes. APP_MODE keeps the
+# default behaviour (both in one process) while letting the orchestrator
+# select API or DAEMON explicitly instead of relying on an omitted flag.
+ENV APP_MODE=ALL
+CMD ["sh", "-c", "node . --appmode=$APP_MODE"]

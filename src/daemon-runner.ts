@@ -12,6 +12,9 @@ export class DaemonRunner extends Application {
     assertNetworkConfigured();
 
     DependencyInjectionHandler.configureDependencies(this);
+    // Daemon-only bindings, the Atlas event publisher among them: emitting
+    // events is a responsibility of this process and of no other.
+    DependencyInjectionHandler.configureDaemonDependencies(this);
   }
 
   async start(): Promise<void> {
