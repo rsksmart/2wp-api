@@ -1,4 +1,5 @@
 import {AtlasEvent} from '../../models/atlas/atlas-event.model';
+import {AtlasEventFlow, AtlasEventMetrics} from './atlas-event-metrics';
 
 /**
  * Publishes Atlas SWAP events. Consumers depend on this interface and never on
@@ -8,12 +9,21 @@ import {AtlasEvent} from '../../models/atlas/atlas-event.model';
 export interface AtlasEventPublisher {
   /**
    * Publishes one event. Implementations must never reject: a transport failure
-   * is logged and swallowed so a peg-out transition already persisted is not
-   * rolled back because analytics were unreachable.
+   * is logged and swallowed so a peg transition already persisted is not rolled
+   * back because analytics were unreachable.
    *
    * @param event - The event to publish.
+   * @param flow - Which peg the event belongs to. Optional so existing callers
+   * and implementations keep working; it cannot be derived from the envelope,
+   * which is why it is passed in.
    */
-  publish(event: AtlasEvent): Promise<void>;
+  publish(event: AtlasEvent, flow?: AtlasEventFlow): Promise<void>;
+
+  /**
+   * Counters of what this publisher published, and of what it lost. Exposed so
+   * a caller — or a test — can read the totals the logs report.
+   */
+  readonly metrics: AtlasEventMetrics;
 }
 
 /**

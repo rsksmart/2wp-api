@@ -15,6 +15,7 @@ import { ExtendedBridgeEvent } from '../../../models/types/bridge-transaction-pa
 import { remove0x, ensure0x } from '../../../utils/hex-utils';
 import * as bitcoin from 'bitcoinjs-lib';
 import { AtlasEventPublisher } from '../../../services/atlas/atlas-event-publisher';
+import { AtlasEventMetrics } from '../../../services/atlas/atlas-event-metrics';
 import { AtlasEvent, AtlasEventType } from '../../../models/atlas/atlas-event.model';
 
 const sandbox = sinon.createSandbox();
@@ -44,7 +45,8 @@ process.env.RSK_PEGOUT_MINIMUM_CONFIRMATIONS = '10';
 
 type StubbedAtlasEventPublisher = AtlasEventPublisher & {publish: sinon.SinonStub};
 
-const givenAtlasEventPublisher = (): StubbedAtlasEventPublisher => ({publish: sinon.stub().resolves()});
+const givenAtlasEventPublisher = (): StubbedAtlasEventPublisher =>
+  ({publish: sinon.stub().resolves(), metrics: new AtlasEventMetrics()});
 
 let atlasEventPublisher: StubbedAtlasEventPublisher = givenAtlasEventPublisher();
 
@@ -1055,6 +1057,19 @@ describe('Service: PegoutDataProcessor', () => {
       expect(event.event_type).to.equal(AtlasEventType.SWAP_CREATED);
       expect(event.swap_id).to.equal(ATLAS_ORIGINATING_RSK_TX_HASH);
       sinon.assert.callOrder(pegoutStatusDataService.set, publisher.publish);
+    });
+
+    // The flow cannot be derived from the envelope, so the processor has to
+    // pass it for the publication metric to be broken down by peg.
+    it('tells the publisher these events are peg-outs', async () => {
+      const {publisher, processor} = givenProcessor();
+
+      await processor.process(givenReleaseRequestReceivedTx());
+
+      sinon.assert.called(publisher.publish);
+      publisher.publish.getCalls().forEach(call => {
+        expect(call.args[1]).to.equal('pegout');
+      });
     });
 
     it('publishes exactly one swap.rejected after saving a REJECTED status', async () => {

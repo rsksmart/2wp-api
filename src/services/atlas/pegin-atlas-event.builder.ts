@@ -9,11 +9,18 @@ import {
   AtlasEvent,
   AtlasEventData,
   AtlasEventType,
+  SwapCompletedData,
   SwapCreatedData,
   SwapRejectedData,
 } from '../../models/atlas/atlas-event.model';
 import {resolvePeginChainIds} from '../../models/atlas/atlas-chain';
 import {satoshisToDecimalString} from '../../models/atlas/atlas-amount';
+import {normalizeAddress, normalizeSwapId} from '../../models/atlas/atlas-identifiers';
+import {
+  errorCategoryOf,
+  nonRefundablePeginReasonName,
+  rejectedPeginReasonName,
+} from '../../models/atlas/atlas-pegin-reasons';
 import {
   PeginStatus,
   PeginStatusDataModel,
@@ -22,11 +29,17 @@ import {BRIDGE_EVENTS} from '../../utils/bridge-utils';
 import {ExtendedBridgeEvent} from '../../models/types/bridge-transaction-parser';
 import ExtendedBridgeTx from '../extended-bridge-tx';
 
-const REJECTION_CATEGORY_VALIDATION = 'validation';
-const REJECTION_CATEGORY_PROTOCOL = 'protocol_violation';
-const REJECTED_MESSAGE = 'Peg-in rejected by the Bridge';
-const UNREFUNDABLE_MESSAGE = 'Sender protocol not honored; funds not refundable';
-const UNKNOWN_REASON = 'UNKNOWN';
+const REJECTED_MESSAGE_PREFIX = 'Peg-in rejected by the Bridge';
+const ABSENT_REASON = 'absent';
+/**
+ * Reported when the Bridge rejected the peg-in and emitted no refund branch.
+ * The name describes what was observed, not the cause: the probable one —
+ * `buildEmptyWalletTo` failing and rskj panicking — is nowhere in the logs.
+ */
+const NO_REFUND_BRANCH_CODE = 'PEGIN_REJECTED_NO_REFUND_BRANCH';
+const NO_REFUND_BRANCH_CLAUSE = 'the Bridge emitted no refund branch';
+/** The Bridge credits the whole amount sent: a peg-in has no fee to subtract. */
+const NO_FEE = satoshisToDecimalString(0);
 const ZERO_AMOUNT = satoshisToDecimalString(0);
 
 /**
@@ -38,9 +51,12 @@ const ZERO_AMOUNT = satoshisToDecimalString(0);
  */
 export interface PeginAtlasEventContext {
   /**
-   * `amount` of `pegin_btc` / `lock_btc`, **in satoshis**. Absent on the
-   * rejection path. Unlike the peg-out logs, whose `amount` is in weis, the
-   * peg-in logs report satoshis directly, so no conversion applies here.
+   * `amount` **in satoshis**, from `pegin_btc` / `lock_btc` when the peg-in was
+   * locked, or from `release_requested` when it was rejected with a refund.
+   * Absent only for an unrefundable rejection, whose logs carry no amount.
+   *
+   * Unlike the peg-out logs, whose `amount` is in weis, all three peg-in logs
+   * report satoshis directly, so no conversion applies here.
    */
   amountInSatoshis?: string;
   /** Only `lock_btc` carries the Bitcoin address of the sender. */
@@ -57,10 +73,11 @@ export interface PeginAtlasEventContext {
  * Turns a persisted peg-in status into the Atlas SWAP events its transition
  * represents.
  *
- * Unlike peg-out, a peg-in record is written once and never updated, so there
- * is a single emission per `btcTxId`. `LOCKED` produces just `swap.created`;
- * `swap.completed` is out of scope for now, which means a successful peg-in
- * stays PENDING on the analytics side.
+ * Unlike peg-out, a peg-in record is written once and never updated, so every
+ * event of one peg-in is emitted in a single pass over one Bridge transaction:
+ * `LOCKED` produces `swap.created` and `swap.completed` together, and a
+ * rejection produces `swap.created` and `swap.rejected`. `swap.pending` has no
+ * trigger, since the daemon never observes the deposit on Bitcoin.
  */
 export class PeginAtlasEventBuilder {
 
@@ -78,12 +95,24 @@ export class PeginAtlasEventBuilder {
     const peginBtc = byName(BRIDGE_EVENTS.PEGIN_BTC);
     const rejected = byName(BRIDGE_EVENTS.REJECTED_PEGIN);
     const unrefundable = byName(BRIDGE_EVENTS.UNREFUNDABLE_PEGIN);
+    const releaseRequested = byName(BRIDGE_EVENTS.RELEASE_REQUESTED);
     const locked = lockBtc ?? peginBtc;
 
     const context: PeginAtlasEventContext = {};
     if (locked) {
       context.amountInSatoshis = this.asString(locked.arguments.amount);
       context.rskRecipient = this.asString(locked.arguments.receiver);
+    } else if (releaseRequested) {
+      // A refundable rejection reports the amount nowhere else. This is
+      // `computeTotalAmountSent(btcTx)` on the Bridge side: the total the user
+      // sent to the federation, in satoshis, which is the right input_amount.
+      // The refund arrives minus the Bitcoin fee, but that difference belongs
+      // to an outgoing event this schema does not have.
+      //
+      // A locked log and a release_requested do not coexist in one peg-in
+      // transaction; fixing the precedence anyway leaves the behaviour defined
+      // if they ever do.
+      context.amountInSatoshis = this.asString(releaseRequested.arguments.amount);
     }
     if (lockBtc) {
       context.senderBtcAddress = this.asString(lockBtc.arguments.senderBtcAddress);
@@ -100,9 +129,10 @@ export class PeginAtlasEventBuilder {
   /**
    * Builds the Atlas events matching the status of `pegin`.
    *
-   * A rejection yields two events: `swap.created` first, so the Worker has a
-   * row carrying chains and assets, and `swap.rejected` right after. The order
-   * of the array is the order they must be published in.
+   * Every in-scope status yields two events, `swap.created` first so the Worker
+   * has a row carrying chains and assets, then the outcome — `swap.completed`
+   * or `swap.rejected`. The order of the array is the order they must be
+   * published in.
    *
    * @param pegin - The peg-in status just written to the database.
    * @param context - Fields read from the Bridge logs of the same transaction.
@@ -114,7 +144,14 @@ export class PeginAtlasEventBuilder {
   ): AtlasEvent[] {
     switch (pegin.status) {
       case PeginStatus.LOCKED:
-        return [this.envelope(pegin, AtlasEventType.SWAP_CREATED, this.createdData(context))];
+        return [
+          this.envelope(pegin, AtlasEventType.SWAP_CREATED, this.createdData(context)),
+          this.envelope(
+            pegin,
+            AtlasEventType.SWAP_COMPLETED,
+            this.completedData(pegin, context),
+          ),
+        ];
       case PeginStatus.REJECTED_REFUND:
         return [
           this.envelope(pegin, AtlasEventType.SWAP_CREATED, this.createdData(context)),
@@ -138,7 +175,7 @@ export class PeginAtlasEventBuilder {
     return {
       event_id: randomUUID(),
       event_type: eventType,
-      swap_id: pegin.btcTxId,
+      swap_id: normalizeSwapId(pegin.btcTxId),
       swap_type: ATLAS_SWAP_TYPE,
       source: ATLAS_SOURCE,
       schema_version: ATLAS_SCHEMA_VERSION,
@@ -160,52 +197,110 @@ export class PeginAtlasEventBuilder {
       // `lock_btc` is the only log carrying the user's Bitcoin address; with
       // `pegin_btc` the best available is the Rootstock destination account,
       // and a rejection carries neither.
-      wallet_address: context.senderBtcAddress ?? context.rskRecipient ?? null,
+      wallet_address: normalizeAddress(context.senderBtcAddress ?? context.rskRecipient),
       wallet_type: null,
       quote_id: null,
     };
   }
 
-  private static refundableRejection(context: PeginAtlasEventContext): SwapRejectedData {
+  /**
+   * Describes the completion of a peg-in.
+   *
+   * `duration_ms` travels null on purpose: the daemon observes Rootstock only,
+   * so when the deposit was broadcast on Bitcoin is unknown, and a zero would
+   * pull the average swap duration down instead of leaving it unmeasured.
+   *
+   * @param pegin - The peg-in status just persisted.
+   * @param context - Fields read from the Bridge logs.
+   * @returns The `swap.completed` payload.
+   */
+  private static completedData(
+    pegin: PeginStatusDataModel,
+    context: PeginAtlasEventContext,
+  ): SwapCompletedData {
     return {
-      error_category: REJECTION_CATEGORY_VALIDATION,
-      error_code: this.rejectionCode('PEGIN_REJECTION', context.rejectedReason),
-      error_message: REJECTED_MESSAGE,
+      // The RBTC is credited by the very Rootstock transaction being processed.
+      destination_tx_hash: normalizeSwapId(pegin.rskTxId),
+      output_amount: this.inputAmount(context),
+      output_amount_usd: null,
+      fee: NO_FEE,
+      duration_ms: null,
+    };
+  }
+
+  private static refundableRejection(context: PeginAtlasEventContext): SwapRejectedData {
+    const reasonName = rejectedPeginReasonName(context.rejectedReason);
+    return {
+      error_category: errorCategoryOf(reasonName),
+      error_code: reasonName,
+      error_message: this.rejectionMessage(reasonName, context),
       refund_applicable: true,
     };
   }
 
+  /**
+   * Describes a rejection whose funds are not coming back, in both of its
+   * shapes: the Bridge declared the peg-in unrefundable, or it emitted no
+   * refund branch at all.
+   *
+   * The `error_category` always comes from the `rejected_pegin` reason, which
+   * is the root cause and the only log present in every branch. The
+   * `error_code` names that same reason, except when there is no refund branch
+   * to speak of: that absence is the more specific fact, so it takes the code.
+   *
+   * @param context - Fields read from the Bridge logs.
+   * @returns The `swap.rejected` payload.
+   */
   private static unrefundableRejection(context: PeginAtlasEventContext): SwapRejectedData {
+    const reasonName = rejectedPeginReasonName(context.rejectedReason);
+    const declared = nonRefundablePeginReasonName(context.unrefundableReason) !== undefined;
     return {
-      error_category: REJECTION_CATEGORY_PROTOCOL,
-      error_code: this.rejectionCode('PEGIN_UNREFUNDABLE', context.unrefundableReason),
-      error_message: UNREFUNDABLE_MESSAGE,
+      error_category: errorCategoryOf(reasonName),
+      error_code: declared ? reasonName : NO_REFUND_BRANCH_CODE,
+      error_message: this.rejectionMessage(
+        reasonName,
+        context,
+        declared ? undefined : NO_REFUND_BRANCH_CLAUSE,
+      ),
       refund_applicable: false,
     };
   }
 
   /**
-   * Encodes a Bridge rejection reason as a stable error code.
+   * Composes the human-readable rejection message.
    *
-   * The numeric reasons of `rejected_pegin` / `unrefundable_pegin` are passed
-   * through rather than translated: their meaning is not documented anywhere in
-   * this repository and inventing names would put made-up semantics in the
-   * analytics database. The codes stay distinguishable, so a mapping can be
-   * added later without changing the shape of the event.
+   * The raw numbers travel here, in the message, so a reason this build cannot
+   * name is still recoverable from the event itself without going back to the
+   * chain.
    *
-   * @param prefix - Namespace of the code, which tells the two logs apart.
-   * @param reason - The numeric reason as it came in the log.
-   * @returns e.g. `PEGIN_REJECTION_3`, or `PEGIN_REJECTION_UNKNOWN` when absent.
+   * @param reasonName - The named reason of `rejected_pegin`.
+   * @param context - Fields read from the Bridge logs.
+   * @param clause - What to say instead when there is no `unrefundable_pegin`
+   * reason to report.
+   * @returns The message for `swap.rejected`.
    */
-  private static rejectionCode(prefix: string, reason: string | undefined): string {
-    const value = reason !== undefined && reason !== '' ? reason : UNKNOWN_REASON;
-    return `${prefix}_${value}`;
+  private static rejectionMessage(
+    reasonName: string,
+    context: PeginAtlasEventContext,
+    clause?: string,
+  ): string {
+    const unrefundableName = nonRefundablePeginReasonName(context.unrefundableReason);
+    const reasons = [`rejected_pegin reason=${context.rejectedReason ?? ABSENT_REASON}`];
+    let message = `${REJECTED_MESSAGE_PREFIX}: ${reasonName}`;
+    if (unrefundableName !== undefined) {
+      message += ` \u2014 funds not refundable (${unrefundableName})`;
+      reasons.push(`unrefundable_pegin reason=${context.unrefundableReason}`);
+    } else if (clause !== undefined) {
+      message += ` \u2014 ${clause}`;
+    }
+    return `${message}. ${reasons.join(', ')}`;
   }
 
   private static inputAmount(context: PeginAtlasEventContext): string {
     if (context.amountInSatoshis === undefined) {
-      // The rejection logs carry no amount. Zero is the honest value here: the
-      // peg-in never converted, and the Worker reads volume from `completed`.
+      // Only an unrefundable rejection gets here: neither `rejected_pegin` nor
+      // `unrefundable_pegin` carries an amount and there is no other
+      // transaction to read it from, so zero is the only honest value.
       return ZERO_AMOUNT;
     }
     // `pegin_btc` / `lock_btc` report satoshis. Running these through the

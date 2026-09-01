@@ -2,6 +2,7 @@ import {SQSClient, SendMessageCommand} from '@aws-sdk/client-sqs';
 import {AtlasEvent} from '../../models/atlas/atlas-event.model';
 import {getLogger, Logger} from '../../utils/logger';
 import {AtlasEventPublisher} from './atlas-event-publisher';
+import {AtlasEventFlow, AtlasEventMetrics} from './atlas-event-metrics';
 
 const DEFAULT_AWS_REGION = 'us-east-1';
 
@@ -14,12 +15,14 @@ const DEFAULT_AWS_REGION = 'us-east-1';
  * content based deduplication disabled.
  */
 export class SqsAtlasEventPublisher implements AtlasEventPublisher {
+  readonly metrics: AtlasEventMetrics;
   private logger: Logger;
   private client: SQSClient;
   private queueUrl: string;
 
   constructor() {
     this.logger = getLogger('sqsAtlasEventPublisher');
+    this.metrics = new AtlasEventMetrics();
     this.queueUrl = process.env.ATLAS_SQS_QUEUE_URL ?? '';
     this.client = new SQSClient({
       region: process.env.AWS_REGION ?? DEFAULT_AWS_REGION,
@@ -33,9 +36,13 @@ export class SqsAtlasEventPublisher implements AtlasEventPublisher {
    * at error level and never propagated: the peg-out status is already stored
    * and the daemon must keep processing blocks.
    *
+   * Either outcome is counted, which is what makes a loss visible: a failure
+   * here means one Atlas event that no retry will ever send.
+   *
    * @param event - The event to publish.
+   * @param flow - Which peg the event belongs to.
    */
-  async publish(event: AtlasEvent): Promise<void> {
+  async publish(event: AtlasEvent, flow?: AtlasEventFlow): Promise<void> {
     try {
       await this.client.send(new SendMessageCommand({
         QueueUrl: this.queueUrl,
@@ -47,6 +54,7 @@ export class SqsAtlasEventPublisher implements AtlasEventPublisher {
         {method: 'publish', eventType: event.event_type, swapId: event.swap_id},
         'Atlas event published',
       );
+      this.metrics.recordSuccess(event.event_type, flow);
     } catch (e) {
       this.logger.error(
         {
@@ -58,6 +66,7 @@ export class SqsAtlasEventPublisher implements AtlasEventPublisher {
         },
         'Could not publish the Atlas event',
       );
+      this.metrics.recordFailure(event.event_type, flow);
     }
   }
 

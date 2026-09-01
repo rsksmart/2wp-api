@@ -100,6 +100,78 @@ describe('Service: SqsAtlasEventPublisher', () => {
     await publisher.publish(event);
   });
 
+  describe('publication metric', () => {
+    it('records a success when SQS accepts the message', async () => {
+      sandbox.stub(SQSClient.prototype, 'send').resolves({MessageId: 'id'} as never);
+      const publisher = new SqsAtlasEventPublisher();
+
+      await publisher.publish(event, 'pegout');
+
+      expect(publisher.metrics.total('success', event.event_type, 'pegout')).to.equal(1);
+      expect(publisher.metrics.total('failure', event.event_type, 'pegout')).to.equal(0);
+      publisher.destroy();
+    });
+
+    it('records a failure when SQS rejects it, and still does not throw', async () => {
+      sandbox.stub(SQSClient.prototype, 'send').rejects(new Error('queue unavailable'));
+      const publisher = new SqsAtlasEventPublisher();
+
+      await publisher.publish(event, 'pegin');
+
+      expect(publisher.metrics.total('failure', event.event_type, 'pegin')).to.equal(1);
+      expect(publisher.metrics.total('success', event.event_type, 'pegin')).to.equal(0);
+      publisher.destroy();
+    });
+
+    // Counters are keyed by flow and event type, so a peg-in rejection must not
+    // land in the peg-out bucket, nor be confused with a swap.created.
+    it('counts a peg-in rejection under its own flow and event type', async () => {
+      sandbox.stub(SQSClient.prototype, 'send').resolves({MessageId: 'id'} as never);
+      const publisher = new SqsAtlasEventPublisher();
+      const rejection = {
+        ...event,
+        event_id: '7c1f0f4e-2b3a-4d5c-8e6f-9a0b1c2d3e4f',
+        event_type: AtlasEventType.SWAP_REJECTED,
+        data: {
+          error_category: 'validation',
+          error_code: 'PEGIN_V1_INVALID_PAYLOAD',
+          error_message: 'Peg-in rejected by the Bridge: PEGIN_V1_INVALID_PAYLOAD',
+          refund_applicable: true,
+        },
+      } as AtlasEvent;
+
+      await publisher.publish(rejection, 'pegin');
+
+      expect(publisher.metrics.total('success', AtlasEventType.SWAP_REJECTED, 'pegin')).to.equal(1);
+      expect(publisher.metrics.total('success', AtlasEventType.SWAP_REJECTED, 'pegout')).to.equal(0);
+      expect(publisher.metrics.total('success', AtlasEventType.SWAP_CREATED, 'pegin')).to.equal(0);
+      publisher.destroy();
+    });
+
+    it('records a failed peg-in rejection as a loss, not a success', async () => {
+      sandbox.stub(SQSClient.prototype, 'send').rejects(new Error('queue unavailable'));
+      const publisher = new SqsAtlasEventPublisher();
+      const rejection = {...event, event_type: AtlasEventType.SWAP_REJECTED} as AtlasEvent;
+
+      await publisher.publish(rejection, 'pegin');
+
+      expect(publisher.metrics.total('failure', AtlasEventType.SWAP_REJECTED, 'pegin')).to.equal(1);
+      expect(publisher.metrics.total('success', AtlasEventType.SWAP_REJECTED, 'pegin')).to.equal(0);
+      publisher.destroy();
+    });
+
+    // A metric named published_total must not count events that were never
+    // published: with the flag off nothing reaches the queue and nothing counts.
+    it('counts nothing when the Noop publisher discards the event', async () => {
+      const publisher = new NoopAtlasEventPublisher();
+
+      await publisher.publish(event, 'pegin');
+
+      expect(publisher.metrics.total('success', event.event_type, 'pegin')).to.equal(0);
+      expect(publisher.metrics.total('failure', event.event_type, 'pegin')).to.equal(0);
+    });
+  });
+
   it('does not touch SQS when the Noop publisher is used', async () => {
     const send = sandbox.stub(SQSClient.prototype, 'send').resolves({} as never);
 

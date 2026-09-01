@@ -505,7 +505,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       if (!event) {
         return;
       }
-      await this.atlasEventPublisher.publish(event);
+      await this.atlasEventPublisher.publish(event, 'pegout');
     } catch (e) {
       this.logger.error(
         {method: 'publishAtlasEvent', err: e, originatingRskTxHash: pegout.originatingRskTxHash},

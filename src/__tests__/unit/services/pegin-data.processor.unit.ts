@@ -9,12 +9,13 @@ import {Transaction} from '@rsksmart/bridge-transaction-parser';
 import {bridge} from '@rsksmart/rsk-precompiled-abis';
 import {ExtendedBridgeEvent} from "../../../models/types/bridge-transaction-parser";
 import {AtlasEventPublisher} from '../../../services/atlas/atlas-event-publisher';
+import {AtlasEventMetrics} from '../../../services/atlas/atlas-event-metrics';
 import {AtlasEvent, AtlasEventType, SwapCreatedData, SwapRejectedData} from '../../../models/atlas/atlas-event.model';
 
 type StubbedAtlasEventPublisher = AtlasEventPublisher & {publish: sinon.SinonStub};
 
 const givenAtlasEventPublisher = (): StubbedAtlasEventPublisher =>
-  ({publish: sinon.stub().resolves()});
+  ({publish: sinon.stub().resolves(), metrics: new AtlasEventMetrics()});
 
 const publishedEvents = (publisher: StubbedAtlasEventPublisher): AtlasEvent[] =>
   publisher.publish.getCalls().map(call => call.args[0] as AtlasEvent);
@@ -220,7 +221,7 @@ describe('Service: PeginDataProcessor', () => {
     }
   });
 
-  it('parses a transaction with just a REJECTED_PEGIN log as null (should never happen :))', () => {
+  it('parses a rejected_pegin with neither companion log as REJECTED_NO_REFUND', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
@@ -253,7 +254,13 @@ describe('Service: PeginDataProcessor', () => {
     const thisService = new PeginDataProcessor(mockedPeginStatusDataService, givenAtlasEventPublisher());
     const result = thisService.parse(extendedBridgeTx);
 
-    expect(result).to.be.null;
+    // The Bridge rejected the peg-in and emitted no refund branch at all. The
+    // user's funds are not coming back, so the honest status is the same one a
+    // declared unrefundable pegin gets, rather than no status at all.
+    expect(result).to.not.be.null();
+    expect(result!.status).to.equal(PeginStatus.REJECTED_NO_REFUND);
+    expect(result!.btcTxId).to.equal(btcTxHash);
+    expect(result!.rskTxId).to.equal(rskTxHash);
   });
 
   it('parses a transaction with REJECTED_PEGIN and RELEASE_REQUESTED event logs as a rejected pegin with refund', () => {
@@ -508,14 +515,16 @@ describe('Service: PeginDataProcessor', () => {
       return {dataService, publisher, processor: new PeginDataProcessor(dataService, publisher)};
     };
 
-    it('publishes a single swap.created for a LOCKED pegin', async () => {
+    it('publishes exactly two events for a LOCKED pegin, in order', async () => {
       const {dataService, publisher, processor} = givenProcessor();
 
       await processor.process(givenTx([givenPeginBtcEvent()]));
 
-      sinon.assert.calledOnce(publisher.publish);
-      const [event] = publishedEvents(publisher);
+      sinon.assert.calledTwice(publisher.publish);
+      const [event, completed] = publishedEvents(publisher);
       expect(event.event_type).to.equal(AtlasEventType.SWAP_CREATED);
+      expect(completed.event_type).to.equal(AtlasEventType.SWAP_COMPLETED);
+      expect(completed.swap_id).to.equal(event.swap_id);
       expect(event.swap_id).to.equal(btcTxHash);
       expect(event.emitted_at).to.equal('2024-05-01T10:00:00.000Z');
 
@@ -525,7 +534,7 @@ describe('Service: PeginDataProcessor', () => {
       expect(data.input_asset).to.equal('BTC');
       expect(data.output_asset).to.equal('RBTC');
       expect(data.input_amount).to.equal('0.50000000');
-      expect(data.wallet_address).to.equal(receiver);
+      expect(data.wallet_address).to.equal(receiver.toLowerCase());
 
       sinon.assert.callOrder(dataService.set, publisher.publish);
     });
@@ -553,17 +562,45 @@ describe('Service: PeginDataProcessor', () => {
       expect(created.swap_id).to.equal(btcTxHash);
       expect(rejected.swap_id).to.equal(btcTxHash);
 
-      // The rejection logs carry neither amount nor addresses.
+      // release_requested carries the amount the user sent; no log in this
+      // branch carries an address.
       const createdData = created.data as SwapCreatedData;
-      expect(createdData.input_amount).to.equal('0.00000000');
+      expect(createdData.input_amount).to.equal('0.00001000');
       expect(createdData.wallet_address).to.be.null();
 
+      // rejected_pegin reason=3 is LEGACY_PEGIN_UNDETERMINED_SENDER in rskj.
       const rejectedData = rejected.data as SwapRejectedData;
       expect(rejectedData.refund_applicable).to.be.true();
-      expect(rejectedData.error_category).to.equal('validation');
-      expect(rejectedData.error_code).to.equal('PEGIN_REJECTION_3');
+      expect(rejectedData.error_category).to.equal('protocol_violation');
+      expect(rejectedData.error_code).to.equal('LEGACY_PEGIN_UNDETERMINED_SENDER');
+      expect(rejectedData.error_message).to.match(/rejected_pegin reason=3/);
 
       sinon.assert.callOrder(dataService.set, publisher.publish);
+    });
+
+    it('publishes the amount the user sent for a refundable rejection', async () => {
+      const releaseRequested = (<ExtendedBridgeEvent> <unknown> {
+        name: 'release_requested',
+        signature: '0x7a7c29481528ac8c2b2e93aee658fddd4dc15304fa723a5c2b88514557bcc790',
+        arguments: {btcTxHash, rskTxHash, amount: halfBtcInSatoshis},
+      });
+      const {publisher, processor} = givenProcessor();
+
+      await processor.process(givenTx([getMockedRejectedPeginEvent(), releaseRequested]));
+
+      const [created] = publishedEvents(publisher);
+      expect((created.data as SwapCreatedData).input_amount).to.equal('0.50000000');
+    });
+
+    it('reports zero for an unrefundable rejection, which carries no amount', async () => {
+      const {publisher, processor} = givenProcessor();
+
+      await processor.process(
+        givenTx([getMockedRejectedPeginEvent(), getMockedUnrefundablePeginEvent()]),
+      );
+
+      const [created] = publishedEvents(publisher);
+      expect((created.data as SwapCreatedData).input_amount).to.equal('0.00000000');
     });
 
     it('publishes swap.created then a terminal swap.rejected for an unrefundable pegin', async () => {
@@ -577,10 +614,81 @@ describe('Service: PeginDataProcessor', () => {
       const [created, rejected] = publishedEvents(publisher);
       expect(created.event_type).to.equal(AtlasEventType.SWAP_CREATED);
 
+      // The code names the root cause, rejected_pegin reason=3, while the
+      // unrefundable reason=1 only explains why no refund was issued.
       const rejectedData = rejected.data as SwapRejectedData;
       expect(rejectedData.refund_applicable).to.be.false();
       expect(rejectedData.error_category).to.equal('protocol_violation');
-      expect(rejectedData.error_code).to.equal('PEGIN_UNREFUNDABLE_1');
+      expect(rejectedData.error_code).to.equal('LEGACY_PEGIN_UNDETERMINED_SENDER');
+      expect(rejectedData.error_message).to.match(/unrefundable_pegin reason=1/);
+      expect(rejectedData.error_message).to.match(/not refundable/);
+    });
+
+    describe('rejection with no refund branch', () => {
+      const givenNoRefundBranchTx = () => givenTx([getMockedRejectedPeginEvent()]);
+
+      it('persists that pegin so the user gets a status', async () => {
+        const {dataService, processor} = givenProcessor();
+
+        await processor.process(givenNoRefundBranchTx());
+
+        sinon.assert.calledOnce(dataService.set);
+        const [persisted] = dataService.set.firstCall.args as [PeginStatusDataModel];
+        expect(persisted.status).to.equal(PeginStatus.REJECTED_NO_REFUND);
+      });
+
+      it('publishes swap.created then swap.rejected for it', async () => {
+        const {publisher, processor} = givenProcessor();
+
+        await processor.process(givenNoRefundBranchTx());
+
+        sinon.assert.calledTwice(publisher.publish);
+        const [created, rejected] = publishedEvents(publisher);
+        expect(created.event_type).to.equal(AtlasEventType.SWAP_CREATED);
+        expect(rejected.event_type).to.equal(AtlasEventType.SWAP_REJECTED);
+
+        const rejectedData = rejected.data as SwapRejectedData;
+        expect(rejectedData.error_code).to.equal('PEGIN_REJECTED_NO_REFUND_BRANCH');
+        expect(rejectedData.refund_applicable).to.be.false();
+      });
+
+      it('warns that the Bridge emitted no refund branch', async () => {
+        const {processor} = givenProcessor();
+        const warn = sinon.spy(processor.logger, 'warn');
+
+        await processor.process(givenNoRefundBranchTx());
+
+        sinon.assert.called(warn);
+        expect(JSON.stringify(warn.getCalls().map(call => call.args)))
+          .to.match(/refund branch/i);
+      });
+    });
+
+    // The flow cannot be derived from the envelope, so the processor has to
+    // pass it for the publication metric to be broken down by peg.
+    it('tells the publisher these events are peg-ins', async () => {
+      const {publisher, processor} = givenProcessor();
+
+      await processor.process(givenTx([givenPeginBtcEvent()]));
+
+      sinon.assert.called(publisher.publish);
+      publisher.publish.getCalls().forEach(call => {
+        expect(call.args[1]).to.equal('pegin');
+      });
+    });
+
+    it('tells the publisher a rejection is a peg-in too', async () => {
+      const {publisher, processor} = givenProcessor();
+
+      await processor.process(
+        givenTx([getMockedRejectedPeginEvent(), getMockedUnrefundablePeginEvent()]),
+      );
+
+      sinon.assert.calledTwice(publisher.publish);
+      const [created, rejected] = publisher.publish.getCalls();
+      expect(created.args[1]).to.equal('pegin');
+      expect(rejected.args[1]).to.equal('pegin');
+      expect((rejected.args[0] as AtlasEvent).event_type).to.equal(AtlasEventType.SWAP_REJECTED);
     });
 
     it('gives every event its own event_id', async () => {
@@ -592,6 +700,52 @@ describe('Service: PeginDataProcessor', () => {
 
       const [created, rejected] = publishedEvents(publisher);
       expect(created.event_id).to.not.equal(rejected.event_id);
+    });
+
+    describe('when one event of a pair cannot be delivered', () => {
+      const givenRejectionTx = () =>
+        givenTx([getMockedRejectedPeginEvent(), getMockedUnrefundablePeginEvent()]);
+
+      // This is what actually happens in production: SqsAtlasEventPublisher
+      // swallows a transport failure and counts it, so the loop keeps going and
+      // the rejection still reaches the queue even if the created event was lost.
+      it('still publishes the rejection when the transport drops the created event', async () => {
+        const {publisher, processor} = givenProcessor();
+        publisher.publish.callsFake(async (event: AtlasEvent, flow: 'pegin' | 'pegout') => {
+          if (event.event_type === AtlasEventType.SWAP_CREATED) {
+            publisher.metrics.recordFailure(event.event_type, flow);
+            return;
+          }
+          publisher.metrics.recordSuccess(event.event_type, flow);
+        });
+
+        await processor.process(givenRejectionTx());
+
+        sinon.assert.calledTwice(publisher.publish);
+        expect(publisher.metrics.total('failure', AtlasEventType.SWAP_CREATED, 'pegin')).to.equal(1);
+        expect(publisher.metrics.total('success', AtlasEventType.SWAP_REJECTED, 'pegin')).to.equal(1);
+      });
+
+      // A publisher that rejects is violating its interface contract. The pair
+      // is then truncated on purpose: a swap.rejected with no swap.created
+      // would reach Atlas for a swap it never opened a row for, which is worse
+      // than the swap being absent and the failure logged.
+      it('stops at the first event a publisher throws on, rather than emitting a rejection with no created', async () => {
+        const {dataService, publisher, processor} = givenProcessor();
+        const error = sinon.spy(processor.logger, 'error');
+        publisher.publish.onFirstCall().rejects(new Error('publisher violated its contract'));
+
+        await processor.process(givenRejectionTx());
+
+        sinon.assert.calledOnce(publisher.publish);
+        expect(publishedEvents(publisher).map(e => e.event_type))
+          .to.eql([AtlasEventType.SWAP_CREATED]);
+        // The status stays written: analytics never roll back a peg-in.
+        sinon.assert.calledOnce(dataService.set);
+        sinon.assert.called(error);
+        expect(JSON.stringify(error.getCalls().map(call => call.args)))
+          .to.match(/Could not build or publish/);
+      });
     });
 
     it('does not publish when the status could not be saved', async () => {

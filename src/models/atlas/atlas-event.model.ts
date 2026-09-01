@@ -5,9 +5,9 @@ import {ChainId} from './atlas-chain';
  * `expired`, `refund_pending`, `refunded`, `claim_pending` and `claimed` do not
  * apply to native peg-in / peg-out and are therefore out of scope.
  *
- * Peg-in only reaches `swap.created` and `swap.rejected`: the daemon observes
- * Rootstock alone, so the deposit on Bitcoin is never seen and `swap.pending`
- * has no trigger. `swap.completed` is deliberately left out for now.
+ * Peg-in never reaches `swap.pending`: the daemon observes Rootstock alone, so
+ * the deposit on Bitcoin is never seen and there is nothing to report as
+ * pending. Its other three types are all emitted.
  */
 export enum AtlasEventType {
   SWAP_CREATED = 'swap.created',

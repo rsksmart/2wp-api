@@ -45,10 +45,19 @@
       "enum": ["BTC", "RBTC"]
     },
     "errorCode": {
+      "description": "Peg-out rejection reasons, peg-in rejection reasons named after the rskj RejectedPeginReason enum, the observed absence of a refund branch, and the fallback for a reason rskj added after this schema.",
       "type": "string",
-      "anyOf": [
-        {"enum": ["LOW_AMOUNT", "CALLER_CONTRACT", "FEE_ABOVE_VALUE", "UNKNOWN"]},
-        {"pattern": "^PEGIN_(REJECTION|UNREFUNDABLE)_[0-9A-Z]+$"}
+      "enum": [
+        "LOW_AMOUNT",
+        "CALLER_CONTRACT",
+        "FEE_ABOVE_VALUE",
+        "PEGIN_CAP_SURPASSED",
+        "LEGACY_PEGIN_MULTISIG_SENDER",
+        "LEGACY_PEGIN_UNDETERMINED_SENDER",
+        "PEGIN_V1_INVALID_PAYLOAD",
+        "INVALID_AMOUNT",
+        "PEGIN_REJECTED_NO_REFUND_BRANCH",
+        "UNKNOWN"
       ]
     }
   },

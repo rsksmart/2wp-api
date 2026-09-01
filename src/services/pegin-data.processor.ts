@@ -94,7 +94,16 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
         this.logger.debug({method: 'getPeginStatus'}, 'PegIn rejected, unrefundable');
         return status;
       }
-      this.logger.warn({method: 'getPeginStatus', txHash: extendedBridgeTx.txHash}, 'Call to RegisterBtcTransaction with invalid data');
+      // The Bridge rejected the peg-in and emitted no refund branch: neither
+      // release_requested nor unrefundable_pegin. The funds are not coming
+      // back, so this is reported as unrefundable rather than dropped, which
+      // used to leave the user with no status at all.
+      status.status = RskPeginStatusEnum.REJECTED_NO_REFUND;
+      this.logger.warn(
+        {method: 'getPeginStatus', txHash: extendedBridgeTx.txHash},
+        'PegIn rejected and the Bridge emitted no refund branch, recording it as unrefundable',
+      );
+      return status;
     }
 
   }
@@ -137,7 +146,7 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
       const events = PeginAtlasEventBuilder.build(peginStatus, context);
       await events.reduce(async (promise, event) => {
         await promise;
-        await this.atlasEventPublisher.publish(event);
+        await this.atlasEventPublisher.publish(event, 'pegin');
       }, Promise.resolve());
     } catch (e) {
       this.logger.error(

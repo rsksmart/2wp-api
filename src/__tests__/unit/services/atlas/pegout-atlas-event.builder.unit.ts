@@ -86,7 +86,7 @@ describe('Service: PegoutAtlasEventBuilder', () => {
         output_asset: 'BTC',
         input_amount: '0.10000000',
         input_amount_usd: null,
-        wallet_address: rskSenderAddress,
+        wallet_address: rskSenderAddress.toLowerCase(),
         wallet_type: null,
         quote_id: null,
       });
@@ -274,6 +274,50 @@ describe('Service: PegoutAtlasEventBuilder', () => {
           expect(data[key]).to.be.null();
         }
       }
+    });
+  });
+
+  describe('identifier normalization', () => {
+    it('normalizes the swap_id of every event it builds', () => {
+      const statuses = [
+        PegoutStatuses.RECEIVED,
+        PegoutStatuses.WAITING_FOR_CONFIRMATION,
+        PegoutStatuses.RELEASE_BTC,
+        PegoutStatuses.REJECTED,
+      ];
+
+      for (const status of statuses) {
+        const event = PegoutAtlasEventBuilder.build(givenPegout({
+          status,
+          originatingRskTxHash: originatingRskTxHash.toUpperCase().replace('0X', ''),
+          btcTxHash,
+          valueInSatoshisToBeReceived: 9995000,
+        }))!;
+
+        expect(event.swap_id).to.equal(originatingRskTxHash);
+      }
+    });
+
+    it('normalizes the rskSenderAddress used as wallet_address', () => {
+      const event = PegoutAtlasEventBuilder.build(givenPegout({
+        status: PegoutStatuses.RECEIVED,
+        rskSenderAddress: '0x40d2878B98A9C5A5b7bc3B2FC0e26dfDefCfe737',
+      }))!;
+
+      expect((event.data as SwapCreatedData).wallet_address)
+        .to.equal('0x40d2878b98a9c5a5b7bc3b2fc0e26dfdefcfe737');
+    });
+
+    // A Bitcoin txid is not 0x-prefixed hex and base58/hex case is not ours to
+    // change: destination_tx_hash travels exactly as the Bridge reported it.
+    it('leaves the Bitcoin destination_tx_hash untouched', () => {
+      const event = PegoutAtlasEventBuilder.build(givenPegout({
+        status: PegoutStatuses.RELEASE_BTC,
+        btcTxHash,
+        valueInSatoshisToBeReceived: 9995000,
+      }))!;
+
+      expect((event.data as SwapCompletedData).destination_tx_hash).to.equal(btcTxHash);
     });
   });
 

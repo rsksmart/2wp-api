@@ -54,12 +54,29 @@ Peg-out, one event per transition: `swap.created` (RECEIVED), `swap.pending`
 (REJECTED). `WAITING_FOR_SIGNATURE` publishes nothing: it is an internal
 federation sub-state with no equivalent in the v1.0 schema.
 
-Peg-in, keyed by `btcTxId`: `LOCKED` publishes `swap.created`, and each rejection
-publishes `swap.created` followed by `swap.rejected`. The daemon observes only
-Rootstock, so the deposit on Bitcoin is never seen and `swap.pending` has no
-trigger. `swap.completed` is **not** emitted yet, which means a successful peg-in
-stays PENDING on the analytics side and peg-in is absent from the transaction
-count and volume metrics.
+Peg-in, keyed by `btcTxId`, two events per outcome: `LOCKED` publishes
+`swap.created` and `swap.completed`, and a rejection publishes `swap.created`
+followed by `swap.rejected`. `swap.pending` has no trigger, because the daemon
+observes only Rootstock and never sees the deposit on Bitcoin.
+
+The `swap.completed` of a peg-in carries `duration_ms: null` — the Bitcoin
+broadcast time is unknown, and a zero would drag the average duration down — and
+`fee: "0.00000000"`, because the Bridge credits the whole amount sent. Its
+`destination_tx_hash` is the Rootstock transaction that credited the RBTC.
+
+Rejection reasons are translated to the names of the rskj enums
+(`RejectedPeginReason`, `NonRefundablePeginReason`) in
+`models/atlas/atlas-pegin-reasons.ts`, and the raw numbers of both logs travel in
+`error_message`. The `error_code` always names the `rejected_pegin` reason, the
+root cause present in every branch; the exception is a rejection the Bridge
+followed with no refund branch at all, reported as
+`PEGIN_REJECTED_NO_REFUND_BRANCH`. **This table has to stay aligned with rskj**:
+a value added there falls back to `UNKNOWN` with a `warn`, which degrades well
+but only if someone reads the warning.
+
+`swap_id` and `wallet_address` are normalized — 0x-prefixed and lowercase — in
+both flows, so one transaction cannot reach Atlas under two spellings. Bitcoin
+addresses are left alone, since base58 is case sensitive.
 
 Every event carries the `originatingRskTxHash` as `swap_id`, and the queue's
 `MessageGroupId` is that same `swap_id`, so the transitions of one peg-out stay
@@ -75,6 +92,14 @@ aborts if it is neither `mainnet` nor `testnet`.
 Publication happens after the status has been written to Mongo and never fails
 the caller: if SQS is unreachable the failure is logged at error level and block
 processing continues. Events lost in that window are not recovered.
+
+Every publication, successful or not, logs one line carrying
+`metric: 'atlas_events_published_total'` with `status`, `flow`, `eventType` and
+the running `total`. **That field name is the contract with the log aggregator**
+— it is what an alert on lost events queries, so it must not be renamed for
+style. The counter makes the loss above visible; it does not fix it, and
+idempotency by `btcTxId` means a re-sync will not retry a peg-in it already
+recorded.
 
 Credentials come from the standard AWS SDK chain (an IAM role in deployments,
 `test`/`test` against LocalStack). `docker compose up` starts a LocalStack

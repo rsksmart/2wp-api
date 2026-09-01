@@ -18,7 +18,10 @@ import {
   PegoutStatusDbDataModel,
   PegoutStatuses,
 } from '../../models/rsk/pegout-status-data-model';
-import {PeginAtlasEventBuilder} from '../../services/atlas/pegin-atlas-event.builder';
+import {
+  PeginAtlasEventBuilder,
+  PeginAtlasEventContext,
+} from '../../services/atlas/pegin-atlas-event.builder';
 import {
   PeginStatus,
   PeginStatusDataModel,
@@ -243,39 +246,122 @@ describe('Integration: Atlas peg events over SQS', function () {
   });
 
   describe('peg-in', () => {
-    const context = {
-      amountInWeis: '500000000000000000',
+    // `pegin_btc` / `lock_btc` report satoshis, unlike the peg-out logs.
+    const context: PeginAtlasEventContext = {
+      amountInSatoshis: '50000000',
       rskRecipient: '0x2D623170Cb518434af6c02602334610f194818c1',
     };
 
-    it('delivers a single swap.created for a locked peg-in', async () => {
+    it('delivers created then completed for a locked peg-in, in order', async () => {
       const swapId = givenSwapId();
       const events = PeginAtlasEventBuilder.build(givenPegin(swapId, PeginStatus.LOCKED), context);
+      expect(events).to.have.length(2);
 
       for (const event of events) {
-        await publisher.publish(event);
+        await publisher.publish(event, 'pegin');
       }
 
-      const messages = await drain(5, 1);
-      expect(messages).to.have.length(1);
+      const messages = await drain(5, 2);
+      expect(messages).to.have.length(2);
 
-      const received = parse(messages[0]);
-      expectValid(received);
-      expect(received.event_type).to.equal(AtlasEventType.SWAP_CREATED);
-      expect(received.swap_id).to.equal(swapId);
-      expect(messages[0].Attributes?.MessageGroupId).to.equal(swapId);
+      const received = messages.map(parse);
+      received.forEach(expectValid);
+      expect(received.map(event => event.event_type)).to.eql([
+        AtlasEventType.SWAP_CREATED,
+        AtlasEventType.SWAP_COMPLETED,
+      ]);
+      // Both events of one peg-in share the group, so order is guaranteed.
+      expect(messages.map(m => m.Attributes?.MessageGroupId)).to.eql([swapId, swapId]);
+      expect(received.map(event => event.swap_id)).to.eql([swapId, swapId]);
+      expect(received[0].event_id).to.not.equal(received[1].event_id);
+
+      // The Bridge credits the whole amount: nothing is lost between the two.
+      const created = received[0].data as {input_amount: string};
+      const completed = received[1].data as {output_amount: string; fee: string};
+      expect(created.input_amount).to.equal('0.50000000');
+      expect(completed.output_amount).to.equal(created.input_amount);
+      expect(completed.fee).to.equal('0.00000000');
+    });
+
+    // The refundable branch is the one that carries an amount: release_requested
+    // is the only log of a rejected peg-in that reports what the user sent.
+    it('delivers created before rejected for a refundable peg-in, with the amount', async () => {
+      const swapId = givenSwapId();
+      const events = PeginAtlasEventBuilder.build(
+        givenPegin(swapId, PeginStatus.REJECTED_REFUND),
+        {amountInSatoshis: '50000000', rejectedReason: '4'},
+      );
+      expect(events).to.have.length(2);
+
+      for (const event of events) {
+        await publisher.publish(event, 'pegin');
+      }
+
+      const messages = await drain(5, 2);
+      expect(messages).to.have.length(2);
+
+      const received = messages.map(parse);
+      received.forEach(expectValid);
+      expect(received.map(event => event.event_type)).to.eql([
+        AtlasEventType.SWAP_CREATED,
+        AtlasEventType.SWAP_REJECTED,
+      ]);
+      expect(messages.map(m => m.Attributes?.MessageGroupId)).to.eql([swapId, swapId]);
+      expect(received[0].event_id).to.not.equal(received[1].event_id);
+
+      expect((received[0].data as {input_amount: string}).input_amount).to.equal('0.50000000');
+      const rejected = received[1].data as {
+        error_code: string; error_category: string; refund_applicable: boolean;
+      };
+      expect(rejected.error_code).to.equal('PEGIN_V1_INVALID_PAYLOAD');
+      expect(rejected.error_category).to.equal('validation');
+      expect(rejected.refund_applicable).to.be.true();
+    });
+
+    // The Bridge rejected the peg-in and emitted no refund branch at all, so
+    // the code names that absence rather than a reason it does not have.
+    it('delivers a rejection the Bridge left with no refund branch', async () => {
+      const swapId = givenSwapId();
+      const events = PeginAtlasEventBuilder.build(
+        givenPegin(swapId, PeginStatus.REJECTED_NO_REFUND),
+        {rejectedReason: '2'},
+      );
+      expect(events).to.have.length(2);
+
+      for (const event of events) {
+        await publisher.publish(event, 'pegin');
+      }
+
+      const messages = await drain(5, 2);
+      expect(messages).to.have.length(2);
+
+      const received = messages.map(parse);
+      received.forEach(expectValid);
+      expect(received.map(event => event.event_type)).to.eql([
+        AtlasEventType.SWAP_CREATED,
+        AtlasEventType.SWAP_REJECTED,
+      ]);
+      expect(messages.map(m => m.Attributes?.MessageGroupId)).to.eql([swapId, swapId]);
+
+      const rejected = received[1].data as {
+        error_code: string; error_category: string; refund_applicable: boolean;
+      };
+      expect(rejected.error_code).to.equal('PEGIN_REJECTED_NO_REFUND_BRANCH');
+      // Derived from rejected_pegin reason=2, the only reason it has.
+      expect(rejected.error_category).to.equal('protocol_violation');
+      expect(rejected.refund_applicable).to.be.false();
     });
 
     it('delivers created before rejected for a rejected peg-in', async () => {
       const swapId = givenSwapId();
       const events = PeginAtlasEventBuilder.build(
         givenPegin(swapId, PeginStatus.REJECTED_NO_REFUND),
-        {unrefundableReason: '1'},
+        {rejectedReason: '3', unrefundableReason: '1'},
       );
       expect(events).to.have.length(2);
 
       for (const event of events) {
-        await publisher.publish(event);
+        await publisher.publish(event, 'pegin');
       }
 
       const messages = await drain(5, 2);

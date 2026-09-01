@@ -16,6 +16,7 @@ import {
 } from '../../models/atlas/atlas-event.model';
 import {resolvePegoutChainIds} from '../../models/atlas/atlas-chain';
 import {satoshisToDecimalString} from '../../models/atlas/atlas-amount';
+import {normalizeAddress, normalizeSwapId} from '../../models/atlas/atlas-identifiers';
 import {
   PegoutStatusDbDataModel,
   PegoutStatuses,
@@ -88,7 +89,7 @@ export class PegoutAtlasEventBuilder {
       event_id: randomUUID(),
       event_type: eventType,
       // Never `rskTxHash`: the processor mutates it to disambiguate batches.
-      swap_id: pegout.originatingRskTxHash,
+      swap_id: normalizeSwapId(pegout.originatingRskTxHash),
       swap_type: ATLAS_SWAP_TYPE,
       source: ATLAS_SOURCE,
       schema_version: ATLAS_SCHEMA_VERSION,
@@ -107,7 +108,7 @@ export class PegoutAtlasEventBuilder {
       output_asset: ASSET_BTC,
       input_amount: this.toDecimalAmount(pegout.valueRequestedInSatoshis),
       input_amount_usd: null,
-      wallet_address: pegout.rskSenderAddress,
+      wallet_address: normalizeAddress(pegout.rskSenderAddress),
       wallet_type: null,
       quote_id: null,
     };
@@ -115,7 +116,7 @@ export class PegoutAtlasEventBuilder {
 
   private static pendingData(pegout: PegoutStatusDbDataModel): SwapPendingData {
     return {
-      source_tx_hash: pegout.originatingRskTxHash,
+      source_tx_hash: normalizeSwapId(pegout.originatingRskTxHash),
       deposit_address: null,
       // Counted in Rootstock blocks, not Bitcoin ones.
       expected_confirmations: this.expectedConfirmations(),
