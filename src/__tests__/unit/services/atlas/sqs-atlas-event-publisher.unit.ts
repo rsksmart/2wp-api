@@ -9,7 +9,10 @@ import {
   AtlasEventType,
 } from '../../../../models/atlas/atlas-event.model';
 import {isAtlasEventsEnabled} from '../../../../services/atlas/atlas-event-publisher';
-import {SqsAtlasEventPublisher} from '../../../../services/atlas/sqs-atlas-event-publisher';
+import {
+  SqsAtlasEventPublisher,
+  assertQueueUrlConfigured,
+} from '../../../../services/atlas/sqs-atlas-event-publisher';
 import {NoopAtlasEventPublisher} from '../../../../services/atlas/noop-atlas-event-publisher';
 import {DependencyInjectionHandler} from '../../../../dependency-injection-handler';
 import {ConstantsBindings, ServicesBindings} from '../../../../dependency-injection-bindings';
@@ -216,5 +219,65 @@ describe('Service: SqsAtlasEventPublisher', () => {
       expect(publisher).to.be.instanceOf(SqsAtlasEventPublisher);
       publisher.destroy();
     });
+  });
+
+  // An empty queue url does not disable publication, it breaks it: every send
+  // would fail, be swallowed by publish(), and the events lost with no retry.
+  // A daemon with the switch on and no queue is misconfigured, so it aborts.
+  describe('queue url configuration', () => {
+    it('throws when ATLAS_SQS_QUEUE_URL is unset', () => {
+      delete process.env.ATLAS_SQS_QUEUE_URL;
+
+      expect(() => new SqsAtlasEventPublisher()).to.throw(/ATLAS_SQS_QUEUE_URL is not set/);
+    });
+
+    it('throws when ATLAS_SQS_QUEUE_URL is empty or blank', () => {
+      for (const value of ['', '   ', '\t']) {
+        process.env.ATLAS_SQS_QUEUE_URL = value;
+        expect(() => new SqsAtlasEventPublisher()).to.throw(/ATLAS_SQS_QUEUE_URL is not set/);
+      }
+    });
+
+    it('returns the trimmed url when it is configured', () => {
+      process.env.ATLAS_SQS_QUEUE_URL = `  ${QUEUE_URL}  `;
+
+      expect(assertQueueUrlConfigured()).to.equal(QUEUE_URL);
+    });
+
+    // The failure has to surface where the daemon starts, not on the first
+    // peg-out hours later.
+    it('fails the daemon binding when enabled without a queue url', () => {
+      process.env.ATLAS_EVENTS_ENABLED = 'true';
+      delete process.env.ATLAS_SQS_QUEUE_URL;
+      const app = new Application();
+      DependencyInjectionHandler.configureDaemonDependencies(app);
+
+      return expect(
+        app.get(ServicesBindings.ATLAS_EVENT_PUBLISHER),
+      ).to.be.rejectedWith(/ATLAS_SQS_QUEUE_URL is not set/);
+    });
+
+    // With the switch off no queue is needed, so a missing url must not stop
+    // the daemon from booting.
+    it('does not require a queue url while the switch is off', async () => {
+      process.env.ATLAS_EVENTS_ENABLED = 'false';
+      delete process.env.ATLAS_SQS_QUEUE_URL;
+      const app = new Application();
+      DependencyInjectionHandler.configureDaemonDependencies(app);
+
+      const publisher = await app.get<NoopAtlasEventPublisher>(ServicesBindings.ATLAS_EVENT_PUBLISHER);
+      expect(publisher).to.be.instanceOf(NoopAtlasEventPublisher);
+    });
+  });
+
+  // publish() is documented never to reject. With the feature off the logger is
+  // the only thing that can fail, and it must not take peg processing down.
+  it('resolves even if the logger throws while discarding the event', async () => {
+    const publisher = new NoopAtlasEventPublisher();
+    sandbox
+      .stub(publisher['logger'], 'debug')
+      .throws(new Error('log pipeline unavailable'));
+
+    await publisher.publish(event, 'pegin');
   });
 });

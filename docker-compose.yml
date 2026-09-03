@@ -13,8 +13,6 @@ services:
     depends_on:
       pp-api-db:
         condition: service_healthy
-      localstack:
-        condition: service_healthy
   pp-api-db:
     image: mongo
     container_name: 'ppa-api-mongo-db'

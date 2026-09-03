@@ -23,13 +23,22 @@ export class NoopAtlasEventPublisher implements AtlasEventPublisher {
   /**
    * Discards the event.
    *
+   * Never rejects, as {@link AtlasEventPublisher.publish} requires: with the
+   * feature off the only thing that can fail here is the logger, and a broken
+   * log pipeline must not take peg processing down with it.
+   *
    * @param event - The event that would have been published.
    * @param flow - Which peg it would have belonged to. Unused.
    */
   async publish(event: AtlasEvent, flow?: AtlasEventFlow): Promise<void> {
-    this.logger.debug(
-      {method: 'publish', eventType: event.event_type, swapId: event.swap_id},
-      'Atlas events are disabled, discarding event',
-    );
+    try {
+      this.logger.debug(
+        {method: 'publish', eventType: event.event_type, swapId: event.swap_id},
+        'Atlas events are disabled, discarding event',
+      );
+    } catch {
+      // Nothing to report it with, and nothing was at stake: the event was
+      // going to be discarded either way.
+    }
   }
 }

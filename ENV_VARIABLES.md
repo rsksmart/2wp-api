@@ -38,7 +38,7 @@ This table was created to guide and centralize the **environment variables** nec
 |BACKOFFICE_FLAGS_CACHE_TTL_MS |60000                          |'How long retrieved flags are cached before re-fetching'|
 |BACKOFFICE_HTTP_TIMEOUT_MS    |2000                           |'Timeout for each backoffice HTTP request'|
 |ATLAS_EVENTS_ENABLED          |`false`                        |'Kill switch for Atlas SWAP event publication. Only the literal `true` enables it'|
-|ATLAS_SQS_QUEUE_URL           |                               |'URL of the SQS FIFO queue the Atlas events are published to'|
+|ATLAS_SQS_QUEUE_URL           |                               |'URL of the SQS FIFO queue the Atlas events are published to. Required when `ATLAS_EVENTS_ENABLED=true`; the daemon aborts at startup without it'|
 |AWS_REGION                    |`us-east-1`                    |'AWS region of the Atlas SQS queue'                      |
 |ATLAS_SQS_ENDPOINT            |`http://localhost:4566`        |'Custom SQS endpoint. Local development and tests only (LocalStack); leave empty in deployments'|
 
@@ -78,9 +78,10 @@ but only if someone reads the warning.
 both flows, so one transaction cannot reach Atlas under two spellings. Bitcoin
 addresses are left alone, since base58 is case sensitive.
 
-Every event carries the `originatingRskTxHash` as `swap_id`, and the queue's
-`MessageGroupId` is that same `swap_id`, so the transitions of one peg-out stay
-ordered while different peg-outs are processed in parallel. The queue must have
+The `swap_id` identifies the swap on the chain the funds come from: a peg-out
+carries its `originatingRskTxHash`, a peg-in its `btcTxId`. The queue's
+`MessageGroupId` is that same `swap_id`, so the transitions of one swap stay
+ordered while different swaps are processed in parallel. The queue must have
 content based deduplication **disabled**: `MessageDeduplicationId` is the
 `event_id`.
 
@@ -88,6 +89,11 @@ The network travels in the chain ids (`rootstock_testnet` / `bitcoin_testnet`),
 derived from `NETWORK`. Because a wrong network would silently contaminate the
 analytics database, `NETWORK` is validated when the daemon starts and the daemon
 aborts if it is neither `mainnet` nor `testnet`.
+
+`ATLAS_SQS_QUEUE_URL` is validated the same way, and only while the switch is
+on: a blank url would not disable publication, it would fail every send and lose
+the events with no retry, so the daemon aborts at startup rather than running
+blind. With `ATLAS_EVENTS_ENABLED` off the variable is not read at all.
 
 Publication happens after the status has been written to Mongo and never fails
 the caller: if SQS is unreachable the failure is logged at error level and block

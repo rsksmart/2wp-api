@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://rootstock.io/schemas/atlas-swap-event.schema.json",
   "title": "Atlas SWAP Event",
-  "description": "Executable contract for the Atlas SWAP Event Schema v1.0 as emitted by the 2wp-api daemon for native peg-out.",
+  "description": "Executable contract for the Atlas SWAP Event Schema v1.0 as emitted by the 2wp-api daemon for native peg-in and peg-out.",
   "type": "object",
   "required": [
     "event_id",

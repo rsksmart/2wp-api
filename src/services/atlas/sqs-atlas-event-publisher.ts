@@ -7,12 +7,39 @@ import {AtlasEventFlow, AtlasEventMetrics} from './atlas-event-metrics';
 const DEFAULT_AWS_REGION = 'us-east-1';
 
 /**
+ * Returns the configured `ATLAS_SQS_QUEUE_URL`, failing fast when it is missing
+ * or blank.
+ *
+ * An empty url does not disable publication, it breaks it: every `SendMessage`
+ * would be rejected by the SDK, the failure swallowed by {@link
+ * SqsAtlasEventPublisher.publish}, and the events lost with no retry. A daemon
+ * started with the kill switch on and no queue to publish to is misconfigured,
+ * so it aborts at construction instead of running blind.
+ *
+ * @returns The configured queue url.
+ * @throws Error when `ATLAS_SQS_QUEUE_URL` is absent or blank.
+ */
+export function assertQueueUrlConfigured(): string {
+  const queueUrl = process.env.ATLAS_SQS_QUEUE_URL?.trim();
+  if (!queueUrl) {
+    throw new Error(
+      'Atlas events are enabled but ATLAS_SQS_QUEUE_URL is not set. Set it to ' +
+      'the SQS FIFO queue url, or turn ATLAS_EVENTS_ENABLED off.',
+    );
+  }
+  return queueUrl;
+}
+
+/**
  * Publishes Atlas SWAP events to an SQS FIFO queue.
  *
  * `MessageGroupId` is the `swap_id`, which keeps the transitions of a single
  * peg-out strictly ordered while letting different peg-outs be processed in
  * parallel. `MessageDeduplicationId` is the `event_id`, so the queue must have
  * content based deduplication disabled.
+ *
+ * Constructed only while `ATLAS_EVENTS_ENABLED` is on, which is why the missing
+ * queue url is fatal here: see {@link assertQueueUrlConfigured}.
  */
 export class SqsAtlasEventPublisher implements AtlasEventPublisher {
   readonly metrics: AtlasEventMetrics;
@@ -23,7 +50,7 @@ export class SqsAtlasEventPublisher implements AtlasEventPublisher {
   constructor() {
     this.logger = getLogger('sqsAtlasEventPublisher');
     this.metrics = new AtlasEventMetrics();
-    this.queueUrl = process.env.ATLAS_SQS_QUEUE_URL ?? '';
+    this.queueUrl = assertQueueUrlConfigured();
     this.client = new SQSClient({
       region: process.env.AWS_REGION ?? DEFAULT_AWS_REGION,
       // Only set for local development and the integration suite (LocalStack).
