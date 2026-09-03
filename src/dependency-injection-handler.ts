@@ -1,4 +1,4 @@
-import {Application, BindingScope} from '@loopback/core';
+import {Application, BindingScope, Constructor} from '@loopback/core';
 import {TxV2ProviderDataSource} from './datasources';
 import {MongoDbDataSource} from './datasources/mongodb.datasource';
 import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from './dependency-injection-bindings';
@@ -21,12 +21,71 @@ import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 import { PegoutDataProcessor } from './services/pegout-data.processor';
 import { FeaturesMongoDbDataService } from './services/features-mongo.service';
 import { BackofficeFeatureFlagsService } from './services/backoffice-feature-flags.service';
+import { AtlasEventPublisher, isAtlasEventsEnabled } from './services/atlas/atlas-event-publisher';
+import { SqsAtlasEventPublisher } from './services/atlas/sqs-atlas-event-publisher';
+import { NoopAtlasEventPublisher } from './services/atlas/noop-atlas-event-publisher';
 
 export class DependencyInjectionHandler {
+  /**
+   * Bindings shared by every process. `TwpapiApplication` calls only this one,
+   * so anything registered here is reachable from the REST API.
+   *
+   * @param app - The application to configure.
+   */
   public static configureDependencies(app: Application): void {
     this.configureConstants(app);
     this.configureDatasources(app);
     this.configureServices(app);
+  }
+
+  /**
+   * Bindings that belong exclusively to the daemon process, called only by
+   * `DaemonRunner`.
+   *
+   * Atlas SWAP events are emitted while processing Bridge transactions and
+   * nowhere else, so `ATLAS_EVENT_PUBLISHER` and the two transaction
+   * processors that use it are registered here and are simply absent from the
+   * API process: a controller cannot inject what was never bound.
+   *
+   * Note none of these classes live under `services/**\/*.service.ts`, so
+   * `@loopback/boot`'s ServiceBooter does not re-register them in the API.
+   *
+   * @param app - The daemon application to configure.
+   */
+  public static configureDaemonDependencies(app: Application): void {
+    app
+      .bind(ConstantsBindings.ATLAS_EVENTS_ENABLED)
+      .to(isAtlasEventsEnabled());
+
+    // The kill switch decides the transport, never the callers: the processors
+    // always depend on the AtlasEventPublisher interface.
+    const atlasEventPublisher: Constructor<AtlasEventPublisher> = isAtlasEventsEnabled()
+      ? SqsAtlasEventPublisher
+      : NoopAtlasEventPublisher;
+    app
+      .bind<AtlasEventPublisher>(ServicesBindings.ATLAS_EVENT_PUBLISHER)
+      .toClass(atlasEventPublisher)
+      .inScope(BindingScope.SINGLETON);
+
+    app
+      .bind(ServicesBindings.PEGIN_DATA_PROCESSOR)
+      .toClass(PeginDataProcessor)
+      .inScope(BindingScope.SINGLETON);
+
+    app
+      .bind(ServicesBindings.PEGOUT_DATA_PROCESSOR)
+      .toClass(PegoutDataProcessor)
+      .inScope(BindingScope.SINGLETON);
+
+    app
+      .bind(ServicesBindings.RSK_BLOCK_PROCESSOR_PUBLISHER)
+      .toClass(NodeBridgeDataProvider)
+      .inScope(BindingScope.SINGLETON);
+
+    app
+      .bind(ServicesBindings.DAEMON_SERVICE)
+      .toClass(DaemonService)
+      .inScope(BindingScope.SINGLETON);
   }
 
   private static configureConstants(app: Application): void {
@@ -116,28 +175,8 @@ export class DependencyInjectionHandler {
       .inScope(BindingScope.SINGLETON);
 
     app
-      .bind(ServicesBindings.PEGIN_DATA_PROCESSOR)
-      .toClass(PeginDataProcessor)
-      .inScope(BindingScope.SINGLETON);
-
-      app
-      .bind(ServicesBindings.PEGOUT_DATA_PROCESSOR)
-      .toClass(PegoutDataProcessor)
-      .inScope(BindingScope.SINGLETON);
-
-    app
-      .bind(ServicesBindings.DAEMON_SERVICE)
-      .toClass(DaemonService)
-      .inScope(BindingScope.SINGLETON);
-
-    app
       .bind(ServicesBindings.BRIDGE_SERVICE)
       .toClass(BridgeService)
-      .inScope(BindingScope.SINGLETON);
-
-    app
-      .bind(ServicesBindings.RSK_BLOCK_PROCESSOR_PUBLISHER)
-      .toClass(NodeBridgeDataProvider)
       .inScope(BindingScope.SINGLETON);
 
     app
@@ -149,7 +188,7 @@ export class DependencyInjectionHandler {
         .bind(ServicesBindings.UTXO_PROVIDER_SERVICE)
         .toClass(UtxoProviderProvider)
         .inScope(BindingScope.SINGLETON);
-   
+
       app
       .bind(ServicesBindings.FEATURES_SERVICE)
       .toClass(FeaturesMongoDbDataService)

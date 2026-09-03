@@ -15,6 +15,7 @@ const PegoutStatusSchema = new mongoose.Schema({
   rskTxHash: {type: String, required: true, unique: true},
   rskSenderAddress: {type: String, required: true},
   btcRecipientAddress: {type: String, required: true},
+  btcTxHash: {type: String},
   valueRequestedInSatoshis: {type: Number, required: true},
   valueInSatoshisToBeReceived: {type: Number, required: true},
   feeInSatoshisToBePaid: {type: Number, required: true},

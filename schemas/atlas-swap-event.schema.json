@@ -1,0 +1,161 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://rootstock.io/schemas/atlas-swap-event.schema.json",
+  "title": "Atlas SWAP Event",
+  "description": "Executable contract for the Atlas SWAP Event Schema v1.0 as emitted by the 2wp-api daemon for native peg-in and peg-out.",
+  "type": "object",
+  "required": [
+    "event_id",
+    "event_type",
+    "swap_id",
+    "swap_type",
+    "source",
+    "schema_version",
+    "emitted_at",
+    "data"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": ["swap.created", "swap.pending", "swap.completed", "swap.rejected"]
+    },
+    "swap_id": {"type": "string", "minLength": 1},
+    "swap_type": {"type": "string", "const": "powpeg"},
+    "source": {"type": "string", "const": "PWP"},
+    "schema_version": {"type": "string", "const": "1.0"},
+    "emitted_at": {"type": "string", "format": "date-time"},
+    "data": {"type": "object"}
+  },
+  "definitions": {
+    "chainId": {
+      "type": "string",
+      "enum": ["rootstock_mainnet", "rootstock_testnet", "bitcoin_mainnet", "bitcoin_testnet"]
+    },
+    "decimalAmount": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]{8}$"
+    },
+    "asset": {
+      "type": "string",
+      "enum": ["BTC", "RBTC"]
+    },
+    "errorCode": {
+      "description": "Peg-out rejection reasons, peg-in rejection reasons named after the rskj RejectedPeginReason enum, the observed absence of a refund branch, and the fallback for a reason rskj added after this schema.",
+      "type": "string",
+      "enum": [
+        "LOW_AMOUNT",
+        "CALLER_CONTRACT",
+        "FEE_ABOVE_VALUE",
+        "PEGIN_CAP_SURPASSED",
+        "LEGACY_PEGIN_MULTISIG_SENDER",
+        "LEGACY_PEGIN_UNDETERMINED_SENDER",
+        "PEGIN_V1_INVALID_PAYLOAD",
+        "INVALID_AMOUNT",
+        "PEGIN_REJECTED_NO_REFUND_BRANCH",
+        "UNKNOWN"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"event_type": {"const": "swap.created"}}, "required": ["event_type"]},
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "provider",
+              "source_chain",
+              "destination_chain",
+              "input_asset",
+              "output_asset",
+              "input_amount",
+              "input_amount_usd",
+              "wallet_address",
+              "wallet_type",
+              "quote_id"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "provider": {"type": "string", "const": "powpeg"},
+              "source_chain": {"$ref": "#/definitions/chainId"},
+              "destination_chain": {"$ref": "#/definitions/chainId"},
+              "input_asset": {"$ref": "#/definitions/asset"},
+              "output_asset": {"$ref": "#/definitions/asset"},
+              "input_amount": {"$ref": "#/definitions/decimalAmount"},
+              "input_amount_usd": {"type": "null"},
+              "wallet_address": {"type": ["string", "null"], "minLength": 1},
+              "wallet_type": {"type": "null"},
+              "quote_id": {"type": "null"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "swap.pending"}}, "required": ["event_type"]},
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["source_tx_hash", "deposit_address", "expected_confirmations"],
+            "additionalProperties": false,
+            "properties": {
+              "source_tx_hash": {"type": "string", "minLength": 1},
+              "deposit_address": {"type": "null"},
+              "expected_confirmations": {"type": "integer", "minimum": 0}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "swap.completed"}}, "required": ["event_type"]},
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "destination_tx_hash",
+              "output_amount",
+              "output_amount_usd",
+              "fee",
+              "duration_ms"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "destination_tx_hash": {"type": "string", "minLength": 1},
+              "output_amount": {"$ref": "#/definitions/decimalAmount"},
+              "output_amount_usd": {"type": "null"},
+              "fee": {"$ref": "#/definitions/decimalAmount"},
+              "duration_ms": {"type": ["integer", "null"], "minimum": 0}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "swap.rejected"}}, "required": ["event_type"]},
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["error_category", "error_code", "error_message", "refund_applicable"],
+            "additionalProperties": false,
+            "properties": {
+              "error_category": {"type": "string", "enum": ["validation", "protocol_violation"]},
+              "error_code": {"$ref": "#/definitions/errorCode"},
+              "error_message": {"type": "string", "minLength": 1},
+              "refund_applicable": {"type": "boolean"}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

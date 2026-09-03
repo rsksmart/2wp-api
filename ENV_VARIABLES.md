@@ -24,7 +24,7 @@ This table was created to guide and centralize the **environment variables** nec
 |FEE_PER_KB_SLOW_MIN           |100                            |'Fee per kb slow'                                        |
 |BURN_DUST_VALUE               |2000                           |'Burn dust value'                                        |
 |BTC_CONFIRMATIONS             |100                            |'testnet or mainnet'                                     |
-|NETWORK                       |`testnet or mainnet`           |'testnet or mainnet'                                     |
+|NETWORK                       |`testnet or mainnet`           |'testnet or mainnet. Required: the daemon refuses to start with any other value' |
 |BLOCKBOOK_URL                 |                               |'Blockbook url'                                          |
 |MAX_AMOUNT_ALLOWED_IN_SATOSHI |                               |'Pegin Pegout max allowed in satoshis'                   |
 |LOG_FORMAT                    |`json or pretty`               |'Log output format. Defaults to json'                    |
@@ -37,6 +37,80 @@ This table was created to guide and centralize the **environment variables** nec
 |BACKOFFICE_API_PASSWORD       |                               |'Backoffice service account password. Secret — never commit'|
 |BACKOFFICE_FLAGS_CACHE_TTL_MS |60000                          |'How long retrieved flags are cached before re-fetching'|
 |BACKOFFICE_HTTP_TIMEOUT_MS    |2000                           |'Timeout for each backoffice HTTP request'|
+|ATLAS_EVENTS_ENABLED          |`false`                        |'Kill switch for Atlas SWAP event publication. Only the literal `true` enables it'|
+|ATLAS_SQS_QUEUE_URL           |                               |'URL of the SQS FIFO queue the Atlas events are published to. Required when `ATLAS_EVENTS_ENABLED=true`; the daemon aborts at startup without it'|
+|AWS_REGION                    |`us-east-1`                    |'AWS region of the Atlas SQS queue'                      |
+|ATLAS_SQS_ENDPOINT            |`http://localhost:4566`        |'Custom SQS endpoint. Local development and tests only (LocalStack); leave empty in deployments'|
+
+### Atlas SWAP events
+
+While `ATLAS_EVENTS_ENABLED=true`, the daemon publishes Atlas SWAP events to the
+SQS FIFO queue at `ATLAS_SQS_QUEUE_URL` as it processes Bridge transactions.
+**Only the daemon publishes**: the publisher is registered by
+`configureDaemonDependencies` and is simply not bound in the API process.
+
+Peg-out, one event per transition: `swap.created` (RECEIVED), `swap.pending`
+(WAITING_FOR_CONFIRMATION), `swap.completed` (RELEASE_BTC) and `swap.rejected`
+(REJECTED). `WAITING_FOR_SIGNATURE` publishes nothing: it is an internal
+federation sub-state with no equivalent in the v1.0 schema.
+
+Peg-in, keyed by `btcTxId`, two events per outcome: `LOCKED` publishes
+`swap.created` and `swap.completed`, and a rejection publishes `swap.created`
+followed by `swap.rejected`. `swap.pending` has no trigger, because the daemon
+observes only Rootstock and never sees the deposit on Bitcoin.
+
+The `swap.completed` of a peg-in carries `duration_ms: null` — the Bitcoin
+broadcast time is unknown, and a zero would drag the average duration down — and
+`fee: "0.00000000"`, because the Bridge credits the whole amount sent. Its
+`destination_tx_hash` is the Rootstock transaction that credited the RBTC.
+
+Rejection reasons are translated to the names of the rskj enums
+(`RejectedPeginReason`, `NonRefundablePeginReason`) in
+`models/atlas/atlas-pegin-reasons.ts`, and the raw numbers of both logs travel in
+`error_message`. The `error_code` always names the `rejected_pegin` reason, the
+root cause present in every branch; the exception is a rejection the Bridge
+followed with no refund branch at all, reported as
+`PEGIN_REJECTED_NO_REFUND_BRANCH`. **This table has to stay aligned with rskj**:
+a value added there falls back to `UNKNOWN` with a `warn`, which degrades well
+but only if someone reads the warning.
+
+`swap_id` and `wallet_address` are normalized — 0x-prefixed and lowercase — in
+both flows, so one transaction cannot reach Atlas under two spellings. Bitcoin
+addresses are left alone, since base58 is case sensitive.
+
+The `swap_id` identifies the swap on the chain the funds come from: a peg-out
+carries its `originatingRskTxHash`, a peg-in its `btcTxId`. The queue's
+`MessageGroupId` is that same `swap_id`, so the transitions of one swap stay
+ordered while different swaps are processed in parallel. The queue must have
+content based deduplication **disabled**: `MessageDeduplicationId` is the
+`event_id`.
+
+The network travels in the chain ids (`rootstock_testnet` / `bitcoin_testnet`),
+derived from `NETWORK`. Because a wrong network would silently contaminate the
+analytics database, `NETWORK` is validated when the daemon starts and the daemon
+aborts if it is neither `mainnet` nor `testnet`.
+
+`ATLAS_SQS_QUEUE_URL` is validated the same way, and only while the switch is
+on: a blank url would not disable publication, it would fail every send and lose
+the events with no retry, so the daemon aborts at startup rather than running
+blind. With `ATLAS_EVENTS_ENABLED` off the variable is not read at all.
+
+Publication happens after the status has been written to Mongo and never fails
+the caller: if SQS is unreachable the failure is logged at error level and block
+processing continues. Events lost in that window are not recovered.
+
+Every publication, successful or not, logs one line carrying
+`metric: 'atlas_events_published_total'` with `status`, `flow`, `eventType` and
+the running `total`. **That field name is the contract with the log aggregator**
+— it is what an alert on lost events queries, so it must not be renamed for
+style. The counter makes the loss above visible; it does not fix it, and
+idempotency by `btcTxId` means a re-sync will not retry a peg-in it already
+recorded.
+
+Credentials come from the standard AWS SDK chain (an IAM role in deployments,
+`test`/`test` against LocalStack). `docker compose up` starts a LocalStack
+container that creates the queue from `ci/localstack-init`; from inside the
+compose network the endpoint host is `localstack`, not `localhost`.
 
 ### Backoffice feature flags
 
