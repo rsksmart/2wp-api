@@ -30,6 +30,7 @@ export enum ResourceBudgetName {
   PROVIDER_PERMITS = 'provider_permits',
   RATE_LIMIT = 'rate_limit',
   MONGO_DOCUMENTS = 'mongo_documents',
+  BRIDGE_CALLDATA_BYTES = 'bridge_calldata_bytes',
 }
 
 /**
@@ -118,9 +119,36 @@ export function budgetExceededError(
 ): HttpErrors.HttpError {
   recordBudgetViolation(violation);
   const message = violationMessage(violation);
-  return kind === 'provider'
-    ? new HttpErrors.BadGateway(message)
-    : new HttpErrors.PayloadTooLarge(message);
+  const error =
+    kind === 'provider'
+      ? new HttpErrors.BadGateway(message)
+      : new HttpErrors.PayloadTooLarge(message);
+  // Tagged so a caller can tell "this input is refused" from "something else
+  // went wrong". Matching on the status code would not do: 413 is a plausible
+  // answer from elsewhere, and the difference decides whether a caller skips
+  // one item or gives up.
+  (error as BudgetExceededError).budgetResource = violation.resource;
+  return error;
+}
+
+/** An HTTP error raised by a budget, carrying which budget raised it. */
+export interface BudgetExceededError extends HttpErrors.HttpError {
+  budgetResource?: ResourceBudgetName;
+}
+
+/**
+ * Was this error raised by a resource budget — optionally, by a specific one?
+ *
+ * @param err - The caught value.
+ * @param resource - Restrict the answer to one budget.
+ * @returns `true` when the error came from {@link budgetExceededError}.
+ */
+export function isBudgetExceededError(
+  err: unknown,
+  resource?: ResourceBudgetName,
+): boolean {
+  const tagged = (err as BudgetExceededError | null)?.budgetResource;
+  return tagged !== undefined && (resource === undefined || tagged === resource);
 }
 
 /**

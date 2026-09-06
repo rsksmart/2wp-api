@@ -14,7 +14,6 @@ import { PeginDataProcessor } from '../../../services/pegin-data.processor';
 import { RskBlock } from '../../../models/rsk/rsk-block.model';
 import { RskTransaction } from '../../../models/rsk/rsk-transaction.model';
 import { PeginStatusDataService } from '../../../services/pegin-status-data-services/pegin-status-data.service';
-import { BridgeService } from '../../../services';
 import { RskNodeService } from '../../../services/rsk-node.service';
 import {Transaction} from '@rsksmart/bridge-transaction-parser';
 
@@ -74,8 +73,8 @@ describe('Service: NodeBridgeDataProvider', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService, givenRskNodeService());
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     const peginDataProcessorSubscriber = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
     expect(thisService.getSubscribers()).to.be.empty;
 
@@ -95,8 +94,8 @@ describe('Service: NodeBridgeDataProvider', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService, givenRskNodeService());
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     const peginDataProcessorSubscriber = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
     expect(thisService.getSubscribers()).to.be.empty;
 
@@ -122,8 +121,8 @@ describe('Service: NodeBridgeDataProvider', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService, givenRskNodeService());
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     
     const peginDataProcessorSubscriber1 = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
     const peginDataProcessorSubscriber2 = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
@@ -149,8 +148,8 @@ describe('Service: NodeBridgeDataProvider', () => {
 
   it('informs subscribers', async () => {
 
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService, givenRskNodeService());
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     const mockedPeginDataProcessorSubscriber = sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
 
     // Adds one subscribers
@@ -210,7 +209,7 @@ describe('Service: NodeBridgeDataProvider', () => {
       events: bridgeTransaction.events
     };
 
-    bridgeService.getBridgeTransactionByHash.resolves(bridgeTransaction);
+    rskNodeService.getBridgeTransaction.resolves(bridgeTransaction);
 
     await thisService.process(rskBlock);
 
@@ -220,8 +219,8 @@ describe('Service: NodeBridgeDataProvider', () => {
 
   it('does not inform pegin subscriber if no matching filter', async () => {
 
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService, givenRskNodeService());
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     const mockedPeginDataProcessorSubscriber = sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
 
     // Adds one subscribers
@@ -258,9 +257,8 @@ describe('Service: NodeBridgeDataProvider', () => {
 
   it('requests bridge tx once if more than 1 subscribers share the same transaction', async () => {
 
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    
-    const thisService = new NodeBridgeDataProvider(bridgeService, givenRskNodeService());
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     const mockedPeginDataProcessorSubscriber1 = sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
     const mockedPeginDataProcessorSubscriber2 = sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
 
@@ -324,11 +322,12 @@ describe('Service: NodeBridgeDataProvider', () => {
       events: bridgeTransaction.events
     };
 
-    bridgeService.getBridgeTransactionByHash.resolves(bridgeTransaction);
+    rskNodeService.getBridgeTransaction.resolves(bridgeTransaction);
 
     await thisService.process(rskBlock);
 
-    sinon.assert.calledOnceWithExactly(bridgeService.getBridgeTransactionByHash, rskTxHash);
+    sinon.assert.calledOnce(rskNodeService.getBridgeTransaction);
+    expect(rskNodeService.getBridgeTransaction.firstCall.args[0].hash).to.equal(rskTxHash);
     sinon.assert.calledOnceWithMatch(mockedPeginDataProcessorSubscriber1.process, extendedBridgeTx);
     sinon.assert.calledOnceWithMatch(mockedPeginDataProcessorSubscriber2.process, extendedBridgeTx);
     
@@ -336,8 +335,8 @@ describe('Service: NodeBridgeDataProvider', () => {
 
   it('does not process transaction if it it\'s not a bridge transaction', async () => {
 
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService, givenRskNodeService());
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     const mockedPeginDataProcessorSubscriber = sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
 
     // Adds one subscribers

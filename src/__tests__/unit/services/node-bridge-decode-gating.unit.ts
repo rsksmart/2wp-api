@@ -5,7 +5,6 @@ import {Transaction} from '@rsksmart/bridge-transaction-parser';
 import {BridgeDataFilterModel} from '../../../models/bridge-data-filter.model';
 import {RskBlock} from '../../../models/rsk/rsk-block.model';
 import {RskTransaction} from '../../../models/rsk/rsk-transaction.model';
-import {BridgeService} from '../../../services';
 import FilteredBridgeTransactionProcessor from '../../../services/filtered-bridge-transaction-processor';
 import {NodeBridgeDataProvider} from '../../../services/node-bridge-data.provider';
 import {PeginDataProcessor} from '../../../services/pegin-data.processor';
@@ -81,15 +80,11 @@ const givenBridgeTx = () =>
   } as unknown as Transaction);
 
 describe('Service: NodeBridgeDataProvider decode gating', () => {
-  let bridgeService: SinonStubbedInstance<BridgeService> & BridgeService;
   let rskNodeService: SinonStubbedInstance<RskNodeService> & RskNodeService;
   let subscriber: SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
   let provider: NodeBridgeDataProvider;
 
   beforeEach(() => {
-    bridgeService = sinon.createStubInstance(
-      BridgeService,
-    ) as SinonStubbedInstance<BridgeService> & BridgeService;
     rskNodeService = sinon.createStubInstance(
       RskNodeService,
     ) as SinonStubbedInstance<RskNodeService> & RskNodeService;
@@ -101,8 +96,8 @@ describe('Service: NodeBridgeDataProvider decode gating', () => {
         getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION),
       ),
     ]);
-    bridgeService.getBridgeTransactionByHash.resolves(givenBridgeTx());
-    provider = new NodeBridgeDataProvider(bridgeService, rskNodeService);
+    rskNodeService.getBridgeTransaction.resolves(givenBridgeTx());
+    provider = new NodeBridgeDataProvider(rskNodeService);
     provider.addSubscriber(subscriber);
   });
 
@@ -112,7 +107,7 @@ describe('Service: NodeBridgeDataProvider decode gating', () => {
 
       await provider.process(givenBlock(givenTransaction(subscribedCalldata())));
 
-      sinon.assert.calledOnce(bridgeService.getBridgeTransactionByHash);
+      sinon.assert.calledOnce(rskNodeService.getBridgeTransaction);
       sinon.assert.calledOnce(subscriber.process);
     });
 
@@ -121,7 +116,7 @@ describe('Service: NodeBridgeDataProvider decode gating', () => {
         givenBlock(givenTransaction(aliasedReceiveHeadersCalldata())),
       );
 
-      sinon.assert.notCalled(bridgeService.getBridgeTransactionByHash);
+      sinon.assert.notCalled(rskNodeService.getBridgeTransaction);
       sinon.assert.notCalled(subscriber.process);
       // The receipt is not even fetched — the selector alone settles it.
       sinon.assert.notCalled(rskNodeService.getTransactionReceipt);
@@ -148,7 +143,7 @@ describe('Service: NodeBridgeDataProvider decode gating', () => {
           givenBlock(givenTransaction(subscribedCalldata())),
         );
 
-        sinon.assert.notCalled(bridgeService.getBridgeTransactionByHash);
+        sinon.assert.notCalled(rskNodeService.getBridgeTransaction);
         sinon.assert.notCalled(subscriber.process);
       });
     });
@@ -158,7 +153,7 @@ describe('Service: NodeBridgeDataProvider decode gating', () => {
 
       await provider.process(givenBlock(givenTransaction(subscribedCalldata())));
 
-      sinon.assert.notCalled(bridgeService.getBridgeTransactionByHash);
+      sinon.assert.notCalled(rskNodeService.getBridgeTransaction);
     });
 
     [1, 1n, true, '0x1', '1'].forEach(status => {
@@ -169,7 +164,7 @@ describe('Service: NodeBridgeDataProvider decode gating', () => {
           givenBlock(givenTransaction(subscribedCalldata())),
         );
 
-        sinon.assert.calledOnce(bridgeService.getBridgeTransactionByHash);
+        sinon.assert.calledOnce(rskNodeService.getBridgeTransaction);
       });
     });
   });
@@ -182,7 +177,7 @@ describe('Service: NodeBridgeDataProvider decode gating', () => {
         givenBlock(givenTransaction(aliasedReceiveHeadersCalldata())),
       );
 
-      sinon.assert.notCalled(bridgeService.getBridgeTransactionByHash);
+      sinon.assert.notCalled(rskNodeService.getBridgeTransaction);
     });
 
     it('keeps processing the rest of the block after skipping one', async () => {
@@ -197,10 +192,10 @@ describe('Service: NodeBridgeDataProvider decode gating', () => {
 
       // The skipped transaction must not abort the sync: the following one is
       // still decoded and delivered.
-      sinon.assert.calledOnceWithExactly(
-        bridgeService.getBridgeTransactionByHash,
-        otherTxHash,
-      );
+      sinon.assert.calledOnce(rskNodeService.getBridgeTransaction);
+      expect(
+        rskNodeService.getBridgeTransaction.firstCall.args[0].hash,
+      ).to.equal(otherTxHash);
       sinon.assert.calledOnce(subscriber.process);
     });
   });

@@ -1,6 +1,5 @@
 import * as precompiledAbis from '@rsksmart/rsk-precompiled-abis';
 import {ethers} from 'ethers';
-import BridgeTransactionParser, {Transaction} from '@rsksmart/bridge-transaction-parser';
 import { getBridgeState, BridgeState } from '@rsksmart/bridge-state-data-parser';
 import {getLogger, Logger} from '../utils/logger';
 import * as constants from '../constants';
@@ -10,13 +9,11 @@ export class BridgeService {
   private provider: ethers.JsonRpcProvider;
   private TOTAL_RBTC_STOCK = BigInt(21000000);
   private host: string;
-  private bridgeTransactionParser: BridgeTransactionParser;
   logger: Logger;
   constructor() {
     this.provider = new ethers.JsonRpcProvider(`${process.env.RSK_NODE_HOST}`);
     this.bridgeContract = new ethers.Contract(precompiledAbis.bridge.address, precompiledAbis.bridge.abi, this.provider);
     this.host = process.env.RSK_NODE_HOST ?? constants.TESTNET_RSK_NODE_HOST;
-    this.bridgeTransactionParser = new BridgeTransactionParser(this.provider);
     this.logger = getLogger('bridge-service');
   }
 
@@ -105,10 +102,6 @@ export class BridgeService {
           reject(err);
         });
     });
-  }
-
-  public async getBridgeTransactionByHash(txHash: string): Promise<Transaction | undefined> {
-    return await this.bridgeTransactionParser.getBridgeTransactionByTxHash(txHash);
   }
 
   public async getBridgeState(defaultBlock: string | number = 'latest'): Promise<BridgeState> {

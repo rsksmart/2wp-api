@@ -69,6 +69,8 @@ export interface ResourceBudgets {
   BLOCKBOOK_QUEUE_MAX_DEPTH: number;
   /** Hard cap on how long a caller waits for a permit, in milliseconds. */
   BLOCKBOOK_QUEUE_MAX_WAIT_MS: number;
+  /** Hard cap on calldata handed to the Bridge ABI decoder, in bytes. */
+  MAX_BRIDGE_CALLDATA_BYTES: number;
 }
 
 /**
@@ -102,9 +104,26 @@ export interface ResourceBudgets {
  *   hop allowed `PROVIDER_TIMEOUT_MS` plus a retry, would otherwise let a
  *   single request occupy the process for minutes.
  *
- * Bridge ABI decoding is deliberately absent from this list: it is bounded by
- * requiring a successful transaction receipt before decoding, not by a size
- * budget. See `isSuccessfulReceipt` in `src/utils/bridge-utils.ts`.
+ * - 32 KiB of Bridge calldata is derived, not guessed, from both directions.
+ *
+ *   Above: ABI decoding amplifies calldata into heap by a measured ~225x
+ *   (+26.7 MiB from 131 KB, +55.2 MiB from 262 KB, +225.0 MiB from 1.05 MB), so
+ *   the worst case is `225 x MAX_BRIDGE_CALLDATA_BYTES x concurrent requests`.
+ *   At 32 KiB that is ~7.2 MiB per request. The second factor is why
+ *   `/tx-status` and `/tx-status-by-type` are counted as fan-out routes by the
+ *   rate limiter: the two bounds hold each other up, and the test file asserts
+ *   their product.
+ *
+ *   Below: 12 000 recent blocks on each of mainnet and testnet (3 769 successful
+ *   Bridge transactions) give p50 = 4 B, p90 = 228 B, p99 = 868 B, p100 = 1604 B.
+ *   32 KiB clears the observed maximum by 20x. That margin is not decoration — a
+ *   bound set too low does not fail loudly, it leaves legitimate pegouts in a
+ *   status that never resolves.
+ *
+ *   The thin spot is `registerBtcTransaction`, which carries a user-supplied
+ *   Bitcoin transaction: 32 KiB covers a pegin of roughly 215 inputs. A larger
+ *   one is legal and would be skipped by the daemon — logged and counted, not
+ *   silent — and is recovered by raising this variable.
  */
 export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze({
   MAX_REQUEST_BODY_BYTES: 256 * 1024,
@@ -153,6 +172,7 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   BLOCKBOOK_MAX_IN_FLIGHT: 50,
   BLOCKBOOK_QUEUE_MAX_DEPTH: 100,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS: 5_000,
+  MAX_BRIDGE_CALLDATA_BYTES: 32 * 1024,
 });
 
 /**
@@ -293,6 +313,10 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
       env.BLOCKBOOK_QUEUE_MAX_WAIT_MS,
       d.BLOCKBOOK_QUEUE_MAX_WAIT_MS,
     ),
+    MAX_BRIDGE_CALLDATA_BYTES: parsePositiveInt(
+      env.MAX_BRIDGE_CALLDATA_BYTES,
+      d.MAX_BRIDGE_CALLDATA_BYTES,
+    ),
   };
 }
 
@@ -326,4 +350,5 @@ export const {
   BLOCKBOOK_MAX_IN_FLIGHT,
   BLOCKBOOK_QUEUE_MAX_DEPTH,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS,
+  MAX_BRIDGE_CALLDATA_BYTES,
 } = RESOURCE_BUDGETS;

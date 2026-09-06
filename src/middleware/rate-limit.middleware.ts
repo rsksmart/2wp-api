@@ -34,13 +34,27 @@ export const RATE_LIMIT_REJECTED_METRIC = 'rate_limit_rejected_total';
 export type RateLimitRouteClass = 'fanout' | 'other';
 
 /**
- * The expensive POSTs: each fans out to many provider calls.
+ * The expensive routes: each one multiplies a single request into far more work
+ * than an ordinary GET.
  *
  * These are route *templates*, matched against what the router resolved — not
  * against the text a client sent. `/utxo` and `/utxo/` are the same route to the
  * router, so they have to be the same route to the limiter.
+ *
+ * `/utxo` and `/addresses-info` fan out to many provider calls each. The two
+ * `tx-status` routes are here for a different reason with the same arithmetic:
+ * on a database miss they re-parse a Bridge transaction, and ABI decoding
+ * amplifies calldata into heap by ~225x. `MAX_BRIDGE_CALLDATA_BYTES` bounds one
+ * request at ~7.2 MiB; this is what bounds how many of those can be in flight at
+ * once. Neither bound is sufficient alone — the product is what has to stay
+ * small, and `resource-budgets.unit.ts` asserts it.
  */
-const FANOUT_ROUTES: ReadonlySet<string> = new Set(['/utxo', '/addresses-info']);
+const FANOUT_ROUTES: ReadonlySet<string> = new Set([
+  '/utxo',
+  '/addresses-info',
+  '/tx-status/{txId}',
+  '/tx-status-by-type/{txId}/{txType}',
+]);
 
 /**
  * Paths the limiter does not count.

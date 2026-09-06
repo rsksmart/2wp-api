@@ -2,7 +2,15 @@ import BridgeTransactionParser, { Transaction } from '@rsksmart/bridge-transacti
 import Web3, { Block } from 'web3';
 import { ethers } from 'ethers';
 import { RskTransaction } from '../models/rsk/rsk-transaction.model';
+import {
+  assertBridgeCalldataWithinBudget,
+  toParserReceipt,
+  toParserTx,
+} from '../utils/bridge-utils';
 import * as constants from '../constants';
+
+/** Operation label for the budget's observability signal. */
+export const BRIDGE_DECODE_ROUTE = 'bridge-decode';
 
 export class RskNodeService {
   web3: Web3;
@@ -26,8 +34,30 @@ export class RskNodeService {
     const blockNumber = await this.web3.eth.getBlockNumber();
     return Number(blockNumber);
   }
-  getBridgeTransaction(txHash: string): Promise<Transaction | undefined> {
-    return this.bridgeTransactionParser.getBridgeTransactionByTxHash(txHash);
+  /**
+   * Decodes a Bridge transaction this service already fetched.
+   *
+   * Takes the transaction rather than its hash on purpose. The parser's
+   * `getBridgeTransactionByTxHash` re-fetches the transaction itself, so a
+   * calldata check on the object a caller held constrained nothing it decoded —
+   * it was advice, not a control. Handing the parser the bytes we validated is
+   * what closes that gap, and it removes two duplicate RPC round trips per
+   * request along the way.
+   *
+   * @param tx - The transaction, with its receipt attached when it is mined.
+   * @returns The decoded Bridge transaction, or `undefined` when there is no
+   *   receipt to decode against.
+   * @throws {HttpErrors.PayloadTooLarge} When the calldata exceeds its budget.
+   */
+  async getBridgeTransaction(tx: RskTransaction): Promise<Transaction | undefined> {
+    assertBridgeCalldataWithinBudget(tx.data, {route: BRIDGE_DECODE_ROUTE});
+    if (!tx.receipt) {
+      return undefined;
+    }
+    return this.bridgeTransactionParser.decodeBridgeTransaction(
+      toParserTx(tx) as never,
+      toParserReceipt(tx.receipt) as never,
+    );
   }
   /**
    * Fetches a transaction, optionally with its receipt attached.

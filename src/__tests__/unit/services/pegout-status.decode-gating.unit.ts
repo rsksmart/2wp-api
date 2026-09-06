@@ -8,6 +8,7 @@ import {RskTransaction} from '../../../models/rsk/rsk-transaction.model';
 import {PegoutStatusDataService} from '../../../services/pegout-status-data-services/pegout-status-data.service';
 import {PegoutStatusService} from '../../../services/pegout-status/pegout-status.service';
 import {RskNodeService} from '../../../services/rsk-node.service';
+import {BRIDGE_METHODS, getBridgeSignature} from '../../../utils/bridge-utils';
 
 const rskTxHash =
   '0xd2852f38fedf1915978715b8a0dc0670040ac4e9065989c810a5bf29c1e006fb';
@@ -16,7 +17,10 @@ const givenRskTransaction = (receipt: unknown): RskTransaction =>
   ({
     blockHash: '0x00002',
     hash: rskTxHash,
-    data: '0xe5400e7b',
+    // A pegout method. This used to be `receiveHeaders`, which the route now
+    // refuses by selector before the receipt is even considered — and would
+    // therefore have made these pass for the wrong reason.
+    data: getBridgeSignature(BRIDGE_METHODS.RELEASE_BTC),
     createdOn: new Date(0),
     blockHeight: 1,
     to: '0x0000000000000000000000000000000001000006',
@@ -110,10 +114,13 @@ describe('Service: PegoutStatusService decode gating', () => {
 
         const result = await service.getPegoutStatusByRskTxHash(rskTxHash);
 
-        sinon.assert.calledOnceWithExactly(
-          rskNodeService.getBridgeTransaction,
-          rskTxHash,
-        );
+        // The transaction itself, not its hash: the parser must decode the
+        // bytes this service already fetched and bounded, not a copy it goes
+        // and fetches for itself.
+        sinon.assert.calledOnce(rskNodeService.getBridgeTransaction);
+        expect(
+          rskNodeService.getBridgeTransaction.firstCall.args[0].hash,
+        ).to.equal(rskTxHash);
         // The parser found nothing usable, which is the existing NOT_FOUND path
         // — the point here is that parsing was attempted at all.
         expect(result.status).to.equal(PegoutStatuses.NOT_FOUND);

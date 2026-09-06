@@ -117,6 +117,7 @@ Caps on how much memory, parsing, serialization and downstream provider work a s
 |RATE_LIMIT_TRUSTED_PROXIES    |(empty)                        |'Comma-separated peers whose X-Forwarded-For is believed; empty ignores the header'|
 |MONGO_MAX_DOCUMENTS           |250                            |'Maximum documents returned by one database read'         |
 |HEALTH_CACHE_TTL_MS           |2000                           |'How long a /health result may be reused, in milliseconds'|
+|MAX_BRIDGE_CALLDATA_BYTES     |32768                          |'Maximum calldata handed to the Bridge ABI decoder, in bytes'|
 
 
 ##Example for .env.local.test file

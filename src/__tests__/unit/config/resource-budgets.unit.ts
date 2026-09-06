@@ -40,6 +40,7 @@ describe('Config: resource budgets', () => {
         BLOCKBOOK_MAX_IN_FLIGHT: '7',
         BLOCKBOOK_QUEUE_MAX_DEPTH: '11',
         BLOCKBOOK_QUEUE_MAX_WAIT_MS: '2500',
+        MAX_BRIDGE_CALLDATA_BYTES: '4096',
       });
 
       expect(budgets).to.deepEqual({
@@ -67,6 +68,7 @@ describe('Config: resource budgets', () => {
         BLOCKBOOK_MAX_IN_FLIGHT: 7,
         BLOCKBOOK_QUEUE_MAX_DEPTH: 11,
         BLOCKBOOK_QUEUE_MAX_WAIT_MS: 2500,
+        MAX_BRIDGE_CALLDATA_BYTES: 4096,
       });
     });
 
@@ -138,6 +140,17 @@ describe('Config: resource budgets', () => {
       expect(budgets.MAX_CONNECTION_BUFFERED_BYTES).to.equal(
         RESOURCE_BUDGET_DEFAULTS.MAX_CONNECTION_BUFFERED_BYTES,
       );
+    });
+
+    it('never lets an unusable value disable the bridge calldata bound', () => {
+      // Zero would refuse every Bridge transaction and a negative value would
+      // mean "no bound"; both are worse than the default, so both fall back.
+      ['0', '-1', 'unbounded', ''].forEach(raw => {
+        expect(
+          loadResourceBudgets({MAX_BRIDGE_CALLDATA_BYTES: raw})
+            .MAX_BRIDGE_CALLDATA_BYTES,
+        ).to.equal(RESOURCE_BUDGET_DEFAULTS.MAX_BRIDGE_CALLDATA_BYTES);
+      });
     });
 
     it('ignores unusable values rather than disabling a budget', () => {
@@ -269,6 +282,25 @@ describe('Config: resource budgets', () => {
       expect(RATE_LIMIT_MAX_FANOUT_REQUESTS).to.be.lessThan(
         RATE_LIMIT_MAX_REQUESTS,
       );
+    });
+
+    it('keeps the worst-case bridge decode heap within a documented ceiling', () => {
+      // The measured amplification of the ABI decoder is ~225x calldata into
+      // heap (28 MiB from 131 KB, 57 MiB from 262 KB, 225 MiB from 1.05 MB).
+      // The bound that matters is the product with how many such requests can
+      // be in flight, which is why /tx-status and /tx-status-by-type are
+      // rate-limited as fan-out routes: raising either number alone silently
+      // multiplies the worst case. 128 MiB leaves room inside a 512 MB heap.
+      const DECODE_HEAP_AMPLIFICATION = 225;
+      const MAX_WORST_CASE_DECODE_BYTES = 128 * 1024 * 1024;
+      const {MAX_BRIDGE_CALLDATA_BYTES, RATE_LIMIT_MAX_FANOUT_REQUESTS} =
+        RESOURCE_BUDGET_DEFAULTS;
+
+      expect(
+        MAX_BRIDGE_CALLDATA_BYTES *
+          DECODE_HEAP_AMPLIFICATION *
+          RATE_LIMIT_MAX_FANOUT_REQUESTS,
+      ).to.be.lessThanOrEqual(MAX_WORST_CASE_DECODE_BYTES);
     });
 
     it('bounds the queue by the same reasoning', () => {

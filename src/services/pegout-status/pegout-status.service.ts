@@ -6,7 +6,12 @@ import {ServicesBindings} from "../../dependency-injection-bindings";
 import {PegoutStatuses, PegoutStatusAppDataModel} from "../../models/rsk/pegout-status-data-model";
 import {PegoutStatusDataService} from "../pegout-status-data-services/pegout-status-data.service";
 import {RskNodeService} from "../rsk-node.service";
-import {BRIDGE_EVENTS, isSuccessfulReceipt} from '../../utils/bridge-utils';
+import {
+  assertBridgeSelectorAllowed,
+  BRIDGE_EVENTS,
+  isSuccessfulReceipt,
+} from '../../utils/bridge-utils';
+import {isBudgetExceededError} from '../../utils/resource-budget';
 import {RskTransaction} from "../../models/rsk/rsk-transaction.model";
 import {PegoutStatusBuilder} from "./pegout-status-builder";
 import ExtendedBridgeTx, {ExtendedBridgeTxModel} from '../extended-bridge-tx';
@@ -53,7 +58,16 @@ export class PegoutStatusService {
                                 // into a status.
                                 pegoutStatus.status = PegoutStatuses.NOT_FOUND;
                             } else if (rskTransaction.receipt && isSuccessfulReceipt(rskTransaction.receipt)) {
-                                const transaction = await this.rskNodeService.getBridgeTransaction(rskTxHash);
+                                // Only the methods this route is built to read.
+                                // registerFastBridgeBtcTransaction is
+                                // permissionless and is not a pegout method, so
+                                // an unauthenticated lookup has no business
+                                // handing it to the decoder — a throw here lands
+                                // in the catch below and answers NOT_FOUND,
+                                // which is what "this is not a pegout" already
+                                // means on this route.
+                                assertBridgeSelectorAllowed(rskTransaction.data);
+                                const transaction = await this.rskNodeService.getBridgeTransaction(rskTransaction);
                                 if (!transaction) {
                                     pegoutStatus.status = PegoutStatuses.NOT_FOUND;
                                 } else {
@@ -61,9 +75,11 @@ export class PegoutStatusService {
                                     pegoutStatus = await this.processTransaction(extendedModel);
                                 }
                             } else if (rskTransaction.receipt) {
-                                // Mined but reverted (or an unreadable status). The EVM never
-                                // accepted these arguments, so nothing here may be handed to the
-                                // ABI decoder — see isSuccessfulReceipt.
+                                // Mined but reverted (or an unreadable status). A reverted call
+                                // produced no events and describes no state change, so there is
+                                // no pegout to report. A semantic filter, not a resource control —
+                                // the size bound in getBridgeTransaction is that. See
+                                // isSuccessfulReceipt.
                                 this.logger.debug({method: 'getPegoutStatusByRskTxHash', txId: rskTxHash}, 'Transaction did not execute successfully, not parsing it');
                                 pegoutStatus.status = PegoutStatuses.NOT_FOUND;
                             } else {
@@ -77,6 +93,16 @@ export class PegoutStatusService {
                         }
                         catch(err) {
                             this.logger.warn({method: 'getPegoutStatusByRskTxHash', err, txId: rskTxHash});
+                            // A budget violation is not "no such pegout", it is
+                            // "this request is refused". Answering NOT_FOUND
+                            // would hide it behind an ordinary-looking 200 and
+                            // make the whole control invisible to the caller and
+                            // to anything alerting on status codes. Every other
+                            // budget in this service answers 413; so does this
+                            // one.
+                            if (isBudgetExceededError(err)) {
+                                throw err;
+                            }
                             pegoutStatus.status = PegoutStatuses.NOT_FOUND;
                         }
                         this.logger.debug({method: 'getPegoutStatusByRskTxHash', txId: rskTxHash, status: pegoutStatus.status});

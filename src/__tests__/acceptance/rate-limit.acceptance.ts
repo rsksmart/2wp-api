@@ -202,4 +202,28 @@ describe('Rate limiting (Acceptance)', () => {
       );
     }).timeout(60000);
   });
+
+  // The tx-status routes are expensive for a different reason: on a database
+  // miss they re-parse a Bridge transaction, and ABI decoding amplifies calldata
+  // into heap by ~225x. MAX_BRIDGE_CALLDATA_BYTES bounds one such request; this
+  // is what bounds how many can be in flight. Neither bound holds alone — the
+  // product is what has to stay small.
+  const decodeRoutes = [
+    `/tx-status/${'ab'.repeat(32)}`,
+    `/tx-status-by-type/${'ab'.repeat(32)}/PEGOUT`,
+  ];
+
+  decodeRoutes.forEach(path => {
+    it(`spends the fan-out allowance on ${path.split('/')[1]}`, async () => {
+      const burst = RATE_LIMIT_MAX_FANOUT_REQUESTS + 3;
+      const statuses: number[] = [];
+      for (let i = 0; i < burst; i += 1) {
+        statuses.push((await fetch(`${baseUrl}${path}`)).status);
+      }
+
+      expect(statuses.filter(s => s !== 429).length).to.equal(
+        RATE_LIMIT_MAX_FANOUT_REQUESTS,
+      );
+    }).timeout(60000);
+  });
 });

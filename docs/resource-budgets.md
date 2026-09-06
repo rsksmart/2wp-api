@@ -42,6 +42,7 @@ back rather than disabling a budget.
 | `RATE_LIMIT_MAX_TRACKED_CLIENTS` | 4096 | Clients the limiter tracks at once |
 | `MONGO_MAX_DOCUMENTS` | 250 | Documents returned by one database read |
 | `HEALTH_CACHE_TTL_MS` | 2000 (2 s) | How long a `/health` result may be reused |
+| `MAX_BRIDGE_CALLDATA_BYTES` | 32768 (32 KiB) | Calldata handed to the Bridge ABI decoder |
 
 `ADDRESS_INFO_MAX_TXIDS` is still honoured as a legacy alias for
 `MAX_ADDRESS_INFO_TXIDS`. `src/config/limits.ts` re-exports the historical names
@@ -400,45 +401,137 @@ tx/fee/last-block providers are bounded only by their timeout.
 
 ### Bridge calldata decoding
 
-Bridge ABI decoding is **not** governed by a size budget. It is governed by a
-different invariant, which is both simpler and strictly stronger:
+Bridge ABI decoding is governed by **three** controls, and none of them is
+sufficient alone:
 
-> Only decode calldata from a transaction the EVM executed **successfully**.
+> Only decode calldata that is **bounded in size**, carries a **selector this
+> route expects**, from a transaction the EVM executed **successfully** — and
+> only the calldata we already hold, never a copy the decoder fetches itself.
 
-A Bridge call only succeeds if RSKj accepted its arguments as semantically valid
-— 80-byte block headers, real DER signatures, real Bitcoin transactions. That
-bounds what the ABI decoder can be made to allocate far more tightly than any
-byte cap could, and it needs no knowledge of ABI layout.
+#### What this used to say, and why it was wrong
 
-The check is [`isSuccessfulReceipt`](../src/utils/bridge-utils.ts). It fails
-closed: a missing receipt, a missing status, or a status shape it cannot read all
-count as failure. Note that a receipt *object* is truthy even for a reverted
-transaction — testing `if (receipt)` is exactly the gap that lets adversarial
-calldata reach the decoder and abort the process.
+Until 2026-09 this section said the decode was governed by a single invariant —
+"only decode calldata from a transaction the EVM executed successfully" — and
+called it "simpler and strictly stronger" than a size budget. It is neither. It
+is not a resource control at all.
 
-Two paths reach the decoder, and both are gated:
+The reasoning was that a Bridge call only succeeds if RSKj accepted its arguments
+as semantically valid, so a successful receipt bounds what the decoder can be made
+to allocate. That was checked against `receiveHeaders`, which does validate header
+sizes before parsing and does revert, and then generalized to every Bridge
+method. It does not generalize:
+`registerFastBridgeBtcTransaction` wraps its whole body in a catch that returns
+`GENERIC_ERROR` rather than reverting. Adversarial calldata to that method is
+mined with `status: 1` and walks straight through the gate. One method's behaviour
+says nothing about the next one's.
 
-- **`GET /tx-status/{txId}` and `GET /tx-status-by-type/{txId}/pegout`** —
-  unauthenticated, and on a database miss they re-parse the transaction. The
-  receipt is already fetched here, so the gate is free. A mined-but-reverted
-  transaction returns `NOT_FOUND` and is never parsed.
-  See `pegout-status.service.ts`.
-- **Daemon block sync** — `node-bridge-data.provider.ts` now runs
-  **filter → status → decode**. Subscriber interest is decided from the raw
-  4-byte selector before anything is decoded, which drops `receiveHeaders` and
-  every other unsubscribed method for the cost of a string comparison. Only the
-  survivors cost a receipt lookup. A skipped transaction never aborts the sync.
+The second mistake was structural. `getBridgeTransactionByTxHash` takes only a
+transaction hash and re-fetches the transaction and receipt itself, so a check
+applied to the `RskTransaction` a caller held constrained nothing the parser went
+on to decode. A guard on bytes the decoder never reads is advice, not a control.
 
-Because filtering now happens *before* the decode, the filter selectors are
-load-bearing: a selector drifting between the root `rsk-precompiled-abis` and the
-copy nested under the parser would silently stop indexing a method rather than
-merely decoding it and discarding the result. `node-bridge-decode-gating.unit.ts`
-pins them.
+#### The three controls
+
+**1. Size.** `MAX_BRIDGE_CALLDATA_BYTES` (32 KiB) caps what may be handed to the
+decoder, in [`assertBridgeCalldataWithinBudget`](../src/utils/bridge-utils.ts). It
+holds whatever the EVM decided and whatever the ABI layout is, which is exactly
+what the receipt gate could not do.
+
+The number is derived. ABI decoding amplifies calldata into heap by a measured
+~225x — 131 KB costs +26.7 MiB, 262 KB costs +55.2 MiB, 1.05 MB costs +225 MiB —
+so the worst case is `225 x MAX_BRIDGE_CALLDATA_BYTES x concurrent requests`. At
+32 KiB one request costs ~7.2 MiB. The concurrency half of that product is why
+`/tx-status/{txId}` and `/tx-status-by-type/{txId}/{txType}` are counted as
+fan-out routes by the rate limiter: the two bounds hold each other up, and
+`resource-budgets.unit.ts` asserts the product against a documented ceiling so
+relaxing either alone fails the build.
+
+The bound is calibrated against real traffic, not chosen by feel. Across 12 000
+recent blocks on each of mainnet and testnet — 3 769 successful Bridge
+transactions — calldata sizes are p50 = 4 B, p90 = 228 B, p99 = 868 B,
+p100 = 1604 B. 32 KiB clears the observed maximum by 20x. That margin matters in
+the other direction: a bound set too low does not fail loudly, it leaves
+legitimate pegouts in a status that never resolves.
+
+The thin spot is `registerBtcTransaction`, which carries a user-supplied Bitcoin
+transaction and a merkle proof. Worked out at 148 B per input, 32 KiB covers a
+pegin of roughly 215 inputs; a larger one is legal and would be skipped by the
+daemon — logged at `warn` with the transaction hash and counted, not silent — and
+is recovered by raising `MAX_BRIDGE_CALLDATA_BYTES`. The public pegout route is
+not exposed to this: its selector allowlist admits no method that carries a
+Bitcoin transaction.
+
+**2. Selector.** `PEGOUT_ROUTE_SELECTORS` is the set of methods the pegout HTTP
+path will decode: `updateCollections`, `addSignature`, `releaseBtc`, and empty
+calldata — a native pegout request *is* a plain value transfer to the Bridge, so
+omitting `0x` would break the route for every ordinary user pegout.
+`registerFastBridgeBtcTransaction` is permissionless and is not a pegout method,
+so an unauthenticated lookup has no business handing it to the decoder;
+`getBtcTransactionConfirmations` and `receiveHeaders` are refused for the same
+reason. The size bound already covers all three — this makes the coverage
+intentional rather than incidental, and keeps a future decoder bug on any of them
+out of reach of a public route.
+
+`PegoutDataProcessor.getFilters()` derives from that same set rather than
+restating it. These selectors are load-bearing: the daemon filters before it
+decodes, so a selector drifting between two definitions would stop indexing a
+method rather than merely decoding it and discarding the result. The values are
+pinned separately in `bridge-selector-allowlist.unit.ts`, because deriving one
+list from the other means an equality test between them can no longer fail.
+
+**3. Receipt status.** [`isSuccessfulReceipt`](../src/utils/bridge-utils.ts) is
+kept, as a *semantic* filter: a reverted call produced no events and describes no
+state change, so there is nothing worth decoding in it. It fails closed — a
+missing receipt, a missing status, or a status shape it cannot read all count as
+failure — and note that a receipt *object* is truthy even for a reverted
+transaction, so testing `if (receipt)` reads a revert as a success. It bounds no
+resources. Do not lean on it for that again.
+
+#### One decode entry point
+
+`RskNodeService.getBridgeTransaction` is the only place in the codebase that
+decodes Bridge calldata, and it takes the transaction rather than its hash, so the
+bytes that are bounded are the bytes that are decoded.
+`bridge.service.getBridgeTransactionByHash` is gone; the daemon's block sync uses
+the same guarded entry point, which also removed two duplicate RPC round trips per
+transaction.
+
+`bridge-decode-entrypoints.unit.ts` keeps this true structurally. It fails if a
+production module calls `getBridgeTransactionByTxHash` again, if a second call
+site of `decodeBridgeTransaction` appears, if the guard stops preceding the decode
+in that file, or if `bridge-utils` re-acquires a dependency on the service layer.
+Nothing at runtime would notice any of those.
+
+Both paths still filter before they decode:
+
+- **`GET /tx-status/{txId}` and `GET /tx-status-by-type/{txId}/PEGOUT`** —
+  unauthenticated, and on a database miss they re-parse the transaction. Selector,
+  then size, then receipt status. A refused selector answers `NOT_FOUND`, which is
+  what "this is not a pegout" already means here; a size violation is rethrown
+  rather than folded into `NOT_FOUND`, so a refused request is not disguised as an
+  ordinary one.
+- **Daemon block sync** — `node-bridge-data.provider.ts` runs
+  **subscriber filter → receipt status → size → decode**. Subscriber interest is
+  decided from the raw 4-byte selector before anything is decoded, which drops
+  `receiveHeaders` and every other unsubscribed method for a string comparison.
+  Only the survivors cost a receipt lookup. A calldata violation there is logged
+  and skipped rather than thrown — one hostile transaction must not stop the sync
+  — but *only* that: any other error keeps propagating, or a real node outage
+  would look like a run of skipped transactions.
+
+#### Evidence
+
+`bridge-calldata-oom.acceptance.ts` runs the control in CI rather than describing
+it. A child process with a 256 MB heap, handed 1.5 MiB of aliased-offset
+`registerFastBridgeBtcTransaction` calldata, dies on SIGABRT with
+`JavaScript heap out of memory`; the same payload through the guarded entry point
+comes back refused with resident memory flat. If the payload ever stops being
+lethal, that test says so instead of quietly passing.
 
 This is the `2wp-api` side of the fix only. It does not remove the need for a fix
-in `@rsksmart/bridge-transaction-parser`, which decodes without a status check
-and without validating ABI offsets — other consumers of that library remain
-exposed, and there is no published version to upgrade to.
+in `@rsksmart/bridge-transaction-parser`, which decodes without validating ABI
+offsets or total size — other consumers of that library remain exposed, and there
+is no published version to upgrade to.
 
 ## Observability
 
@@ -470,8 +563,14 @@ registry.
 `provider_timeout_ms`, `utxos_per_address`, `utxo_response_rows`,
 `address_info_txids`, `address_list_items`, `error_response_bytes`, `rate_limit`,
 `validation_error_details`, `connection_buffered_bytes`, `request_duration_ms`,
-`mongo_documents`,
+`mongo_documents`, `bridge_calldata_bytes`,
 `provider_permits`.
+
+`bridge_calldata_bytes` is the one to alert on permanently: it should be **zero**
+in normal operation. A sustained run of it is an exploitation attempt; a single
+hit with `observedValue` near the limit is a recalibration due, not an attack.
+`observedValue: -1` means the calldata was refused before it was measured
+(malformed hex) — it is not a size.
 
 The provider pool additionally publishes its own series, since "how many are in
 flight right now" is a gauge and cannot be expressed as a monotonic counter:
@@ -523,6 +622,13 @@ value:
 - `src/__tests__/unit/services/node-bridge-decode-gating.unit.ts`
 - `src/__tests__/unit/services/pegout-status.decode-gating.unit.ts`
 - `src/__tests__/unit/utils/bridge-utils.unit.ts`
+- `src/__tests__/unit/utils/bridge-calldata-budget.unit.ts`
+- `src/__tests__/unit/services/bridge-decode-equivalence.unit.ts`
+- `src/__tests__/unit/services/rsk-node.bridge-decode.unit.ts`
+- `src/__tests__/unit/services/bridge-selector-allowlist.unit.ts`
+- `src/__tests__/unit/config/bridge-decode-entrypoints.unit.ts`
+- `src/__tests__/acceptance/bridge-calldata-budget.acceptance.ts`
+- `src/__tests__/acceptance/bridge-calldata-oom.acceptance.ts`
 - `src/__tests__/unit/utxo.controller.budgets.unit.ts`
 - `src/__tests__/unit/validation/bounded-ajv.factory.unit.ts`
 - `src/__tests__/unit/middleware/bounded-error-writer.unit.ts`
