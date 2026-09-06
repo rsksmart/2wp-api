@@ -144,10 +144,11 @@ export class PeginDataProcessor implements FilteredBridgeTransactionProcessor {
     try {
       const context = PeginAtlasEventBuilder.extractContext(extendedBridgeTx);
       const events = PeginAtlasEventBuilder.build(peginStatus, context);
-      await events.reduce(async (promise, event) => {
-        await promise;
+      // Sequential on purpose: the queue orders by MessageGroupId, so
+      // swap.created has to be sent before the outcome that follows it.
+      for (const event of events) {
         await this.atlasEventPublisher.publish(event, 'pegin');
-      }, Promise.resolve());
+      }
     } catch (e) {
       this.logger.error(
         {method: 'publishAtlasEvents', err: e, btcTxId: peginStatus.btcTxId},

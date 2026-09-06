@@ -53,13 +53,16 @@ export class DependencyInjectionHandler {
    * @param app - The daemon application to configure.
    */
   public static configureDaemonDependencies(app: Application): void {
+    // Read once, so every binding in this method is derived from the same
+    // evaluation of the kill switch.
+    const atlasEventsEnabled = isAtlasEventsEnabled();
     app
       .bind(ConstantsBindings.ATLAS_EVENTS_ENABLED)
-      .to(isAtlasEventsEnabled());
+      .to(atlasEventsEnabled);
 
     // The kill switch decides the transport, never the callers: the processors
     // always depend on the AtlasEventPublisher interface.
-    const atlasEventPublisher: Constructor<AtlasEventPublisher> = isAtlasEventsEnabled()
+    const atlasEventPublisher: Constructor<AtlasEventPublisher> = atlasEventsEnabled
       ? SqsAtlasEventPublisher
       : NoopAtlasEventPublisher;
     app

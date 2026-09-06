@@ -1,4 +1,5 @@
 import {randomUUID} from 'crypto';
+import {getLogger, Logger} from '../../utils/logger';
 import {
   ASSET_RBTC,
   ASSET_BTC,
@@ -21,6 +22,8 @@ import {
   PegoutStatusDbDataModel,
   PegoutStatuses,
 } from '../../models/rsk/pegout-status-data-model';
+
+const logger: Logger = getLogger('pegoutAtlasEventBuilder');
 
 const REJECTION_ERROR_CATEGORY = 'validation';
 const REJECTION_ERROR_MESSAGE = 'Pegout request rejected by the Bridge';
@@ -133,7 +136,7 @@ export class PegoutAtlasEventBuilder {
       destination_tx_hash: pegout.btcTxHash,
       output_amount: this.toDecimalAmount(received),
       output_amount_usd: null,
-      fee: this.toDecimalAmount(requested - received),
+      fee: this.toDecimalAmount(this.feeSatoshis(pegout, requested, received)),
       duration_ms: this.durationMs(pegout, context),
     };
   }
@@ -160,9 +163,57 @@ export class PegoutAtlasEventBuilder {
     return Number.isFinite(elapsed) && elapsed >= 0 ? elapsed : null;
   }
 
+  /**
+   * The peg-out fee, in satoshis, never below zero.
+   *
+   * `fee` is a `decimalAmount` in the schema and its pattern admits no minus
+   * sign, so a batch whose output was matched to the wrong peg-out — or a
+   * corrupted status row — would otherwise produce an event that fails
+   * validation on the Atlas side. Reporting zero keeps the transition in the
+   * dataset; the warning is what says the numbers behind it cannot be trusted.
+   *
+   * @param pegout - The peg-out the amounts were read from, for the log.
+   * @param requested - Amount the user asked to release, in satoshis.
+   * @param received - Amount the Bitcoin output actually pays, in satoshis.
+   * @returns `requested - received`, or 0 when that difference is negative.
+   */
+  private static feeSatoshis(
+    pegout: PegoutStatusDbDataModel,
+    requested: number,
+    received: number,
+  ): number {
+    const fee = requested - received;
+    if (fee < 0) {
+      logger.warn(
+        {
+          method: 'feeSatoshis',
+          originatingRskTxHash: pegout.originatingRskTxHash,
+          requested,
+          received,
+        },
+        'Peg-out received more than it requested, reporting a zero fee',
+      );
+      return 0;
+    }
+    return fee;
+  }
+
+  /**
+   * Confirmations the schema expects a peg-out to wait for, never below zero.
+   *
+   * `expected_confirmations` is an `integer` with `minimum: 0`, so a negative
+   * `RSK_PEGOUT_MINIMUM_CONFIRMATIONS` is as invalid as a missing one and is
+   * treated the same way.
+   *
+   * @returns The configured confirmations, or 0 when unset or not a
+   * non-negative number.
+   */
   private static expectedConfirmations(): number {
     const configured = parseInt(process.env.RSK_PEGOUT_MINIMUM_CONFIRMATIONS ?? '', 10);
-    return Number.isFinite(configured) ? configured : 0;
+    if (!Number.isFinite(configured) || configured < 0) {
+      return 0;
+    }
+    return configured;
   }
 
 }

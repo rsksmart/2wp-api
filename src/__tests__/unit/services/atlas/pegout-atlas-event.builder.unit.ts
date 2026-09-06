@@ -128,6 +128,17 @@ describe('Service: PegoutAtlasEventBuilder', () => {
       expect(data.expected_confirmations).to.equal(0);
     });
 
+    // The schema types the field as an integer with minimum 0, so a negative
+    // value is as invalid as a missing one and is treated the same way.
+    it('falls back to zero confirmations when the variable is negative', () => {
+      for (const value of ['-1', '-4000']) {
+        process.env.RSK_PEGOUT_MINIMUM_CONFIRMATIONS = value;
+        const event = PegoutAtlasEventBuilder.build(pegout())!;
+        expect((event.data as SwapPendingData).expected_confirmations).to.equal(0);
+        expectValidAgainstSchema(event);
+      }
+    });
+
     it('validates against the JSON Schema', () => {
       expectValidAgainstSchema(PegoutAtlasEventBuilder.build(pegout()));
     });
@@ -159,6 +170,27 @@ describe('Service: PegoutAtlasEventBuilder', () => {
     it('leaves duration_ms null when the RECEIVED timestamp is unknown', () => {
       const data = PegoutAtlasEventBuilder.build(pegout())!.data as SwapCompletedData;
       expect(data.duration_ms).to.be.null();
+    });
+
+    // decimalAmount admits no minus sign, so a received value above the
+    // requested one would otherwise emit an event Atlas rejects.
+    it('reports a zero fee when the output pays more than was requested', () => {
+      const event = PegoutAtlasEventBuilder.build(
+        givenPegout({
+          status: PegoutStatuses.RELEASE_BTC,
+          rskTxHash: `${originatingRskTxHash}___0`,
+          btcTxHash,
+          createdOn: completedOn,
+          valueRequestedInSatoshis: 9995000,
+          valueInSatoshisToBeReceived: 10000000,
+        }),
+        {receivedCreatedOn},
+      )!;
+
+      const data = event.data as SwapCompletedData;
+      expect(data.fee).to.equal('0.00000000');
+      expect(data.output_amount).to.equal('0.10000000');
+      expectValidAgainstSchema(event);
     });
 
     it('validates against the JSON Schema', () => {
