@@ -1,5 +1,9 @@
 import {expect} from '@loopback/testlab';
-import {isResponseLifecycleError} from '../../index';
+import {
+  classifyException,
+  classifyRejection,
+  isResponseLifecycleError,
+} from '../../index';
 
 describe('Process: response lifecycle error classification', () => {
   describe('survivable — one request is lost, the process is fine', () => {
@@ -94,6 +98,68 @@ describe('Process: response lifecycle error classification', () => {
 
     it('tolerates a non-string code', () => {
       expect(isResponseLifecycleError({code: 42})).to.be.false();
+    });
+  });
+});
+
+/**
+ * The policy the classification feeds, which is not symmetric between the two
+ * process events and deliberately so.
+ */
+describe('Process: failure policy', () => {
+  const mongooseFailure = () =>
+    Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:27017'), {
+      name: 'MongooseServerSelectionError',
+    });
+
+  describe('an unhandled rejection is survived', () => {
+    it('survives a dependency failure with no recognisable code', () => {
+      // The finding, as a classification. A `MongooseServerSelectionError`
+      // carries no string `code`, so the allowlist could never have matched it —
+      // and the allowlist was a closed list standing in front of an open set.
+      expect(classifyRejection(mongooseFailure())).to.equal('survive');
+    });
+
+    it('survives a programming error too', () => {
+      // Not because a TypeError is harmless, but because one rejected promise
+      // is one broken request. Repetition is what says the process is unsound,
+      // and repetition is what the tripwire measures.
+      expect(classifyRejection(new TypeError('x is not a function'))).to.equal(
+        'survive',
+      );
+    });
+
+    it('still recognises a broken response lifecycle as its own thing', () => {
+      // These are not counted against the tripwire: a burst of clients hanging
+      // up is normal traffic, and letting it terminate the process would hand
+      // any client the outage the allowlist exists to prevent.
+      expect(
+        classifyRejection(
+          Object.assign(new Error('x'), {code: 'ERR_HTTP_HEADERS_SENT'}),
+        ),
+      ).to.equal('response_lifecycle');
+    });
+  });
+
+  describe('an uncaught exception is not', () => {
+    it('stays fatal for an ordinary error', () => {
+      // The inversion applies to rejections only. An exception unwound the stack
+      // through arbitrary frames and may have left state half-written; a
+      // rejection, in general, did not. Pinned here so nobody widens the
+      // inversion to cover it by symmetry.
+      expect(classifyException(new Error('boom'))).to.equal('fatal');
+    });
+
+    it('stays fatal for a dependency failure', () => {
+      expect(classifyException(mongooseFailure())).to.equal('fatal');
+    });
+
+    it('keeps the response-lifecycle exemption it already had', () => {
+      expect(
+        classifyException(
+          Object.assign(new Error('x'), {code: 'ERR_STREAM_DESTROYED'}),
+        ),
+      ).to.equal('response_lifecycle');
     });
   });
 });

@@ -57,8 +57,16 @@ export interface ResourceBudgets {
   RATE_LIMIT_MAX_REQUESTS: number;
   /** Requests one client may make per window on the fan-out POSTs. */
   RATE_LIMIT_MAX_FANOUT_REQUESTS: number;
+  /** Requests one client may make per window against `/health`. */
+  RATE_LIMIT_MAX_HEALTH_REQUESTS: number;
   /** Hard cap on how many clients the limiter will track at once. */
   RATE_LIMIT_MAX_TRACKED_CLIENTS: number;
+  /** Occurrences of one kind of process failure survived within one window. */
+  PROCESS_FAILURE_TRIPWIRE_MAX: number;
+  /** Length of the process-failure tripwire's fixed window, in milliseconds. */
+  PROCESS_FAILURE_TRIPWIRE_WINDOW_MS: number;
+  /** Hard cap on how many distinct failure kinds the tripwire tracks. */
+  PROCESS_FAILURE_TRIPWIRE_MAX_KINDS: number;
   /** Hard cap on documents returned by one database read. */
   MONGO_MAX_DOCUMENTS: number;
   /** How long a health result may be reused, in milliseconds. */
@@ -185,9 +193,26 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   // The fan-out POSTs cost up to PROVIDER_CONCURRENCY provider calls each, so
   // they get a tighter allowance than the cheap GETs.
   RATE_LIMIT_MAX_FANOUT_REQUESTS: 15,
+  // `/health` was exempt, which made it the one route in the API with no
+  // ceiling — and the trigger for the outage this budget was added alongside. It
+  // is generous rather than absent: 600 per 30 s window is 20/s, orders of
+  // magnitude above any monitoring cadence, so the guarantee the exemption
+  // existed for still holds. Its upstream cost is already bounded by
+  // HEALTH_CACHE_TTL_MS, so this bounds the request rate itself, not the fan-out.
+  RATE_LIMIT_MAX_HEALTH_REQUESTS: 600,
   // The limiter must not become the amplifier: an attacker with many source
   // addresses would otherwise grow this map without bound.
   RATE_LIMIT_MAX_TRACKED_CLIENTS: 4096,
+  // An unhandled rejection is one broken request and is survived. Ten of the
+  // same kind inside a minute is not a request failing, it is the process stuck
+  // failing the same way — high enough that a transient outage does not reach it,
+  // low enough that a real degradation does. Calibrate against staging.
+  PROCESS_FAILURE_TRIPWIRE_MAX: 10,
+  PROCESS_FAILURE_TRIPWIRE_WINDOW_MS: 60_000,
+  // The tripwire must not become the amplifier, for the same reason
+  // RATE_LIMIT_MAX_TRACKED_CLIENTS exists: past this ceiling every further kind
+  // counts in one shared bucket rather than allocating a new one.
+  PROCESS_FAILURE_TRIPWIRE_MAX_KINDS: 64,
   // The collections behind the public routes are small and operator-managed —
   // there are 14 feature flags today. This is not a page size, it is a ceiling
   // that stops an unbounded read from becoming unbounded memory if a collection
@@ -318,9 +343,25 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
       env.RATE_LIMIT_MAX_FANOUT_REQUESTS,
       d.RATE_LIMIT_MAX_FANOUT_REQUESTS,
     ),
+    RATE_LIMIT_MAX_HEALTH_REQUESTS: parsePositiveInt(
+      env.RATE_LIMIT_MAX_HEALTH_REQUESTS,
+      d.RATE_LIMIT_MAX_HEALTH_REQUESTS,
+    ),
     RATE_LIMIT_MAX_TRACKED_CLIENTS: parsePositiveInt(
       env.RATE_LIMIT_MAX_TRACKED_CLIENTS,
       d.RATE_LIMIT_MAX_TRACKED_CLIENTS,
+    ),
+    PROCESS_FAILURE_TRIPWIRE_MAX: parsePositiveInt(
+      env.PROCESS_FAILURE_TRIPWIRE_MAX,
+      d.PROCESS_FAILURE_TRIPWIRE_MAX,
+    ),
+    PROCESS_FAILURE_TRIPWIRE_WINDOW_MS: parsePositiveInt(
+      env.PROCESS_FAILURE_TRIPWIRE_WINDOW_MS,
+      d.PROCESS_FAILURE_TRIPWIRE_WINDOW_MS,
+    ),
+    PROCESS_FAILURE_TRIPWIRE_MAX_KINDS: parsePositiveInt(
+      env.PROCESS_FAILURE_TRIPWIRE_MAX_KINDS,
+      d.PROCESS_FAILURE_TRIPWIRE_MAX_KINDS,
     ),
     MONGO_MAX_DOCUMENTS: parsePositiveInt(
       env.MONGO_MAX_DOCUMENTS,
@@ -381,7 +422,11 @@ export const {
   RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_MAX_REQUESTS,
   RATE_LIMIT_MAX_FANOUT_REQUESTS,
+  RATE_LIMIT_MAX_HEALTH_REQUESTS,
   RATE_LIMIT_MAX_TRACKED_CLIENTS,
+  PROCESS_FAILURE_TRIPWIRE_MAX,
+  PROCESS_FAILURE_TRIPWIRE_WINDOW_MS,
+  PROCESS_FAILURE_TRIPWIRE_MAX_KINDS,
   MONGO_MAX_DOCUMENTS,
   HEALTH_CACHE_TTL_MS,
   BLOCKBOOK_MAX_IN_FLIGHT,

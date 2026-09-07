@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-floating-promises */
 import mongoose from 'mongoose';
 import { FeaturesDataService } from './features-data.service';
 import {FeaturesDbDataModel} from '../models/features-data.model';
@@ -45,11 +44,8 @@ export class FeaturesMongoDbDataService extends MongoDbDataService<FeaturesDbDat
     return 'FeaturesMongoService';
   }
   protected getConnector(): mongoose.Model<FeaturesMongoModel, {}, {}> {
-    this.verifyAndCreateConnectionIfIsNecessary();
+    this.connectInBackground();
     return FeaturesConnector;
-  }
-  async verifyAndCreateConnectionIfIsNecessary() {
-    await this.ensureConnection();
   }
   /**
    * Every feature flag, bounded.

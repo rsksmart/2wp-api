@@ -415,4 +415,73 @@ describe('Service: RskChainSyncService', () => {
 
   });
 
+  describe('a start that failed did not start', () => {
+    /*
+     * `start()` and `stop()` hung two callbacks off the *same* resolved promise
+     * rather than chaining them, so they ran in parallel: the flag was set
+     * whatever the storage did, and the method resolved before the storage was
+     * ready. A caller that awaited `start()` and then used the service was
+     * relying on a race, and a storage failure was recorded as a success and
+     * never retried.
+     */
+    it('does not mark itself started when the storage fails', async () => {
+      const storage = mockSyncStatusDataService();
+      storage.start.rejects(new Error('mongo is down'));
+      const service = new RskChainSyncService(storage, getRskNodeService(), getInitialBlock(), 1);
+
+      await expect(service.start()).to.be.rejectedWith(/mongo is down/);
+
+      // Still not started, so the next attempt tries again rather than assuming
+      // the first one worked.
+      storage.start.resolves();
+      await service.start();
+      sinon.assert.calledTwice(storage.start);
+    });
+
+    it('does not resolve before the storage has started', async () => {
+      const storage = mockSyncStatusDataService();
+      let ready = false;
+      storage.start.callsFake(async () => {
+        await new Promise(resolve => setTimeout(resolve, 20));
+        ready = true;
+      });
+      const service = new RskChainSyncService(storage, getRskNodeService(), getInitialBlock(), 1);
+
+      await service.start();
+
+      expect(ready).to.be.true();
+    });
+
+    it('does not mark itself stopped when the storage fails', async () => {
+      const storage = mockSyncStatusDataService();
+      const service = new RskChainSyncService(storage, getRskNodeService(), getInitialBlock(), 1);
+      await service.start();
+      storage.stop.rejects(new Error('mongo is down'));
+
+      await expect(service.stop()).to.be.rejectedWith(/mongo is down/);
+
+      storage.stop.resolves();
+      await service.stop();
+      sinon.assert.calledTwice(storage.stop);
+    });
+
+    it('reports a failing start through getSyncStatus rather than orphaning it', async () => {
+      const orphans: unknown[] = [];
+      const collect = (reason: unknown) => orphans.push(reason);
+      process.on('unhandledRejection', collect);
+      try {
+        const storage = mockSyncStatusDataService();
+        storage.start.rejects(new Error('mongo is down'));
+        const service = new RskChainSyncService(storage, getRskNodeService(), getInitialBlock(), 1);
+
+        await expect(service.getSyncStatus()).to.be.rejectedWith(/mongo is down/);
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        expect(orphans).to.be.empty();
+      } finally {
+        process.off('unhandledRejection', collect);
+      }
+    });
+  });
+
 });

@@ -50,6 +50,7 @@ export function bindPermissiveRateLimiter(app: TwpapiApplication): void {
     new RateLimiter({
       limit: Number.MAX_SAFE_INTEGER,
       fanoutLimit: Number.MAX_SAFE_INTEGER,
+      healthLimit: Number.MAX_SAFE_INTEGER,
       windowMs: 60_000,
       maxTracked: 16,
     }),

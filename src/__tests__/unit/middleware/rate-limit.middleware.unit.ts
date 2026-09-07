@@ -2,6 +2,9 @@ import {expect} from '@loopback/testlab';
 import {HttpErrors, MiddlewareContext, RestBindings} from '@loopback/rest';
 import sinon from 'sinon';
 import {
+  RATE_LIMIT_MAX_FANOUT_REQUESTS,
+  RATE_LIMIT_MAX_HEALTH_REQUESTS,
+  RATE_LIMIT_MAX_REQUESTS,
   RATE_LIMIT_MAX_TRACKED_CLIENTS,
   RATE_LIMIT_WINDOW_MS,
 } from '../../../config/resource-budgets';
@@ -21,10 +24,11 @@ import {
 describe('Middleware: rate limiting', () => {
   let clock: sinon.SinonFakeTimers;
 
-  const givenLimiter = (over: Partial<{limit: number; fanoutLimit: number; windowMs: number; maxTracked: number}> = {}) =>
+  const givenLimiter = (over: Partial<{limit: number; fanoutLimit: number; healthLimit: number; windowMs: number; maxTracked: number}> = {}) =>
     new RateLimiter({
       limit: 3,
       fanoutLimit: 2,
+      healthLimit: 4,
       windowMs: 1000,
       maxTracked: 10,
       ...over,
@@ -140,14 +144,84 @@ describe('Middleware: rate limiting', () => {
       expect(() => limiter.check('1.1.1.1', '/utxo')).not.throw();
     });
 
-    it('exempts the health endpoint', () => {
-      const limiter = givenLimiter();
+  });
 
-      // Monitoring polls this constantly; tripping it would make the limiter an
-      // outage detector rather than a control.
+  describe('/health has an allowance of its own, not an exemption', () => {
+    // It was exempt, which made it the one route in the API a client could send
+    // without limit — and the trigger for the process kill this branch is about.
+    // The exemption existed so monitoring could never be blocked; a separate,
+    // generous allowance buys that without leaving an unmetered route.
+    const givenHealthLimiter = () => givenLimiter({healthLimit: 5});
+
+    it('refuses a client that hammers it', () => {
+      const limiter = givenHealthLimiter();
+
       expect(() => {
         for (let i = 0; i < 50; i += 1) limiter.check('1.1.1.1', '/health');
-      }).not.throw();
+      }).to.throw(RateLimitedError);
+    });
+
+    it('does not spend the ordinary allowance', () => {
+      // Monitoring must not be able to lock a client out of the rest of the API,
+      // and the rest of the API must not be able to lock out monitoring.
+      const limiter = givenHealthLimiter();
+
+      for (let i = 0; i < 5; i += 1) limiter.check('1.1.1.1', '/health');
+
+      expect(() => limiter.check('1.1.1.1', '/anything')).to.not.throw();
+    });
+
+    it('is not spent by ordinary traffic', () => {
+      const limiter = givenHealthLimiter();
+
+      for (let i = 0; i < 3; i += 1) limiter.check('1.1.1.1', '/anything');
+
+      expect(() => limiter.check('1.1.1.1', '/health')).to.not.throw();
+    });
+
+    it('labels a refusal by class, never by path', () => {
+      const limiter = givenHealthLimiter();
+
+      try {
+        for (let i = 0; i < 50; i += 1) limiter.check('1.1.1.1', '/health');
+      } catch {
+        // expected
+      }
+
+      expect(
+        getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route: 'health'}),
+      ).to.equal(1);
+      expect(
+        getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route: '/health'}),
+      ).to.equal(0);
+    });
+
+    it('recovers when the window rolls', () => {
+      const limiter = givenHealthLimiter();
+      for (let i = 0; i < 5; i += 1) limiter.check('1.1.1.1', '/health');
+
+      clock.tick(1000);
+
+      expect(() => limiter.check('1.1.1.1', '/health')).to.not.throw();
+    });
+
+    it('never blocks monitoring at a realistic cadence', () => {
+      // With the shipped budgets rather than the small ones above: a poller at
+      // 1 Hz for a whole window, which is faster than any monitoring here polls.
+      const limiter = new RateLimiter({
+        limit: RATE_LIMIT_MAX_REQUESTS,
+        fanoutLimit: RATE_LIMIT_MAX_FANOUT_REQUESTS,
+        healthLimit: RATE_LIMIT_MAX_HEALTH_REQUESTS,
+        windowMs: RATE_LIMIT_WINDOW_MS,
+        maxTracked: 16,
+      });
+
+      expect(() => {
+        for (let i = 0; i < RATE_LIMIT_WINDOW_MS / 1000; i += 1) {
+          limiter.check('10.0.0.1', '/health');
+          clock.tick(1000);
+        }
+      }).to.not.throw();
     });
   });
 
@@ -312,19 +386,21 @@ describe('Middleware: rate limiting', () => {
       ).to.be.rejectedWith(RateLimitedError);
     });
 
-    it('keeps the health exemption for a spelling the router normalizes', async () => {
-      const limiter = givenLimiter();
+    it('counts a health spelling the router normalizes against the health class', async () => {
+      const limiter = givenLimiter({healthLimit: 5});
 
-      const next = await callTimes(
-        10,
-        '/health/',
-        limiter,
-        routerResolving('/health'),
-      );
+      // Six calls: five inside the allowance, and one past it. A classifier
+      // reading the raw path would file `/health/` under `other` and refuse at
+      // four instead.
+      const next = await callTimes(5, '/health/', limiter, routerResolving('/health'));
 
-      // Ten calls is well past both allowances: an exempt route is not counted
-      // at all, so it cannot be spent.
-      expect(next.callCount).to.equal(10);
+      expect(next.callCount).to.equal(5);
+      await expect(
+        rateLimitMiddleware(
+          givenContext('/health/', limiter, routerResolving('/health')),
+          sinon.stub().resolves(),
+        ),
+      ).to.be.rejectedWith(RateLimitedError);
     });
 
     it('treats an unroutable request as an ordinary route', async () => {

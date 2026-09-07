@@ -9,6 +9,7 @@ import {
 } from '@loopback/rest';
 import {
   RATE_LIMIT_MAX_FANOUT_REQUESTS,
+  RATE_LIMIT_MAX_HEALTH_REQUESTS,
   RATE_LIMIT_MAX_REQUESTS,
   RATE_LIMIT_MAX_TRACKED_CLIENTS,
   RATE_LIMIT_WINDOW_MS,
@@ -31,7 +32,7 @@ export const RATE_LIMIT_REJECTED_METRIC = 'rate_limit_rejected_total';
  * both a cardinality explosion and a way to push arbitrary text into the metrics
  * pipeline.
  */
-export type RateLimitRouteClass = 'fanout' | 'other';
+export type RateLimitRouteClass = 'fanout' | 'health' | 'other';
 
 /**
  * The expensive routes: each one multiplies a single request into far more work
@@ -57,13 +58,35 @@ const FANOUT_ROUTES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Paths the limiter does not count.
+ * The monitoring route, which gets an allowance rather than an exemption.
  *
- * `/health` is polled continuously by monitoring, and sharing a bucket with
- * public traffic would mean an attacker could blind the operators by tripping
- * it. Its cost is bounded by its own budgets, not by this one.
+ * It used to be exempt, and the reasoning was sound as far as it went: `/health`
+ * is polled continuously, and sharing a bucket with public traffic would let an
+ * attacker blind the operators by spending it. What the exemption actually
+ * bought, though, was the one route in this API a client could send without any
+ * ceiling at all — on a path that reaches every dependency the service has, and
+ * that turned out to be the trigger for a process kill.
+ *
+ * A separate bucket gives the same guarantee without the hole. Ordinary traffic
+ * cannot spend the monitoring allowance and monitoring cannot spend the ordinary
+ * one, exactly as before; the difference is that `/health` now has a number.
+ * `RATE_LIMIT_MAX_HEALTH_REQUESTS` is deliberately far above any real polling
+ * cadence, so the only client it can refuse is one that is not monitoring.
  */
-const EXEMPT_ROUTES: ReadonlySet<string> = new Set(['/health']);
+const HEALTH_ROUTES: ReadonlySet<string> = new Set(['/health']);
+
+/**
+ * The class a resolved route counts against.
+ *
+ * @param route - The route template the router resolved, not the raw path.
+ * @returns Which allowance this route spends.
+ */
+export function classifyRoute(route: string): RateLimitRouteClass {
+  if (FANOUT_ROUTES.has(route)) {
+    return 'fanout';
+  }
+  return HEALTH_ROUTES.has(route) ? 'health' : 'other';
+}
 
 /** Addresses are the map keys, so the shape is constrained deliberately. */
 const ADDRESS_TOKEN = /^[0-9a-fA-F:.]{3,45}$/;
@@ -175,6 +198,7 @@ function refuse(
 interface RateLimiterOptions {
   limit: number;
   fanoutLimit: number;
+  healthLimit: number;
   windowMs: number;
   maxTracked: number;
 }
@@ -185,6 +209,19 @@ interface ClientState {
   counts: Record<RateLimitRouteClass, number>;
   lastSeenAt: number;
 }
+
+/**
+ * A fresh set of counters.
+ *
+ * Written once rather than zeroed field by field: the previous version listed
+ * the classes by hand when a window rolled, so adding a third class would have
+ * left it uncleared and given that class an allowance that never resets.
+ */
+const emptyCounts = (): Record<RateLimitRouteClass, number> => ({
+  fanout: 0,
+  health: 0,
+  other: 0,
+});
 
 /**
  * Fixed-window request counting, per client and per route class.
@@ -212,22 +249,15 @@ export class RateLimiter {
    * @throws {RateLimitedError} When the client is over its allowance.
    */
   check(clientKey: string, route: string): void {
-    if (EXEMPT_ROUTES.has(route)) {
-      return;
-    }
-    const routeClass: RateLimitRouteClass = FANOUT_ROUTES.has(route)
-      ? 'fanout'
-      : 'other';
-    const limit =
-      routeClass === 'fanout' ? this.options.fanoutLimit : this.options.limit;
+    const routeClass = classifyRoute(route);
+    const limit = this.limitFor(routeClass);
     const now = Date.now();
 
     const state = this.stateFor(clientKey, now);
     state.lastSeenAt = now;
     if (now - state.windowStartedAt >= this.options.windowMs) {
       state.windowStartedAt = now;
-      state.counts.fanout = 0;
-      state.counts.other = 0;
+      state.counts = emptyCounts();
     }
 
     state.counts[routeClass] += 1;
@@ -246,6 +276,18 @@ export class RateLimiter {
    */
   reset(): void {
     this.clients.clear();
+  }
+
+  /** The allowance a route class spends from. */
+  private limitFor(routeClass: RateLimitRouteClass): number {
+    switch (routeClass) {
+      case 'fanout':
+        return this.options.fanoutLimit;
+      case 'health':
+        return this.options.healthLimit;
+      default:
+        return this.options.limit;
+    }
   }
 
   /** Drops entries whose window has elapsed. Safe to call on a timer. */
@@ -268,7 +310,7 @@ export class RateLimiter {
     }
     const fresh: ClientState = {
       windowStartedAt: now,
-      counts: {fanout: 0, other: 0},
+      counts: emptyCounts(),
       lastSeenAt: now,
     };
     this.clients.set(clientKey, fresh);
@@ -316,6 +358,7 @@ export const RATE_LIMITER_KEY = 'middleware.rateLimiter';
 export const requestRateLimiter = new RateLimiter({
   limit: RATE_LIMIT_MAX_REQUESTS,
   fanoutLimit: RATE_LIMIT_MAX_FANOUT_REQUESTS,
+  healthLimit: RATE_LIMIT_MAX_HEALTH_REQUESTS,
   windowMs: RATE_LIMIT_WINDOW_MS,
   maxTracked: RATE_LIMIT_MAX_TRACKED_CLIENTS,
 });

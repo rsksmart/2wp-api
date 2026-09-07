@@ -39,12 +39,16 @@ back rather than disabling a budget.
 | `RATE_LIMIT_WINDOW_MS` | 30000 (30 s) | Rate-limit window length |
 | `RATE_LIMIT_MAX_REQUESTS` | 90 | Requests per window per client, ordinary routes |
 | `RATE_LIMIT_MAX_FANOUT_REQUESTS` | 15 | Requests per window per client, fan-out POSTs |
+| `RATE_LIMIT_MAX_HEALTH_REQUESTS` | 600 | Requests per window per client, `/health` |
 | `RATE_LIMIT_MAX_TRACKED_CLIENTS` | 4096 | Clients the limiter tracks at once |
 | `MONGO_MAX_DOCUMENTS` | 250 | Documents returned by one database read |
 | `HEALTH_CACHE_TTL_MS` | 2000 (2 s) | How long a `/health` result may be reused |
 | `MAX_BRIDGE_CALLDATA_BYTES` | 32768 (32 KiB) | Calldata handed to the Bridge ABI decoder |
 | `MAX_TX_PROVIDER_RESPONSE_BYTES` | 8388608 (8 MiB) | One transaction-lookup provider response |
 | `TX_PROVIDER_MAX_IN_FLIGHT` | 4 | Transaction lookups in flight process-wide |
+| `PROCESS_FAILURE_TRIPWIRE_MAX` | 10 | Failures of one kind survived within a window |
+| `PROCESS_FAILURE_TRIPWIRE_WINDOW_MS` | 60000 (60 s) | Tripwire window length |
+| `PROCESS_FAILURE_TRIPWIRE_MAX_KINDS` | 64 | Failure kinds the tripwire tracks at once |
 
 `ADDRESS_INFO_MAX_TXIDS` is still honoured as a legacy alias for
 `MAX_ADDRESS_INFO_TXIDS`. `src/config/limits.ts` re-exports the historical names
@@ -278,12 +282,23 @@ Fixed windows rather than a sliding log on purpose: a log grows per request,
 which would make the limiter the thing that consumes memory under attack. Two
 counters and a timestamp per client is the whole state.
 
-Two allowances, because the routes are not equally expensive:
+Three allowances, because the routes are not equally expensive:
 `RATE_LIMIT_MAX_FANOUT_REQUESTS` for `/utxo` and `/addresses-info`, which each
-cost up to `PROVIDER_CONCURRENCY` provider calls, and `RATE_LIMIT_MAX_REQUESTS`
-for everything else. They are separate buckets, not one counter with two
-ceilings. `GET /health` is exempt: monitoring polls it continuously, and sharing a
-bucket with public traffic would let an attacker blind the operators.
+cost up to `PROVIDER_CONCURRENCY` provider calls; `RATE_LIMIT_MAX_HEALTH_REQUESTS`
+for `GET /health`; and `RATE_LIMIT_MAX_REQUESTS` for everything else. They are
+separate buckets, not one counter with three ceilings.
+
+`/health` used to be **exempt** rather than have a bucket, and the reasoning was
+sound as far as it went: monitoring polls it continuously, and sharing a bucket
+with public traffic would let an attacker blind the operators. What the exemption
+bought, though, was the one route in this API a client could send without any
+ceiling — unauthenticated, and reaching every dependency the service has. A
+separate bucket gives the same guarantee without the hole: public traffic still
+cannot spend the monitoring allowance, and monitoring still cannot spend the
+public one. 600 per 30 s window is 20/s, orders of magnitude above any real
+polling cadence, so the only client it can refuse is one that is not monitoring.
+`resource-budgets.unit.ts` asserts that as a rate, because a budget nobody checks
+against the cadence is how an exemption comes back as an outage.
 
 #### Client identity behind a proxy
 
@@ -333,11 +348,11 @@ query, not to the result; capping an already-materialized array would buy
 nothing. Filling the budget records a violation, because it means the collection
 outgrew the assumption.
 
-**`GET /health`** fans out to four dependencies per call and is deliberately
-exempt from rate limiting, so that monitoring can never be blocked. Those two
-facts together make it the one route where request volume multiplies upstream
-load with nothing to bound it, so the result is cached for
-`HEALTH_CACHE_TTL_MS`. The `200`/`500` semantics are unchanged — operators depend
+**`GET /health`** fans out to four dependencies per call, so request volume
+multiplies upstream load. Two separate bounds hold it, and neither replaces the
+other: the result is cached for `HEALTH_CACHE_TTL_MS`, which bounds the fan-out
+per unit time, and `RATE_LIMIT_MAX_HEALTH_REQUESTS` bounds the request rate
+itself. The `200`/`500` semantics are unchanged — operators depend
 on this as a readiness signal — and failures are cached too, because a failing
 dependency is exactly when polling intensifies. A cached failure still reports
 down.
@@ -445,28 +460,82 @@ a ceiling the service set for itself.
 Aborted requests also now appear in the access log at all — it listened on
 `'finish'`, which never fires for an abandoned request.
 
-#### A broken response lifecycle is survived; a broken dependency is not
+#### A rejection is survived; repetition is what terminates the process
 
-A client that disappears mid-response leaves framework and library callbacks
-holding a reference to a finished response. When one of them writes, Node raises
-`ERR_HTTP_HEADERS_SENT`, `ERR_STREAM_WRITE_AFTER_END`,
-`ERR_STREAM_ALREADY_FINISHED` or `ERR_STREAM_DESTROYED` — possibly as an
-`uncaughtException`, from a callback the application has no seam to catch. Those
-four are logged and survived: the request is lost either way, and tearing the
-process down would convert a per-request defect into an outage any client can
-trigger at will.
+This section used to say "a broken response lifecycle is survived; a broken
+dependency is not", and describe an allowlist of four error codes that decided
+whether the process lived. That policy is withdrawn. It was a closed list
+standing in front of an open set: anything the list did not name was fatal, and
+the list could not name everything that is merely a bad afternoon for one
+request. A `MongooseServerSelectionError` carries no string `code` at all, so it
+could never have matched however carefully the list was maintained — and an
+unauthenticated `GET /health` with the database down was enough to stop the
+service.
 
-`ECONNRESET` and `EPIPE` are treated differently, because they are **not**
-response-specific — Mongo, the RSK node and the providers raise the same codes.
-Surviving them unconditionally would leave a possibly degraded process alive with
-nothing to restart it. They are survived only with provenance pointing at a
-response: the failure happened on a `write`, and the error carries no remote-peer
-identity (`address` / `port` / `hostname`), which an outbound connection's errors
-do and an inbound response write does not.
+**Unhandled rejections are survived, always.** A rejected promise is one piece of
+work that failed. Nothing unwound through the process, so the process is in a
+defined state. It is logged, it is counted, and the service keeps serving.
 
-That is a heuristic, and it is deliberately biased towards restarting — an
-unattributable reset is fatal, because a process in an unknown state serving
-traffic is worse than a restart. The four codes above need no heuristic.
+**Repetition is the signal.** `src/utils/failure-tripwire.ts` counts failures by
+kind; when one kind exceeds `PROCESS_FAILURE_TRIPWIRE_MAX` inside
+`PROCESS_FAILURE_TRIPWIRE_WINDOW_MS`, the process logs `event=failure_tripwire`
+and exits 1. That is the evidence a single occurrence cannot give: not one
+request went wrong, but the process keeps going wrong the same way. A trip is
+worth paging on, not just restarting for.
+
+Three properties of the tripwire are load-bearing, because each is a way it could
+be turned against the process it protects:
+
+- **It classifies by `name` and `code`, never by the message.** A tripwire keyed
+  on the message is evadable by anyone who can influence it — vary the message,
+  never repeat a kind, never reach the threshold — and would be an
+  unbounded-cardinality map fed by remote input. Both components are constrained
+  to a key-shaped alphabet, since neither is guaranteed to be a library constant.
+- **It has a ceiling on distinct kinds** (`PROCESS_FAILURE_TRIPWIRE_MAX_KINDS`).
+  Past it everything counts in one shared bucket, which keeps the map bounded
+  *and* keeps counting: dropping the overflow would let a flood of distinct kinds
+  switch the tripwire off. Same lesson as `RATE_LIMIT_MAX_TRACKED_CLIENTS`.
+- **Response-lifecycle failures do not count towards it.** A burst of clients
+  hanging up mid-response is ordinary traffic; treating it as evidence of a
+  degraded process would hand any client exactly the outage this exists to
+  prevent.
+
+**`uncaughtException` is unchanged, and the asymmetry is deliberate.** An
+exception unwound the stack through frames that had no say in it, so anything
+half-written stays half-written and the state is genuinely unknown. A rejection
+unwinds nothing. The first uncaught exception is still fatal, and there is a test
+pinning that so nobody widens the inversion to cover it by symmetry.
+
+The allowlist survives all of this with a narrower job. A client that disappears
+mid-response leaves framework and library callbacks holding a reference to a
+finished response; when one of them writes, Node raises `ERR_HTTP_HEADERS_SENT`,
+`ERR_STREAM_WRITE_AFTER_END`, `ERR_STREAM_ALREADY_FINISHED` or
+`ERR_STREAM_DESTROYED`. `ECONNRESET` and `EPIPE` join them only with provenance
+pointing at a response: the failure happened on a `write`, and the error carries
+no remote-peer identity (`address` / `port` / `hostname`), which an outbound
+connection's errors do and an inbound response write does not. The list no longer
+decides whether the process lives — it decides what is logged as a per-request
+failure and kept out of the tripwire.
+
+The provenance heuristic is still a heuristic, but the cost of it being wrong has
+changed. It used to mean surviving a dependency reset that should have restarted
+the process; now the worst case is a delay in tripping. Worth fixing, no longer
+urgent.
+
+#### The exit code says which kind of stop it was
+
+A graceful stop exits `0` (`SIGINT`, `SIGTERM`) and a fault the process decided on
+exits `1` (the tripwire, an uncaught exception). These used to be one constant,
+`0`, on the reasoning that `restart: unless-stopped` recovers either way. It does
+— but it made every deployment indistinguishable from every crash to anything
+reading exit codes, and a supervisor running `on-failure` would not have
+restarted after a fault at all. `shutdown()` is shared between the signal
+handlers and the failure handlers, so setting the single constant to `1` would
+have made every intentional stop look like a crash; two constants is what lets
+the call site choose.
+
+`SIGTERM` is handled as well as `SIGINT`, so the signal a container runtime
+actually sends on stop runs the same cleanup.
 
 #### The deadline ends the request, it does not merely mark it
 

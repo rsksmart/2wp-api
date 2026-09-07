@@ -2,7 +2,10 @@ services:
   api:
     build: .
     container_name: pp-api-loopback
-    # A fatal fault exits 0, so recovery must not depend on the exit code.
+    # A graceful stop exits 0 and a fatal fault exits 1, so `on-failure` would
+    # also work here. `unless-stopped` is kept because it recovers from both, and
+    # because the restart policy that actually runs in the deployed environment
+    # lives in repo-iac-ng rather than in this file.
     restart: unless-stopped
     ports:
     - "3000:3000"

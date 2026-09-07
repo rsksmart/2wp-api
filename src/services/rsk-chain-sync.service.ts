@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-floating-promises */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from '../utils/logger';
 import {ConstantsBindings, ServicesBindings} from '../dependency-injection-bindings';
@@ -68,49 +67,50 @@ export class RskChainSyncService {
     return new SyncStatusModel(block.hash, block.height, block.parentHash);
   }
 
-  public start(): Promise<void> {
-    const p = Promise.resolve();
-    if (!this.started) {
-      p.then(() => this.syncStorageService.start());
-      p.then(() => {
-        this.started = true;
-        this.logger.debug({method: 'start'}, 'Service started');
-      });
-    }
-    return p;
-  }
-
-  public stop(): Promise<void> {
-    const p = Promise.resolve();
+  /**
+   * Starts the underlying storage, then records that this service is running.
+   *
+   * The order is the whole point. Both steps used to hang off the *same*
+   * resolved promise rather than being chained, so they ran in parallel: the
+   * flag was set whatever the storage did, this method resolved before the
+   * storage was ready, and a storage failure was recorded as a successful start
+   * that would never be retried. It also left that failure orphaned.
+   *
+   * @throws Whatever the storage raised, leaving this service not started.
+   */
+  public async start(): Promise<void> {
     if (this.started) {
-      p.then(() => this.syncStorageService.stop());
-      p.then(() => {
-        this.started = false;
-        this.logger.debug({method: 'stop'}, 'Service stopped');
-      });
+      return;
     }
-    return p;
+    await this.syncStorageService.start();
+    this.started = true;
+    this.logger.debug({method: 'start'}, 'Service started');
   }
 
-  public getSyncStatus(): Promise<SyncStatusModel> {
-    const p = Promise.resolve();
+  /** Stops the underlying storage, then records it. Same shape as {@link start}. */
+  public async stop(): Promise<void> {
     if (!this.started) {
-      p.then(() => this.start());
+      return;
     }
-    return p.then(() => {
-      return this.syncStorageService.getBestBlock().then(result => {
-        if (!result) {
-          this.logger.debug(
-            {defaultInitialBlock: this.defaultInitialBlock.toString()},
-            'No sync data on storage! starting from default height',
-          );
-          // TODO: should I store this and notify subscribers?
-          const syncStatusModel = this.blockToSyncStatusDataModel(this.defaultInitialBlock);
-          return syncStatusModel;
-        }
-        return <SyncStatusModel>result;
-      });
-    });
+    await this.syncStorageService.stop();
+    this.started = false;
+    this.logger.debug({method: 'stop'}, 'Service stopped');
+  }
+
+  public async getSyncStatus(): Promise<SyncStatusModel> {
+    if (!this.started) {
+      await this.start();
+    }
+    const result = await this.syncStorageService.getBestBlock();
+    if (!result) {
+      this.logger.debug(
+        {defaultInitialBlock: this.defaultInitialBlock.toString()},
+        'No sync data on storage! starting from default height',
+      );
+      // TODO: should I store this and notify subscribers?
+      return this.blockToSyncStatusDataModel(this.defaultInitialBlock);
+    }
+    return result;
   }
 
   public async sync(): Promise<void> {

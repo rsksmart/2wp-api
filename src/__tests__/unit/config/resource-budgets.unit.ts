@@ -34,7 +34,11 @@ describe('Config: resource budgets', () => {
         RATE_LIMIT_WINDOW_MS: '30000',
         RATE_LIMIT_MAX_REQUESTS: '90',
         RATE_LIMIT_MAX_FANOUT_REQUESTS: '15',
+        RATE_LIMIT_MAX_HEALTH_REQUESTS: '600',
         RATE_LIMIT_MAX_TRACKED_CLIENTS: '4096',
+        PROCESS_FAILURE_TRIPWIRE_MAX: '4',
+        PROCESS_FAILURE_TRIPWIRE_WINDOW_MS: '15000',
+        PROCESS_FAILURE_TRIPWIRE_MAX_KINDS: '32',
         MONGO_MAX_DOCUMENTS: '250',
         HEALTH_CACHE_TTL_MS: '2000',
         BLOCKBOOK_MAX_IN_FLIGHT: '7',
@@ -64,7 +68,11 @@ describe('Config: resource budgets', () => {
         RATE_LIMIT_WINDOW_MS: 30000,
         RATE_LIMIT_MAX_REQUESTS: 90,
         RATE_LIMIT_MAX_FANOUT_REQUESTS: 15,
+        RATE_LIMIT_MAX_HEALTH_REQUESTS: 600,
         RATE_LIMIT_MAX_TRACKED_CLIENTS: 4096,
+        PROCESS_FAILURE_TRIPWIRE_MAX: 4,
+        PROCESS_FAILURE_TRIPWIRE_WINDOW_MS: 15000,
+        PROCESS_FAILURE_TRIPWIRE_MAX_KINDS: 32,
         MONGO_MAX_DOCUMENTS: 250,
         HEALTH_CACHE_TTL_MS: 2000,
         BLOCKBOOK_MAX_IN_FLIGHT: 7,
@@ -274,6 +282,26 @@ describe('Config: resource budgets', () => {
         RESOURCE_BUDGET_DEFAULTS.RATE_LIMIT_MAX_TRACKED_CLIENTS *
           BYTES_PER_TRACKED_CLIENT,
       ).to.be.lessThanOrEqual(MAX_LIMITER_BYTES);
+    });
+
+    it('leaves monitoring far more headroom than it needs', () => {
+      // `/health` traded an exemption for an allowance, and the allowance is
+      // only defensible if it cannot refuse real monitoring. Expressed as a
+      // rate: the budget has to clear a 1 Hz poller by a wide margin, or the
+      // trade has quietly made the limiter an outage detector.
+      const {RATE_LIMIT_MAX_HEALTH_REQUESTS, RATE_LIMIT_WINDOW_MS} =
+        RESOURCE_BUDGET_DEFAULTS;
+      const perSecond = RATE_LIMIT_MAX_HEALTH_REQUESTS / (RATE_LIMIT_WINDOW_MS / 1000);
+
+      expect(perSecond).to.be.greaterThanOrEqual(10);
+      // And it still has to be a ceiling rather than a formality.
+      expect(RATE_LIMIT_MAX_HEALTH_REQUESTS).to.be.lessThan(10_000);
+    });
+
+    it('gives monitoring more room than ordinary public traffic', () => {
+      expect(
+        RESOURCE_BUDGET_DEFAULTS.RATE_LIMIT_MAX_HEALTH_REQUESTS,
+      ).to.be.greaterThan(RESOURCE_BUDGET_DEFAULTS.RATE_LIMIT_MAX_REQUESTS);
     });
 
     it('limits the expensive routes more tightly than the cheap ones', () => {

@@ -113,10 +113,14 @@ Caps on how much memory, parsing, serialization and downstream provider work a s
 |RATE_LIMIT_WINDOW_MS          |30000                          |'Rate-limit window length, in milliseconds'               |
 |RATE_LIMIT_MAX_REQUESTS       |90                             |'Requests per window per client on ordinary routes'       |
 |RATE_LIMIT_MAX_FANOUT_REQUESTS|15                             |'Requests per window per client on /utxo and /addresses-info'|
+|RATE_LIMIT_MAX_HEALTH_REQUESTS|600                            |'Requests per window per client on /health'               |
 |RATE_LIMIT_MAX_TRACKED_CLIENTS|4096                           |'Hard cap on clients the limiter tracks at once'          |
 |RATE_LIMIT_TRUSTED_PROXIES    |(empty)                        |'Comma-separated peers whose X-Forwarded-For is believed; empty ignores the header'|
 |MONGO_MAX_DOCUMENTS           |250                            |'Maximum documents returned by one database read'         |
 |HEALTH_CACHE_TTL_MS           |2000                           |'How long a /health result may be reused, in milliseconds'|
+|PROCESS_FAILURE_TRIPWIRE_MAX  |10                             |'Failures of one kind survived within a window before exiting 1'|
+|PROCESS_FAILURE_TRIPWIRE_WINDOW_MS|60000                      |'Process-failure tripwire window length, in milliseconds' |
+|PROCESS_FAILURE_TRIPWIRE_MAX_KINDS|64                         |'Hard cap on failure kinds the tripwire tracks at once'   |
 |MAX_BRIDGE_CALLDATA_BYTES     |32768                          |'Maximum calldata handed to the Bridge ABI decoder, in bytes'|
 |MAX_TX_PROVIDER_RESPONSE_BYTES|8388608                        |'Maximum single transaction-lookup provider response, in bytes'|
 |TX_PROVIDER_MAX_IN_FLIGHT     |4                              |'Transaction lookups in flight across the whole process'  |

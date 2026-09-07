@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import {TwpapiApplication} from '../..';
 import {
   RATE_LIMIT_MAX_FANOUT_REQUESTS,
+  RATE_LIMIT_MAX_HEALTH_REQUESTS,
   RATE_LIMIT_MAX_REQUESTS,
 } from '../../config/resource-budgets';
 import {ServicesBindings} from '../../dependency-injection-bindings';
@@ -153,12 +154,16 @@ describe('Rate limiting (Acceptance)', () => {
     expect(res.status).to.equal(200);
   }).timeout(60000);
 
-  it('exempts the health endpoint while the general allowance is spent', async () => {
+  it('keeps serving health while the general allowance is spent', async () => {
     // Exhaust the cheap-route allowance, then check monitoring still gets
-    // through. Two /health calls rather than a burst: each one fans out to four
-    // real dependencies, and the exemption logic itself is unit-tested. What
-    // this adds is that the exemption holds for the path the middleware actually
-    // sees, which a unit test on the limiter cannot show.
+    // through. One /health call rather than a burst: it fans out to four
+    // dependencies, and the allowance arithmetic itself is unit-tested. What
+    // this adds is that the separation holds for the path the middleware
+    // actually sees, which a unit test on the limiter cannot show.
+    //
+    // `/health` is no longer exempt — it has its own allowance — so this asserts
+    // the property the exemption was there for, which is the one that matters:
+    // public traffic cannot blind the operators.
     const statuses: number[] = [];
     for (let i = 0; i < RATE_LIMIT_MAX_REQUESTS + 3; i += 1) {
       statuses.push((await fetch(`${baseUrl}/api`)).status);
@@ -167,9 +172,29 @@ describe('Rate limiting (Acceptance)', () => {
 
     const health = await fetch(`${baseUrl}/health`);
 
-    // Tripping this would blind the operators rather than protect anything.
     expect(health.status).to.not.equal(429);
   }).timeout(60000);
+
+  it('refuses a client hammering health, under its own route class', async () => {
+    // The other half, and the reason the exemption went: there is no longer a
+    // route in this API that a client can send without a ceiling.
+    requestRateLimiter.reset();
+    resetMetricCounters();
+
+    const statuses: number[] = [];
+    for (let i = 0; i < RATE_LIMIT_MAX_HEALTH_REQUESTS + 2; i += 1) {
+      statuses.push((await fetch(`${baseUrl}/health`)).status);
+    }
+
+    expect(statuses.filter(s => s === 429).length).to.be.greaterThan(0);
+    expect(
+      getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route: 'health'}),
+    ).to.be.greaterThan(0);
+    // The path is attacker-controlled text; the label is a closed vocabulary.
+    expect(
+      getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route: '/health'}),
+    ).to.equal(0);
+  }).timeout(120000);
 
   // The router accepts more than one spelling of the same route, so the limiter
   // has to count every spelling in the same bucket. Classifying on the text the

@@ -23,11 +23,14 @@ export class HealthCheckController {
   /**
    * Last result, shared across requests.
    *
-   * `/health` is public, unauthenticated, exempt from rate limiting so that
-   * monitoring can never be blocked, and fans out to four dependencies per call.
-   * That combination makes request volume multiply upstream load with nothing to
-   * bound it. Caching briefly bounds the fan-out without changing what the
-   * endpoint reports.
+   * `/health` is public, unauthenticated, and fans out to four dependencies per
+   * call, so request volume multiplies upstream load. Two separate bounds keep
+   * that in hand and neither replaces the other: this cache bounds the fan-out
+   * per unit time, and `RATE_LIMIT_MAX_HEALTH_REQUESTS` bounds the request rate
+   * itself. The route used to be exempt from rate limiting altogether — so that
+   * monitoring could never be blocked — which left it the one route in the API
+   * with no ceiling; it now has its own bucket, which gives monitoring the same
+   * guarantee without the hole.
    *
    * Static because a controller instance is created per request.
    */

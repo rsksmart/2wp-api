@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-floating-promises */
 import {inject} from '@loopback/core';
 import {getLogger, Logger} from '../utils/logger';
 import {ConstantsBindings, ServicesBindings} from '../dependency-injection-bindings';
@@ -66,7 +65,15 @@ export class DaemonService implements IDaemonService {
   }
 
   private startTimer(): void {
-    this.dataFetchInterval = setTimeout(() => { this.sync() }, this.intervalTime);
+    // `sync()` handles its own errors and re-arms this timer as its last act, so
+    // a rejection here means it failed *outside* that handling and the daemon
+    // loop has stopped for good. It was silently dropped before; logging it is
+    // the smallest change that makes a stopped daemon visible.
+    this.dataFetchInterval = setTimeout(() => {
+      this.sync().catch(err =>
+        this.logger.error({method: 'startTimer', err}, 'Sync loop stopped'),
+      );
+    }, this.intervalTime);
   }
 
   private async sync(): Promise<void> {
@@ -99,9 +106,16 @@ export class DaemonService implements IDaemonService {
     await this.peginStatusStorageService.start();
 
     await this.syncService.start();
+    // Both handlers wrap their whole body in a try/catch, so neither can reject
+    // today and these catches should never fire. They are here anyway because
+    // that guarantee lives in another method and nothing enforces it: the
+    // subscriber list is notified synchronously and nobody awaits these, so a
+    // rejection would have nowhere to go but the process handler.
+    const unexpected = (method: string) => (err: unknown) =>
+      this.logger.error({method, err}, 'Block handler rejected');
     this.syncService.subscribe({
-      blockAdded: (block) => { this.handleNewBestBlock(block) },
-      blockDeleted: (block) => { this.handleDeleteBlock(block) }
+      blockAdded: (block) => { this.handleNewBestBlock(block).catch(unexpected('blockAdded')); },
+      blockDeleted: (block) => { this.handleDeleteBlock(block).catch(unexpected('blockDeleted')); }
     });
 
     this.rskBlockProcessorPublisher.addSubscriber(this.peginDataProcessor);

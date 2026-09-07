@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-floating-promises */
 import mongoose from 'mongoose';
 import {PeginStatus, PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {MongoDbDataService} from '../mongodb-data.service';
@@ -27,11 +26,8 @@ export class PeginStatusMongoDbDataService extends MongoDbDataService<PeginStatu
     return 'peginStatusMongoService';
   }
   protected getConnector(): mongoose.Model<PeginStatusMongoModel, {}, {}> {
-    this.verifyAndCreateConnectionIfIsNecessary();
+    this.connectInBackground();
     return PeginStatusConnector;
-  }
-  async verifyAndCreateConnectionIfIsNecessary() {
-    await this.ensureConnection();
   }
   protected getByIdFilter(id: any) {
     return {btcTxId: id};
