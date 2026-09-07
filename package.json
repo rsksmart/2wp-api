@@ -73,7 +73,6 @@
     "dotenv": "^8.6.0",
     "ethers": "^6.16.0",
     "jssha": "^3.2.0",
-    "loopback-connector-rest": "^5.0.11",
     "mongoose": "^7.5.3",
     "pegin-address-verificator": "https://git@github.com/rsksmart/pegin-address-verifier#0.3.0",
     "pino": "^10.3.1",
@@ -95,9 +94,6 @@
     },
     "loopback-connector": {
       "uuid": "^11.1.1"
-    },
-    "postman-request": {
-      "uuid": "^3.4.0"
     }
   },
   "devDependencies": {

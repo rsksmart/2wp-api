@@ -208,9 +208,15 @@ describe('Rate limiting (Acceptance)', () => {
   // into heap by ~225x. MAX_BRIDGE_CALLDATA_BYTES bounds one such request; this
   // is what bounds how many can be in flight. Neither bound holds alone — the
   // product is what has to stay small.
+  // A deliberately malformed transaction id. The limiter runs as middleware,
+  // before routing reaches the controller, so the classification under test is
+  // independent of what the controller would have done — and an id that fails
+  // validation costs no upstream calls. With a well-formed id each of the 18
+  // requests fans out to Blockbook and the RSK node, which turned this case into
+  // a two-minute test that was really measuring the network.
   const decodeRoutes = [
-    `/tx-status/${'ab'.repeat(32)}`,
-    `/tx-status-by-type/${'ab'.repeat(32)}/PEGOUT`,
+    `/tx-status/${'zz'.repeat(32)}`,
+    `/tx-status-by-type/${'zz'.repeat(32)}/PEGOUT`,
   ];
 
   decodeRoutes.forEach(path => {

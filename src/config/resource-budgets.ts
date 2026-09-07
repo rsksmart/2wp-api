@@ -71,6 +71,10 @@ export interface ResourceBudgets {
   BLOCKBOOK_QUEUE_MAX_WAIT_MS: number;
   /** Hard cap on calldata handed to the Bridge ABI decoder, in bytes. */
   MAX_BRIDGE_CALLDATA_BYTES: number;
+  /** Hard cap on one transaction-lookup provider response, in bytes. */
+  MAX_TX_PROVIDER_RESPONSE_BYTES: number;
+  /** Hard cap on transaction lookups in flight across the whole process. */
+  TX_PROVIDER_MAX_IN_FLIGHT: number;
 }
 
 /**
@@ -124,6 +128,29 @@ export interface ResourceBudgets {
  *   Bitcoin transaction: 32 KiB covers a pegin of roughly 215 inputs. A larger
  *   one is legal and would be skipped by the daemon — logged and counted, not
  *   silent — and is recovered by raising this variable.
+ *
+ * - 8 MiB for a transaction lookup, with a pool of 4, and the two are one
+ *   decision. `GET /tx` returns the raw Bitcoin transaction in `hex`, which is
+ *   the public contract, so these responses are megabytes where every other
+ *   Blockbook call is kilobytes — the general 1.5 MiB budget would refuse
+ *   legitimate lookups, and that fails quietly as a 502 nobody notices.
+ *
+ *   Below: across 376 transactions sampled from recent blocks on the testnet
+ *   Blockbook this service actually uses, `/api/v2/tx` runs p50 = 1.5 KB with a
+ *   p100 of 745 KB, and `/api/v1/tx` agrees. 8 MiB clears that by 11x. Worked
+ *   out rather than sampled, since testnet carries no large transactions: a 1 MB
+ *   Bitcoin transaction renders to ~3.3 MB of response (2 chars of hex per byte,
+ *   plus ~210 bytes of JSON per input), so the bound covers any standard
+ *   transaction. A consensus-maximum 4 MB-weight transaction would render to
+ *   ~13 MB and be refused — legal, never yet seen, and recoverable by raising
+ *   the variable.
+ *
+ *   Above: materializing a response costs several times its wire size (Buffer,
+ *   then `toString` to UTF-16, then `JSON.parse` to objects), so the process-wide
+ *   figure is `3 x budget x in-flight`. At 8 MiB on the general 50-slot pool that
+ *   is over a gigabyte, which is why these calls have their own pool of 4 and
+ *   why `tx-provider-budget.unit.ts` asserts the product rather than either
+ *   number.
  */
 export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze({
   MAX_REQUEST_BODY_BYTES: 256 * 1024,
@@ -173,6 +200,8 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   BLOCKBOOK_QUEUE_MAX_DEPTH: 100,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS: 5_000,
   MAX_BRIDGE_CALLDATA_BYTES: 32 * 1024,
+  MAX_TX_PROVIDER_RESPONSE_BYTES: 8 * 1024 * 1024,
+  TX_PROVIDER_MAX_IN_FLIGHT: 4,
 });
 
 /**
@@ -317,6 +346,14 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
       env.MAX_BRIDGE_CALLDATA_BYTES,
       d.MAX_BRIDGE_CALLDATA_BYTES,
     ),
+    MAX_TX_PROVIDER_RESPONSE_BYTES: parsePositiveInt(
+      env.MAX_TX_PROVIDER_RESPONSE_BYTES,
+      d.MAX_TX_PROVIDER_RESPONSE_BYTES,
+    ),
+    TX_PROVIDER_MAX_IN_FLIGHT: parsePositiveInt(
+      env.TX_PROVIDER_MAX_IN_FLIGHT,
+      d.TX_PROVIDER_MAX_IN_FLIGHT,
+    ),
   };
 }
 
@@ -351,4 +388,6 @@ export const {
   BLOCKBOOK_QUEUE_MAX_DEPTH,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS,
   MAX_BRIDGE_CALLDATA_BYTES,
+  MAX_TX_PROVIDER_RESPONSE_BYTES,
+  TX_PROVIDER_MAX_IN_FLIGHT,
 } = RESOURCE_BUDGETS;

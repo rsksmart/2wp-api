@@ -5,6 +5,7 @@ import {
   BLOCKBOOK_MAX_IN_FLIGHT,
   BLOCKBOOK_QUEUE_MAX_DEPTH,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS,
+  TX_PROVIDER_MAX_IN_FLIGHT,
 } from '../config/resource-budgets';
 import {getLogger} from './logger';
 import {
@@ -99,6 +100,16 @@ export class Semaphore {
 
   constructor(options: SemaphoreOptions) {
     this.options = options;
+  }
+
+  /** Pool name, as it appears in metric labels. */
+  get name(): string {
+    return this.options.name;
+  }
+
+  /** Permits available at once. */
+  get limit(): number {
+    return this.options.limit;
   }
 
   /** Permits currently held. */
@@ -293,6 +304,32 @@ export class Semaphore {
 export const blockbookPermits = new Semaphore({
   name: 'blockbook',
   limit: BLOCKBOOK_MAX_IN_FLIGHT,
+  queueDepth: BLOCKBOOK_QUEUE_MAX_DEPTH,
+  waitMs: BLOCKBOOK_QUEUE_MAX_WAIT_MS,
+});
+
+/**
+ * The transaction-lookup pool, deliberately separate and deliberately small.
+ *
+ * `GET /tx` and the pegin status path return the raw Bitcoin transaction in
+ * `hex`, so their responses are measured in megabytes where every other
+ * Blockbook call is measured in kilobytes. They need a much larger response
+ * budget, and a large budget on a 50-slot pool multiplies into more heap than the
+ * process has.
+ *
+ * Splitting the pool is what lets the two move independently: the expensive calls
+ * get the size they legitimately need and pay for it in concurrency, while a
+ * burst of them can no longer starve the cheap calls of the general pool's
+ * permits. The metric label differs too (`blockbook-tx`), so a saturated
+ * transaction pool is visible rather than hidden behind a healthy general one.
+ *
+ * The queue settings are shared with the general pool on purpose: how long a
+ * caller should wait before being told to come back is a property of the service,
+ * not of which upstream path it needed.
+ */
+export const txProviderPermits = new Semaphore({
+  name: 'blockbook-tx',
+  limit: TX_PROVIDER_MAX_IN_FLIGHT,
   queueDepth: BLOCKBOOK_QUEUE_MAX_DEPTH,
   waitMs: BLOCKBOOK_QUEUE_MAX_WAIT_MS,
 });

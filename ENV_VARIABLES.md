@@ -118,6 +118,8 @@ Caps on how much memory, parsing, serialization and downstream provider work a s
 |MONGO_MAX_DOCUMENTS           |250                            |'Maximum documents returned by one database read'         |
 |HEALTH_CACHE_TTL_MS           |2000                           |'How long a /health result may be reused, in milliseconds'|
 |MAX_BRIDGE_CALLDATA_BYTES     |32768                          |'Maximum calldata handed to the Bridge ABI decoder, in bytes'|
+|MAX_TX_PROVIDER_RESPONSE_BYTES|8388608                        |'Maximum single transaction-lookup provider response, in bytes'|
+|TX_PROVIDER_MAX_IN_FLIGHT     |4                              |'Transaction lookups in flight across the whole process'  |
 
 
 ##Example for .env.local.test file

@@ -43,6 +43,8 @@ back rather than disabling a budget.
 | `MONGO_MAX_DOCUMENTS` | 250 | Documents returned by one database read |
 | `HEALTH_CACHE_TTL_MS` | 2000 (2 s) | How long a `/health` result may be reused |
 | `MAX_BRIDGE_CALLDATA_BYTES` | 32768 (32 KiB) | Calldata handed to the Bridge ABI decoder |
+| `MAX_TX_PROVIDER_RESPONSE_BYTES` | 8388608 (8 MiB) | One transaction-lookup provider response |
+| `TX_PROVIDER_MAX_IN_FLIGHT` | 4 | Transaction lookups in flight process-wide |
 
 `ADDRESS_INFO_MAX_TXIDS` is still honoured as a legacy alias for
 `MAX_ADDRESS_INFO_TXIDS`. `src/config/limits.ts` re-exports the historical names
@@ -105,40 +107,122 @@ be useful — and it is asserted, not assumed.
 
 ### Outbound provider calls
 
-Two transports, for two different needs:
+**One transport.** Every outbound provider call goes through the bounded HTTP
+client in
+[`src/utils/bounded-http-client.ts`](../src/utils/bounded-http-client.ts). It
+enforces an overall deadline, rejects on the declared `Content-Length` before a
+body byte is buffered, aborts the socket mid-stream once the running byte tally
+passes the budget, insists the response is declared as JSON, does not follow
+redirects, takes a permit from a concurrency pool, observes the request's abort
+signal, and retries only transient failures (timeouts, network errors, 5xx) a
+bounded number of times. Size-budget breaches, malformed responses and 4xx
+answers are never retried — retrying them multiplies the work an attacker gets
+for free.
 
-- **Bounded HTTP client** —
-  [`src/utils/bounded-http-client.ts`](../src/utils/bounded-http-client.ts), used
-  by the high-risk Blockbook endpoints (`/utxo`, `/addresses-info`). Enforces an
-  overall deadline, rejects on declared `Content-Length`, aborts the socket
-  mid-stream once the byte budget is passed, insists the response is declared as
-  JSON, does not follow redirects, and retries only transient failures
-  (timeouts, network errors, 5xx) a bounded number of times. Size-budget
-  breaches, malformed responses, and 4xx answers are never retried.
-- **LoopBack REST connector** — the remaining datasources, configured from
-  [`rest-datasource-budgets.ts`](../src/datasources/rest-datasource-budgets.ts).
-  The connector can enforce a request timeout (set on both the datasource
-  `options` and every operation template) and an explicit JSON expectation. It
-  **cannot** bound response size — it buffers the whole body before the
-  application sees it — and has no retry policy to bound. That limitation is
-  precisely why the two high-risk endpoints use the bounded client instead.
+| Call | Budget | Pool |
+|---|---|---|
+| `/api/v1/utxo/{address}` | `MAX_PROVIDER_RESPONSE_BYTES` | `blockbook` |
+| `/api/v2/address/{address}` | `MAX_PROVIDER_RESPONSE_BYTES` | `blockbook` |
+| `/api/blocks` | `MAX_PROVIDER_RESPONSE_BYTES` | `blockbook` |
+| `/api/v1/estimatefee/{n}` | `MAX_PROVIDER_RESPONSE_BYTES` | `blockbook` |
+| `/api/v2/sendtx/{hex}` | `MAX_PROVIDER_RESPONSE_BYTES` | `blockbook` |
+| `/api/v1/tx/{txid}` | `MAX_TX_PROVIDER_RESPONSE_BYTES` | `blockbook-tx` |
+| `/api/v2/tx/{txid}` | `MAX_TX_PROVIDER_RESPONSE_BYTES` | `blockbook-tx` |
+
+#### What this section used to say
+
+Until 2026-09 five of those seven went through `loopback-connector-rest`, and
+this section said the connector "**cannot** bound response size — it buffers the
+whole body before the application sees it". The first half was the operative
+claim and it was **false**. The connector merges datasource `options` into
+`request.defaults`, and `postman-request` honours `maxResponseSize` there,
+aborting mid-flight exactly as the bounded client does
+(`request.js:564-565`, `1515-1534`). A one-line hotfix was available the entire
+time the finding was open.
+
+What was true is that the connector offers no seam for the *other* three
+controls — no permit, no abort signal, no bounded error mapping — and that
+running two budget systems means two places to look when an outbound call
+misbehaves. That is why these migrated rather than being patched.
+
+The concrete failure: an oversized response on `GET /tx` raised
+`Cannot create a string longer than 0x1fffffe8 characters` from
+`postman-request`. That error is not in the allowlist in `src/index.ts`, so it
+reached `shutdown()` and stopped the process — from one unauthenticated request.
+
+#### Why the transaction lookups have their own budget and pool
+
+`GET /tx` returns the raw Bitcoin transaction in `hex`. That is the public
+contract — it is in `tx.model.ts` and in the `Tx` interface — so these two
+responses are measured in megabytes where the other five are measured in
+kilobytes. `MAX_PROVIDER_RESPONSE_BYTES` (1.5 MiB) would refuse legitimate
+lookups, and that failure is quiet: a 502 on large transactions and no other
+symptom until a user complains.
+
+The budget is calibrated in both directions. Across 376 transactions sampled from
+recent blocks on the testnet Blockbook this service actually uses, `/api/v2/tx`
+runs p50 = 1.5 KB with a p100 of 745 KB, and `/api/v1/tx` agrees. Testnet carries
+no large transactions, so the upper end is worked out rather than sampled: at two
+hex characters per byte plus ~210 bytes of JSON per input, a 1 MB Bitcoin
+transaction renders to ~3.3 MB of response, so 8 MiB covers any standard
+transaction with room. A consensus-maximum 4 MB-weight transaction would render
+to ~13 MB and be refused — legal, not yet observed, and recoverable by raising
+`MAX_TX_PROVIDER_RESPONSE_BYTES`.
+
+A large budget on the shared pool would be worse than no budget, because it
+multiplies — see the next section.
 
 ### Process-wide provider concurrency
 
 `PROVIDER_CONCURRENCY` bounds fan-out *within* one request. It says nothing about
 how many requests are being served at once, so concurrent callers multiply it:
 total provider work in flight is `PROVIDER_CONCURRENCY x concurrent requests`,
-and the memory buffered behind it is that count times
-`MAX_PROVIDER_RESPONSE_BYTES`. Both grow with inbound traffic, which is exactly
-what a budget is supposed to prevent.
+and the memory buffered behind it is that count times the response budget. Both
+grow with inbound traffic, which is exactly what a budget is supposed to prevent.
 
-[`src/utils/provider-permits.ts`](../src/utils/provider-permits.ts) adds a
-process-wide counting semaphore. Every call through the bounded HTTP client takes
-a permit before it opens a socket and releases it in a `finally`, so the total is
-capped at `BLOCKBOOK_MAX_IN_FLIGHT` regardless of how many requests are in
-flight.
+[`src/utils/provider-permits.ts`](../src/utils/provider-permits.ts) adds
+process-wide counting semaphores. Every call through the bounded HTTP client
+takes a permit before it opens a socket and releases it in a `finally`.
 
-Three properties are deliberate:
+**Two pools, because the calls are not alike:**
+
+- `blockbook` — `BLOCKBOOK_MAX_IN_FLIGHT` (50) for the five kilobyte-scale calls.
+- `blockbook-tx` — `TX_PROVIDER_MAX_IN_FLIGHT` (4) for the two transaction
+  lookups.
+
+Separate pools mean the two limits move independently, a burst of expensive
+lookups cannot starve the cheap calls of permits, and a saturated transaction
+pool is visible in the metrics rather than hidden behind a healthy general one.
+
+#### The arithmetic, stated honestly
+
+Materializing a response costs several times its size on the wire: a `Buffer`,
+then `toString()` to a UTF-16 string, then `JSON.parse` to objects. Three times
+the response size is a conservative estimate, so the process-wide worst case is:
+
+```
+heap_worst_case  ≈  3 × response_budget × permits
+```
+
+| Pool | Budget | Permits | Worst case |
+|---|---|---|---|
+| `blockbook-tx` | 8 MiB | 4 | 96 MiB |
+| `blockbook` | 1.5 MiB | 50 | 225 MiB |
+| **Combined** | | | **321 MiB** |
+
+`tx-provider-budget.unit.ts` asserts both the per-pool figure and the combined
+one, so raising either a budget or a pool without looking at the other fails the
+build.
+
+Two things about that table are worth saying out loud. The general pool is the
+larger term, and an earlier version of this document put it at "roughly 75 MB" —
+the same arithmetic with the materialization factor left out. And 321 MiB is 63%
+of a 512 MB heap, which is a real ceiling rather than a comfortable one.
+Shrinking the general pool would fix it and would also halve `/utxo` and
+`/addresses-info` throughput, so it is recorded here as a known trade rather than
+changed in passing.
+
+Three properties of the pools are deliberate:
 
 - **The permit is held across the retry loop**, including its backoff. That is
   the honest definition of "in flight"; releasing between attempts would let the
@@ -155,16 +239,28 @@ Three properties are deliberate:
   traffic. Work with no request behind it (the daemon) has no signal and simply
   never cancels.
 
-The pool is acquired at the leaf rather than in the controller, which keeps
-acquisition non-nested: one request holds at most `PROVIDER_CONCURRENCY` permits,
-releases them between batches, and never waits for a second permit while holding
-one — so the pool cannot deadlock against itself.
+Permits are acquired at the leaf rather than in the controller, which keeps
+acquisition non-nested: one request holds at most `PROVIDER_CONCURRENCY` permits
+from one pool, releases them between batches, and never waits for a second permit
+while holding one — so the pools cannot deadlock against themselves or each
+other.
 
-Worth stating explicitly: only the two fan-out endpoints (`/utxo`,
-`/addresses-info`) go through the bounded client and therefore through the pool.
-`/broadcast`, `/estimate-fee`, `/tx` and the `/tx-status` pre-check use the
-LoopBack REST connector, which offers no per-call seam; each issues a single call
-per request rather than fanning out, so they do not multiply the same way.
+#### What the pools do not bound
+
+A permit is released when the response is parsed, which is **not** when its
+memory is released: the controller then serializes the transaction back to the
+client. For a well-behaved client that is fine — 48 concurrent `GET /tx` for
+7.5 MB transactions are all served, verified in
+`provider-response-oom.acceptance.ts`.
+
+A client that requests large responses and never reads them is a different
+matter, and is not bounded here: 48 such connections exhaust a 256 MB heap on the
+way out. No provider-side budget applies, since nothing oversized was fetched,
+and `connectionOutputBudgetMiddleware` does not catch it either — it samples
+`socket.writableLength` once per request per connection, which sees a peer
+pipelining on one socket but not 48 separate sockets each holding one unread
+response. That is an open gap, pinned by a characterization test so that closing
+it is visible.
 
 ### Rate limiting
 
@@ -374,10 +470,10 @@ traffic is worse than a restart. The four codes above need no heuristic.
 
 #### The deadline ends the request, it does not merely mark it
 
-Aborting a signal only reaches work that observes it. `web3`, `ethers`,
-`mongoose` and `loopback-connector-rest` do not, so a deadline that stopped at
-the abort would leave those requests holding an open connection with no response
-— from the client's side, indistinguishable from a hung service.
+Aborting a signal only reaches work that observes it. `web3`, `ethers` and
+`mongoose` do not, so a deadline that stopped at the abort would leave those
+requests holding an open connection with no response — from the client's side,
+indistinguishable from a hung service.
 
 So after the deadline trips, cooperative unwinding gets
 `REQUEST_DEADLINE_GRACE_MS` to produce its own answer. If the response is still
@@ -395,9 +491,15 @@ Two deliberate asymmetries:
   than after the grace. The acceptance suite asserts both timings, which is what
   distinguishes the two mechanisms rather than assuming one covers the other.
 
-Not cancellable: anything going through `loopback-connector-rest`, since neither
-the connector nor `postman-request` accepts a signal. `/broadcast` and the
-tx/fee/last-block providers are bounded only by their timeout.
+Every outbound Blockbook call *is* cancellable now: the bounded HTTP client
+registers on the request signal, destroys the socket when it fires, and checks
+the signal again between retries so a cancellation landing mid-backoff does not
+fund another round trip. That covers `/broadcast`, `/estimate-fee`, `/tx` and the
+`/tx-status` pre-check, which used to be bounded only by their timeout because
+neither `loopback-connector-rest` nor `postman-request` accepts a signal.
+
+What remains uncancellable is the RSK side — `web3` and `ethers` — and the
+database.
 
 ### Bridge calldata decoding
 
@@ -582,8 +684,10 @@ flight right now" is a gauge and cannot be expressed as a monotonic counter:
 | `provider_permits_granted_total` | counter | `pool` |
 | `provider_permits_rejected_total` | counter | `pool`, `reason` |
 
-`reason` is a closed vocabulary of `queue_full` and `wait_timeout`. Saturation is
-`active / BLOCKBOOK_MAX_IN_FLIGHT`, derived rather than stored. Wait times are
+`pool` is `blockbook` or `blockbook-tx`. `reason` is a closed vocabulary of
+`queue_full` and `wait_timeout`. Saturation is `active` over that pool's limit,
+derived rather than stored. Sustained refusals on `blockbook-tx` mean the pool is
+undersized for real traffic, not that anything is under attack. Wait times are
 aggregated as a sum/count/max triple on the pool, which is enough for a mean and
 a tail without inventing histogram buckets nothing consumes yet.
 
@@ -629,6 +733,13 @@ value:
 - `src/__tests__/unit/config/bridge-decode-entrypoints.unit.ts`
 - `src/__tests__/acceptance/bridge-calldata-budget.acceptance.ts`
 - `src/__tests__/acceptance/bridge-calldata-oom.acceptance.ts`
+- `src/__tests__/unit/services/blockbook-service-shapes.unit.ts`
+- `src/__tests__/unit/services/bounded-blockbook-tx-services.unit.ts`
+- `src/__tests__/unit/services/bounded-tx-lookups.unit.ts`
+- `src/__tests__/unit/config/tx-provider-budget.unit.ts`
+- `src/__tests__/unit/config/rest-connector-retired.unit.ts`
+- `src/__tests__/acceptance/provider-response-budget.acceptance.ts`
+- `src/__tests__/acceptance/provider-response-oom.acceptance.ts`
 - `src/__tests__/unit/utxo.controller.budgets.unit.ts`
 - `src/__tests__/unit/validation/bounded-ajv.factory.unit.ts`
 - `src/__tests__/unit/middleware/bounded-error-writer.unit.ts`

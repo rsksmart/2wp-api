@@ -41,6 +41,8 @@ describe('Config: resource budgets', () => {
         BLOCKBOOK_QUEUE_MAX_DEPTH: '11',
         BLOCKBOOK_QUEUE_MAX_WAIT_MS: '2500',
         MAX_BRIDGE_CALLDATA_BYTES: '4096',
+        MAX_TX_PROVIDER_RESPONSE_BYTES: '2097152',
+        TX_PROVIDER_MAX_IN_FLIGHT: '3',
       });
 
       expect(budgets).to.deepEqual({
@@ -69,6 +71,8 @@ describe('Config: resource budgets', () => {
         BLOCKBOOK_QUEUE_MAX_DEPTH: 11,
         BLOCKBOOK_QUEUE_MAX_WAIT_MS: 2500,
         MAX_BRIDGE_CALLDATA_BYTES: 4096,
+        MAX_TX_PROVIDER_RESPONSE_BYTES: 2097152,
+        TX_PROVIDER_MAX_IN_FLIGHT: 3,
       });
     });
 
