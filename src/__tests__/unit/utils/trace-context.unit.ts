@@ -1,6 +1,7 @@
 import {expect} from '@loopback/testlab';
 import {
   getRequestSignal,
+  getRequestStore,
   getTraceId,
   runWithRequestContext,
   runWithTraceId,
@@ -73,6 +74,63 @@ describe('Utils: request context', () => {
           expect(getRequestSignal()).to.equal(b.signal);
         });
         expect(getRequestSignal()).to.equal(a.signal);
+      });
+    });
+  });
+  describe('the store itself', () => {
+    // Per-request memoization writes *into* the store, so it needs the object
+    // rather than a field off it — and it is only sound if the object's identity
+    // is stable for the whole request and private to it.
+
+    it('has no store outside a request context', () => {
+      expect(getRequestStore()).to.be.undefined();
+    });
+
+    it('exposes the object that was established', () => {
+      const store = {traceId: 'abc'};
+
+      runWithRequestContext(store, () => {
+        expect(getRequestStore()).to.equal(store);
+      });
+    });
+
+    it('is the same object across an await boundary', async () => {
+      // The load-bearing one. Memoization depends entirely on this, and if
+      // AsyncLocalStorage ever stopped propagating, the symptom would otherwise
+      // be "the memo silently does nothing" rather than a failing test.
+      await runWithTraceId('abc', async () => {
+        const before = getRequestStore();
+        await new Promise(resolve => setTimeout(resolve, 5));
+
+        expect(getRequestStore()).to.equal(before);
+      });
+    });
+
+    it('gives concurrent requests different stores', async () => {
+      const stores: unknown[] = [];
+
+      await Promise.all([
+        runWithTraceId('a', async () => {
+          await new Promise(resolve => setTimeout(resolve, 5));
+          stores.push(getRequestStore());
+        }),
+        runWithTraceId('b', async () => {
+          stores.push(getRequestStore());
+        }),
+      ]);
+
+      expect(stores[0]).to.not.equal(stores[1]);
+    });
+
+    it('lets a caller write to it, visibly to later reads', async () => {
+      await runWithTraceId('abc', async () => {
+        const store = getRequestStore()!;
+        store.federationAddresses = Promise.resolve(new Set(['addr']));
+        await new Promise(resolve => setTimeout(resolve, 5));
+
+        expect(await getRequestStore()?.federationAddresses).to.deepEqual(
+          new Set(['addr']),
+        );
       });
     });
   });

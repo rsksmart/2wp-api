@@ -338,7 +338,7 @@ remains unauthenticated.
 
 ### Public reads that fan out
 
-Two paths the earlier phases left unbounded, both public and unauthenticated.
+Three paths the earlier phases left unbounded, all public and unauthenticated.
 
 **`GET /features`** read the whole collection with `find({})`. The collection is
 small and operator-managed — 14 flags today — so `MONGO_MAX_DOCUMENTS` is a
@@ -356,6 +356,55 @@ itself. The `200`/`500` semantics are unchanged — operators depend
 on this as a readiness signal — and failures are cached too, because a failing
 dependency is exactly when polling intensifies. A cached failure still reports
 down.
+
+**`GET /tx-status/{txId}`** issued one `eth_call` to the RSK node **per output**
+of the Bitcoin transaction it was asked about. The pegin lookup tests every output
+against the federation address, and resolving that address was an uncached Bridge
+call each time. The loop returns on the first federation output it finds, so the
+expensive case is a transaction with none — which is the case an attacker
+supplies, and needs no crafted transaction: mainnet already carries transactions
+with thousands of outputs, so a well-chosen txid is the whole attack. Measured at
+500 outputs: 500 calls, and the request takes 15 s even with the node stubbed
+in-process.
+
+The control is memoization on the request store, not a cache with a TTL, and the
+scope is the decision worth recording:
+
+- **Request scope removes the amplification, which is all of it.** N calls become
+  1, so 90 requests make 90 calls — exactly what honest traffic makes. A process
+  cache would reduce that further, but the attack is already dead one step
+  earlier.
+- **It introduces no staleness.** A TTL opens a question that does not exist
+  today: during a federation change, a pegin sent to the new federation would be
+  misclassified until the entry expired. Every request here sees one coherent
+  federation state, the one current when it started, and an acceptance test
+  asserts that a federation change is visible on the very next request — so
+  converting this to a TTL cache turns a test red rather than quietly changing
+  behaviour.
+- **There is no shared state to invalidate.** Nothing to purge, nothing that stays
+  warm across deploys, and nothing a test has to reset between cases.
+
+A short TTL on top of this is additive if the volume of legitimate calls ever
+becomes a problem, and can be argued separately.
+
+The memo holds the *promise*, so two lookups starting concurrently within one
+request share the call in flight. A failure is memoized too — the rest of the
+request reuses the rejection instead of retrying thousands of times against a node
+that has already refused — and because the memo dies with the request, the next
+request retries. In a process-scoped cache that same choice would be wrong, since
+it would make a transient blip permanent. The scope is what makes both correct.
+
+Two residuals, neither of them security controls after this:
+
+- **The loop is not capped.** With one Bridge call, 30 000 outputs are 30 000
+  iterations over an already-resolved promise and 30 000 `Set` lookups —
+  milliseconds, and nothing upstream. What remains is CPU proportional to an input
+  the caller chooses, bounded by real Bitcoin transaction sizes. A cap is worth
+  having, as an optimization.
+- **The loop does not observe the request's abort signal**, so when the deadline
+  trips and a response is written, this work runs to completion. After the memo,
+  what keeps running no longer touches the RSK node. The signal is already on the
+  store this reads from, so it is a small change, left out only for scope.
 
 ### Validation error responses
 
