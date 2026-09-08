@@ -228,19 +228,34 @@ describe('Provider response OOM (Acceptance)', () => {
     }
   });
 
-  it('records what this does NOT bound: a client that never reads', async function () {
-    // A characterization test, and the honest limit of this work.
+  it('records what remains unbounded: 48 clients that never read at once', async function () {
+    // Still a characterization test, and the limit is now a different one than it
+    // was. The controls are no longer the missing piece — the time to react is.
     //
-    // The same 48 requests from clients that never consume the response bodies
-    // still exhaust the heap. Nothing here is oversized — every response is
-    // under budget — and no provider-side control applies, because the bytes
-    // accumulate on the way *out*. `connectionOutputBudgetMiddleware` does not
-    // catch it either: it samples `socket.writableLength` once per request, per
-    // connection, which sees a pipelined peer but not 48 separate sockets each
-    // holding one unread response.
+    // A sustained non-reader is dropped by the per-connection stall rule, and
+    // several of them together are dropped by the aggregate ceiling, both proven
+    // above. What neither reaches is forty-eight arriving simultaneously, and the
+    // measurements say precisely why:
     //
-    // Written as a passing assertion on current behaviour rather than left as a
-    // comment, so that closing it reddens this and the claim gets updated.
+    // - At the moment the process dies, ~1.0 s in, only **two** connections have
+    //   been stuck long enough to qualify — 15 MB, just under the ceiling. The
+    //   other ~37 were written too recently to have been judged yet.
+    // - Total pending bytes at that point are ~100 MB, but counting *those*
+    //   towards the ceiling is not available: 48 legitimate draining clients hold
+    //   60 MB at peak, which is not separable from the 90 MB an attack reaches.
+    //   Filtered by how long each connection has been stuck the same two figures
+    //   are 0 MB and 30 MB, which is why the ceiling counts stuck bytes — and why
+    //   it needs those connections to have existed for a moment first.
+    // - The fatal allocation is `JSON.parse` on the *inbound* provider path. The
+    //   retained outbound bodies raise the floor and the next large inbound parse
+    //   goes over it.
+    //
+    // So at a 256 MB heap this burst is beyond what the service can hold whoever
+    // is reading; the legitimate 48 survive only because they drain just fast
+    // enough. The deployed heap ceiling is an open question with DevOps
+    // (`docs/deployment-requirements-request.md`, A3/B5), and it is the number
+    // that decides whether these controls have time to fire in production. That
+    // is a capacity answer, not a control this file can add.
     this.timeout(180000);
     const {child, output} = await startApi(upstream.url);
     try {
@@ -257,6 +272,87 @@ describe('Provider response OOM (Acceptance)', () => {
       await delay(2000);
 
       expect(output()).to.match(/JavaScript heap out of memory/);
+    } finally {
+      child.kill('SIGKILL');
+    }
+  });
+
+  it('drops several stuck connections on the aggregate ceiling, before the per-connection rule would', async function () {
+    // The aggregate control, exercised at a size the process survives so that
+    // what is being measured is the control and not the heap.
+    //
+    // Six non-reading clients hold ~45 MB between them, over
+    // MAX_TOTAL_PENDING_OUTPUT_BYTES. Each one individually is well inside its
+    // per-connection stall allowance of a full second, so nothing would have
+    // dropped them yet — the sum is the only thing that has gone wrong, and the
+    // sum is what no single connection can see.
+    this.timeout(180000);
+    const {child, output} = await startApi(upstream.url);
+    try {
+      const held = await Promise.all(
+        Array.from({length: 6}, () =>
+          fetch(`${BASE_URL}/tx?tx=${'ab'.repeat(32)}`, {
+            signal: AbortSignal.timeout(60000),
+          }).catch(() => null),
+        ),
+      );
+      // Well under CONNECTION_OUTPUT_STALL_MS, so a drop here is the ceiling.
+      await delay(600);
+
+      expect(output()).to.match(/total pending response bytes over the process ceiling/);
+      expect(child.exitCode).to.be.null();
+      expect((await fetch(`${BASE_URL}/api`)).status).to.equal(200);
+      held.forEach(r => r?.body?.cancel().catch(() => {}));
+    } finally {
+      child.kill('SIGKILL');
+    }
+  });
+
+  it('drops a single connection that stops reading its response', async function () {
+    // What the in-flight sampler does that arrival-time sampling could not. One
+    // client, one large response, never read: the socket sits over
+    // MAX_CONNECTION_BUFFERED_BYTES with nothing draining it, and the connection
+    // is dropped instead of being held for as long as the client cares to hold
+    // it. This is the mechanism; the burst above is the case it does not scale
+    // to in time.
+    this.timeout(180000);
+    const {child, output} = await startApi(upstream.url);
+    try {
+      // Headers only, body deliberately never consumed, and the response object
+      // kept alive so the socket is not closed by garbage collection.
+      const held = await fetch(`${BASE_URL}/tx?tx=${'ab'.repeat(32)}`, {
+        signal: AbortSignal.timeout(60000),
+      });
+      expect(held.status).to.equal(200);
+
+      await delay(4000);
+
+      expect(output()).to.match(/Dropping connection/);
+      expect(output()).to.match(/peer stopped draining its response/);
+      // The connection went, the process did not.
+      expect(child.exitCode).to.be.null();
+      expect((await fetch(`${BASE_URL}/api`)).status).to.equal(200);
+    } finally {
+      child.kill('SIGKILL');
+    }
+  });
+
+  it('still serves a large response to a client that reads it', async function () {
+    // The false positive this control could cause, asserted directly rather than
+    // inferred from the test above. A 7.5 MB transaction is a legitimate answer
+    // and is far over `MAX_CONNECTION_BUFFERED_BYTES`; what keeps it served is
+    // that a draining peer's buffer goes down between samples.
+    this.timeout(180000);
+    const {child, output} = await startApi(upstream.url);
+    try {
+      const res = await fetch(`${BASE_URL}/tx?tx=${'ab'.repeat(32)}`, {
+        signal: AbortSignal.timeout(60000),
+      });
+      const body = await res.arrayBuffer();
+
+      expect(res.status).to.equal(200);
+      expect(body.byteLength).to.be.greaterThan(1024 * 1024);
+      expect(output()).to.not.match(/Dropping connection/);
     } finally {
       child.kill('SIGKILL');
     }

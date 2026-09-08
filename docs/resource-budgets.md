@@ -34,6 +34,10 @@ back rather than disabling a budget.
 | `MAX_ERROR_RESPONSE_BYTES` | 8192 (8 KiB) | One serialized error response body |
 | `MAX_VALIDATION_ERROR_DETAILS` | 3 | Validation details returned to the client |
 | `MAX_CONNECTION_BUFFERED_BYTES` | 1048576 (1 MiB) | Response bytes buffered per connection |
+| `CONNECTION_OUTPUT_SAMPLE_INTERVAL_MS` | 50 | How often an in-flight response's socket is sampled |
+| `CONNECTION_OUTPUT_STALL_MS` | 1000 | How long a socket may sit over budget without draining |
+| `MAX_TOTAL_PENDING_OUTPUT_BYTES` | 16777216 (16 MiB) | Stuck response bytes across every connection at once |
+| `CONNECTION_OUTPUT_AGGREGATE_STALL_MS` | 100 | How long a connection must be stuck before its bytes count |
 | `MAX_REQUEST_DURATION_MS` | 30000 (30 s) | Wall-clock handling of one inbound request |
 | `REQUEST_DEADLINE_GRACE_MS` | 250 | Grace for cooperative unwinding after the deadline |
 | `RATE_LIMIT_WINDOW_MS` | 30000 (30 s) | Rate-limit window length |
@@ -41,6 +45,7 @@ back rather than disabling a budget.
 | `RATE_LIMIT_MAX_FANOUT_REQUESTS` | 15 | Requests per window per client, fan-out POSTs |
 | `RATE_LIMIT_MAX_HEALTH_REQUESTS` | 600 | Requests per window per client, `/health` |
 | `RATE_LIMIT_MAX_TRACKED_CLIENTS` | 4096 | Clients the limiter tracks at once |
+| `RATE_LIMIT_TRUSTED_HOPS` | 1 | Proxies in front, for reading `X-Forwarded-For` |
 | `MONGO_MAX_DOCUMENTS` | 250 | Documents returned by one database read |
 | `HEALTH_CACHE_TTL_MS` | 2000 (2 s) | How long a `/health` result may be reused |
 | `MAX_BRIDGE_CALLDATA_BYTES` | 32768 (32 KiB) | Calldata handed to the Bridge ABI decoder |
@@ -258,13 +263,94 @@ client. For a well-behaved client that is fine — 48 concurrent `GET /tx` for
 `provider-response-oom.acceptance.ts`.
 
 A client that requests large responses and never reads them is a different
-matter, and is not bounded here: 48 such connections exhaust a 256 MB heap on the
-way out. No provider-side budget applies, since nothing oversized was fetched,
-and `connectionOutputBudgetMiddleware` does not catch it either — it samples
-`socket.writableLength` once per request per connection, which sees a peer
-pipelining on one socket but not 48 separate sockets each holding one unread
-response. That is an open gap, pinned by a characterization test so that closing
-it is visible.
+matter. No provider-side budget applies, since nothing oversized was fetched, and
+sampling `socket.writableLength` when the request *arrives* cannot see it either:
+nothing has been written to that socket yet, so the sample is always zero.
+
+`connectionOutputBudgetMiddleware` now samples for the whole time a response is
+in flight, and drops a connection whose buffer sits over
+`MAX_CONNECTION_BUFFERED_BYTES` for `CONNECTION_OUTPUT_STALL_MS` without
+draining. **That closes the sustained version of this and not the simultaneous
+one**, and the measurements are worth recording because they rule out the
+obvious-looking alternatives:
+
+- **"Drop it if the buffer is not going down" does not work.** Under 48-way load a
+  *draining* socket sits at the same `writableLength` across consecutive samples
+  too, because a saturated event loop does not hand bytes to the kernel in
+  between. Measured: not one legitimate socket ever recorded a decrease before
+  its response closed. Duration is the only discriminator that survives load.
+- **A threshold does exist.** A legitimate response is over budget for at most
+  70 ms (median 45) before closing; a peer that has stopped reading stays over
+  budget indefinitely.
+- **But it cannot be set low enough to stop the burst.** The process dies at
+  ~1.1–1.4 s, and the fatal allocation is `JSON.parse` on the *inbound* provider
+  path: the retained outbound bodies raise the floor and the next large inbound
+  parse goes over it. Windows short enough to fire first (150–250 ms) sit close
+  enough to the 70 ms legitimate maximum that the outcome is not reproducible —
+  three consecutive runs disagreed, and one of them dropped 3 of 48 legitimate
+  clients.
+
+So the window is set at 1 s, a 14x margin over the longest legitimate stall,
+which is reliable and admits the remaining gap rather than papering over it with
+a knife-edge number. A flaky control is worse than an acknowledged one: it fails
+as an outage, on legitimate traffic, at a time nobody chose.
+
+### The ceiling no single connection can see
+
+Per-connection judgement cannot reach a group. Several clients each holding one
+large unread response are individually unremarkable — one answer in flight, well
+inside the stall allowance — and it is the *sum* that exhausts the heap. So there
+is a second control: `MAX_TOTAL_PENDING_OUTPUT_BYTES`, enforced by the same
+sweeper, dropping the heaviest holder first until the total is back under.
+Heaviest-first frees the most memory per connection sacrificed and targets the
+client doing the most damage rather than whichever was sampled first.
+
+**It counts stuck bytes, not pending bytes, and that filter is the whole design.**
+A large answer on its way out to a reader is pending too. Measured across 48
+concurrent 7.5 MB responses:
+
+| | legitimate (draining) | burst (never reading) |
+| --- | --- | --- |
+| peak **pending** bytes | 60 MB | 90 MB |
+| peak **stuck** bytes (over budget ≥ 100 ms) | **0 MB** | **30 MB** |
+
+The first row is not separable — a ceiling between 60 and 90 MB would fire on
+exactly the traffic the service exists to serve. The second row is not close at
+all. So a connection's bytes count only once it has been over
+`MAX_CONNECTION_BUFFERED_BYTES` for `CONNECTION_OUTPUT_AGGREGATE_STALL_MS`
+without draining, and 16 MiB — about two stuck large responses — is then safe by
+a wide margin. Raising that delay to 200 ms drops the burst's contribution to
+7.5 MB, so higher is not safer here, it is blinder.
+
+The two thresholds do different jobs, and `resource-budgets.unit.ts` asserts the
+relationship: the aggregate has to notice a group well before any single member
+has used up its per-connection allowance, or it never adds anything.
+
+A third option — holding the provider permit until the response is written — is
+recorded here so nobody reaches for it. It couples outbound concurrency to client
+read speed, which hands exactly the client this section is about a way to deny
+service to everyone else.
+
+### What still is not covered
+
+Forty-eight non-readers arriving *simultaneously* still exhaust a 256 MB heap,
+and the reason is no longer a missing control. It is reaction time. At the moment
+the process dies, ~1.0 s in, only two connections have been stuck long enough to
+qualify; the rest were written too recently to have been judged at all. The fatal
+allocation is `JSON.parse` on the inbound provider path, with the retained bodies
+having raised the floor.
+
+At that heap size the burst is beyond what the service can hold whoever is
+reading — the 48 legitimate clients survive only because they drain just fast
+enough. **The deployed heap ceiling is an open question with DevOps**
+(`deployment-requirements-request.md`, A3/B5) and it is the number that decides
+whether these controls have time to fire in production. That is a capacity
+answer, not another control.
+
+Four acceptance tests pin the shape: a single non-draining connection is dropped,
+several together are dropped on the ceiling before the per-connection rule would,
+48 draining clients are all served with nothing dropped, and 48 simultaneous
+non-readers still exhaust the heap.
 
 ### Rate limiting
 
@@ -309,15 +395,56 @@ unconditionally is worse: the header is attacker-controlled, so anyone could min
 unlimited identities, or impersonate another client into a block.
 
 So `X-Forwarded-For` is honoured only when the immediate socket peer is listed in
-`RATE_LIMIT_TRUSTED_PROXIES`, and then only its **left-most** hop. With no
-trusted proxies configured — the default — the header is ignored entirely, which
-is correct for a directly exposed API. Unlike the `inflate` flag, this is
-legitimate configuration rather than a footgun: the *unsafe* state is the empty
-default being wrong for your topology, and turning it on narrows trust to named
-peers rather than widening it.
+`RATE_LIMIT_TRUSTED_PROXIES`, and then the entry read is counted **from the
+right**.
+
+**This section previously said the left-most hop, and that was wrong.** It is
+named rather than quietly replaced, because it was documented as the design, and
+because a test asserted it — so a reader who remembers the old rule needs to know
+it was withdrawn rather than find different text and assume they misread.
+
+A proxy **appends** the address it observed, so the chain grows rightwards. An
+AWS ALB receiving `X-Forwarded-For: 1.2.3.4` from a client at 203.0.113.9
+forwards `1.2.3.4, 203.0.113.9`. The left-hand end is therefore whatever the
+client typed, and reading it meant keying every request on client-supplied text.
+That is the vulnerability twice over: a client could mint unlimited rate-limit
+identities by rotating the value it sent, and could put a third party's address
+into the bucket it was about to exhaust.
+
+`RATE_LIMIT_TRUSTED_HOPS` is how many proxies sit in front, so the client's
+address is that many entries from the end — 1 for a single load balancer, 2 for a
+CDN in front of one. It is deployment configuration rather than something
+inferred at runtime, because the trusted-proxy *list* is the set of addresses the
+immediate peer may have (a load balancer has several nodes) and says nothing
+about how long the chain is.
+
+Every failure falls back to the socket peer: a header shorter than the configured
+topology, a value that is not address-shaped, an untrusted peer. That direction is
+deliberate. A shared bucket is a throughput problem; a forgeable identity is the
+vulnerability, and trading the first for the second is how a fix reintroduces the
+bug it was written for.
+
+With no trusted proxies configured — the default — the header is ignored
+entirely, which is correct for a directly exposed API. **Behind a load balancer
+that default is itself a problem**, and not a small one: every request then
+carries the balancer's address, so the whole internet shares one bucket and the
+fan-out allowance of 15 per window is spent by everybody at once. Neither this
+code change nor that default does anything until `RATE_LIMIT_TRUSTED_PROXIES` and
+`RATE_LIMIT_TRUSTED_HOPS` are set for the environment; the two have to ship
+together.
 
 Claimed values are validated as address-shaped before becoming map keys, so a
-long or exotic header cannot grow an entry or inflate label cardinality.
+long or exotic header cannot grow an entry or inflate label cardinality. The
+validation applies to the entry that actually becomes the key, which is a
+separate assertion now that the position moved.
+
+There is a second bound resting on this one. The Bridge calldata budget documents
+its worst case as `225 x MAX_BRIDGE_CALLDATA_BYTES x concurrent requests`, and
+names the rate limiter as what bounds the third factor. While client identity is
+forgeable, "concurrent requests" is not bounded per client, and that product is
+not closed. The per-request 32 KiB bound is unaffected — it holds whatever the
+identity is — but the aggregate-heap argument depends on this section being
+correct.
 
 #### The limiter must not become the amplifier
 
@@ -405,6 +532,80 @@ Two residuals, neither of them security controls after this:
   trips and a response is written, this work runs to completion. After the memo,
   what keeps running no longer touches the RSK node. The signal is already on the
   store this reads from, so it is a small change, left out only for scope.
+
+### Response decompression
+
+A body arriving compressed is expanded before any of our code sees it, so no size
+budget stands in front of it. The request path was closed long ago — `body-parser`
+throws 415 before constructing a decompressor, and `withResourceBudgets` pins
+`inflate: false` in both positions LoopBack reads — but the response path was
+open, and reachable from whatever an upstream chose to reply.
+
+Only one of the three transports decompresses at all, which narrows this
+usefully:
+
+| transport | used by | decompresses |
+| --- | --- | --- |
+| Node core `http` | our own bounded client | no |
+| `ethers` | Bridge calls | `gzip` only |
+| `node-fetch` (via `cross-fetch`) | `web3` | gzip, deflate **and Brotli** |
+
+`node-fetch` constructs a native `zlib.createBrotliDecompress` whenever a
+response says `Content-Encoding: br`. `createRskWeb3` in `src/utils/rsk-web3.ts`
+builds every Web3 client with `compress: false`, and that is what closes the path
+rather than narrowing it: `node-fetch` checks the flag **before** it looks at the
+response encoding (`node-fetch/lib/index.js:1664`), so with it off no decoder is
+constructed for any encoding. Asking for `Accept-Encoding: identity` alone would
+not do — a hostile server is free to ignore a request header, and it is the
+*response* header that reaches the decoder. The identity header is sent anyway,
+so an honest node does not spend CPU compressing what we will not expand.
+
+A factory rather than three constructor calls, because a control repeated in
+three places is a control that will eventually be applied in two; a test asserts
+no `new Web3(` survives outside it.
+
+The test that matters drives a server which really does reply in Brotli: a
+default client decompresses and parses it, ours receives the bytes as sent and
+fails to parse. Both halves are asserted, since a test showing only that a
+request failed would pass for any reason at all. The ethers path is pinned too,
+so an upgrade that adds Brotli support there fails a test rather than silently
+reopening it.
+
+**Threat model, honestly.** Reaching this needs a compromised or impersonated
+upstream, or a network position between us and it. Whether that is remote or
+trivial depends on facts this repository does not have — whether https is
+enforced for `RSK_NODE_HOST` and `BLOCKBOOK_URL`, and whether either is reached
+over a private network. That is A5 in `deployment-requirements-request.md`, and
+the answer can move this from low priority to the same class as a remote process
+kill. The control is in place either way; what the answer changes is how much it
+mattered.
+
+### Calls to the RSK node
+
+Unlike Blockbook, these sit inside `ethers.Contract` and `web3.eth` rather than a
+client of ours, so there is no permit pool bounding how many run at once. Before
+building one, the volume was counted on the wire:
+
+| route | JSON-RPC calls to the node |
+| --- | --- |
+| `/health` | 3 |
+| `/tx-status/{txId}` | 3 |
+| `/tx-status-by-type/{txId}/PEGIN` | 2 |
+| `/tx-status-by-type/{txId}/PEGOUT` | 1 |
+| `/pegin-configuration` | 5 |
+
+Every one is a constant. None is a function of anything a client supplies, which
+is the property that matters and the one that was violated before: the federation
+lookup used to issue a call per output of a Bitcoin transaction whose id the
+client chose. `rsk-call-volume.acceptance.ts` asserts both the ceilings and, more
+importantly, that two different transaction ids cost the same.
+
+So a pool would bound concurrency that the rate limiter already bounds by
+requests, against a per-request cost that is small and fixed. Building one now
+would be building a control with nothing to do. What remains genuinely unbounded
+is process-wide concurrency under a distributed flood, and the honest next step is
+to measure real load in staging rather than to guess at a permit count — the
+numbers above are the baseline that decision starts from.
 
 ### Validation error responses
 

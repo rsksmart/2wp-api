@@ -17,6 +17,7 @@ import {PegoutStatusBuilder} from "./pegout-status-builder";
 import ExtendedBridgeTx, {ExtendedBridgeTxModel} from '../extended-bridge-tx';
 import { BtcAddressUtils, fromWeiNumberToSatoshiNumber } from "../../utils/btc-utils";
 import { PegoutStatus } from "../../models";
+import {createRskWeb3} from '../../utils/rsk-web3';
 
 export class PegoutStatusService {
     private logger: Logger;
@@ -35,7 +36,7 @@ export class PegoutStatusService {
         this.logger = getLogger('pegout-status-service');
         this.pegoutStatusDataService = pegoutStatusDataService;
         this.rskNodeService = rskNodeService;
-        this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
+        this.web3 = createRskWeb3(`${process.env.RSK_NODE_HOST}`);
     }
 
     public getPegoutStatusByRskTxHash(rskTxHash: string): Promise<PegoutStatus> {

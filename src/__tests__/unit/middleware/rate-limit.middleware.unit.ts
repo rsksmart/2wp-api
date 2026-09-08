@@ -268,50 +268,112 @@ describe('Middleware: rate limiting', () => {
   });
 
   describe('client identity behind a proxy', () => {
-    const XFF = '203.0.113.7, 70.41.3.18, 150.172.238.178';
+    /*
+     * This used to key on the **left-most** entry, and that was documented and
+     * tested as the design. It is backwards.
+     *
+     * A proxy *appends* the address it observed. An AWS ALB receiving
+     * `X-Forwarded-For: 1.2.3.4` from a client at 203.0.113.9 forwards
+     * `1.2.3.4, 203.0.113.9` — so the left-most entry is whatever the client
+     * typed, and the right-hand end is what the infrastructure actually saw. The
+     * entry to trust is the one the last trusted proxy appended, counted from the
+     * right.
+     *
+     * The old reading has two consequences, and both are the finding: a client
+     * can mint unlimited identities by rotating the value it sends, and it can
+     * put a third party's address in the bucket it is about to exhaust.
+     */
+    const TRUSTED = new Set(['10.0.0.1']);
 
     it('ignores X-Forwarded-For when no proxy is trusted', () => {
-      // The default. The header is attacker-controlled, so honouring it would
-      // let anyone mint unlimited identities.
-      expect(resolveClientKey('192.0.2.9', XFF, new Set())).to.equal('192.0.2.9');
-    });
-
-    it('ignores X-Forwarded-For from an untrusted peer', () => {
+      // The default, and unchanged. With nothing in front of the app, the header
+      // is pure client input.
       expect(
-        resolveClientKey('192.0.2.9', XFF, new Set(['10.0.0.1'])),
+        resolveClientKey('192.0.2.9', '203.0.113.7', new Set()),
       ).to.equal('192.0.2.9');
     });
 
-    it('uses the left-most hop from a trusted peer', () => {
+    it('ignores X-Forwarded-For from an untrusted peer', () => {
+      // Unchanged, and the case a mutation test already verified: a peer that is
+      // not a configured proxy has no forwarding claim worth believing.
       expect(
-        resolveClientKey('10.0.0.1', XFF, new Set(['10.0.0.1'])),
-      ).to.equal('203.0.113.7');
+        resolveClientKey('192.0.2.9', '203.0.113.7', TRUSTED),
+      ).to.equal('192.0.2.9');
     });
 
-    it('takes only the left-most hop, so a forged chain cannot hide the client', () => {
-      // A client prepending its own hop is counted under that hop, not under
-      // whatever it appended after it.
+    it('counts against the hop the trusted proxy appended, not the one the client sent', () => {
+      expect(
+        resolveClientKey('10.0.0.1', '1.2.3.4, 203.0.113.9', TRUSTED),
+      ).to.equal('203.0.113.9');
+    });
+
+    it('a client cannot mint identities by rotating the header', () => {
+      // The heart of it. Every one of these is the same client arriving through
+      // the same proxy, so every one has to land in the same bucket.
+      const keys = ['1.2.3.4', '5.6.7.8', '9.10.11.12'].map(forged =>
+        resolveClientKey('10.0.0.1', `${forged}, 203.0.113.9`, TRUSTED),
+      );
+
+      expect(new Set(keys).size).to.equal(1);
+    });
+
+    it('a client cannot push a victim into a blocked bucket', () => {
+      // The other direction: spend somebody else's allowance by naming them.
+      expect(
+        resolveClientKey('10.0.0.1', '198.51.100.7, 203.0.113.9', TRUSTED),
+      ).to.not.equal('198.51.100.7');
+    });
+
+    it('takes the hop before the last N proxies when N are configured', () => {
+      // CloudFront in front of an ALB: the client's address is appended by
+      // CloudFront, then CloudFront's own address is appended by the ALB.
       expect(
         resolveClientKey(
           '10.0.0.1',
-          '198.51.100.23, 203.0.113.7',
-          new Set(['10.0.0.1']),
+          '1.2.3.4, 203.0.113.9, 198.51.100.1',
+          TRUSTED,
+          2,
         ),
-      ).to.equal('198.51.100.23');
+      ).to.equal('203.0.113.9');
+    });
+
+    it('counts a single-entry header as the client when one proxy is trusted', () => {
+      // A client that sent no header at all: the proxy's append is the whole
+      // chain, and it is the client.
+      expect(resolveClientKey('10.0.0.1', '203.0.113.9', TRUSTED)).to.equal(
+        '203.0.113.9',
+      );
+    });
+
+    it('falls back to the peer when the header has fewer hops than proxies', () => {
+      // Fails closed. A shared bucket is a throughput problem; a forgeable
+      // identity is the vulnerability. Trading the first for the second is how a
+      // fix reintroduces the bug in the opposite direction.
+      expect(
+        resolveClientKey('10.0.0.1', '203.0.113.9', TRUSTED, 2),
+      ).to.equal('10.0.0.1');
     });
 
     it('falls back to the socket when a trusted peer sends no header', () => {
-      expect(
-        resolveClientKey('10.0.0.1', undefined, new Set(['10.0.0.1'])),
-      ).to.equal('10.0.0.1');
+      expect(resolveClientKey('10.0.0.1', undefined, TRUSTED)).to.equal(
+        '10.0.0.1',
+      );
     });
 
     it('rejects a header value that is not an address-shaped token', () => {
       // The key ends up in a bounded map; an unbounded or exotic value would be
       // both a cardinality problem and a way to grow entries.
-      const key = resolveClientKey('10.0.0.1', 'x'.repeat(500), new Set(['10.0.0.1']));
+      const key = resolveClientKey('10.0.0.1', 'x'.repeat(500), TRUSTED);
 
       expect(key).to.equal('10.0.0.1');
+    });
+
+    it('rejects a malformed value in the position it actually reads', () => {
+      // The bound has to apply to the entry that becomes the key, not to the
+      // one that used to.
+      expect(
+        resolveClientKey('10.0.0.1', `203.0.113.9, ${'x'.repeat(500)}`, TRUSTED),
+      ).to.equal('10.0.0.1');
     });
 
     it('tolerates a missing socket address', () => {

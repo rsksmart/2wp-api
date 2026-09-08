@@ -156,7 +156,20 @@ function attempt<T>(
 
     const request = transport.request(
       target,
-      {method: 'GET', headers: {...headers, accept: 'application/json'}},
+      {
+        method: 'GET',
+        headers: {
+          ...headers,
+          accept: 'application/json',
+          // Node's own HTTP client neither asks for nor performs decompression,
+          // so no decoder is reachable from a response on this path whatever the
+          // upstream sends. Saying so explicitly stops an honest provider
+          // spending CPU compressing a body we would only have to reject, and
+          // records the property rather than leaving it to be re-derived from an
+          // absence.
+          'accept-encoding': 'identity',
+        },
+      },
       res => {
         // Settle first, then drop the response on the floor without buffering
         // it: destroying the socket can emit 'error'/'aborted' synchronously,

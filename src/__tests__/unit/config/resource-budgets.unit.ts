@@ -29,6 +29,10 @@ describe('Config: resource budgets', () => {
         MAX_ERROR_RESPONSE_BYTES: '512',
         MAX_VALIDATION_ERROR_DETAILS: '2',
         MAX_CONNECTION_BUFFERED_BYTES: '4096',
+        CONNECTION_OUTPUT_SAMPLE_INTERVAL_MS: '25',
+        CONNECTION_OUTPUT_STALL_MS: '500',
+        MAX_TOTAL_PENDING_OUTPUT_BYTES: '8388608',
+        CONNECTION_OUTPUT_AGGREGATE_STALL_MS: '75',
         MAX_REQUEST_DURATION_MS: '9000',
         REQUEST_DEADLINE_GRACE_MS: '250',
         RATE_LIMIT_WINDOW_MS: '30000',
@@ -36,6 +40,7 @@ describe('Config: resource budgets', () => {
         RATE_LIMIT_MAX_FANOUT_REQUESTS: '15',
         RATE_LIMIT_MAX_HEALTH_REQUESTS: '600',
         RATE_LIMIT_MAX_TRACKED_CLIENTS: '4096',
+        RATE_LIMIT_TRUSTED_HOPS: '2',
         PROCESS_FAILURE_TRIPWIRE_MAX: '4',
         PROCESS_FAILURE_TRIPWIRE_WINDOW_MS: '15000',
         PROCESS_FAILURE_TRIPWIRE_MAX_KINDS: '32',
@@ -63,6 +68,10 @@ describe('Config: resource budgets', () => {
         MAX_ERROR_RESPONSE_BYTES: 512,
         MAX_VALIDATION_ERROR_DETAILS: 2,
         MAX_CONNECTION_BUFFERED_BYTES: 4096,
+        CONNECTION_OUTPUT_SAMPLE_INTERVAL_MS: 25,
+        CONNECTION_OUTPUT_STALL_MS: 500,
+        MAX_TOTAL_PENDING_OUTPUT_BYTES: 8388608,
+        CONNECTION_OUTPUT_AGGREGATE_STALL_MS: 75,
         MAX_REQUEST_DURATION_MS: 9000,
         REQUEST_DEADLINE_GRACE_MS: 250,
         RATE_LIMIT_WINDOW_MS: 30000,
@@ -70,6 +79,7 @@ describe('Config: resource budgets', () => {
         RATE_LIMIT_MAX_FANOUT_REQUESTS: 15,
         RATE_LIMIT_MAX_HEALTH_REQUESTS: 600,
         RATE_LIMIT_MAX_TRACKED_CLIENTS: 4096,
+        RATE_LIMIT_TRUSTED_HOPS: 2,
         PROCESS_FAILURE_TRIPWIRE_MAX: 4,
         PROCESS_FAILURE_TRIPWIRE_WINDOW_MS: 15000,
         PROCESS_FAILURE_TRIPWIRE_MAX_KINDS: 32,
@@ -282,6 +292,41 @@ describe('Config: resource budgets', () => {
         RESOURCE_BUDGET_DEFAULTS.RATE_LIMIT_MAX_TRACKED_CLIENTS *
           BYTES_PER_TRACKED_CLIENT,
       ).to.be.lessThanOrEqual(MAX_LIMITER_BYTES);
+    });
+
+    it('defaults to the topology that is safe to be wrong about', () => {
+      // The client is read this many entries from the right of
+      // `X-Forwarded-For`. Configured too high, the chain is shorter than
+      // expected and every request falls back to the socket peer — a shared
+      // bucket, which is a throughput problem. Configured too low, the entry
+      // read is one the client supplied, which is the vulnerability. So the
+      // default is the smallest real topology, and raising it is a deliberate
+      // per-environment act.
+      expect(RESOURCE_BUDGET_DEFAULTS.RATE_LIMIT_TRUSTED_HOPS).to.equal(1);
+    });
+
+    it('qualifies stuck bytes faster than a connection is allowed to stall', () => {
+      // The two thresholds do different jobs and the order matters. A single
+      // stuck connection is the per-connection rule's business, judged
+      // generously. The aggregate has to notice a *group* well before any one of
+      // them has exhausted that allowance, or it never adds anything.
+      const {CONNECTION_OUTPUT_AGGREGATE_STALL_MS, CONNECTION_OUTPUT_STALL_MS} =
+        RESOURCE_BUDGET_DEFAULTS;
+
+      expect(CONNECTION_OUTPUT_AGGREGATE_STALL_MS).to.be.lessThan(
+        CONNECTION_OUTPUT_STALL_MS,
+      );
+    });
+
+    it('keeps the aggregate ceiling above a single connection allowance', () => {
+      // Below it, the ceiling would fire on one ordinary large response and the
+      // per-connection budget would be dead configuration.
+      const {MAX_TOTAL_PENDING_OUTPUT_BYTES, MAX_CONNECTION_BUFFERED_BYTES} =
+        RESOURCE_BUDGET_DEFAULTS;
+
+      expect(MAX_TOTAL_PENDING_OUTPUT_BYTES).to.be.greaterThan(
+        MAX_CONNECTION_BUFFERED_BYTES,
+      );
     });
 
     it('leaves monitoring far more headroom than it needs', () => {

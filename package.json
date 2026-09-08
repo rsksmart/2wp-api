@@ -77,7 +77,8 @@
     "pegin-address-verificator": "https://git@github.com/rsksmart/pegin-address-verifier#0.3.0",
     "pino": "^10.3.1",
     "tslib": "^2.0.0",
-    "web3": "^4.16.0"
+    "web3": "^4.16.0",
+    "web3-providers-http": "^4.2.0"
   },
   "overrides": {
     "@loopback/context": {

@@ -21,6 +21,7 @@ import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 import { sha256 } from '../utils/sha256-utils';
 import { FullRskTransaction } from '../models/rsk/full-rsk-transaction.model';
+import {createRskWeb3} from '../utils/rsk-web3';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
@@ -466,7 +467,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   }
 
   private async getTxFromRskTransaction(rskTxHash: string): Promise<FullRskTransaction> {
-    const web3: Web3 = new Web3(`${process.env.RSK_NODE_HOST}`)
+    const web3: Web3 = createRskWeb3(`${process.env.RSK_NODE_HOST}`)
     const web3Tx = await web3.eth.getTransaction(rskTxHash);
     return FullRskTransaction.fromWeb3TransactionWithValue(web3Tx);
   }

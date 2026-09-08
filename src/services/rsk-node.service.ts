@@ -8,6 +8,7 @@ import {
   toParserTx,
 } from '../utils/bridge-utils';
 import * as constants from '../constants';
+import {createRskWeb3} from '../utils/rsk-web3';
 
 /** Operation label for the budget's observability signal. */
 export const BRIDGE_DECODE_ROUTE = 'bridge-decode';
@@ -19,7 +20,7 @@ export class RskNodeService {
   bridgeTransactionParser: BridgeTransactionParser;
 
   constructor() {
-    this.web3 = new Web3(`${process.env.RSK_NODE_HOST}`);
+    this.web3 = createRskWeb3(`${process.env.RSK_NODE_HOST}`);
     this.host = process.env.RSK_NODE_HOST ?? constants.TESTNET_RSK_NODE_HOST;
     this.ethersProvider = new ethers.JsonRpcProvider(this.host);
     this.bridgeTransactionParser = new BridgeTransactionParser(this.ethersProvider);

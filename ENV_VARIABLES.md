@@ -108,6 +108,10 @@ Caps on how much memory, parsing, serialization and downstream provider work a s
 |MAX_ERROR_RESPONSE_BYTES      |8192                           |'Maximum serialized error response body, in bytes'       |
 |MAX_VALIDATION_ERROR_DETAILS  |3                              |'Maximum validation details returned to the client'      |
 |MAX_CONNECTION_BUFFERED_BYTES |1048576                        |'Response bytes buffered per connection before it is dropped'|
+|CONNECTION_OUTPUT_SAMPLE_INTERVAL_MS|50                       |'How often an in-flight response socket buffer is sampled, in ms'|
+|CONNECTION_OUTPUT_STALL_MS    |1000                           |'How long a socket may sit over budget without draining before it is dropped'|
+|MAX_TOTAL_PENDING_OUTPUT_BYTES|16777216                       |'Hard cap on stuck response bytes across every connection at once'|
+|CONNECTION_OUTPUT_AGGREGATE_STALL_MS|100                      |'How long a connection must be stuck before its bytes count towards that cap'|
 |MAX_REQUEST_DURATION_MS       |30000                          |'Wall-clock deadline for handling one inbound request, in ms'|
 |REQUEST_DEADLINE_GRACE_MS     |250                            |'Grace for cooperative unwinding after the request deadline, in milliseconds'|
 |RATE_LIMIT_WINDOW_MS          |30000                          |'Rate-limit window length, in milliseconds'               |
@@ -116,6 +120,7 @@ Caps on how much memory, parsing, serialization and downstream provider work a s
 |RATE_LIMIT_MAX_HEALTH_REQUESTS|600                            |'Requests per window per client on /health'               |
 |RATE_LIMIT_MAX_TRACKED_CLIENTS|4096                           |'Hard cap on clients the limiter tracks at once'          |
 |RATE_LIMIT_TRUSTED_PROXIES    |(empty)                        |'Comma-separated peers whose X-Forwarded-For is believed; empty ignores the header'|
+|RATE_LIMIT_TRUSTED_HOPS       |1                              |'Proxies in front; the client is this many entries from the right of X-Forwarded-For'|
 |MONGO_MAX_DOCUMENTS           |250                            |'Maximum documents returned by one database read'         |
 |HEALTH_CACHE_TTL_MS           |2000                           |'How long a /health result may be reused, in milliseconds'|
 |PROCESS_FAILURE_TRIPWIRE_MAX  |10                             |'Failures of one kind survived within a window before exiting 1'|

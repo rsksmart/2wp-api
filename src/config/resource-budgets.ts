@@ -44,6 +44,14 @@ export interface ResourceBudgets {
   MAX_VALIDATION_ERROR_DETAILS: number;
   /** Hard cap on response bytes buffered for one connection, in bytes. */
   MAX_CONNECTION_BUFFERED_BYTES: number;
+  /** How often a response's socket buffer is sampled while it is in flight. */
+  CONNECTION_OUTPUT_SAMPLE_INTERVAL_MS: number;
+  /** How long a socket may sit over budget without draining before it is dropped. */
+  CONNECTION_OUTPUT_STALL_MS: number;
+  /** Hard cap on stuck response bytes across every connection at once. */
+  MAX_TOTAL_PENDING_OUTPUT_BYTES: number;
+  /** How long a connection must be stuck before its bytes count towards that cap. */
+  CONNECTION_OUTPUT_AGGREGATE_STALL_MS: number;
   /** Wall-clock deadline for handling one inbound request, in milliseconds. */
   MAX_REQUEST_DURATION_MS: number;
   /**
@@ -61,6 +69,8 @@ export interface ResourceBudgets {
   RATE_LIMIT_MAX_HEALTH_REQUESTS: number;
   /** Hard cap on how many clients the limiter will track at once. */
   RATE_LIMIT_MAX_TRACKED_CLIENTS: number;
+  /** Proxies between the client and this service, for reading `X-Forwarded-For`. */
+  RATE_LIMIT_TRUSTED_HOPS: number;
   /** Occurrences of one kind of process failure survived within one window. */
   PROCESS_FAILURE_TRIPWIRE_MAX: number;
   /** Length of the process-failure tripwire's fixed window, in milliseconds. */
@@ -179,6 +189,40 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   MAX_ERROR_RESPONSE_BYTES: 8 * 1024,
   MAX_VALIDATION_ERROR_DETAILS: 3,
   MAX_CONNECTION_BUFFERED_BYTES: 1024 * 1024,
+  // Measured on a 7.5 MB response under 48-way concurrency. A socket is over
+  // budget for at most 70 ms (median 45) before its response closes, and a peer
+  // that has stopped reading stays over budget indefinitely. Duration is the only
+  // discriminator that survives contact with load: `writableLength` sits at the
+  // *same* value across consecutive samples for a draining socket too, because a
+  // busy event loop does not hand bytes to the kernel between two samples — so
+  // "is the buffer going down" is not observable here, and only "how long has it
+  // been stuck" is.
+  //
+  // 1 s is 14x the longest legitimate stall observed, which is the margin that
+  // keeps this from dropping a slow-but-reading client. See the note in
+  // `docs/resource-budgets.md` on what that margin costs.
+  CONNECTION_OUTPUT_SAMPLE_INTERVAL_MS: 50,
+  CONNECTION_OUTPUT_STALL_MS: 1_000,
+  // The ceiling counts only bytes held by connections that are *stuck*, which is
+  // what makes a low number safe. Measured across 48 concurrent 7.5 MB
+  // responses: legitimate clients peak at 60 MB of pending bytes in total, but no
+  // single one of them is over its per-connection budget for more than 70 ms, so
+  // after the qualifying delay below none of those bytes count. A peer that has
+  // stopped reading holds its bytes indefinitely and every one of them counts.
+  //
+  // 16 MiB is therefore roughly two stuck large responses. The margin is not the
+  // gap between 16 MiB and legitimate usage — legitimate usage of *stuck* bytes
+  // is zero — it is that a legitimate client would have to stay stuck past the
+  // qualifying delay at all, which none was ever measured doing.
+  MAX_TOTAL_PENDING_OUTPUT_BYTES: 16 * 1024 * 1024,
+  // How long a connection must be stuck before its bytes count. The whole design
+  // rests on this number, so it is measured on both sides rather than reasoned
+  // about: across 48 concurrent 7.5 MB responses, legitimate clients contribute
+  // **0 bytes** of stuck data at this threshold, and a burst of non-readers
+  // contributes 30 MB. Raising it to 200 ms drops the burst's contribution to
+  // 7.5 MB, because fewer connections have time to qualify before the damage is
+  // done — so higher is not safer here, it is blinder.
+  CONNECTION_OUTPUT_AGGREGATE_STALL_MS: 100,
   MAX_REQUEST_DURATION_MS: 30_000,
   // Long enough for work that observes the abort signal to unwind and produce
   // its own answer, short enough that a caller is not left waiting on work that
@@ -203,6 +247,14 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   // The limiter must not become the amplifier: an attacker with many source
   // addresses would otherwise grow this map without bound.
   RATE_LIMIT_MAX_TRACKED_CLIENTS: 4096,
+  // How far from the *right* of `X-Forwarded-For` the client's address sits.
+  // A proxy appends the address it observed, so with one proxy in front the last
+  // entry is what that proxy actually saw and everything to its left is client
+  // input. 1 is the single-load-balancer case; a CDN in front of a load balancer
+  // is 2. Getting this wrong is not a degradation, it is the same forgeable
+  // identity in the opposite direction, so it is deployment configuration rather
+  // than something inferred at runtime.
+  RATE_LIMIT_TRUSTED_HOPS: 1,
   // An unhandled rejection is one broken request and is survived. Ten of the
   // same kind inside a minute is not a request failing, it is the process stuck
   // failing the same way — high enough that a transient outage does not reach it,
@@ -323,6 +375,22 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
       env.MAX_CONNECTION_BUFFERED_BYTES,
       d.MAX_CONNECTION_BUFFERED_BYTES,
     ),
+    CONNECTION_OUTPUT_SAMPLE_INTERVAL_MS: parsePositiveInt(
+      env.CONNECTION_OUTPUT_SAMPLE_INTERVAL_MS,
+      d.CONNECTION_OUTPUT_SAMPLE_INTERVAL_MS,
+    ),
+    CONNECTION_OUTPUT_STALL_MS: parsePositiveInt(
+      env.CONNECTION_OUTPUT_STALL_MS,
+      d.CONNECTION_OUTPUT_STALL_MS,
+    ),
+    MAX_TOTAL_PENDING_OUTPUT_BYTES: parsePositiveInt(
+      env.MAX_TOTAL_PENDING_OUTPUT_BYTES,
+      d.MAX_TOTAL_PENDING_OUTPUT_BYTES,
+    ),
+    CONNECTION_OUTPUT_AGGREGATE_STALL_MS: parsePositiveInt(
+      env.CONNECTION_OUTPUT_AGGREGATE_STALL_MS,
+      d.CONNECTION_OUTPUT_AGGREGATE_STALL_MS,
+    ),
     MAX_REQUEST_DURATION_MS: parsePositiveInt(
       env.MAX_REQUEST_DURATION_MS,
       d.MAX_REQUEST_DURATION_MS,
@@ -350,6 +418,10 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
     RATE_LIMIT_MAX_TRACKED_CLIENTS: parsePositiveInt(
       env.RATE_LIMIT_MAX_TRACKED_CLIENTS,
       d.RATE_LIMIT_MAX_TRACKED_CLIENTS,
+    ),
+    RATE_LIMIT_TRUSTED_HOPS: parsePositiveInt(
+      env.RATE_LIMIT_TRUSTED_HOPS,
+      d.RATE_LIMIT_TRUSTED_HOPS,
     ),
     PROCESS_FAILURE_TRIPWIRE_MAX: parsePositiveInt(
       env.PROCESS_FAILURE_TRIPWIRE_MAX,
@@ -417,6 +489,10 @@ export const {
   MAX_ERROR_RESPONSE_BYTES,
   MAX_VALIDATION_ERROR_DETAILS,
   MAX_CONNECTION_BUFFERED_BYTES,
+  CONNECTION_OUTPUT_SAMPLE_INTERVAL_MS,
+  CONNECTION_OUTPUT_STALL_MS,
+  MAX_TOTAL_PENDING_OUTPUT_BYTES,
+  CONNECTION_OUTPUT_AGGREGATE_STALL_MS,
   MAX_REQUEST_DURATION_MS,
   REQUEST_DEADLINE_GRACE_MS,
   RATE_LIMIT_WINDOW_MS,
@@ -424,6 +500,7 @@ export const {
   RATE_LIMIT_MAX_FANOUT_REQUESTS,
   RATE_LIMIT_MAX_HEALTH_REQUESTS,
   RATE_LIMIT_MAX_TRACKED_CLIENTS,
+  RATE_LIMIT_TRUSTED_HOPS,
   PROCESS_FAILURE_TRIPWIRE_MAX,
   PROCESS_FAILURE_TRIPWIRE_WINDOW_MS,
   PROCESS_FAILURE_TRIPWIRE_MAX_KINDS,

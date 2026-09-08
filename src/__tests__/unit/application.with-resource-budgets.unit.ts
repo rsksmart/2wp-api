@@ -14,6 +14,37 @@ import {
  */
 const BODY_READING_PARSERS = ['json', 'text', 'urlencoded', 'raw'];
 
+/**
+ * What a parser is *actually* configured with, after LoopBack merges the config.
+ *
+ * `getParserOptions` in `@loopback/rest` ends with
+ * `Object.assign(opts, options[type], options)` — the per-parser object first,
+ * then the **top-level object last**. So a top-level key wins over the
+ * per-parser key of the same name, which is the opposite of what reading
+ * `parser.json.inflate` suggests.
+ *
+ * This helper replicates that merge instead of reading the nested field, and
+ * that distinction is the whole point of it: a test that reads the nested field
+ * passes while the effective value is the opposite, which is exactly how the
+ * top-level case went uncovered.
+ */
+function effectiveParserConfig(
+  options: ApplicationConfig,
+  parserName: string,
+): Record<string, unknown> {
+  const parser = parserConfigOf(options);
+  const {json, urlencoded, text, raw, stream, ...topLevel} = parser as Record<
+    string,
+    unknown
+  >;
+  void json;
+  void urlencoded;
+  void text;
+  void raw;
+  void stream;
+  return {...(parser[parserName] ?? {}), ...topLevel};
+}
+
 /** Reads the merged parser config back without fighting the framework types. */
 function parserConfigOf(
   options: ApplicationConfig,
@@ -88,6 +119,29 @@ describe('Application: withResourceBudgets', () => {
       });
 
       expect(parserConfigOf(result).json.inflate).to.be.false();
+    });
+
+    it('a top-level inflate:true cannot enable decompression either', () => {
+      // The gap. `inflate: false` was applied to each parser object and not to
+      // the top-level one, and LoopBack applies the top level *after* the
+      // per-parser object — so a single top-level `inflate: true` re-enabled
+      // decompression for every parser at once, and the assertion above stayed
+      // green because it reads the nested field rather than the merged one.
+      const result = withResourceBudgets({
+        rest: {requestBodyParser: {inflate: true}},
+      });
+
+      for (const name of BODY_READING_PARSERS) {
+        expect(effectiveParserConfig(result, name).inflate).to.be.false();
+      }
+    });
+
+    it('a top-level inflate:true does not survive alongside a per-parser one', () => {
+      const result = withResourceBudgets({
+        rest: {requestBodyParser: {inflate: true, json: {inflate: true}}},
+      });
+
+      expect(effectiveParserConfig(result, 'json').inflate).to.be.false();
     });
 
     it('caps a caller limit that exceeds the budget, top level and per parser', () => {

@@ -116,9 +116,18 @@ export function withResourceBudgets(
 
   // The caller's keys come first, so anything this function does not govern —
   // `stream`, or whatever LoopBack adds next — survives untouched.
+  //
+  // `inflate: false` is applied here as well as per parser, and that is not
+  // belt-and-braces. `getParserOptions` in `@loopback/rest` ends with
+  // `Object.assign(opts, options[type], options)` — the top-level object is
+  // applied *after* the per-parser one, so a single top-level `inflate: true`
+  // re-enabled decompression for every parser at once and defeated the control
+  // completely. Both positions have to be closed, because either one alone is
+  // the whole protection.
   const requestBodyParser: ParserOptions = {
     ...caller,
     limit: cappedLimit(caller.limit, 'limit'),
+    inflate: false,
   };
 
   BODY_READING_PARSERS.forEach(name => {

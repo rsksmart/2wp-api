@@ -12,6 +12,7 @@ import {
   RATE_LIMIT_MAX_HEALTH_REQUESTS,
   RATE_LIMIT_MAX_REQUESTS,
   RATE_LIMIT_MAX_TRACKED_CLIENTS,
+  RATE_LIMIT_TRUSTED_HOPS,
   RATE_LIMIT_WINDOW_MS,
 } from '../config/resource-budgets';
 import {getLogger} from '../utils/logger';
@@ -104,25 +105,59 @@ const UNKNOWN_CLIENT = 'unknown';
  * or impersonate another client into a block.
  *
  * So the header is honoured only when the immediate socket peer is a configured
- * trusted proxy, and then only its **left-most** hop — the one the trusted proxy
- * itself observed. With no trusted proxies configured (the default) the header
- * is ignored entirely, which is correct when the API is directly exposed.
+ * trusted proxy — and then the entry read is counted **from the right**.
+ *
+ * **This used to read the left-most entry, and that was backwards.** A proxy
+ * *appends* the address it observed, so the chain grows rightwards and the
+ * left-hand end is whatever the client typed. An AWS ALB receiving
+ * `X-Forwarded-For: 1.2.3.4` from a client at 203.0.113.9 forwards
+ * `1.2.3.4, 203.0.113.9`. Reading the left-most entry therefore keyed every
+ * request on client-supplied text, which is the whole problem twice over: a
+ * client could mint unlimited identities by rotating that value, and could put a
+ * third party's address into the bucket it was about to exhaust.
+ *
+ * `RATE_LIMIT_TRUSTED_HOPS` is how many proxies are in front, so the client sits
+ * that many entries from the end. It is deployment configuration rather than
+ * something inferred at runtime: the trusted-proxy *list* is the set of addresses
+ * the immediate peer may have — a load balancer has several nodes — which says
+ * nothing about how long the chain is. Guessing it wrong is not a degradation, it
+ * is the same forgeable identity in the other direction.
+ *
+ * Every failure here falls back to the socket peer. A shared bucket is a
+ * throughput problem; a forgeable identity is the vulnerability, and trading the
+ * first for the second is how a fix reintroduces the bug it was written for.
+ *
+ * With no trusted proxies configured (the default) the header is ignored
+ * entirely, which is correct when the API is directly exposed — and is also why
+ * this has no effect until `RATE_LIMIT_TRUSTED_PROXIES` is set for the
+ * environment.
  *
  * @param socketAddress - Address of the immediate peer.
  * @param forwardedFor - Raw `X-Forwarded-For` value, if any.
  * @param trustedProxies - Peers whose forwarding claims are believed.
+ * @param trustedHops - Proxies in front of this service. Defaults to the budget.
  * @returns The key to count this request against.
  */
 export function resolveClientKey(
   socketAddress: string | undefined,
   forwardedFor: string | undefined,
   trustedProxies: ReadonlySet<string>,
+  trustedHops: number = RATE_LIMIT_TRUSTED_HOPS,
 ): string {
   const peer = socketAddress ?? UNKNOWN_CLIENT;
   if (!forwardedFor || !trustedProxies.has(peer)) {
     return peer;
   }
-  const claimed = forwardedFor.split(',')[0]?.trim();
+  const hops = forwardedFor.split(',');
+  // The last trusted proxy appended the address it saw, so the client is that
+  // many entries from the end. A chain shorter than the configured topology is
+  // not something to guess at: it means the request did not arrive the way the
+  // configuration says it does.
+  const index = hops.length - trustedHops;
+  if (index < 0) {
+    return peer;
+  }
+  const claimed = hops[index]?.trim();
   // A malformed or oversized claim falls back to the peer rather than becoming
   // a map key of arbitrary shape.
   return claimed && ADDRESS_TOKEN.test(claimed) ? claimed : peer;
