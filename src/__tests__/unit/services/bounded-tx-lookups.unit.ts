@@ -47,7 +47,7 @@ const txOf = (bytes: number) => {
 };
 
 /**
- * The two endpoints the finding is about.
+ * The two endpoints this is about.
  *
  * `GET /tx` and the pegin status path return the raw Bitcoin transaction in
  * `hex`, so their responses are the only ones here measured in megabytes. An

@@ -74,7 +74,7 @@ class FakeBlockbook {
 }
 
 /**
- * The public reproduction of the finding, end to end.
+ * The public reproduction, end to end.
  *
  * `GET /tx` is unauthenticated and needs no database, so a single request used to
  * be enough: an oversized Blockbook response was buffered whole by
@@ -155,7 +155,7 @@ describe('Provider response budget (Acceptance)', () => {
       signal: AbortSignal.timeout(25000),
     });
 
-    // The distinction the finding turns on. The REST connector read the whole
+    // The distinction it turns on. The REST connector read the whole
     // body and only then failed; this stops shortly past the budget, so the
     // bytes the process ever holds are bounded by the budget and not by what
     // the upstream felt like sending.

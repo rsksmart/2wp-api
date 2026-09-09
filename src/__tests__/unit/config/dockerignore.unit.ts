@@ -15,9 +15,8 @@ import {expect} from '@loopback/testlab';
  *   anyway, so nothing in the image needs them.
  * - **`.git`** carries the entire history, including anything ever committed and
  *   later removed.
- * - **`.claude`** holds the security informs, which are deliberately the only
- *   place the report identifiers appear; shipping them in a public image would
- *   undo that separation.
+ * - **`.claude`** holds local agent state and working notes, which have no
+ *   business in a published image.
  *
  * This asserts the declaration, not the built image — only inspecting a build
  * proves the layer is clean.

@@ -36,7 +36,7 @@ const REAL_PEGOUT_HASH =
   '0x368cfbff365655d14eeaaba822c20fa8bb0c98fda0eef938094dee4ec7a83a66';
 
 /**
- * The 84419 shape: four dynamic `bytes` parameters whose offsets all point at
+ * The hostile shape: four dynamic `bytes` parameters whose offsets all point at
  * the same blob, so the decoder materializes it once per parameter. Every offset
  * is in bounds — nothing about the bytes is malformed, and following them is
  * what allocates.
@@ -56,7 +56,7 @@ const aliasedOffsetsCalldata = (bytes: number, selector: string): string => {
 };
 
 /**
- * The public reproduction of Immunefi 84419, and its false-positive control.
+ * The public reproduction of the Immunefi case, and its false-positive control.
  *
  * `GET /tx-status-by-type/{txId}/PEGOUT` is unauthenticated and, on a database
  * miss, re-parses the transaction from the node. The receipt gate that used to

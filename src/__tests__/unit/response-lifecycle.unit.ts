@@ -114,7 +114,7 @@ describe('Process: failure policy', () => {
 
   describe('an unhandled rejection is survived', () => {
     it('survives a dependency failure with no recognisable code', () => {
-      // The finding, as a classification. A `MongooseServerSelectionError`
+      // The defect, as a classification. A `MongooseServerSelectionError`
       // carries no string `code`, so the allowlist could never have matched it —
       // and the allowlist was a closed list standing in front of an open set.
       expect(classifyRejection(mongooseFailure())).to.equal('survive');

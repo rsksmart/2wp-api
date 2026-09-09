@@ -299,7 +299,7 @@ describe('Config: resource budgets', () => {
       // `X-Forwarded-For`. Configured too high, the chain is shorter than
       // expected and every request falls back to the socket peer — a shared
       // bucket, which is a throughput problem. Configured too low, the entry
-      // read is one the client supplied, which is the vulnerability. So the
+      // read is one the client supplied, which is the defect. So the
       // default is the smallest real topology, and raising it is a deliberate
       // per-environment act.
       expect(RESOURCE_BUDGET_DEFAULTS.RATE_LIMIT_TRUSTED_HOPS).to.equal(1);

@@ -65,7 +65,7 @@ export class NodeBridgeDataProvider implements RskBlockProcessorPublisher {
       // A reverted call produced no events and describes no state change, so
       // there is nothing here worth indexing. This is a semantic filter, not a
       // resource control — a successful receipt bounds nothing, which is what
-      // 84419 turned out to be about. The size bound inside getBridgeTransaction
+      // this turned out to be about. The size bound inside getBridgeTransaction
       // is the control. Skipping rather than throwing keeps a single hostile
       // transaction from stopping the chain sync.
       const receipt = await this.rskNodeService.getTransactionReceipt(transaction.hash);

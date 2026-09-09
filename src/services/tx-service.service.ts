@@ -38,7 +38,7 @@ const OPERATION = 'blockbook.tx';
 /**
  * Fetches a transaction from Blockbook under explicit resource budgets.
  *
- * This is the call the finding is about. `hex` is the raw Bitcoin transaction
+ * This is the call the budget is about. `hex` is the raw Bitcoin transaction
  * and is part of the public contract of `GET /tx`, so responses here are
  * measured in megabytes where every other Blockbook call is measured in
  * kilobytes. Through the REST connector an oversized one was buffered whole,

@@ -124,7 +124,7 @@ const UNKNOWN_CLIENT = 'unknown';
  * is the same forgeable identity in the other direction.
  *
  * Every failure here falls back to the socket peer. A shared bucket is a
- * throughput problem; a forgeable identity is the vulnerability, and trading the
+ * throughput problem; a forgeable identity is the defect, and trading the
  * first for the second is how a fix reintroduces the bug it was written for.
  *
  * With no trusted proxies configured (the default) the header is ignored

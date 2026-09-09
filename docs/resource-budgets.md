@@ -147,7 +147,7 @@ claim and it was **false**. The connector merges datasource `options` into
 `request.defaults`, and `postman-request` honours `maxResponseSize` there,
 aborting mid-flight exactly as the bounded client does
 (`request.js:564-565`, `1515-1534`). A one-line hotfix was available the entire
-time the finding was open.
+time this was open.
 
 What was true is that the connector offers no seam for the *other* three
 controls — no permit, no abort signal, no bounded error mapping — and that
@@ -407,7 +407,7 @@ A proxy **appends** the address it observed, so the chain grows rightwards. An
 AWS ALB receiving `X-Forwarded-For: 1.2.3.4` from a client at 203.0.113.9
 forwards `1.2.3.4, 203.0.113.9`. The left-hand end is therefore whatever the
 client typed, and reading it meant keying every request on client-supplied text.
-That is the vulnerability twice over: a client could mint unlimited rate-limit
+That is the defect twice over: a client could mint unlimited rate-limit
 identities by rotating the value it sent, and could put a third party's address
 into the bucket it was about to exhaust.
 
@@ -421,7 +421,7 @@ about how long the chain is.
 Every failure falls back to the socket peer: a header shorter than the configured
 topology, a value that is not address-shaped, an untrusted peer. That direction is
 deliberate. A shared bucket is a throughput problem; a forgeable identity is the
-vulnerability, and trading the first for the second is how a fix reintroduces the
+defect, and trading the first for the second is how a fix reintroduces the
 bug it was written for.
 
 With no trusted proxies configured — the default — the header is ignored
@@ -459,8 +459,8 @@ Refusals are `429` with `Retry-After` and code `RATE_LIMITED`, and are counted b
 `rate_limit_rejected_total{route}` where `route` is the **closed** vocabulary
 `fanout` / `other` — never the raw path, which is attacker-controlled.
 
-**This is half of what the finding asks for.** It recommends authentication as
-well; rate limiting is the only access control implemented here, and the API
+**This is half of what is needed.** Authentication is the other half;
+rate limiting is the only access control implemented here, and the API
 remains unauthenticated.
 
 ### Public reads that fan out

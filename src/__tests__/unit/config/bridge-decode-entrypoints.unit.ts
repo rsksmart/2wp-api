@@ -7,7 +7,7 @@ import {expect} from '@loopback/testlab';
  * `module-layering.unit.ts`: they read the repository and assert something
  * about its shape that no runtime assertion can express.
  *
- * The point of the 84419 fix is not that a bound exists, it is that the
+ * The point of the fix is not that a bound exists, it is that the
  * unbounded path stopped existing. `getBridgeTransactionByTxHash` takes a hash
  * and re-fetches the transaction itself, so any guard a caller applies to the
  * transaction it holds is advice rather than a control. Nothing at runtime

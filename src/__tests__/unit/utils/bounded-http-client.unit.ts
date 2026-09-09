@@ -225,7 +225,7 @@ describe('Utils: bounded HTTP client', () => {
     });
 
     it('records a mid-stream timeout as a budget signal, not a network failure', async () => {
-      // The observable the review was actually worried about: a timeout
+      // The observable that actually matters here: a timeout
       // misclassified as a network error still retries the same way, so the only
       // thing lost is the record that a budget was breached.
       const stalled = new PassThrough();

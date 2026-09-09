@@ -133,7 +133,7 @@ describe('Format restrictions (Acceptance)', () => {
    * codec-specific guard, never flipping the flag.
    *
    * The payloads here are deliberately *not* the crafted block-switch vector
-   * from the report: that vector is only meaningful against a vulnerable decoder,
+   * vector: that one is only meaningful against a decoder that expands it,
    * and carrying a live process-kill payload in a suite that has to survive is a
    * worse trade than asserting the refusal with ordinary compressed bodies. The
    * substitution is deliberate, not an oversight.
@@ -145,9 +145,9 @@ describe('Format restrictions (Acceptance)', () => {
       ['br', zlib.brotliCompressSync(VALID_BODY)],
     ];
 
-    // `/broadcast` is the route the report names; `/utxo` is where the control
+    // `/broadcast` is the route at issue; `/utxo` is where the control
     // was first asserted. The control is parser-level so behaviour is identical,
-    // but the suite should answer the report directly rather than by argument.
+    // but the suite should cover it directly rather than by argument.
     const encodedRoutes: [string, string][] = [
       ['/utxo', VALID_BODY],
       ['/broadcast', JSON.stringify({data: '0x00'})],
@@ -236,7 +236,7 @@ describe('Format restrictions (Acceptance)', () => {
     }).timeout(30000);
 
     it('refuses the same large compressed chunked body on /broadcast', async () => {
-      // The route the report names, exercised the same way: no Content-Length,
+      // The route at issue, exercised the same way: no Content-Length,
       // so nothing but the encoding allowlist can refuse these bytes.
       const wire = Buffer.concat([
         zlib.brotliCompressSync(JSON.stringify({data: '0x00'})),
@@ -406,7 +406,7 @@ describe('Format restrictions (Acceptance)', () => {
  * asking for `inflate: true` outright — and asserts the refusal holds anyway.
  *
  * The payloads are ordinary compressed bodies, not the crafted block-switch
- * vector from the report, for the reason given above the encoding matrix: that
+ * vector, for the reason given above the encoding matrix: that
  * vector faults natively, so it would take the test runner down instead of
  * failing an assertion. The garbage-Brotli case below is the one that matters
  * for reachability — it is the body that a live decoder would try to decode and

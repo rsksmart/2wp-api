@@ -89,7 +89,7 @@ export function decodeBridgeMethodParameters(method: BRIDGE_METHODS, data: strin
  * be worse than the enumeration it replaces.
  *
  * The same predicate is being added to `@rsksmart/bridge-transaction-parser`
- * (release 3.1.0 of the 84419 remediation). When that ships, consume it from
+ * (release 3.1.0 of the upstream remediation). When that ships, consume it from
  * there rather than keeping two definitions of "this receipt succeeded".
  */
 const SUCCESS_STATUS_TEXT = /^(?:0x)?0*1$/;
@@ -312,7 +312,7 @@ const selectorOf = (data: string): string => data.slice(0, 10);
  *
  * Defence in depth behind the size bound, and aimed at a specific method:
  * `registerFastBridgeBtcTransaction` is permissionless, is not a pegout method,
- * and is what the 84419 payload rides on. `getBtcTransactionConfirmations` and
+ * and is what the hostile payload rides on. `getBtcTransactionConfirmations` and
  * `receiveHeaders` are permissionless too. The size bound already covers all
  * three; refusing them by selector makes that coverage intentional rather than
  * incidental, and keeps a future decoder bug on one of those methods out of

@@ -26,7 +26,7 @@ function givenDataSource() {
 }
 
 /**
- * The datasource is where the finding lives.
+ * The datasource is where the defect lives.
  *
  * `getConnection` built a resolved promise, hung the connection attempt off it
  * as a *derived* promise, and returned the original. The attempt's rejection

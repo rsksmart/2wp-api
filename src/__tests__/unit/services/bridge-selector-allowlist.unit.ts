@@ -13,7 +13,7 @@ import {
   PEGOUT_ROUTE_SELECTORS,
 } from '../../../utils/bridge-utils';
 
-/** `registerFastBridgeBtcTransaction` — the permissionless method of the finding. */
+/** `registerFastBridgeBtcTransaction` — the permissionless method at issue. */
 const FLYOVER_SELECTOR = '0x6adc0133';
 const rskTxHash = `0x${'d2'.repeat(32)}`;
 
@@ -23,7 +23,7 @@ const rskTxHash = `0x${'d2'.repeat(32)}`;
  * The size bound stops the process dying. This stops the pegout route decoding
  * methods it has no business decoding in the first place —
  * `registerFastBridgeBtcTransaction` is permissionless, is not a pegout method,
- * and is the one the 84419 payload rides on.
+ * and is the one the hostile payload rides on.
  */
 describe('Utils: bridge selector allowlist', () => {
   it('rejects registerFastBridgeBtcTransaction', () => {
@@ -32,7 +32,7 @@ describe('Utils: bridge selector allowlist', () => {
     ).to.throw(/selector/);
   });
 
-  it('rejects the other permissionless methods named in the report', () => {
+  it('rejects the other permissionless methods', () => {
     // getBtcTransactionConfirmations and receiveHeaders are both callable by
     // anyone and neither is a pegout method. The size bound already covers
     // them; this makes the coverage intentional rather than incidental.

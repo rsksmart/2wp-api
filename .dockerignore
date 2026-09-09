@@ -18,8 +18,7 @@ npm-debug.log
 .git
 .gitignore
 
-# Local agent state and the security informs, which are deliberately the only
-# place the report identifiers appear.
+# Local agent state and working notes, deliberately kept out of the image.
 .claude
 
 # Local scratch and editor state that has no business in an image.

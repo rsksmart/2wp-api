@@ -40,7 +40,7 @@ const givenRskTransaction = (over: Partial<RskTransaction> = {}): RskTransaction
   } as unknown as RskTransaction);
 
 /**
- * The structural half of the 84419 fix.
+ * The structural half of the fix.
  *
  * `getBridgeTransactionByTxHash` takes a hash and re-fetches the transaction
  * itself, so a guard on the `RskTransaction` this service already holds

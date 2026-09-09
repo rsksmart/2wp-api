@@ -279,7 +279,7 @@ describe('Middleware: rate limiting', () => {
      * entry to trust is the one the last trusted proxy appended, counted from the
      * right.
      *
-     * The old reading has two consequences, and both are the finding: a client
+     * The old reading has two consequences, and both are the defect: a client
      * can mint unlimited identities by rotating the value it sends, and it can
      * put a third party's address in the bucket it is about to exhaust.
      */
@@ -347,7 +347,7 @@ describe('Middleware: rate limiting', () => {
 
     it('falls back to the peer when the header has fewer hops than proxies', () => {
       // Fails closed. A shared bucket is a throughput problem; a forgeable
-      // identity is the vulnerability. Trading the first for the second is how a
+      // identity is the defect. Trading the first for the second is how a
       // fix reintroduces the bug in the opposite direction.
       expect(
         resolveClientKey('10.0.0.1', '203.0.113.9', TRUSTED, 2),

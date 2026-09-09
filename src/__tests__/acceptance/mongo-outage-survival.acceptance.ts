@@ -9,7 +9,7 @@ const PORT = 43212;
  * How long mongoose waits for a server before giving up.
  *
  * This is the number the whole test is built around, and the one thing that
- * makes the finding easy to record as not reproducible. The failing `connect()`
+ * makes this easy to record as not reproducible. The failing `connect()`
  * does not reject when the TCP connection is refused — it rejects when server
  * selection times out, which is mongoose's 30 s default and nothing this code
  * configures. `/health` answers its (correct) 500 after ~10 s, the mongoose
@@ -122,7 +122,7 @@ describe('Mongo outage (Acceptance)', () => {
     });
 
     // What `/health` reports is already correct today, and must stay correct:
-    // the fix is about surviving the report, not about changing it.
+    // the fix is about surviving that answer, not about changing it.
     const health = await fetch(`${api.baseUrl}/health`);
     expect(health.status).to.equal(500);
     const body = (await health.json()) as {dataBase: {up: boolean}};

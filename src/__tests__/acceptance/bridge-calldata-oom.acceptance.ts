@@ -85,7 +85,7 @@ function runInSmallHeap(
 }
 
 /**
- * The only direct evidence that 84419 is closed.
+ * The only direct evidence that this is closed.
  *
  * Every other test here asserts the decoder is not reached. None of them show
  * that reaching it used to kill the process — and a test that never sees the

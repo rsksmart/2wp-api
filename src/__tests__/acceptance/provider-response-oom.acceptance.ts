@@ -9,7 +9,7 @@ const PORT = 43217;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 /**
- * The scenario the report recorded but never re-ran: 48 concurrent `GET /tx`
+ * The scenario recorded but never re-run: 48 concurrent `GET /tx`
  * against an upstream returning legitimate, large transactions.
  *
  * 7.5 MB is deliberately *under* `MAX_TX_PROVIDER_RESPONSE_BYTES`, so every
@@ -149,7 +149,7 @@ async function startApi(
 }
 
 /**
- * The only direct evidence that this finding is closed.
+ * The only direct evidence that this is closed.
  *
  * Every other test asserts the response is bounded. None of them shows that this
  * load used to end the process, and a test that never sees the failure it

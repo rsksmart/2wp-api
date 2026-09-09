@@ -4,13 +4,13 @@
 **From:** 2wp-api engineering
 **Date raised:** 2026-09-07
 **Branch under remediation:** `advisory-fix-1` (fork `rsksmart/2wp-api-ghsa-vxc4-p4rf-87g8`)
-**Related:** Immunefi reports 84419, 84461, 84462, 84581, 84755, 86065
+**Related:** the Immunefi submissions this remediation answers
 
 ---
 
 ## Why this request exists
 
-Six security findings have been remediated in the application. Four of them make claims about how the **deployed** service behaves — that it survives a fault, that it restarts, that it bounds memory, that it rate-limits per client. None of those claims can be verified from the application repository.
+Six hardening changes have landed in the application. Four of them make claims about how the **deployed** service behaves — that it survives a fault, that it restarts, that it bounds memory, that it rate-limits per client. None of those claims can be verified from the application repository.
 
 The four deploy targets in `ci/tasks/` all run `repo-iac-ng/ansible/deploy-2wp-app-api.yml` with per-environment SOPS secrets. Runtime configuration is therefore invisible to us. Two of the fixes are **inert until a deployment change lands alongside them** — they are marked ⚠️ below.
 
@@ -47,7 +47,7 @@ Nothing here is urgent to the hour, but **A4 and A5 block work that is otherwise
 
 **What this unblocks.** The application used to exit `0` on every fatal fault, including faults an attacker could trigger. It now exits `0` on a graceful stop (SIGINT/SIGTERM) and `1` on a fatal fault. That change is only useful if the supervisor distinguishes them.
 
-Evidence that it matters: report 84581 observed staging sitting at 502 for 322 seconds after a clean exit and needing manual intervention, while 84419 and 84755 — which died on a signal — recovered in two to five seconds. That is what `on-failure` semantics look like from the outside. If the deployed policy is `on-failure`, the old exit code was silently preventing recovery.
+Evidence that it matters: staging was observed sitting at 502 for 322 seconds after a clean exit and needing manual intervention, while faults that died on a signal recovered in two to five seconds. That is what `on-failure` semantics look like from the outside. If the deployed policy is `on-failure`, the old exit code was silently preventing recovery.
 
 If the policy is `unless-stopped`, both codes recover and no change is needed — we just need to know, so we can stop treating it as an open risk.
 
@@ -57,7 +57,7 @@ If the policy is `unless-stopped`, both codes recover and no change is needed �
 | --- | --- | --- | --- | --- |
 | `NODE_ENV` value | | | | |
 
-**What this unblocks.** `NODE_ENV` is set nowhere in the `Dockerfile`, in `docker-compose.yml`, or in `ci/`, so the shipped image defaults to non-production. Outside production, `src/application.ts:206` mounts the REST Explorer UI and the OpenAPI spec endpoint — the `/explorer` serve-static surface that report 84581 exploited. The fatal sink behind it has been fixed, so this is no longer a process kill; it is an unnecessary attack surface and an information disclosure in a production API.
+**What this unblocks.** `NODE_ENV` is set nowhere in the `Dockerfile`, in `docker-compose.yml`, or in `ci/`, so the shipped image defaults to non-production. Outside production, `src/application.ts:206` mounts the REST Explorer UI and the OpenAPI spec endpoint — the `/explorer` serve-static surface reached by a previously observed process kill. The fatal sink behind it has been fixed, so this is no longer a process kill; it is an unnecessary attack surface and an information disclosure in a production API.
 
 If the answer is anything other than `production` for MN and TN, see **B1**.
 
@@ -108,7 +108,7 @@ If the raw header is not something you can read from your side, we can add a tem
 
 **What this unblocks.** Finding S5: a native Brotli decoder is still constructed in-process on the RSK JSON-RPC response path, through web3 → cross-fetch → node-fetch. Exploiting it requires either a malicious or compromised upstream, or a network position between us and it.
 
-If both endpoints are https over a private network, the threat model is weak and S5 stays low priority. **If either can be plain http, a network position is trivial and S5's severity rises immediately** — it becomes the same class of remote process kill as report 84755, which was rated critical. This single answer can reorder the remaining work.
+If both endpoints are https over a private network, the threat model is weak and S5 stays low priority. **If either can be plain http, a network position is trivial and S5's severity rises immediately** — it becomes the same class of remote process kill as a fault previously rated critical. This single answer can reorder the remaining work.
 
 The values are also the baseline for measuring S3 (per-request call volume against the RSK node).
 
@@ -217,7 +217,7 @@ Roughly 30 minutes of your time, and it is the only way to verify this end to en
 
 This request is complete when every cell in Part A is answered or marked `n/a` with a reason, each item in Part B is accepted, rejected with a reason, or scheduled, and each item in Part C is answered.
 
-The completed document is the evidence for the deployment half of this remediation, and it is what gets attached to the Immunefi responses whose claims depend on production state rather than on branch state. Three of the six reports fall into that category.
+The completed document is the evidence for the deployment half of this remediation, and it is what gets attached to the Immunefi responses whose claims depend on production state rather than on branch state. Three of the six fall into that category.
 
 **Please reply on this document rather than in a thread**, so the answers stay diffable and citable as the environments change.
 
