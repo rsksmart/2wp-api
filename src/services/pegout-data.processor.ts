@@ -188,6 +188,10 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
      * Slice the releaseRskTxHashes argument every 64 characters to get the originating tx hash and process them individually
      **/
     let eventData = remove0x(batchPegoutsEvent.arguments.releaseRskTxHashes);
+    const batchSize = eventData.length / 64;
+    let matched = 0;
+    let skipped = 0;
+    this.logger.info({method: 'processBatchPegouts', txHash: extendedBridgeTx.txHash, blockNumber: extendedBridgeTx.blockNumber, btcTxHash, batchSize}, 'Processing batch pegout members');
     let index = 0;
     while(eventData != '') {
       const hashData = eventData.slice(0, 64);
@@ -197,9 +201,16 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       const oldPegoutStatus  = await this.pegoutStatusDataService.getLastByOriginatingRskTxHashNewest(originatingRskTxHash);
 
       if(!oldPegoutStatus) {
-        this.logger.warn({method: 'processBatchPegouts', originatingRskTxHash}, 'Could not find a pegout status record in the db');
-        break;
+        // The request predates the daemon's sync start block, so it was never indexed.
+        // Skip only this member: the remaining hashes in the batch may well be in the db,
+        // and the index must still advance because it maps to the btc tx output index.
+        this.logger.warn({method: 'processBatchPegouts', txHash: extendedBridgeTx.txHash, originatingRskTxHash, batchPegoutIndex: index}, 'Could not find a pegout status record in the db, skipping this batch member');
+        skipped++;
+        eventData = eventData.replace(hashData, '');
+        index++;
+        continue;
       }
+      matched++;
 
       this.logger.debug({method: 'processBatchPegouts'}, 'Got the pegout previous state from the db');
 
@@ -233,6 +244,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       index++;
     }
 
+    this.logger.info({method: 'processBatchPegouts', txHash: extendedBridgeTx.txHash, batchSize, matched, skipped}, 'Finished processing batch pegout members');
   }
 
   private async addBatchValueInSatoshisToBeReceivedAndFee(
