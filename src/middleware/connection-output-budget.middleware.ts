@@ -162,7 +162,9 @@ function enforceAggregateCeiling(sizes: Map<WatchedResponse, number>): void {
   });
 
   let total = 0;
-  stuck.forEach(bytes => (total += bytes));
+  stuck.forEach(bytes => {
+    total += bytes;
+  });
   if (total <= MAX_TOTAL_PENDING_OUTPUT_BYTES) {
     return;
   }
@@ -212,7 +214,9 @@ sweeper.unref();
 /** Total bytes currently pending across every watched response. Intended for tests. */
 export function pendingOutputBytes(): number {
   let total = 0;
-  watched.forEach(entry => (total += bufferedBytes(entry) ?? 0));
+  watched.forEach(entry => {
+    total += bufferedBytes(entry) ?? 0;
+  });
   return total;
 }
 
