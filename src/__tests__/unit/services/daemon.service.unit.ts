@@ -9,6 +9,7 @@ import {BridgeService} from '../../../services/bridge.service';
 import {PeginStatusMongoDbDataService} from '../../../services/pegin-status-data-services/pegin-status-mongo.service';
 import {PeginDataProcessor} from '../../../services/pegin-data.processor';
 import {PegoutDataProcessor} from '../../../services/pegout-data.processor';
+import { NoopAtlasEventPublisher } from '../../../services/atlas/noop-atlas-event-publisher';
 import RskBlockProcessorPublisher from '../../../services/rsk-block-processor-publisher';
 import {RskChainSyncService, RskChainSyncSubscriber} from '../../../services/rsk-chain-sync.service';
 import {getRandomHash} from '../../helper';
@@ -39,8 +40,8 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor(mockedPeginStatusDataService),
-      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
+      new PeginDataProcessor(mockedPeginStatusDataService, new NoopAtlasEventPublisher()),
+      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, new NoopAtlasEventPublisher())
     );
 
     await daemonService.start();
@@ -71,8 +72,8 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor(mockedPeginStatusDataService),
-      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
+      new PeginDataProcessor(mockedPeginStatusDataService, new NoopAtlasEventPublisher()),
+      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, new NoopAtlasEventPublisher())
     );
 
     clock.tick(1);
@@ -135,8 +136,8 @@ describe('Service: DaemonService', () => {
       mockedPeginStatusDataService,
       mockedRskSyncChainService,
       "0",
-      new PeginDataProcessor(mockedPeginStatusDataService),
-      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService)
+      new PeginDataProcessor(mockedPeginStatusDataService, new NoopAtlasEventPublisher()),
+      new PegoutDataProcessor(mockedPegoutStatusDataService, bridgeService, new NoopAtlasEventPublisher())
     );
 
     await daemonService.start();

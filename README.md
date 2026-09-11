@@ -72,10 +72,20 @@ The running application serves an interactive REST Explorer at `/explorer` and a
 ## Testing
 
 ```sh
-npm run unit-test        # dist/__tests__/**/*.unit.js
-npm run acceptance-test  # dist/__tests__/**/*.acceptance.js
-npm run test:all         # both suites
-npm run coverage         # nyc report (after a test run)
+npm run unit-test         # dist/__tests__/**/*.unit.js
+npm run acceptance-test   # dist/__tests__/**/*.acceptance.js
+npm run test:all          # both suites
+npm run integration-test  # dist/__tests__/integration/**/*.integration.js (needs LocalStack)
+npm run coverage          # nyc report (after a test run)
+```
+
+`integration-test` is deliberately left out of `test:all` so it does not slow
+the fast unit cycle; it runs in its own CI job. It needs the LocalStack SQS
+queue up:
+
+```sh
+docker-compose up -d localstack
+npm run integration-test
 ```
 
 ## Fix code style and formatting issues
@@ -107,6 +117,7 @@ The project includes Docker Compose configuration for running both the API and M
 
 - **API Service**: Runs on port 3000, connects to MongoDB using service name `pp-api-db`
 - **MongoDB Service**: Runs on ports 27017-27019, automatically initializes with user and database from environment variables
+- **LocalStack Service**: Runs on port 4566 and creates the `atlas-swap-events.fifo` SQS queue from `ci/localstack-init`, so the Atlas SWAP events have somewhere to go locally
 
 ### Start Database Only (Development)
 
@@ -134,6 +145,23 @@ docker-compose up -d
 The API will be accessible at `http://localhost:3000` and will automatically connect to MongoDB using the Docker service name.
 
 **Note**: When running in Docker, the API uses `pp-api-db` as the MongoDB host (configured in docker-compose.yml). For local development without Docker, use `localhost`.
+
+### Atlas SWAP events locally
+
+To watch the daemon publish Atlas events against LocalStack, add to your `.env`:
+
+```
+ATLAS_EVENTS_ENABLED=true
+ATLAS_SQS_ENDPOINT=http://localhost:4566
+ATLAS_SQS_QUEUE_URL=http://localhost:4566/000000000000/atlas-swap-events.fifo
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=test
+AWS_SECRET_ACCESS_KEY=test
+```
+
+From inside the compose network the host is `localstack`, not `localhost`. The
+kill switch starts off in every environment; see
+[`ENV_VARIABLES.md`](./ENV_VARIABLES.md) for what each event carries.
 
 ## Other useful commands
 

@@ -17,20 +17,26 @@ import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 import { sha256 } from '../utils/sha256-utils';
 import { FullRskTransaction } from '../models/rsk/full-rsk-transaction.model';
+import { AtlasEventPublisher } from './atlas/atlas-event-publisher';
+import { PegoutAtlasEventBuilder, PegoutAtlasEventContext } from './atlas/pegout-atlas-event.builder';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
   private pegoutStatusDataService: PegoutStatusDataService;
   private bridgeService: BridgeService;
+  private atlasEventPublisher: AtlasEventPublisher;
 
   constructor(
     @inject(ServicesBindings.PEGOUT_STATUS_DATA_SERVICE)
     pegoutStatusDataService: PegoutStatusDataService,
     @inject(ServicesBindings.BRIDGE_SERVICE)
-    bridgeService: BridgeService) {
+    bridgeService: BridgeService,
+    @inject(ServicesBindings.ATLAS_EVENT_PUBLISHER)
+    atlasEventPublisher: AtlasEventPublisher) {
     this.logger = getLogger('pegoutDataProcessor');
     this.pegoutStatusDataService = pegoutStatusDataService;
     this.bridgeService = bridgeService;
+    this.atlasEventPublisher = atlasEventPublisher;
   }
 
   getFilters(): BridgeDataFilterModel[] {
@@ -136,15 +142,21 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     }
     const batchPegoutCreationTx = releaseBTCEvent.arguments.releaseRskTxHash;
 
-    for(let output of parsedBtcTransaction.outs) {
-      const address = bitcoin.address.fromOutputScript(output.script, btcNetwork);
-
-      const dbPegout = await this.pegoutStatusDataService.getPegoutByRecipientAndCreationTx(address, batchPegoutCreationTx);
-      if(!dbPegout || dbPegout.length !== 1 ) {
-        this.logger.debug({method: 'processSignedStatusByRtx', address, batchPegoutCreationTx}, 'Not found any pegout related to this output');
+    for(const [outputIndex, output] of parsedBtcTransaction.outs.entries()) {
+      let address;
+      try {
+        address = bitcoin.address.fromOutputScript(output.script, btcNetwork);
+      } catch (e) {
+        // Federation change outputs are not addressable pegout recipients.
         continue;
       }
-      const [thePegout] = dbPegout;
+
+      const dbPegout = await this.pegoutStatusDataService.getPegoutByRecipientAndCreationTx(address, batchPegoutCreationTx);
+      const thePegout = this.selectPegoutForOutput(dbPegout, outputIndex);
+      if(!thePegout) {
+        this.logger.debug({method: 'processSignedStatusByRtx', address, batchPegoutCreationTx, outputIndex, candidates: dbPegout?.length ?? 0}, 'Not found any pegout related to this output');
+        continue;
+      }
       this.logger.debug({method: 'processSignedStatusByRtx', originatingRskTxHash: thePegout.originatingRskTxHash}, 'Found a pegout to be released');
 
       this.logPegoutData(thePegout);
@@ -152,7 +164,9 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
       const newPegoutStatus = PegoutStatusDbDataModel.clonePegoutStatusInstance(thePegout);
       newPegoutStatus.setRskTxInformation(extendedBridgeTx);
       newPegoutStatus.btcRawTransaction = rawTx;
-      newPegoutStatus.btcTxHash = parsedBtcTransaction.getHash().toString('hex');
+      // getId() is the canonical big-endian txid; getHash() is the internal
+      // little-endian hash, which no explorer or Bitcoin node resolves.
+      newPegoutStatus.btcTxHash = parsedBtcTransaction.getId();
       newPegoutStatus.isNewestStatus = true;
       newPegoutStatus.status = PegoutStatuses.RELEASE_BTC;
       newPegoutStatus.valueInSatoshisToBeReceived = output.value;
@@ -166,10 +180,46 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
         thePegout.isNewestStatus = false;
         await this.save(thePegout);
         await this.save(newPegoutStatus);
+        await this.publishAtlasEvent(newPegoutStatus, {
+          receivedCreatedOn: await this.getReceivedCreatedOn(newPegoutStatus.originatingRskTxHash),
+        });
       } catch(e) {
         this.logger.warn({method: 'processSignedStatusByRtx', err: e}, 'There was a problem with the storage');
       }
     }
+  }
+
+  /**
+   * Picks which peg-out a `release_btc` output belongs to.
+   *
+   * A single match is unambiguous. When a batch pays the same Bitcoin address
+   * more than once — the same user requesting two peg-outs to one address — the
+   * lookup by recipient returns several rows, and the tie is broken by
+   * `batchPegoutIndex`, which the Bridge assigns in the same order as the
+   * outputs of the batch transaction.
+   *
+   * Before this disambiguation both rows were skipped, so peg-outs that really
+   * were paid on Bitcoin never left `WAITING_FOR_SIGNATURE`.
+   *
+   * The index is compared numerically on purpose: `PegoutStatusDbDataModel`
+   * types it as a number, but the Mongo schema stores it as a String, so rows
+   * read back from the database carry `"0"` rather than `0`.
+   *
+   * @param candidates - Rows matching the recipient address and the batch tx.
+   * @param outputIndex - Index of the output being processed.
+   * @returns The peg-out that owns this output, or `undefined` when none does.
+   */
+  private selectPegoutForOutput(
+    candidates: PegoutStatusDbDataModel[] | undefined,
+    outputIndex: number,
+  ): PegoutStatusDbDataModel | undefined {
+    if (!candidates || candidates.length === 0) {
+      return undefined;
+    }
+    if (candidates.length === 1) {
+      return candidates[0];
+    }
+    return candidates.find(pegout => Number(pegout.batchPegoutIndex) === outputIndex);
   }
 
   private async processBatchPegouts(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
@@ -226,6 +276,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
         const allPegouts = [oldPegoutStatus, newClonedPegoutStatus];
         await this.saveMany(allPegouts);
         this.logger.debug({method: 'processBatchPegouts', count: allPegouts.length}, 'Pegouts were updated');
+        await this.publishAtlasEvent(newClonedPegoutStatus);
       } catch(e) {
         this.logger.warn({method: 'processBatchPegouts', err: e}, 'There was a problem with the storage');
       }
@@ -332,6 +383,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     try {
       await this.save(oldPegoutStatus);
       await this.save(newPegoutStatus);
+      await this.publishAtlasEvent(newPegoutStatus);
     } catch(e) {
       this.logger.warn({method: 'processIndividualPegout', err: e}, 'There was a problem with the storage');
     }
@@ -385,6 +437,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     try {
       await this.save(status);
       this.logger.debug({method: 'processReleaseRequestReceivedStatus', txHash: extendedBridgeTx.txHash}, 'Tx registered');
+      await this.publishAtlasEvent(status);
     } catch(e) {
       this.logger.warn({method: 'processReleaseRequestReceivedStatus', err: e}, 'There was a problem with the storage');
     }
@@ -405,6 +458,7 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     try {
       await this.save(status);
       this.logger.debug({method: 'processReleaseRequestRejectedStatus', txHash: extendedBridgeTx.txHash}, 'Tx registered');
+      await this.publishAtlasEvent(status);
     } catch(e) {
       this.logger.warn({method: 'processReleaseRequestRejectedStatus', err: e}, 'There was a problem with the storage');
     }
@@ -429,6 +483,55 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     this.logger.info({method: 'save'}, 'Pegout saved on the storage');
     this.logPegoutData(pegout);
     return this.pegoutStatusDataService.set(pegout);
+  }
+
+  /**
+   * Publishes the Atlas SWAP event of a peg-out transition that has already
+   * been written to the database. Statuses with no equivalent in the v1.0
+   * schema (e.g. `WAITING_FOR_SIGNATURE`) publish nothing.
+   *
+   * Nothing here is allowed to fail the caller: a peg-out status is never
+   * rolled back because analytics could not be notified.
+   *
+   * @param pegout - The status just persisted.
+   * @param context - Extra data the builder cannot derive from `pegout` alone.
+   */
+  private async publishAtlasEvent(
+    pegout: PegoutStatusDbDataModel,
+    context?: PegoutAtlasEventContext,
+  ): Promise<void> {
+    try {
+      const event = PegoutAtlasEventBuilder.build(pegout, context);
+      if (!event) {
+        return;
+      }
+      await this.atlasEventPublisher.publish(event, 'pegout');
+    } catch (e) {
+      this.logger.error(
+        {method: 'publishAtlasEvent', err: e, originatingRskTxHash: pegout.originatingRskTxHash},
+        'Could not build or publish the Atlas event',
+      );
+    }
+  }
+
+  /**
+   * Looks up when the peg-out was first received, so `swap.completed` can carry
+   * the elapsed time of the whole peg-out rather than of its last transition.
+   *
+   * @param originatingRskTxHash - The peg-out identifier.
+   * @returns The `createdOn` of the `RECEIVED` status, or `undefined` when it cannot be found.
+   */
+  private async getReceivedCreatedOn(originatingRskTxHash: string): Promise<Date | undefined> {
+    try {
+      const statuses = await this.pegoutStatusDataService.getManyByOriginatingRskTxHash(originatingRskTxHash) ?? [];
+      return statuses.find(status => status.status === PegoutStatuses.RECEIVED)?.createdOn;
+    } catch (e) {
+      this.logger.warn(
+        {method: 'getReceivedCreatedOn', err: e, originatingRskTxHash},
+        'Could not read the RECEIVED status to compute the pegout duration',
+      );
+      return undefined;
+    }
   }
 
   private logPegoutData(pegout: PegoutStatusDbDataModel) {
