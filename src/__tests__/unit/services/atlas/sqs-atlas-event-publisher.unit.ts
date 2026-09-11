@@ -1,3 +1,4 @@
+import * as net from 'net';
 import {Application} from '@loopback/core';
 import {expect, sinon} from '@loopback/testlab';
 import {SQSClient} from '@aws-sdk/client-sqs';
@@ -12,6 +13,7 @@ import {isAtlasEventsEnabled} from '../../../../services/atlas/atlas-event-publi
 import {
   SqsAtlasEventPublisher,
   assertQueueUrlConfigured,
+  positiveIntFromEnv,
 } from '../../../../services/atlas/sqs-atlas-event-publisher';
 import {NoopAtlasEventPublisher} from '../../../../services/atlas/noop-atlas-event-publisher';
 import {DependencyInjectionHandler} from '../../../../dependency-injection-handler';
@@ -101,6 +103,87 @@ describe('Service: SqsAtlasEventPublisher', () => {
     const publisher = new SqsAtlasEventPublisher();
 
     await publisher.publish(event);
+  });
+
+  describe('request timeout', () => {
+    const originalCredentials = {
+      keyId: process.env.AWS_ACCESS_KEY_ID,
+      secret: process.env.AWS_SECRET_ACCESS_KEY,
+      requestTimeout: process.env.ATLAS_SQS_REQUEST_TIMEOUT_MS,
+      maxAttempts: process.env.ATLAS_SQS_MAX_ATTEMPTS,
+    };
+    let server: net.Server;
+    const connections: net.Socket[] = [];
+
+    /**
+     * Accepts the connection and never answers, which is the failure a
+     * connection timeout alone does not catch.
+     */
+    before(async () => {
+      server = net.createServer(socket => {
+        // Kept only so the teardown can destroy them: the SDK leaves the socket
+        // alive, and `close()` waits for every connection before it fires.
+        connections.push(socket);
+      });
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    });
+
+    after(async () => {
+      connections.forEach(socket => socket.destroy());
+      await new Promise<void>(resolve => { server.close(() => resolve()); });
+      restore('AWS_ACCESS_KEY_ID', originalCredentials.keyId);
+      restore('AWS_SECRET_ACCESS_KEY', originalCredentials.secret);
+      restore('ATLAS_SQS_REQUEST_TIMEOUT_MS', originalCredentials.requestTimeout);
+      restore('ATLAS_SQS_MAX_ATTEMPTS', originalCredentials.maxAttempts);
+    });
+
+    // Without a request timeout this publish never settles. The sync service
+    // commits the block pointer before it notifies its subscribers and does not
+    // await them, so the hang would strand the rest of the block silently
+    // rather than stall the daemon somewhere visible.
+    it('gives up on a queue that accepts the connection and never answers', async () => {
+      const {port} = server.address() as net.AddressInfo;
+      process.env.ATLAS_SQS_ENDPOINT = `http://127.0.0.1:${port}`;
+      process.env.ATLAS_SQS_REQUEST_TIMEOUT_MS = '150';
+      process.env.ATLAS_SQS_MAX_ATTEMPTS = '1';
+      process.env.AWS_ACCESS_KEY_ID = 'test';
+      process.env.AWS_SECRET_ACCESS_KEY = 'test';
+      const publisher = new SqsAtlasEventPublisher();
+
+      const startedAt = Date.now();
+      await publisher.publish(event, 'pegout');
+      const elapsed = Date.now() - startedAt;
+
+      expect(elapsed).to.be.lessThan(5000);
+      expect(publisher.metrics.total('failure', event.event_type, 'pegout')).to.equal(1);
+      expect(publisher.metrics.total('success', event.event_type, 'pegout')).to.equal(0);
+      publisher.destroy();
+    });
+  });
+
+  describe('timeout configuration', () => {
+    const NAME = 'ATLAS_SQS_TEST_VALUE';
+
+    afterEach(() => delete process.env[NAME]);
+
+    it('takes a positive value from the environment', () => {
+      process.env[NAME] = '750';
+
+      expect(positiveIntFromEnv(NAME, 5000)).to.equal(750);
+    });
+
+    it('falls back when the variable is absent', () => {
+      expect(positiveIntFromEnv(NAME, 5000)).to.equal(5000);
+    });
+
+    // Zero and negative are how the SDK spells "wait forever", which is the
+    // failure the timeout exists to prevent: they are not valid settings.
+    it('falls back rather than accepting a value that disables the timeout', () => {
+      for (const value of ['0', '-1', '-4000', '', 'soon', 'NaN']) {
+        process.env[NAME] = value;
+        expect(positiveIntFromEnv(NAME, 5000)).to.equal(5000);
+      }
+    });
   });
 
   describe('publication metric', () => {

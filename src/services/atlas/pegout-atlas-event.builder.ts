@@ -1,4 +1,3 @@
-import {randomUUID} from 'crypto';
 import {getLogger, Logger} from '../../utils/logger';
 import {
   ASSET_RBTC,
@@ -18,6 +17,7 @@ import {
 import {resolvePegoutChainIds} from '../../models/atlas/atlas-chain';
 import {satoshisToDecimalString} from '../../models/atlas/atlas-amount';
 import {normalizeAddress, normalizeSwapId} from '../../models/atlas/atlas-identifiers';
+import {atlasEventId} from '../../models/atlas/atlas-event-id';
 import {
   PegoutStatusDbDataModel,
   PegoutStatuses,
@@ -88,11 +88,15 @@ export class PegoutAtlasEventBuilder {
     eventType: AtlasEventType,
     data: AtlasEventData,
   ): AtlasEvent {
+    const swapId = normalizeSwapId(pegout.originatingRskTxHash);
     return {
-      event_id: randomUUID(),
+      // Derived, never random: it travels as the SQS MessageDeduplicationId,
+      // which a random value would leave nothing to deduplicate on. `rskTxHash`
+      // is the right third part for the reason the next comment gives.
+      event_id: atlasEventId(swapId, eventType, pegout.rskTxHash),
       event_type: eventType,
       // Never `rskTxHash`: the processor mutates it to disambiguate batches.
-      swap_id: normalizeSwapId(pegout.originatingRskTxHash),
+      swap_id: swapId,
       swap_type: ATLAS_SWAP_TYPE,
       source: ATLAS_SOURCE,
       schema_version: ATLAS_SCHEMA_VERSION,

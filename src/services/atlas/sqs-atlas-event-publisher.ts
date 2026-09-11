@@ -7,6 +7,47 @@ import {AtlasEventFlow, AtlasEventMetrics} from './atlas-event-metrics';
 const DEFAULT_AWS_REGION = 'us-east-1';
 
 /**
+ * How long to wait for the TCP connection to the queue to be established.
+ */
+const DEFAULT_CONNECTION_TIMEOUT_MS = 2000;
+/**
+ * How long to wait for a response once the request is on the wire.
+ *
+ * This is the timeout that matters: the AWS SDK ships `NodeHttpHandler` with
+ * `DEFAULT_REQUEST_TIMEOUT = 0`, meaning no timeout at all, so an endpoint that
+ * completes the handshake and then never answers leaves this `await` pending
+ * forever. `RskChainSyncService` commits the sync pointer before it notifies its
+ * subscribers and does not await them, so a publish that never settles does not
+ * stall the daemon visibly — it strands every remaining Bridge transaction of
+ * that block, unwritten and unlogged, on a block the pointer already calls done.
+ */
+const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
+/**
+ * Attempts per publish, retries included, so the worst case stays bounded at
+ * roughly `maxAttempts * requestTimeout` plus the SDK's backoff.
+ */
+const DEFAULT_MAX_ATTEMPTS = 3;
+
+/**
+ * Reads a positive integer from the environment.
+ *
+ * Anything absent, unparseable or non-positive falls back: a zero or negative
+ * timeout is how the SDK spells "wait forever", which is the failure this is
+ * here to prevent, so it is not an accepted way to configure it.
+ *
+ * @param name - The environment variable to read.
+ * @param fallback - The value to use when it is absent or invalid.
+ * @returns The configured value, or the fallback.
+ */
+export function positiveIntFromEnv(name: string, fallback: number): number {
+  const configured = parseInt(process.env[name] ?? '', 10);
+  if (!Number.isFinite(configured) || configured <= 0) {
+    return fallback;
+  }
+  return configured;
+}
+
+/**
  * Returns the configured `ATLAS_SQS_QUEUE_URL`, failing fast when it is missing
  * or blank.
  *
@@ -53,6 +94,24 @@ export class SqsAtlasEventPublisher implements AtlasEventPublisher {
     this.queueUrl = assertQueueUrlConfigured();
     this.client = new SQSClient({
       region: process.env.AWS_REGION ?? DEFAULT_AWS_REGION,
+      maxAttempts: positiveIntFromEnv('ATLAS_SQS_MAX_ATTEMPTS', DEFAULT_MAX_ATTEMPTS),
+      // Bounded on purpose: see DEFAULT_REQUEST_TIMEOUT_MS. Publishing must fail
+      // in a knowable amount of time, because the daemon is not waiting for it.
+      requestHandler: {
+        connectionTimeout: positiveIntFromEnv(
+          'ATLAS_SQS_CONNECTION_TIMEOUT_MS',
+          DEFAULT_CONNECTION_TIMEOUT_MS,
+        ),
+        requestTimeout: positiveIntFromEnv(
+          'ATLAS_SQS_REQUEST_TIMEOUT_MS',
+          DEFAULT_REQUEST_TIMEOUT_MS,
+        ),
+        // Not optional, and not a detail: on its own `requestTimeout` only logs
+        // `a request has exceeded the configured N ms requestTimeout` and leaves
+        // the request hanging anyway. Without this flag the timeout above is
+        // decoration and the publish still never settles.
+        throwOnRequestTimeout: true,
+      },
       // Only set for local development and the integration suite (LocalStack).
       ...(process.env.ATLAS_SQS_ENDPOINT ? {endpoint: process.env.ATLAS_SQS_ENDPOINT} : {}),
     });
@@ -64,7 +123,8 @@ export class SqsAtlasEventPublisher implements AtlasEventPublisher {
    * and the daemon must keep processing blocks.
    *
    * Either outcome is counted, which is what makes a loss visible: a failure
-   * here means one Atlas event that no retry will ever send.
+   * here means one Atlas event that no retry will ever send. A hung queue
+   * reaches this catch as a timeout rather than never reaching it at all.
    *
    * @param event - The event to publish.
    * @param flow - Which peg the event belongs to.

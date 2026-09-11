@@ -344,11 +344,34 @@ describe('Service: PeginAtlasEventBuilder', () => {
     expect(PeginAtlasEventBuilder.build(pegin, {})).to.be.empty();
   });
 
-  it('generates a distinct event_id per event', () => {
-    const first = PeginAtlasEventBuilder.build(givenPegin(PeginStatus.LOCKED), {});
-    const second = PeginAtlasEventBuilder.build(givenPegin(PeginStatus.LOCKED), {});
+  describe('event_id', () => {
 
-    expect(first[0].event_id).to.not.equal(second[0].event_id);
+    // Same contract as the peg-out builder: the id is the deduplication key, so
+    // rebuilding the same peg-in has to derive the same ids in the same order.
+    it('derives the same ids when the same peg-in is rebuilt', () => {
+      const first = PeginAtlasEventBuilder.build(givenPegin(PeginStatus.LOCKED), {});
+      const second = PeginAtlasEventBuilder.build(givenPegin(PeginStatus.LOCKED), {});
+
+      expect(first.map(event => event.event_id)).to.eql(second.map(event => event.event_id));
+    });
+
+    // Both events of a peg-in come from one Rootstock transaction, which leaves
+    // the event type as the only thing separating them.
+    it('gives the two events of one peg-in distinct ids', () => {
+      const [created, completed] = PeginAtlasEventBuilder.build(givenPegin(PeginStatus.LOCKED), {});
+
+      expect(created.event_id).to.not.equal(completed.event_id);
+    });
+
+    it('gives two peg-ins reporting the same transition distinct ids', () => {
+      const other = givenPegin(PeginStatus.LOCKED);
+      other.btcTxId = `${btcTxId.slice(0, -1)}1`;
+
+      const [created] = PeginAtlasEventBuilder.build(givenPegin(PeginStatus.LOCKED), {});
+      const [otherCreated] = PeginAtlasEventBuilder.build(other, {});
+
+      expect(created.event_id).to.not.equal(otherCreated.event_id);
+    });
   });
 
   it('throws when NETWORK is not configured instead of guessing the network', () => {

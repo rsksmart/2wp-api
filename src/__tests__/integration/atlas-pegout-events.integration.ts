@@ -230,6 +230,51 @@ describe('Integration: Atlas peg events over SQS', function () {
     expect(messages[0].Attributes?.MessageDeduplicationId).to.equal(event.event_id);
   });
 
+  // The test above re-sends one event object, which would pass even if the id
+  // were random. This is the case that actually matters: a reprocessed block
+  // rebuilds the event from scratch, and only a derived event_id gives the
+  // queue the same MessageDeduplicationId to drop it on.
+  it('deduplicates a transition rebuilt from scratch, as a reprocessed block would', async () => {
+    const swapId = givenSwapId();
+
+    await publisher.publish(
+      PegoutAtlasEventBuilder.build(givenPegout(swapId, PegoutStatuses.RECEIVED))!,
+    );
+    await publisher.publish(
+      PegoutAtlasEventBuilder.build(givenPegout(swapId, PegoutStatuses.RECEIVED))!,
+    );
+
+    const messages = await drain(10);
+    expect(messages).to.have.length(1);
+    expectValid(parse(messages[0]));
+  });
+
+  // The other half of the contract: deduplication must not swallow the genuine
+  // transitions that follow, which share the swap_id and differ by event type.
+  it('keeps the later transitions of the same peg-out', async () => {
+    const swapId = givenSwapId();
+
+    await publisher.publish(
+      PegoutAtlasEventBuilder.build(givenPegout(swapId, PegoutStatuses.RECEIVED))!,
+    );
+    await publisher.publish(
+      PegoutAtlasEventBuilder.build(givenPegout(swapId, PegoutStatuses.RECEIVED))!,
+    );
+    await publisher.publish(
+      PegoutAtlasEventBuilder.build(
+        givenPegout(swapId, PegoutStatuses.WAITING_FOR_CONFIRMATION),
+      )!,
+    );
+
+    const messages = await drain(10, 2);
+    const received = messages.map(parse);
+    received.forEach(expectValid);
+    expect(received.map(event => event.event_type)).to.eql([
+      AtlasEventType.SWAP_CREATED,
+      AtlasEventType.SWAP_PENDING,
+    ]);
+  });
+
   it('delivers a rejected peg-out as a single message', async () => {
     const swapId = givenSwapId();
     const rejected = PegoutAtlasEventBuilder.build(

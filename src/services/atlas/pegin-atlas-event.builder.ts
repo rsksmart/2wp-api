@@ -1,4 +1,3 @@
-import {randomUUID} from 'crypto';
 import {
   ASSET_BTC,
   ASSET_RBTC,
@@ -16,6 +15,7 @@ import {
 import {resolvePeginChainIds} from '../../models/atlas/atlas-chain';
 import {satoshisToDecimalString} from '../../models/atlas/atlas-amount';
 import {normalizeAddress, normalizeSwapId} from '../../models/atlas/atlas-identifiers';
+import {atlasEventId} from '../../models/atlas/atlas-event-id';
 import {
   errorCategoryOf,
   nonRefundablePeginReasonName,
@@ -172,10 +172,15 @@ export class PeginAtlasEventBuilder {
     eventType: AtlasEventType,
     data: AtlasEventData,
   ): AtlasEvent {
+    const swapId = normalizeSwapId(pegin.btcTxId);
     return {
-      event_id: randomUUID(),
+      // Derived, never random: it travels as the SQS MessageDeduplicationId,
+      // which a random value would leave nothing to deduplicate on. Both events
+      // of a peg-in come from one transaction, so the type is what separates
+      // them.
+      event_id: atlasEventId(swapId, eventType, pegin.rskTxId),
       event_type: eventType,
-      swap_id: normalizeSwapId(pegin.btcTxId),
+      swap_id: swapId,
       swap_type: ATLAS_SWAP_TYPE,
       source: ATLAS_SOURCE,
       schema_version: ATLAS_SCHEMA_VERSION,

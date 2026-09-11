@@ -41,6 +41,9 @@ This table was created to guide and centralize the **environment variables** nec
 |ATLAS_SQS_QUEUE_URL           |                               |'URL of the SQS FIFO queue the Atlas events are published to. Required when `ATLAS_EVENTS_ENABLED=true`; the daemon aborts at startup without it'|
 |AWS_REGION                    |`us-east-1`                    |'AWS region of the Atlas SQS queue'                      |
 |ATLAS_SQS_ENDPOINT            |`http://localhost:4566`        |'Custom SQS endpoint. Local development and tests only (LocalStack); leave empty in deployments'|
+|ATLAS_SQS_REQUEST_TIMEOUT_MS  |`5000`                         |'How long to wait for the queue to answer a publish before giving up. Values of zero or less are rejected and fall back to the default'|
+|ATLAS_SQS_CONNECTION_TIMEOUT_MS|`2000`                        |'How long to wait for the connection to the queue to be established'|
+|ATLAS_SQS_MAX_ATTEMPTS        |`3`                            |'Attempts per publish, retries included'                 |
 
 ### Atlas SWAP events
 
@@ -85,6 +88,15 @@ ordered while different swaps are processed in parallel. The queue must have
 content based deduplication **disabled**: `MessageDeduplicationId` is the
 `event_id`.
 
+That only works because `event_id` is **derived, never random**: it is the
+UUIDv5 of `swap_id`, `event_type` and the Rootstock transaction the transition
+was read from (`models/atlas/atlas-event-id.ts`). A reprocessed block — a
+restart, a re-scan — therefore derives the id it derived the first time and the
+queue drops the duplicate. Note the limit: the FIFO deduplication window is five
+minutes, so this is not idempotency by itself. What it is, is the precondition
+for it — an `event_id` that means the same thing on every emission is what lets
+Atlas deduplicate on the consumer side, where there is no window.
+
 The network travels in the chain ids (`rootstock_testnet` / `bitcoin_testnet`),
 derived from `NETWORK`. Because a wrong network would silently contaminate the
 analytics database, `NETWORK` is validated when the daemon starts and the daemon
@@ -98,6 +110,22 @@ blind. With `ATLAS_EVENTS_ENABLED` off the variable is not read at all.
 Publication happens after the status has been written to Mongo and never fails
 the caller: if SQS is unreachable the failure is logged at error level and block
 processing continues. Events lost in that window are not recovered.
+
+Every publish is bounded in time. The AWS SDK sets no request timeout by
+default, so a queue endpoint that accepts the connection and then never answers
+would leave the publish pending forever — and because `RskChainSyncService`
+commits the block pointer *before* it notifies its subscribers, and does not
+await them, that hang would not stall the daemon anywhere visible: it would
+strand the rest of that block's Bridge transactions, unwritten and unlogged, on
+a block already recorded as processed. `ATLAS_SQS_REQUEST_TIMEOUT_MS` and
+`ATLAS_SQS_CONNECTION_TIMEOUT_MS` close that, and `ATLAS_SQS_MAX_ATTEMPTS` caps
+the retries, so the worst case is roughly `maxAttempts * requestTimeout` plus
+the SDK's backoff and a hang arrives at the error branch above as a timeout.
+
+One SDK detail worth keeping in mind if these are ever retuned: `requestTimeout`
+on its own only **logs a warning** and lets the request hang anyway. The
+publisher passes `throwOnRequestTimeout: true` alongside it, which is what makes
+the timeout actually abort.
 
 Every publication, successful or not, logs one line carrying
 `metric: 'atlas_events_published_total'` with `status`, `flow`, `eventType` and

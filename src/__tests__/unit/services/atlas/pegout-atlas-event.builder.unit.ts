@@ -353,9 +353,48 @@ describe('Service: PegoutAtlasEventBuilder', () => {
     });
   });
 
-  it('generates a distinct event_id per event', () => {
-    const first = PegoutAtlasEventBuilder.build(givenPegout({status: PegoutStatuses.RECEIVED}))!;
-    const second = PegoutAtlasEventBuilder.build(givenPegout({status: PegoutStatuses.RECEIVED}))!;
-    expect(first.event_id).to.not.equal(second.event_id);
+  describe('event_id', () => {
+
+    // The publisher sends it as the MessageDeduplicationId, so a reprocessed
+    // block has to derive the id it derived the first time or the queue has
+    // nothing to deduplicate on.
+    it('derives the same id when the same transition is rebuilt', () => {
+      const first = PegoutAtlasEventBuilder.build(givenPegout({status: PegoutStatuses.RECEIVED}))!;
+      const second = PegoutAtlasEventBuilder.build(givenPegout({status: PegoutStatuses.RECEIVED}))!;
+
+      expect(first.event_id).to.equal(second.event_id);
+    });
+
+    it('gives each transition of one peg-out its own id', () => {
+      const received = PegoutAtlasEventBuilder.build(givenPegout({
+        status: PegoutStatuses.RECEIVED,
+      }))!;
+      const waiting = PegoutAtlasEventBuilder.build(givenPegout({
+        status: PegoutStatuses.WAITING_FOR_CONFIRMATION,
+      }))!;
+
+      expect(received.event_id).to.not.equal(waiting.event_id);
+    });
+
+    // Batched peg-outs share the Bridge transaction and are told apart by the
+    // index the processor appends to rskTxHash.
+    it('gives the batched peg-outs of one Bridge transaction their own ids', () => {
+      const first = PegoutAtlasEventBuilder.build(givenPegout({
+        status: PegoutStatuses.WAITING_FOR_CONFIRMATION,
+        rskTxHash: `${originatingRskTxHash}___0`,
+      }))!;
+      const second = PegoutAtlasEventBuilder.build(givenPegout({
+        status: PegoutStatuses.WAITING_FOR_CONFIRMATION,
+        rskTxHash: `${originatingRskTxHash}___1`,
+      }))!;
+
+      expect(first.event_id).to.not.equal(second.event_id);
+    });
+
+    it('derives an id the schema accepts', () => {
+      expectValidAgainstSchema(
+        PegoutAtlasEventBuilder.build(givenPegout({status: PegoutStatuses.RECEIVED})),
+      );
+    });
   });
 });
