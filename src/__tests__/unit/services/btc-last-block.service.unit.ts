@@ -50,7 +50,7 @@ describe('Service: BitcoinService', () => {
 
     it('Verify ${process.env.BLOCKBOOK_URL} configuration', async () => {
         const nodeHost = process.env.BLOCKBOOK_URL;
-        sinon.assert.match(nodeHost, 'https://blockbook-01.testnet.2wp.iovlabs.net:19130/');
+        sinon.assert.match(nodeHost, 'https://blockbook.testnet.2wp.iovlabs.net:19130/');
     });
     
 });

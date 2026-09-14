@@ -860,6 +860,91 @@ describe('Service: PegoutDataProcessor', () => {
     sinon.assert.callCount(set, totalHashes * 2);
   }).timeout(20000);
 
+  it('skips batch members missing from the db and still processes the rest, keeping the btc output index', async () => {
+    // Regression test for a batch that straddles the daemon's sync start block.
+    // These are the five members of mainnet batch 0x76d01052...627e65 (block 9219132),
+    // in event order. The first two were requested before the sync anchor, so they were
+    // never indexed. Every member after them must still be processed, and each surviving
+    // pegout must keep the index of the btc output that pays it.
+    sandbox.stub(process.env, 'NETWORK').value(constants.NETWORK_MAINNET);
+
+    const missingHashes = [
+      '0xe5f009317d8065d273be19b3f12653114ceeba23a7461a38af14f1f21ed563ab',
+      '0xc11d64e4202180b88e6f00e11994c283bed53e786c410a668727fdbaa84327c1',
+    ];
+    const presentHashes = [
+      '0x8ab0f4be44e32dde51a3dd2309b3a43af15d7d81112a55f7168e90e200793c0f',
+      '0x7e3f937194a0a2d96c0cbff674aa1bda87d8120b70fbff77010a77e670bbaed5',
+      '0x304299af8d82d6e5ebfe9ab40fe3d2b23b1980b3fa331c213e50028eb1361ede',
+    ];
+    const allHashes = [...missingHashes, ...presentHashes];
+
+    const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
+    const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
+    mockedBridgeService.getBridgeState.resolves(bridgeState);
+
+    const getLastByOriginatingRskTxHashNewest = mockedPegoutStatusDataService.getLastByOriginatingRskTxHashNewest as sinon.SinonStub;
+    missingHashes.forEach(hash => getLastByOriginatingRskTxHashNewest.withArgs(hash).resolves(undefined));
+    presentHashes.forEach(hash => {
+      const stored = new PegoutStatusDbDataModel();
+      stored.isNewestStatus = true;
+      stored.status = PegoutStatuses.RECEIVED;
+      stored.originatingRskTxHash = hash;
+      stored.btcRecipientAddress = `recipient-for-${hash.slice(0, 10)}`;
+      getLastByOriginatingRskTxHashNewest.withArgs(hash).resolves(stored);
+    });
+
+    const thisService = new PegoutDataProcessor(mockedPegoutStatusDataService, mockedBridgeService);
+    // The debug log for each member awaits a live web3 lookup; stub it so the test stays offline.
+    sandbox.stub(<any>thisService, 'getTxFromRskTransaction').resolves({valueInWeis: '0'});
+
+    const batchRskTxHash = '0x76d01052082c3976ab14a2c4d054770c3aaee512c9b691e45910e33f4f627e65';
+    const extendedBridgeTx = <ExtendedBridgeTx>{
+      sender: '0x4495768E683423a4299D6a7f02A0689a6ff5a0A4',
+      blockTimestamp: 1757176000000,
+      txHash: batchRskTxHash,
+      method: {name: 'updateCollections', signature: '0x0c5a9990', arguments: {}},
+      events: [
+        {
+          name: 'batch_pegout_created',
+          signature: '0x483d0191cc4e784b04a41f6c4801a0766b43b1fdd0b9e3e6bfdca74e5b05c2eb',
+          arguments: {
+            btcTxHash: '0xc7d43d7e0c130837e88a55ddb2d725faf202ca0fce007d5f5bf3ae9ee12ed1c2',
+            releaseRskTxHashes: ensure0x(allHashes.map(remove0x).join('')),
+          },
+        },
+      ],
+      blockNumber: 9219132,
+      blockHash: '0x0e2a83e5b8f0e41c9d3b0f6a2c7d1e4b5a6c8d9e0f1a2b3c4d5e6f7a8b9c0d1e',
+      createdOn: new Date(),
+      to: '0x0000000000000000000000000000000001000006',
+    };
+
+    await thisService.process(extendedBridgeTx);
+
+    // Every member is visited: a `break` on the first miss would stop after one lookup.
+    sinon.assert.callCount(getLastByOriginatingRskTxHashNewest, allHashes.length);
+    allHashes.forEach(hash => sinon.assert.calledWith(getLastByOriginatingRskTxHashNewest, hash));
+
+    // Only the members found in the db are written, each as an outdated + a new record.
+    const set = mockedPegoutStatusDataService.set as sinon.SinonStub;
+    sinon.assert.callCount(set, presentHashes.length * 2);
+
+    // The index must keep counting through the skipped members, because it maps to the
+    // btc output index. Skipping without advancing it would yield 0,1,2 instead of 2,3,4.
+    const created = set.getCalls()
+      .map(call => <PegoutStatusDbDataModel>call.args[0])
+      .filter(pegout => pegout.status === PegoutStatuses.WAITING_FOR_CONFIRMATION);
+    expect(created.map(pegout => pegout.originatingRskTxHash)).to.eql(presentHashes);
+    expect(created.map(pegout => pegout.batchPegoutIndex)).to.eql([2, 3, 4]);
+    expect(created.map(pegout => pegout.rskTxHash)).to.eql([
+      `${batchRskTxHash}_2`,
+      `${batchRskTxHash}_3`,
+      `${batchRskTxHash}_4`,
+    ]);
+    created.forEach(pegout => expect(pegout.batchPegoutRskTxHash).to.equal(batchRskTxHash));
+  }).timeout(20000);
+
   it('returns same valueInSatoshisToBeReceived when did not find pegout in pegoutsWaitingForConfirmations', async () => {
     const mockedPegoutStatusDataService = sinon.createStubInstance(PegoutStatusMongoDbDataService) as SinonStubbedInstance<PegoutStatusDataService>;
     const mockedBridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
