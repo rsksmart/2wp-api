@@ -4,3 +4,5 @@ coverage/
 .eslintrc.js
 __tests__/
 mongo-init.js
+ci/
+tools/

@@ -31,6 +31,7 @@
     "posttest": "npm run lint",
     "test:dev": "lb-nyc mocha --allow-console-logs dist/__tests__/**/*.js && npm run posttest",
     "unit-test": "npm run pretest && lb-nyc mocha --recursive 'dist/__tests__/**/*.unit.js' --timeout 10000",
+    "integration-test": "npm run pretest && lb-nyc mocha --recursive 'dist/__tests__/integration/**/*.integration.js' --timeout 30000",
     "acceptance-test": "npm run pretest && lb-nyc mocha --recursive 'dist/__tests__/**/*.acceptance.js' --timeout 10000 --reporter spec 2>/dev/null",
     "test:all": "npm run pretest && lb-nyc mocha --recursive 'dist/__tests__/**/*.unit.js' 'dist/__tests__/**/*.acceptance.js' --timeout 10000",
     "premigrate": "npm run rebuild",
@@ -55,6 +56,7 @@
     "!*/__tests__"
   ],
   "dependencies": {
+    "@aws-sdk/client-sqs": "^3.1119.0",
     "@loopback/boot": "^8.0.13",
     "@loopback/core": "^7.0.12",
     "@loopback/repository": "^8.0.12",
@@ -107,6 +109,8 @@
     "@types/node": "^20.19.43",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "eslint": "^8.48.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-airbnb-typescript": "^18.0.0",
