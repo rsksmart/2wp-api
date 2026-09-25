@@ -14,4 +14,5 @@ export * from './sync-status-data.service';
 export * from './rsk-node.service';
 export * from './features-data.service';
 export * from './flyover.service';
+export * from './flyover-tx-not-found.error';
 export * from './backoffice-feature-flags.service';

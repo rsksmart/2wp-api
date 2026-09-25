@@ -48,7 +48,7 @@ export async function fetchAddressInfo(address: string): Promise<Address> {
     });
     return [payload] as unknown as Address;
   } catch (err) {
-    throw toHttpProviderError(err, {operation: OPERATION});
+    throw toHttpProviderError(err, {operation: OPERATION, address});
   }
 }
 

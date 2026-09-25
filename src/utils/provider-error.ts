@@ -1,5 +1,6 @@
 import {HttpErrors} from '@loopback/rest';
 import {
+  ProviderHttpStatusError,
   ProviderResponseTooLargeError,
   ProviderTimeoutError,
 } from './bounded-http-client';
@@ -8,6 +9,14 @@ import {PermitRejectedError} from './provider-permits';
 import {RequestCancelledError} from './request-cancellation';
 
 const logger = getLogger('provider-error');
+
+type ProviderErrorContext = {operation: string; route?: string; txId?: string; address?: string};
+
+/** Blockbook answers an unknown tx with 400, and `/tx-status` looks up every hash it gets. */
+export const isUnknownTxLookup = (err: unknown, ctx: ProviderErrorContext): boolean =>
+  ctx.txId !== undefined &&
+  err instanceof ProviderHttpStatusError &&
+  (err.statusCode === 400 || err.statusCode === 404);
 
 /**
  * Translates a bounded-HTTP-client failure into a bounded HTTP error.
@@ -24,12 +33,12 @@ const logger = getLogger('provider-error');
  * decision taken here, and would make the two indistinguishable in monitoring.
  *
  * @param err - The error thrown by the bounded HTTP client.
- * @param ctx - Provider operation and (optionally) the route being served, for logs.
+ * @param ctx - Operation, plus optional route and looked-up id, for logs.
  * @returns The HTTP error to throw, or the original error when it already carries its own status.
  */
 export function toHttpProviderError(
   err: unknown,
-  ctx: {operation: string; route?: string},
+  ctx: ProviderErrorContext,
 ): Error {
   if (
     err instanceof PermitRejectedError ||
@@ -38,10 +47,17 @@ export function toHttpProviderError(
     return err;
   }
 
-  logger.warn(
-    {method: 'toHttpProviderError', ...ctx, err: err as Error},
-    'Provider request failed',
-  );
+  if (isUnknownTxLookup(err, ctx)) {
+    logger.debug(
+      {method: 'toHttpProviderError', ...ctx, err: err as Error},
+      'Provider does not know the tx',
+    );
+  } else {
+    logger.warn(
+      {method: 'toHttpProviderError', ...ctx, err: err as Error},
+      'Provider request failed',
+    );
+  }
 
   if (err instanceof ProviderResponseTooLargeError) {
     return new HttpErrors.BadGateway(

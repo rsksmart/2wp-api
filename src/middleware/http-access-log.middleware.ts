@@ -1,6 +1,6 @@
 import {randomBytes} from 'crypto';
 import {Next} from '@loopback/core';
-import {Middleware, MiddlewareContext, Request} from '@loopback/rest';
+import {Middleware, MiddlewareContext, Request, Response} from '@loopback/rest';
 import {
   MAX_REQUEST_DURATION_MS,
   REQUEST_DEADLINE_GRACE_MS,
@@ -28,6 +28,14 @@ const STATIC_PATHS = new Set<string>([
   '/openapi.yaml',
 ]);
 const STATIC_PATH_PREFIXES = ['/explorer'];
+
+// Probes poll this every few seconds.
+const HEALTH_PATH = '/health';
+
+const isRoutineHealthProbe = (request: Request, response: Response): boolean =>
+  request.path === HEALTH_PATH &&
+  response.writableFinished &&
+  response.statusCode < 400;
 
 const isApiRequest = (path: string): boolean => {
   if (STATIC_PATHS.has(path)) {
@@ -161,6 +169,9 @@ export const httpAccessLogMiddleware: Middleware = async (
       // 'close' rather than 'finish': 'finish' never fires for an abandoned
       // request, which is precisely the case worth having in the log.
       response.once('close', () => {
+        if (isRoutineHealthProbe(request, response)) {
+          return;
+        }
         logger.info(
           {
             httpMethod: request.method,

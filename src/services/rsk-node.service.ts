@@ -1,5 +1,5 @@
 import BridgeTransactionParser, { Transaction } from '@rsksmart/bridge-transaction-parser';
-import Web3, { Block } from 'web3';
+import Web3, { Block, TransactionNotFound } from 'web3';
 import { ethers } from 'ethers';
 import { RskTransaction } from '../models/rsk/rsk-transaction.model';
 import {
@@ -78,7 +78,7 @@ export class RskNodeService {
   ): Promise<RskTransaction> {
     const web3Tx = await this.web3.eth.getTransaction(txHash);
     if (!web3Tx) {
-      throw new Error('Tx not found in RSK node.');
+      throw new TransactionNotFound();
     }
 
     const rskTx = new RskTransaction();

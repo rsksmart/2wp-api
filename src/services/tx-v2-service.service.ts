@@ -50,7 +50,7 @@ export async function fetchTxV2(txId: string): Promise<Txv2[]> {
     });
     return [body];
   } catch (err) {
-    throw toHttpProviderError(err, {operation: OPERATION});
+    throw toHttpProviderError(err, {operation: OPERATION, txId});
   }
 }
 
