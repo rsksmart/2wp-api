@@ -10,6 +10,14 @@ import {RequestCancelledError} from './request-cancellation';
 
 const logger = getLogger('provider-error');
 
+type ProviderErrorContext = {operation: string; route?: string; txId?: string; address?: string};
+
+/** Blockbook answers an unknown tx with 400, and `/tx-status` looks up every hash it gets. */
+export const isUnknownTxLookup = (err: unknown, ctx: ProviderErrorContext): boolean =>
+  ctx.txId !== undefined &&
+  err instanceof ProviderHttpStatusError &&
+  (err.statusCode === 400 || err.statusCode === 404);
+
 /**
  * Translates a bounded-HTTP-client failure into a bounded HTTP error.
  *
@@ -30,7 +38,7 @@ const logger = getLogger('provider-error');
  */
 export function toHttpProviderError(
   err: unknown,
-  ctx: {operation: string; route?: string; txId?: string; address?: string},
+  ctx: ProviderErrorContext,
 ): Error {
   if (
     err instanceof PermitRejectedError ||
@@ -39,15 +47,10 @@ export function toHttpProviderError(
     return err;
   }
 
-  // Blockbook rejects a lookup it can't answer (unknown tx, invalid address) with 400.
-  // Other 4xx (401, 403, 429) are real problems.
-  const providerAnswered =
-    err instanceof ProviderHttpStatusError &&
-    (err.statusCode === 400 || err.statusCode === 404);
-  if (providerAnswered) {
+  if (isUnknownTxLookup(err, ctx)) {
     logger.debug(
       {method: 'toHttpProviderError', ...ctx, err: err as Error},
-      'Provider rejected the lookup',
+      'Provider does not know the tx',
     );
   } else {
     logger.warn(
