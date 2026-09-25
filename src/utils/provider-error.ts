@@ -1,5 +1,6 @@
 import {HttpErrors} from '@loopback/rest';
 import {
+  ProviderHttpStatusError,
   ProviderResponseTooLargeError,
   ProviderTimeoutError,
 } from './bounded-http-client';
@@ -24,12 +25,12 @@ const logger = getLogger('provider-error');
  * decision taken here, and would make the two indistinguishable in monitoring.
  *
  * @param err - The error thrown by the bounded HTTP client.
- * @param ctx - Provider operation and (optionally) the route being served, for logs.
+ * @param ctx - Operation, plus optional route and looked-up id, for logs.
  * @returns The HTTP error to throw, or the original error when it already carries its own status.
  */
 export function toHttpProviderError(
   err: unknown,
-  ctx: {operation: string; route?: string},
+  ctx: {operation: string; route?: string; txId?: string; address?: string},
 ): Error {
   if (
     err instanceof PermitRejectedError ||
@@ -38,10 +39,22 @@ export function toHttpProviderError(
     return err;
   }
 
-  logger.warn(
-    {method: 'toHttpProviderError', ...ctx, err: err as Error},
-    'Provider request failed',
-  );
+  // Blockbook rejects a lookup it can't answer (unknown tx, invalid address) with 400.
+  // Other 4xx (401, 403, 429) are real problems.
+  const providerAnswered =
+    err instanceof ProviderHttpStatusError &&
+    (err.statusCode === 400 || err.statusCode === 404);
+  if (providerAnswered) {
+    logger.debug(
+      {method: 'toHttpProviderError', ...ctx, err: err as Error},
+      'Provider rejected the lookup',
+    );
+  } else {
+    logger.warn(
+      {method: 'toHttpProviderError', ...ctx, err: err as Error},
+      'Provider request failed',
+    );
+  }
 
   if (err instanceof ProviderResponseTooLargeError) {
     return new HttpErrors.BadGateway(

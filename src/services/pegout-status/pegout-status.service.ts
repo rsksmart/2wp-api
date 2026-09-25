@@ -1,5 +1,5 @@
 import {inject} from "@loopback/core";
-import Web3 from 'web3';
+import Web3, {TransactionNotFound} from 'web3';
 import {BridgeEvent} from '@rsksmart/bridge-transaction-parser';
 import {getLogger, Logger} from "../../utils/logger";
 import {ServicesBindings} from "../../dependency-injection-bindings";
@@ -93,7 +93,18 @@ export class PegoutStatusService {
                             }
                         }
                         catch(err) {
-                            this.logger.warn({method: 'getPegoutStatusByRskTxHash', err, txId: rskTxHash});
+                            // `/tx-status` tries every protocol, so a miss is expected.
+                            if (err instanceof TransactionNotFound) {
+                                this.logger.debug(
+                                    {method: 'getPegoutStatusByRskTxHash', err, txId: rskTxHash},
+                                    'Tx not found in RSK node',
+                                );
+                            } else {
+                                this.logger.warn(
+                                    {method: 'getPegoutStatusByRskTxHash', err, txId: rskTxHash},
+                                    'Could not resolve pegout status',
+                                );
+                            }
                             // A budget violation is not "no such pegout", it is
                             // "this request is refused". Answering NOT_FOUND
                             // would hide it behind an ordinary-looking 200 and

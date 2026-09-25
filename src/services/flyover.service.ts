@@ -2,6 +2,7 @@ import mongoose, { Schema } from 'mongoose';
 import {FlyoverStatuses, FlyoverStatusModel} from '../models/flyover-status.model';
 import {MongoDbDataService} from './mongodb-data.service';
 import { RskNodeService } from './rsk-node.service';
+import {FlyoverTxNotFoundError} from './flyover-tx-not-found.error';
 
 interface FlyoverStatusMongoModel extends mongoose.Document, FlyoverStatusModel {}
 
@@ -48,7 +49,7 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
   async getFlyoverStatus(txHash: string): Promise<any> {
     let flyoverStatus;
     const flyoverTx = await this.getById(txHash);
-    if (!flyoverTx) return Promise.reject(new Error('Flyover tx not found'));
+    if (!flyoverTx) return Promise.reject(new FlyoverTxNotFoundError());
 
     const currentBlock = await this.rskNodeService.getBlockNumber();
     if (flyoverTx.blockToBeFinished <= currentBlock) {
