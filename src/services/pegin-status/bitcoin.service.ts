@@ -1,5 +1,4 @@
 import {inject} from '@loopback/core';
-import {getLogger, Logger} from '../../utils/logger';
 import {AddressService, TxV2Service} from '..';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BitcoinAddress} from '../../models/bitcoin-address.model';
@@ -8,7 +7,6 @@ import {LastBlockService} from '../btc-last-block.service';
 import {LastBlockInfo} from '../../models/btc-last-block.model';
 
 export class BitcoinService {
-  logger: Logger;
   addressService: AddressService;
   lastBlockService: LastBlockService
 
@@ -20,7 +18,6 @@ export class BitcoinService {
     @inject(ServicesBindings.BTC_LAST_BLOCK_SERVICE)
     lastBlockService: LastBlockService,
   ) {
-    this.logger = getLogger('bitcoin-service');
     this.addressService = addressService;
     this.lastBlockService = lastBlockService;
   }
@@ -58,10 +55,7 @@ export class BitcoinService {
           responseTx.hex = tx[0].hex;
           resolve(responseTx);
         })
-        .catch(err => {
-          this.logger.warn({method: 'getTx', err, txId}, 'Transaction lookup failed');
-          reject(err);
-        });
+        .catch(reject);
     });
   }
 
@@ -72,20 +66,13 @@ export class BitcoinService {
    * status — a timeout is a 504, an oversized response a 502, a cancellation a
    * 499 — and replacing them with a string erased all of that, collapsing every
    * upstream condition into a 500 and destroying any cancellation travelling
-   * this path. The address goes to the log as a field rather than into the error
-   * message, so nothing request-derived rides along with the error.
+   * this path. Failures are logged by `toHttpProviderError`, not here.
    *
    * @param address - BTC address to resolve.
    * @returns The provider's address information.
    */
   async getAddressInfo(address: string): Promise<BitcoinAddress> {
-    let tx;
-    try {
-      tx = (await this.addressService.addressProvider(address)) as any;
-    } catch (err) {
-      this.logger.warn({method: 'getAddressInfo', err, address}, 'Address lookup failed');
-      throw err;
-    }
+    const tx = (await this.addressService.addressProvider(address)) as any;
 
     const responseAddress = new BitcoinAddress();
     responseAddress.address = tx[0].address;
@@ -129,10 +116,7 @@ export class BitcoinService {
           lastBlockInfo.syncMode = lbir[0].blockbook.syncMode;
           resolve(lastBlockInfo);
         })
-        .catch((err) => {
-          this.logger.warn({method: 'getLastBlock', err}, 'Last block lookup failed');
-          reject(err);
-        });
+        .catch(reject);
     });
   }
 

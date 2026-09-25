@@ -1,4 +1,5 @@
 import {inject} from '@loopback/core';
+import {HttpErrors} from '@loopback/rest';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
@@ -78,7 +79,18 @@ export class PeginStatusService {
         }
       })
       .catch((err) => {
-        this.logger.warn({method: 'getPeginStatusInfo', err, txId: btcTxId});
+        // HttpErrors come from providers and were logged by `toHttpProviderError`.
+        if (err instanceof HttpErrors.HttpError) {
+          this.logger.debug(
+            {method: 'getPeginStatusInfo', err, txId: btcTxId},
+            'Could not resolve pegin status, provider failure already logged',
+          );
+        } else {
+          this.logger.warn(
+            {method: 'getPeginStatusInfo', err, txId: btcTxId},
+            'Could not resolve pegin status',
+          );
+        }
         return new PeginStatusError(btcTxId);
       })
   };
@@ -234,7 +246,7 @@ export class PeginStatusService {
     }
     if (!foundOpReturn) {
       returnValue = '';
-      this.logger.warn({method: 'getTxRefundAddress'}, 'Empty value for refund address');
+      this.logger.debug({method: 'getTxRefundAddress'}, 'Empty value for refund address');
     }
     return returnValue;
   }

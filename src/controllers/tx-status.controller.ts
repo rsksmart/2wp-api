@@ -4,7 +4,7 @@ import {getLogger, Logger} from "../utils/logger";
 import {LastBlockInfo, PeginStatus, Status, TxStatus, TxStatusType} from '../models';
 import {PeginStatusError} from "../models/pegin-status-error.model";
 import {ServicesBindings} from "../dependency-injection-bindings";
-import {PeginStatusService, PegoutStatusService, FlyoverService, BitcoinService} from "../services";
+import {PeginStatusService, PegoutStatusService, FlyoverService, BitcoinService, FlyoverTxNotFoundError} from "../services";
 import {PegoutStatuses} from "../models/rsk/pegout-status-data-model";
 import {ensure0x, remove0x} from '../utils/hex-utils';
 import {isValidTxId} from '../utils/tx-validator';
@@ -102,7 +102,7 @@ export class TxStatusController {
       try {
         const nativePegoutStatus = await this.getNativePegoutStatus(txId);
         if(nativePegoutStatus.txDetails){
-          this.logger.info(
+          this.logger.debug(
             {method: 'getTxStatusByType', txId, txType, type: nativePegoutStatus.type, protocol: 'NATIVE'},
             'Transaction status found',
           );
@@ -122,7 +122,7 @@ export class TxStatusController {
       try {
         const nativePeginStatus = await this.getNativePeginStatus(txId);
         if(nativePeginStatus.txDetails){
-          this.logger.info(
+          this.logger.debug(
             {method: 'getTxStatusByType', txId, txType, type: nativePeginStatus.type, protocol: 'NATIVE'},
             'Transaction status found',
           );
@@ -142,7 +142,7 @@ export class TxStatusController {
       try {
         const flyoverStatus = await this.getFlyoverStatus(txId);
         if(flyoverStatus.txDetails){
-          this.logger.info(
+          this.logger.debug(
             {method: 'getTxStatusByType', txId, txType, type: flyoverStatus.type, protocol: 'FLYOVER'},
             'Transaction status found',
           );
@@ -159,7 +159,7 @@ export class TxStatusController {
       }
     }
 
-    this.logger.info({method: 'getTxStatusByType', txId, txType}, 'Transaction not found');
+    this.logger.debug({method: 'getTxStatusByType', txId, txType}, 'Transaction not found');
     txStatus = new TxStatus({
       type: TxStatusType.UNEXPECTED_ERROR,
     });
@@ -196,7 +196,7 @@ export class TxStatusController {
     try {
       const nativePeginStatus = await this.getNativePeginStatus(txId);
       if(nativePeginStatus.txDetails){
-        this.logger.info(
+        this.logger.debug(
           {method: 'searchTryingAllTypes', txId, type: nativePeginStatus.type, protocol: 'NATIVE'},
           'Transaction status found',
         );
@@ -213,7 +213,7 @@ export class TxStatusController {
     try {
       const nativePegoutStatus = await this.getNativePegoutStatus(txId);
       if(nativePegoutStatus.txDetails){
-        this.logger.info(
+        this.logger.debug(
           {method: 'searchTryingAllTypes', txId, type: nativePegoutStatus.type, protocol: 'NATIVE'},
           'Transaction status found',
         );
@@ -230,7 +230,7 @@ export class TxStatusController {
     try {
       const flyoverStatus = await this.getFlyoverStatus(txId);
       if(flyoverStatus.txDetails){
-        this.logger.info(
+        this.logger.debug(
           {method: 'searchTryingAllTypes', txId, type: flyoverStatus.type, protocol: 'FLYOVER'},
           'Transaction status found',
         );
@@ -244,7 +244,7 @@ export class TxStatusController {
       return txStatus;
     }
 
-    this.logger.info({method: 'searchTryingAllTypes', txId}, 'Transaction not found');
+    this.logger.debug({method: 'searchTryingAllTypes', txId}, 'Transaction not found');
     txStatus = new TxStatus({
       type: TxStatusType.INVALID_DATA,
     });
@@ -286,7 +286,12 @@ export class TxStatusController {
         }
       }
     } catch (err) {
-      this.logger.error({method: 'getFlyoverStatus', err, txId});
+      // `/tx-status` tries every protocol, so a miss is expected.
+      if (err instanceof FlyoverTxNotFoundError) {
+        this.logger.debug({method: 'getFlyoverStatus', txId}, 'Flyover tx not found');
+      } else {
+        this.logger.error({method: 'getFlyoverStatus', err, txId}, 'Flyover status lookup failed');
+      }
       txStatus = new TxStatus({
         type: TxStatusType.UNEXPECTED_ERROR,
       });

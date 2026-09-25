@@ -435,7 +435,10 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
  }
 
   private async save(pegout: PegoutStatusDbDataModel): Promise<Boolean> {
-    this.logger.info({method: 'save'}, 'Pegout saved on the storage');
+    this.logger.info(
+      {method: 'save', originatingRskTxHash: pegout.originatingRskTxHash, status: pegout.status},
+      'Pegout saved on the storage',
+    );
     this.logPegoutData(pegout);
     return this.pegoutStatusDataService.set(pegout);
   }
