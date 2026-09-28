@@ -126,6 +126,7 @@ async function startApi(
         // it reached the code under test.
         RATE_LIMIT_MAX_REQUESTS: '10000',
         RATE_LIMIT_MAX_FANOUT_REQUESTS: '10000',
+        LOG_LEVEL: 'info',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     },
