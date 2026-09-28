@@ -20,8 +20,21 @@ const FLAGS_URL = 'http://backoffice.local/api/feature-flags?environment=testnet
 const jsonResponse = (status: number, body: unknown, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), {status, headers});
 
+const csrfResponse = () =>
+  jsonResponse(200, {csrfToken: 'a-csrf-token'}, {'set-cookie': 'csrf=csrf-cookie; HttpOnly; Path=/'});
+
 const loginResponse = () =>
   jsonResponse(200, {user: {}}, {'set-cookie': 'auth=session-token; HttpOnly; Path=/'});
+
+/**
+ * The login spends two calls: the CSRF token request and the credentials it
+ * guards. Programs both from `firstCall` and answers with the call that follows.
+ */
+const stubLogin = (fetchStub: sinon.SinonStub, firstCall: number) => {
+  fetchStub.onCall(firstCall).resolves(csrfResponse());
+  fetchStub.onCall(firstCall + 1).resolves(loginResponse());
+  return firstCall + 2;
+};
 
 const flagsResponse = (flags: Array<{key: string; value: unknown}>, providers?: unknown) =>
   jsonResponse(200, providers === undefined ? {flags} : {flags, providers});
@@ -62,8 +75,7 @@ describe('Service: BackofficeFeatureFlagsService', () => {
 
   it('logs in and retrieves the provider flags', async () => {
     const fetchStub = sinon.stub();
-    fetchStub.onCall(0).resolves(loginResponse());
-    fetchStub.onCall(1).resolves(
+    fetchStub.onCall(stubLogin(fetchStub, 0)).resolves(
       flagsResponse([
         {key: 'FLYOVER', value: true},
         {key: 'UNION_BRIDGE', value: false},
@@ -79,42 +91,50 @@ describe('Service: BackofficeFeatureFlagsService', () => {
       POWPEG: true,
       MAINTENANCE_MODE: false,
     });
-    const loginCall = fetchStub.getCall(0);
+    const csrfCall = fetchStub.getCall(0);
+    expect(csrfCall.args[0]).to.equal('http://backoffice.local/api/csrf-token');
+    const loginCall = fetchStub.getCall(1);
     expect(loginCall.args[0]).to.equal('http://backoffice.local/api/auth/login');
-    const flagsCall = fetchStub.getCall(1);
+    expect(loginCall.args[1].headers['x-csrf-token']).to.equal('a-csrf-token');
+    expect(loginCall.args[1].headers.cookie).to.equal('csrf=csrf-cookie');
+    const flagsCall = fetchStub.getCall(2);
     expect(flagsCall.args[0]).to.equal(FLAGS_URL);
     expect(flagsCall.args[1].headers.cookie).to.equal('auth=session-token');
   });
 
+  it('resolves null when the CSRF token cannot be retrieved', async () => {
+    const fetchStub = sinon.stub();
+    fetchStub.onCall(0).resolves(new Response('', {status: 500}));
+    const service = newService(fetchStub);
+    expect(await service.getProviderFlags()).to.be.null();
+    sinon.assert.callCount(fetchStub, 1);
+  });
+
   it('serves the cached flags within the TTL without extra requests', async () => {
     const fetchStub = sinon.stub();
-    fetchStub.onCall(0).resolves(loginResponse());
-    fetchStub.onCall(1).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
+    fetchStub.onCall(stubLogin(fetchStub, 0)).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
     const service = newService(fetchStub);
     await service.getProviderFlags();
     const again = await service.getProviderFlags();
     expect(again?.flags.FLYOVER).to.be.true();
-    sinon.assert.callCount(fetchStub, 2);
+    sinon.assert.callCount(fetchStub, 3);
   });
 
   it('re-logs in once when the session is rejected with 401', async () => {
     const fetchStub = sinon.stub();
-    fetchStub.onCall(0).resolves(loginResponse());
-    fetchStub.onCall(1).resolves(new Response('', {status: 401}));
-    fetchStub.onCall(2).resolves(loginResponse());
-    fetchStub.onCall(3).resolves(flagsResponse([{key: 'POWPEG', value: true}]));
+    fetchStub.onCall(stubLogin(fetchStub, 0)).resolves(new Response('', {status: 401}));
+    fetchStub.onCall(stubLogin(fetchStub, 3)).resolves(flagsResponse([{key: 'POWPEG', value: true}]));
     const service = newService(fetchStub);
     const retrieved = await service.getProviderFlags();
     expect(retrieved?.flags.POWPEG).to.be.true();
-    sinon.assert.callCount(fetchStub, 4);
+    sinon.assert.callCount(fetchStub, 6);
   });
 
   it('falls back to the last known flags when the backoffice becomes unreachable', async () => {
     process.env.BACKOFFICE_FLAGS_CACHE_TTL_MS = '1';
     const fetchStub = sinon.stub();
-    fetchStub.onCall(0).resolves(loginResponse());
-    fetchStub.onCall(1).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
-    fetchStub.onCall(2).rejects(new Error('connection refused'));
+    fetchStub.onCall(stubLogin(fetchStub, 0)).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
+    fetchStub.onCall(3).rejects(new Error('connection refused'));
     const service = newService(fetchStub);
     const first = await service.getProviderFlags();
     expect(first?.flags.FLYOVER).to.be.true();
@@ -126,10 +146,9 @@ describe('Service: BackofficeFeatureFlagsService', () => {
   it('serves the stale flags immediately and refreshes in the background once the TTL expires', async () => {
     process.env.BACKOFFICE_FLAGS_CACHE_TTL_MS = '1';
     const fetchStub = sinon.stub();
-    fetchStub.onCall(0).resolves(loginResponse());
-    fetchStub.onCall(1).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
+    fetchStub.onCall(stubLogin(fetchStub, 0)).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
     let resolveRefresh!: (response: Response) => void;
-    fetchStub.onCall(2).returns(new Promise(resolve => {
+    fetchStub.onCall(3).returns(new Promise(resolve => {
       resolveRefresh = resolve;
     }));
     const service = newService(fetchStub);
@@ -145,29 +164,27 @@ describe('Service: BackofficeFeatureFlagsService', () => {
 
   it('keeps the session after a non-401 failure and skips the login on the next cycle', async () => {
     const fetchStub = sinon.stub();
-    fetchStub.onCall(0).resolves(loginResponse());
-    fetchStub.onCall(1).resolves(new Response('', {status: 500}));
-    fetchStub.onCall(2).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
+    fetchStub.onCall(stubLogin(fetchStub, 0)).resolves(new Response('', {status: 500}));
+    fetchStub.onCall(3).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
     const service = newService(fetchStub);
     expect(await service.getProviderFlags()).to.be.null();
     const retrieved = await service.getProviderFlags();
     expect(retrieved?.flags.FLYOVER).to.be.true();
-    sinon.assert.callCount(fetchStub, 3);
-    const retryCall = fetchStub.getCall(2);
+    sinon.assert.callCount(fetchStub, 4);
+    const retryCall = fetchStub.getCall(3);
     expect(retryCall.args[0]).to.equal(FLAGS_URL);
     expect(retryCall.args[1].headers.cookie).to.equal('auth=session-token');
   });
 
   it('keeps the session after a network failure and skips the login on the next cycle', async () => {
     const fetchStub = sinon.stub();
-    fetchStub.onCall(0).resolves(loginResponse());
-    fetchStub.onCall(1).rejects(new Error('connection refused'));
-    fetchStub.onCall(2).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
+    fetchStub.onCall(stubLogin(fetchStub, 0)).rejects(new Error('connection refused'));
+    fetchStub.onCall(3).resolves(flagsResponse([{key: 'FLYOVER', value: true}]));
     const service = newService(fetchStub);
     expect(await service.getProviderFlags()).to.be.null();
     const retrieved = await service.getProviderFlags();
     expect(retrieved?.flags.FLYOVER).to.be.true();
-    expect(fetchStub.getCall(2).args[0]).to.equal(FLAGS_URL);
+    expect(fetchStub.getCall(3).args[0]).to.equal(FLAGS_URL);
   });
 
   it('resolves null instead of rejecting when the first fetch fails', async () => {
@@ -178,16 +195,14 @@ describe('Service: BackofficeFeatureFlagsService', () => {
 
   it('resolves null when the response payload is not the expected shape', async () => {
     const fetchStub = sinon.stub();
-    fetchStub.onCall(0).resolves(loginResponse());
-    fetchStub.onCall(1).resolves(jsonResponse(200, {unexpected: true}));
+    fetchStub.onCall(stubLogin(fetchStub, 0)).resolves(jsonResponse(200, {unexpected: true}));
     const service = newService(fetchStub);
     expect(await service.getProviderFlags()).to.be.null();
   });
 
   it('forwards boolean, string, number and JSON flag values', async () => {
     const fetchStub = sinon.stub();
-    fetchStub.onCall(0).resolves(loginResponse());
-    fetchStub.onCall(1).resolves(
+    fetchStub.onCall(stubLogin(fetchStub, 0)).resolves(
       flagsResponse([
         {key: 'POWPEG', value: true},
         {key: 'TERMS_AND_CONDITIONS', value: '# TERMS OF SERVICES'},
@@ -209,8 +224,7 @@ describe('Service: BackofficeFeatureFlagsService', () => {
 
   it('drops flags holding no value', async () => {
     const fetchStub = sinon.stub();
-    fetchStub.onCall(0).resolves(loginResponse());
-    fetchStub.onCall(1).resolves(
+    fetchStub.onCall(stubLogin(fetchStub, 0)).resolves(
       flagsResponse([
         {key: 'FLYOVER', value: null},
         {key: 'UNION_BRIDGE', value: undefined},
@@ -235,8 +249,7 @@ describe('Service: BackofficeFeatureFlagsService', () => {
 
     const retrieveProviders = async (providers: unknown) => {
       const fetchStub = sinon.stub();
-      fetchStub.onCall(0).resolves(loginResponse());
-      fetchStub.onCall(1).resolves(flagsResponse([{key: 'FLYOVER', value: true}], providers));
+      fetchStub.onCall(stubLogin(fetchStub, 0)).resolves(flagsResponse([{key: 'FLYOVER', value: true}], providers));
       return (await newService(fetchStub).getProviderFlags())?.providers;
     };
 

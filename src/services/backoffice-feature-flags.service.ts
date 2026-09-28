@@ -101,20 +101,46 @@ export class BackofficeFeatureFlagsService {
     });
   }
 
+  /**
+   * The backoffice guards its state-changing routes with a double-submit CSRF
+   * check, so the login is preceded by a token request whose cookie and token
+   * both travel with the credentials.
+   */
   private async login(): Promise<void> {
+    const { token, cookie } = await this.requestCsrfToken();
     const response = await this.request('/api/auth/login', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json',
+        'x-csrf-token': token,
+        cookie,
+      },
       body: JSON.stringify({ email: this.email, password: this.password }),
     });
     if (!response.ok) {
       throw new Error(`Backoffice login failed with status ${response.status}`);
     }
-    const cookies = response.headers.getSetCookie().map(cookie => cookie.split(';')[0]);
+    const cookies = readCookies(response);
     if (cookies.length === 0) {
       throw new Error('Backoffice login response did not include a session cookie');
     }
     this.sessionCookie = cookies.join('; ');
+  }
+
+  private async requestCsrfToken(): Promise<{ token: string; cookie: string }> {
+    const response = await this.request('/api/csrf-token', {
+      headers: { accept: 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`Backoffice CSRF token request failed with status ${response.status}`);
+    }
+    const { csrfToken } = (await response.json()) as { csrfToken?: unknown };
+    const cookies = readCookies(response);
+    if (typeof csrfToken !== 'string' || cookies.length === 0) {
+      throw new Error('Backoffice CSRF token response did not include a token and a cookie');
+    }
+    return { token: csrfToken, cookie: cookies.join('; ') };
   }
 
   private parseFlags(payload: unknown): BackofficeFeatureFlags {
@@ -164,6 +190,11 @@ export class BackofficeFeatureFlagsService {
     }));
   }
 
+}
+
+/** The name=value pairs a response sets, ready to be sent back as a cookie header. */
+function readCookies(response: Response): string[] {
+  return response.headers.getSetCookie().map(cookie => cookie.split(';')[0]);
 }
 
 /** Every JSON value carries a flag, except null and a missing one. */
