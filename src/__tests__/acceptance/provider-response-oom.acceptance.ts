@@ -107,9 +107,15 @@ function runUnbounded(upstream: string): Promise<ChildResult> {
   });
 }
 
-/** Boots the real compiled entry point with a reduced heap. */
+/**
+ * Boots the real compiled entry point with a reduced heap.
+ *
+ * @param upstream - Blockbook stand-in the child fetches from.
+ * @param env - Overrides layered over the defaults below.
+ */
 async function startApi(
   upstream: string,
+  env: Record<string, string> = {},
 ): Promise<{child: ChildProcess; output: () => string}> {
   const child = spawn(
     process.execPath,
@@ -127,6 +133,7 @@ async function startApi(
         RATE_LIMIT_MAX_REQUESTS: '10000',
         RATE_LIMIT_MAX_FANOUT_REQUESTS: '10000',
         LOG_LEVEL: 'info',
+        ...env,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     },
@@ -193,7 +200,18 @@ describe('Provider response OOM (Acceptance)', () => {
 
   it('the real API serves the same 48 and stays alive', async function () {
     this.timeout(180000);
-    const {child, output} = await startApi(upstream.url);
+    const {child, output} = await startApi(upstream.url, {
+      // The aggregate ceiling counts a response as stuck once it has sat over
+      // budget for 100 ms. A draining response here was measured at 70 ms at
+      // most — on a fast machine. On a two-vCPU runner this process is both
+      // feeding the child 48 x 7.5 MB and reading 48 x 7.5 MB back, falls
+      // behind, and legitimate responses cross 100 ms: three of them clear the
+      // 16 MB ceiling and get dropped, and the test fails at random. What this
+      // case measures is the heap, not that control — which the stuck-connection
+      // cases below exercise at its real threshold — so it gets a margin no
+      // scheduler can eat.
+      CONNECTION_OUTPUT_AGGREGATE_STALL_MS: '1000',
+    });
     try {
       const results = await Promise.all(
         Array.from({length: CONCURRENCY}, () =>
@@ -208,22 +226,37 @@ describe('Provider response OOM (Acceptance)', () => {
               await r.arrayBuffer();
               return r.status;
             })
-            .catch(() => 0),
+            // Kept, not swallowed: a 0 alone says a connection was cut, and
+            // only the reason says by what.
+            .catch(
+              (err: Error & {cause?: unknown}) =>
+                `${err.name}: ${String(err.cause ?? err.message)}`,
+            ),
         ),
       );
 
-      expect(child.exitCode).to.be.null();
-      expect(output()).to.not.match(/JavaScript heap out of memory/);
-      expect(output()).to.not.match(/Cannot create a string longer than/);
+      try {
+        expect(child.exitCode).to.be.null();
+        expect(output()).to.not.match(/JavaScript heap out of memory/);
+        expect(output()).to.not.match(/Cannot create a string longer than/);
 
-      // Every one is served. The upstream pool serialises the fetches, so this
-      // takes longer than 48 requests would unbounded — which is the trade the
-      // pool exists to make.
-      results.forEach(status => {
-        expect(status).to.equal(200);
-      });
+        // Every one is served. The upstream pool serialises the fetches, so this
+        // takes longer than 48 requests would unbounded — which is the trade the
+        // pool exists to make.
+        expect(results.filter(r => r !== 200)).to.be.empty();
 
-      expect((await fetch(`${BASE_URL}/api`)).status).to.equal(200);
+        expect((await fetch(`${BASE_URL}/api`)).status).to.equal(200);
+      } catch (err) {
+        // A failure here is almost always a timing question about the child —
+        // which connections it dropped and why — and the answer is in its log,
+        // not in the assertion.
+        // Wrapped rather than appended to: `should`'s assertion message is a
+        // getter, and writing to it throws a TypeError that hides the failure.
+        throw new Error(
+          `${(err as Error).message}\nResults: ${JSON.stringify(results)}` +
+            `\nChild output:\n${output()}`,
+        );
+      }
     } finally {
       child.kill('SIGKILL');
     }
