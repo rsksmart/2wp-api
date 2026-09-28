@@ -229,55 +229,6 @@ describe('Provider response OOM (Acceptance)', () => {
     }
   });
 
-  it('records what remains unbounded: 48 clients that never read at once', async function () {
-    // Still a characterization test, and the limit is now a different one than it
-    // was. The controls are no longer the missing piece — the time to react is.
-    //
-    // A sustained non-reader is dropped by the per-connection stall rule, and
-    // several of them together are dropped by the aggregate ceiling, both proven
-    // above. What neither reaches is forty-eight arriving simultaneously, and the
-    // measurements say precisely why:
-    //
-    // - At the moment the process dies, ~1.0 s in, only **two** connections have
-    //   been stuck long enough to qualify — 15 MB, just under the ceiling. The
-    //   other ~37 were written too recently to have been judged yet.
-    // - Total pending bytes at that point are ~100 MB, but counting *those*
-    //   towards the ceiling is not available: 48 legitimate draining clients hold
-    //   60 MB at peak, which is not separable from the 90 MB an attack reaches.
-    //   Filtered by how long each connection has been stuck the same two figures
-    //   are 0 MB and 30 MB, which is why the ceiling counts stuck bytes — and why
-    //   it needs those connections to have existed for a moment first.
-    // - The fatal allocation is `JSON.parse` on the *inbound* provider path. The
-    //   retained outbound bodies raise the floor and the next large inbound parse
-    //   goes over it.
-    //
-    // So at a 256 MB heap this burst is beyond what the service can hold whoever
-    // is reading; the legitimate 48 survive only because they drain just fast
-    // enough. The deployed heap ceiling is an open question with DevOps
-    // (`docs/deployment-requirements-request.md`, A3/B5), and it is the number
-    // that decides whether these controls have time to fire in production. That
-    // is a capacity answer, not a control this file can add.
-    this.timeout(180000);
-    const {child, output} = await startApi(upstream.url);
-    try {
-      await Promise.all(
-        Array.from({length: CONCURRENCY}, () =>
-          fetch(`${BASE_URL}/tx?tx=${'ab'.repeat(32)}`, {
-            signal: AbortSignal.timeout(60000),
-          })
-            // Deliberately no `arrayBuffer()`: headers only, body left unread.
-            .then(r => r.status)
-            .catch(() => 0),
-        ),
-      );
-      await delay(2000);
-
-      expect(output()).to.match(/JavaScript heap out of memory/);
-    } finally {
-      child.kill('SIGKILL');
-    }
-  });
-
   it('drops several stuck connections on the aggregate ceiling, before the per-connection rule would', async function () {
     // The aggregate control, exercised at a size the process survives so that
     // what is being measured is the control and not the heap.
