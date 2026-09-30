@@ -2,7 +2,13 @@ import mongoose, { Schema } from 'mongoose';
 import {FlyoverStatuses, FlyoverStatusModel} from '../models/flyover-status.model';
 import {MongoDbDataService} from './mongodb-data.service';
 import { RskNodeService } from './rsk-node.service';
-import {FlyoverTxNotFoundError} from './flyover-tx-not-found.error';
+
+export class FlyoverTxNotFoundError extends Error {
+  constructor() {
+    super('Flyover tx not found');
+    this.name = 'FlyoverTxNotFoundError';
+  }
+}
 
 interface FlyoverStatusMongoModel extends mongoose.Document, FlyoverStatusModel {}
 

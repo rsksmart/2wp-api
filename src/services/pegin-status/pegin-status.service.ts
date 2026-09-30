@@ -13,6 +13,7 @@ import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {Vout} from '../../models/vout.model';
 import {BtcAddressUtils, calculateBtcTxHashSegWitAndNonSegwit} from '../../utils/btc-utils';
 import {ensure0x} from '../../utils/hex-utils';
+import {BtcTxNotFoundError} from '../tx-v2-service.service';
 import {GenericDataService} from '../generic-data-service';
 import {RskNodeService} from '../rsk-node.service';
 import { isAFedAddress } from '../../utils/federation-addresses';
@@ -79,8 +80,14 @@ export class PeginStatusService {
         }
       })
       .catch((err) => {
-        // HttpErrors come from providers and were logged by `toHttpProviderError`.
-        if (err instanceof HttpErrors.HttpError) {
+        // `/tx-status` tries every protocol, so a miss is expected.
+        if (err instanceof BtcTxNotFoundError) {
+          this.logger.debug(
+            {method: 'getPeginStatusInfo', txId: btcTxId},
+            'Tx not found in BTC provider',
+          );
+        } else if (err instanceof HttpErrors.HttpError) {
+          // HttpErrors come from providers and were logged by `toHttpProviderError`.
           this.logger.debug(
             {method: 'getPeginStatusInfo', err, txId: btcTxId},
             'Could not resolve pegin status, provider failure already logged',

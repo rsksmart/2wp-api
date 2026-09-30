@@ -7,7 +7,10 @@ import {
   TX_PROVIDER_MAX_IN_FLIGHT,
 } from '../../../config/resource-budgets';
 import {fetchTx} from '../../../services/tx-service.service';
-import {fetchTxV2} from '../../../services/tx-v2-service.service';
+import {
+  BtcTxNotFoundError,
+  fetchTxV2,
+} from '../../../services/tx-v2-service.service';
 import {
   getMetricCounter,
   resetMetricCounters,
@@ -230,6 +233,12 @@ describe('Services: bounded transaction lookups', () => {
       await fetchTx('/../evil');
 
       expect(scope.isDone()).to.be.true();
+    });
+
+    it('reports a tx Blockbook does not know as BtcTxNotFoundError', async () => {
+      nock(HOST).get('/api/v2/tx/missing').reply(400, {error: 'not found'}, JSON_HEADERS);
+
+      await expect(fetchTxV2('missing')).to.be.rejectedWith(BtcTxNotFoundError);
     });
   });
 });

@@ -1,6 +1,5 @@
 import {HttpErrors} from '@loopback/rest';
 import {
-  ProviderHttpStatusError,
   ProviderResponseTooLargeError,
   ProviderTimeoutError,
 } from './bounded-http-client';
@@ -11,12 +10,6 @@ import {RequestCancelledError} from './request-cancellation';
 const logger = getLogger('provider-error');
 
 type ProviderErrorContext = {operation: string; route?: string; txId?: string; address?: string};
-
-/** Blockbook answers an unknown tx with 400, and `/tx-status` looks up every hash it gets. */
-export const isUnknownTxLookup = (err: unknown, ctx: ProviderErrorContext): boolean =>
-  ctx.txId !== undefined &&
-  err instanceof ProviderHttpStatusError &&
-  (err.statusCode === 400 || err.statusCode === 404);
 
 /**
  * Translates a bounded-HTTP-client failure into a bounded HTTP error.
@@ -47,17 +40,10 @@ export function toHttpProviderError(
     return err;
   }
 
-  if (isUnknownTxLookup(err, ctx)) {
-    logger.debug(
-      {method: 'toHttpProviderError', ...ctx, err: err as Error},
-      'Provider does not know the tx',
-    );
-  } else {
-    logger.warn(
-      {method: 'toHttpProviderError', ...ctx, err: err as Error},
-      'Provider request failed',
-    );
-  }
+  logger.warn(
+    {method: 'toHttpProviderError', ...ctx, err: err as Error},
+    'Provider request failed',
+  );
 
   if (err instanceof ProviderResponseTooLargeError) {
     return new HttpErrors.BadGateway(
