@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file -- keep error colocated */
 import mongoose, { Schema } from 'mongoose';
 import {FlyoverStatuses, FlyoverStatusModel} from '../models/flyover-status.model';
 import {MongoDbDataService} from './mongodb-data.service';

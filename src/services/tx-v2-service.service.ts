@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file -- keep error colocated */
 import {Provider} from '@loopback/core';
 import {MAX_TX_PROVIDER_RESPONSE_BYTES} from '../config/resource-budgets';
 import {blockbookUrl} from '../utils/blockbook-url';
