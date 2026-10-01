@@ -1,9 +1,20 @@
+/* eslint-disable max-classes-per-file -- keep error colocated */
 import {Provider} from '@loopback/core';
 import {MAX_TX_PROVIDER_RESPONSE_BYTES} from '../config/resource-budgets';
 import {blockbookUrl} from '../utils/blockbook-url';
-import {fetchJsonWithBudget} from '../utils/bounded-http-client';
+import {
+  fetchJsonWithBudget,
+  ProviderHttpStatusError,
+} from '../utils/bounded-http-client';
 import {toHttpProviderError} from '../utils/provider-error';
 import {txProviderPermits} from '../utils/provider-permits';
+
+export class BtcTxNotFoundError extends Error {
+  constructor() {
+    super('BTC tx not found');
+    this.name = 'BtcTxNotFoundError';
+  }
+}
 
 export interface Txv2 {
   content: string;
@@ -36,6 +47,7 @@ const OPERATION = 'blockbook.tx.v2';
  *
  * @param txId - Transaction id to look up. URL-encoded here regardless.
  * @returns The transaction, wrapped in a one-element array for compatibility.
+ * @throws {BtcTxNotFoundError} If Blockbook does not know the transaction.
  * @throws {HttpErrors.BadGateway | HttpErrors.GatewayTimeout} If Blockbook breached a budget or failed.
  * @throws {PermitRejectedError} If the transaction pool and its queue are both full.
  */
@@ -50,7 +62,11 @@ export async function fetchTxV2(txId: string): Promise<Txv2[]> {
     });
     return [body];
   } catch (err) {
-    throw toHttpProviderError(err, {operation: OPERATION});
+    // Blockbook answers an unknown or malformed txid with 400.
+    if (err instanceof ProviderHttpStatusError && err.statusCode === 400) {
+      throw new BtcTxNotFoundError();
+    }
+    throw toHttpProviderError(err, {operation: OPERATION, txId});
   }
 }
 

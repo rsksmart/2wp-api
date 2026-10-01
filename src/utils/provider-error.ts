@@ -9,6 +9,8 @@ import {RequestCancelledError} from './request-cancellation';
 
 const logger = getLogger('provider-error');
 
+type ProviderErrorContext = {operation: string; route?: string; txId?: string; address?: string};
+
 /**
  * Translates a bounded-HTTP-client failure into a bounded HTTP error.
  *
@@ -24,12 +26,12 @@ const logger = getLogger('provider-error');
  * decision taken here, and would make the two indistinguishable in monitoring.
  *
  * @param err - The error thrown by the bounded HTTP client.
- * @param ctx - Provider operation and (optionally) the route being served, for logs.
+ * @param ctx - Operation, plus optional route and looked-up id, for logs.
  * @returns The HTTP error to throw, or the original error when it already carries its own status.
  */
 export function toHttpProviderError(
   err: unknown,
-  ctx: {operation: string; route?: string},
+  ctx: ProviderErrorContext,
 ): Error {
   if (
     err instanceof PermitRejectedError ||

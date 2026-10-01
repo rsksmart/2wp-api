@@ -72,7 +72,7 @@ export class FeaturesController {
         if (backofficeFlags) {
             features = applyProviderFlags(features, backofficeFlags);
         }
-        this.logger.info({method: 'get', featureCount: features.length}, 'Retrieved the features');
+        this.logger.debug({method: 'get', featureCount: features.length}, 'Retrieved the features');
     } catch (err) {
         this.logger.warn({method: 'get', err}, 'Failed to retrieve features');
     }

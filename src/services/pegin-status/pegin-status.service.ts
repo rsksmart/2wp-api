@@ -1,4 +1,5 @@
 import {inject} from '@loopback/core';
+import {HttpErrors} from '@loopback/rest';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import peginAddressVerifier from 'pegin-address-verificator';
@@ -12,6 +13,7 @@ import {PeginStatusDataModel} from '../../models/rsk/pegin-status-data.model';
 import {Vout} from '../../models/vout.model';
 import {BtcAddressUtils, calculateBtcTxHashSegWitAndNonSegwit} from '../../utils/btc-utils';
 import {ensure0x} from '../../utils/hex-utils';
+import {BtcTxNotFoundError} from '../tx-v2-service.service';
 import {GenericDataService} from '../generic-data-service';
 import {RskNodeService} from '../rsk-node.service';
 import { isAFedAddress } from '../../utils/federation-addresses';
@@ -78,7 +80,24 @@ export class PeginStatusService {
         }
       })
       .catch((err) => {
-        this.logger.warn({method: 'getPeginStatusInfo', err, txId: btcTxId});
+        // `/tx-status` tries every protocol, so a miss is expected.
+        if (err instanceof BtcTxNotFoundError) {
+          this.logger.debug(
+            {method: 'getPeginStatusInfo', txId: btcTxId},
+            'Tx not found in BTC provider',
+          );
+        } else if (err instanceof HttpErrors.HttpError) {
+          // HttpErrors come from providers and were logged by `toHttpProviderError`.
+          this.logger.debug(
+            {method: 'getPeginStatusInfo', err, txId: btcTxId},
+            'Could not resolve pegin status, provider failure already logged',
+          );
+        } else {
+          this.logger.warn(
+            {method: 'getPeginStatusInfo', err, txId: btcTxId},
+            'Could not resolve pegin status',
+          );
+        }
         return new PeginStatusError(btcTxId);
       })
   };
@@ -234,7 +253,7 @@ export class PeginStatusService {
     }
     if (!foundOpReturn) {
       returnValue = '';
-      this.logger.warn({method: 'getTxRefundAddress'}, 'Empty value for refund address');
+      this.logger.debug({method: 'getTxRefundAddress'}, 'Empty value for refund address');
     }
     return returnValue;
   }
