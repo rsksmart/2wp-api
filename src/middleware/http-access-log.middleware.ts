@@ -7,6 +7,7 @@ import {
 } from '../config/resource-budgets';
 import {writeBoundedError} from './bounded-error-writer';
 import {getLogger} from '../utils/logger';
+import {resolveRouteTemplate} from '../utils/route-template';
 import {
   CancellationReason,
   recordCancellation,
@@ -34,8 +35,12 @@ const ROUTINE_PROBE_PATHS: ReadonlySet<string> = new Set([
   '/internal/metrics',
 ]);
 
-export const isRoutineProbe = (request: Request, response: Response): boolean =>
-  ROUTINE_PROBE_PATHS.has(request.path) &&
+export const isRoutineProbe = (
+  routeTemplate: string | undefined,
+  response: Response,
+): boolean =>
+  !!routeTemplate &&
+  ROUTINE_PROBE_PATHS.has(routeTemplate) &&
   response.writableFinished &&
   response.statusCode < 400;
 
@@ -176,12 +181,13 @@ export const httpAccessLogMiddleware: Middleware = async (
   // Run the rest of the request within a request context so every log line
   // emitted by downstream controllers and services carries the traceId, and so
   // they can observe cancellation.
-  return runWithRequestContext({traceId, signal: controller.signal}, () => {
+  return runWithRequestContext({traceId, signal: controller.signal}, async () => {
     if (isApiRequest(request.path)) {
+      const routeTemplate = await resolveRouteTemplate(ctx);
       // 'close' rather than 'finish': 'finish' never fires for an abandoned
       // request, which is precisely the case worth having in the log.
       response.once('close', () => {
-        if (isRoutineProbe(request, response)) {
+        if (isRoutineProbe(routeTemplate, response)) {
           return;
         }
         logger.info(

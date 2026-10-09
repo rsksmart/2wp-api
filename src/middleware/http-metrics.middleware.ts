@@ -15,6 +15,8 @@ import {resolveRouteTemplate} from '../utils/route-template';
 import {isApiRequest} from './http-access-log.middleware';
 
 const UNMATCHED_ROUTE = 'unmatched';
+// A matched route bounds its methods; an unmatched one would take any the parser accepts.
+const UNMATCHED_METHOD = 'OTHER';
 
 // The scrape is excluded so the metrics describe the API, not the scraper.
 const isMeteredPath = (path: string): boolean =>
@@ -25,13 +27,17 @@ export const httpMetricsMiddleware: Middleware = async (
   next: Next,
 ) => {
   const {request, response} = ctx;
-  if (!isMeteredPath(request.path)) {
+  if (!isApiRequest(request.path)) {
     return next();
   }
 
   // The route template, never the raw path: paths carry addresses and txids.
-  const path = (await resolveRouteTemplate(ctx)) ?? UNMATCHED_ROUTE;
-  const {method} = request;
+  const template = await resolveRouteTemplate(ctx);
+  if (template === METRICS_PATH) {
+    return next();
+  }
+  const path = template ?? UNMATCHED_ROUTE;
+  const method = template ? request.method : UNMATCHED_METHOD;
   const stopTimer = httpRequestDurationSeconds.startTimer({method, path});
   httpRequestsInFlight.inc();
   response.once('close', () => {
