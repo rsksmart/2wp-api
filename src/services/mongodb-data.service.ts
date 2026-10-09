@@ -1,11 +1,21 @@
 import {inject} from '@loopback/core';
+import {Histogram} from '@prometheus-io/client';
 import mongoose from 'mongoose';
 import {getLogger, Logger} from '../utils/logger';
 import {MongoDbDataSource} from '../datasources/mongodb.datasource';
 import {DatasourcesBindings} from '../dependency-injection-bindings';
 import {SearchableModel} from '../models/rsk/searchable-model';
-import {getMetricLogger} from '../utils/metric-logger';
+import {METRICS_PREFIX, metricsRegistry} from '../utils/metrics';
 import {GenericDataService} from './generic-data-service';
+
+// `collection` is the model's collection name, fixed in code, never request data.
+const mongoOperationDurationSeconds = new Histogram<'operation' | 'collection'>({
+  name: `${METRICS_PREFIX}mongo_operation_duration_seconds`,
+  help: 'MongoDB operation duration in seconds, by operation and collection.',
+  labelNames: ['operation', 'collection'],
+  buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5],
+  registers: [metricsRegistry],
+});
 
 export abstract class MongoDbDataService<Type extends SearchableModel, T> implements GenericDataService<Type> {
   mongoDbUri: string;
@@ -82,13 +92,17 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
   }
 
   set(data: Type): Promise<boolean> {
-    const metricLogger = getMetricLogger(this.logger, 'set');
     return new Promise((resolve, reject) => {
       if (!data) {
         this.logger.debug({method: 'set'}, 'Data was not provided');
         reject('Data was not provided');
+        return;
       }
       const connector = this.getConnector();
+      const stopTimer = mongoOperationDurationSeconds.startTimer({
+        operation: 'set',
+        collection: connector.collection.collectionName,
+      });
       const filter: any = {};
       filter[data.getIdFieldName()] = data.getId();
       connector.findOneAndUpdate(filter, <any>data, {upsert: true})
@@ -97,7 +111,7 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
           this.logger.debug({method: 'set', err});
           reject(err);
           })
-        .finally(metricLogger);
+        .finally(stopTimer);
     });
   }
 

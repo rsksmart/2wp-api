@@ -12,7 +12,7 @@ import {
   getMetricCounter,
   getMetricGauge,
   resetMetricCounters,
-} from '../../utils/metric-logger';
+} from '../helpers/metrics';
 import {
   blockbookPermits,
   PROVIDER_PERMITS_ACTIVE_GAUGE,
@@ -151,8 +151,8 @@ describe('Provider concurrency (Acceptance)', () => {
     await blockbook.stop();
   });
 
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     blockbook.reset();
   });
 
@@ -228,7 +228,7 @@ describe('Provider concurrency (Acceptance)', () => {
     // A leaked permit shrinks the pool permanently, which degrades into an
     // outage that is worse than the exhaustion being prevented.
     expect(
-      getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'blockbook'}),
+      await getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'blockbook'}),
     ).to.equal(0);
   }).timeout(120000);
 
@@ -256,11 +256,11 @@ describe('Provider concurrency (Acceptance)', () => {
       // separately with GC control; what this test owns is the bound itself,
       // which is exact.
       let peakActive = 0;
-      const sampler = setInterval(() => {
-        peakActive = Math.max(
-          peakActive,
-          getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'blockbook'}),
-        );
+      const sampler = setInterval(async () => {
+        const active = await getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {
+          pool: 'blockbook',
+        });
+        peakActive = Math.max(peakActive, active);
       }, 10);
 
       for (let wave = 0; wave < WAVES; wave += 1) {
@@ -286,10 +286,10 @@ describe('Provider concurrency (Acceptance)', () => {
 
       await delay(300);
       expect(
-        getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'blockbook'}),
+        await getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'blockbook'}),
       ).to.equal(0);
       expect(
-        getMetricGauge(PROVIDER_PERMITS_QUEUED_GAUGE, {pool: 'blockbook'}),
+        await getMetricGauge(PROVIDER_PERMITS_QUEUED_GAUGE, {pool: 'blockbook'}),
       ).to.equal(0);
     }).timeout(300000);
   });
@@ -338,7 +338,7 @@ describe('Provider concurrency (Acceptance)', () => {
       // hold capacity against live traffic for seconds.
       await delay(300);
       expect(
-        getMetricGauge(PROVIDER_PERMITS_QUEUED_GAUGE, {pool: 'blockbook'}),
+        await getMetricGauge(PROVIDER_PERMITS_QUEUED_GAUGE, {pool: 'blockbook'}),
       ).to.equal(0);
     }).timeout(180000);
 
@@ -365,7 +365,7 @@ describe('Provider concurrency (Acceptance)', () => {
       // released as those sockets unwind, which is not instantaneous.
       await delay(300);
       expect(
-        getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'blockbook'}),
+        await getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'blockbook'}),
       ).to.equal(0);
     }).timeout(180000);
   });
@@ -403,7 +403,7 @@ describe('Provider concurrency (Acceptance)', () => {
       await burstDetailed(OVERLOAD_REQUESTS);
 
       expect(
-        getMetricCounter(PROVIDER_PERMITS_REJECTED_METRIC, {
+        await getMetricCounter(PROVIDER_PERMITS_REJECTED_METRIC, {
           pool: 'blockbook',
           reason: 'queue_full',
         }),
@@ -422,7 +422,7 @@ describe('Provider concurrency (Acceptance)', () => {
 
       expect(after.status).to.equal(200);
       expect(
-        getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'blockbook'}),
+        await getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'blockbook'}),
       ).to.equal(0);
     }).timeout(180000);
   });

@@ -14,7 +14,7 @@ import {
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../../utils/metric-logger';
+} from '../../helpers/metrics';
 import {
   blockbookPermits,
   PermitRejectedError,
@@ -77,8 +77,8 @@ describe('Services: bounded transaction lookups', () => {
     nock.restore();
   });
 
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     nock.cleanAll();
     sinon.restore();
   });
@@ -97,7 +97,7 @@ describe('Services: bounded transaction lookups', () => {
 
       expect(tx.hex.length).to.be.greaterThan(2_000_000);
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.PROVIDER_RESPONSE_BYTES,
         }),
       ).to.equal(0);
@@ -156,7 +156,7 @@ describe('Services: bounded transaction lookups', () => {
       await expect(fetchTxV2('huge')).to.be.rejected();
 
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.PROVIDER_RESPONSE_BYTES,
         }),
       ).to.equal(1);

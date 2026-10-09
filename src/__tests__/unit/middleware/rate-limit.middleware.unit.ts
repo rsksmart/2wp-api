@@ -19,7 +19,7 @@ import {
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../../utils/metric-logger';
+} from '../../helpers/metrics';
 
 describe('Middleware: rate limiting', () => {
   let clock: sinon.SinonFakeTimers;
@@ -34,8 +34,8 @@ describe('Middleware: rate limiting', () => {
       ...over,
     });
 
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     clock = sinon.useFakeTimers();
   });
 
@@ -95,7 +95,7 @@ describe('Middleware: rate limiting', () => {
       expect(() => limiter.check('1.1.1.1', '/api')).not.throw();
     });
 
-    it('counts refusals by route class, never by raw path', () => {
+    it('counts refusals by route class, never by raw path', async () => {
       const limiter = givenLimiter();
       for (let i = 0; i < 3; i += 1) limiter.check('1.1.1.1', '/api');
 
@@ -106,7 +106,7 @@ describe('Middleware: rate limiting', () => {
       }
 
       expect(
-        getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route: 'other'}),
+        await getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route_class: 'other'}),
       ).to.equal(1);
     });
   });
@@ -120,7 +120,7 @@ describe('Middleware: rate limiting', () => {
       expect(() => limiter.check('1.1.1.1', '/utxo')).throw(RateLimitedError);
     });
 
-    it('labels a fan-out refusal with its own route class', () => {
+    it('labels a fan-out refusal with its own route class', async () => {
       const limiter = givenLimiter();
       for (let i = 0; i < 2; i += 1) limiter.check('1.1.1.1', '/addresses-info');
       try {
@@ -130,7 +130,7 @@ describe('Middleware: rate limiting', () => {
       }
 
       expect(
-        getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route: 'fanout'}),
+        await getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route_class: 'fanout'}),
       ).to.equal(1);
     });
 
@@ -179,7 +179,7 @@ describe('Middleware: rate limiting', () => {
       expect(() => limiter.check('1.1.1.1', '/health')).to.not.throw();
     });
 
-    it('labels a refusal by class, never by path', () => {
+    it('labels a refusal by class, never by path', async () => {
       const limiter = givenHealthLimiter();
 
       try {
@@ -189,10 +189,10 @@ describe('Middleware: rate limiting', () => {
       }
 
       expect(
-        getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route: 'health'}),
+        await getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route_class: 'health'}),
       ).to.equal(1);
       expect(
-        getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route: '/health'}),
+        await getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route_class: '/health'}),
       ).to.equal(0);
     });
 

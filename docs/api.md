@@ -26,7 +26,7 @@ An OpenAPI spec can also be generated to a file offline with `npm run openapi-sp
 | `GET` | `/tx` | `TxController` | Returns transaction info for an RSK tx hash (`tx` query parameter) |
 | `GET` | `/tx-status/{txId}` | `TxStatusController` | Looks up a transaction's status, trying native peg-in, native peg-out, and Flyover in turn until one matches |
 | `GET` | `/tx-status-by-type/{txId}/{txType}` | `TxStatusController` | Same lookup as `/tx-status/{txId}`, but scoped to a known `txType` (`pegin`, `pegout`, `flyover-pegin`, `flyover-pegout`) instead of trying all of them |
-| `GET` | `/internal/metrics` | `MetricsController` | Prometheus scrape target (text exposition format, not JSON). Internal only: infrastructure keeps this path out of public routing; the application itself does not restrict access. Metrics are named `twp_api_<subsystem>_<name>_<unit>` and carry an `env` label from `DEPLOY_ENV`; see `src/utils/metrics.ts` |
+| `GET` | `/internal/metrics` | `MetricsController` | Prometheus scrape target (text exposition format, not JSON). Internal only: infrastructure keeps this path out of public routing; the application itself does not restrict access. Metrics are named `twp_api_<subsystem>_<name>_<unit>` and carry an `environment` label from `DEPLOY_ENV`; see [`metrics.md`](./metrics.md) |
 
 Request/response shapes (path parameters, body schemas, response models) are documented on each handler via `@loopback/rest` decorators (`@get`/`@post`/`@param`/`@requestBody`/`@response`) and are what populates the REST Explorer and generated OpenAPI spec above — that's the definitive, always-current version of the contract.
 
@@ -42,9 +42,9 @@ The API is JSON-only, and the policy is enforced rather than assumed.
 | HTTP methods | Only the methods declared per route. Anything else is refused by routing and never reaches a handler. |
 | Request body | Required where declared, and bounded by `MAX_REQUEST_BODY_BYTES`. Since nothing may be compressed, wire size equals decoded size and one limit bounds both. |
 
-Refusals are counted on the `format_rejected_total` metric, labelled `reason` =
-`content_encoding` | `media_type` | `method` | `body_size`. The rejected header
-value is never used as a label.
+Refusals are counted on `twp_api_http_format_rejected_total`, labelled `reason` =
+`content_encoding` | `media_type` | `unroutable` | `body_size`. The rejected header
+value is never used as a label. See [`metrics.md`](./metrics.md).
 
 ## Resource budgets
 

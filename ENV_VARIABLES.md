@@ -29,7 +29,6 @@ This table was created to guide and centralize the **environment variables** nec
 |MAX_AMOUNT_ALLOWED_IN_SATOSHI |                               |'Pegin Pegout max allowed in satoshis'                   |
 |LOG_FORMAT                    |`json or pretty`               |'Log output format. Defaults to json'                    |
 |LOG_LEVEL                     |`debug, info, warn, error, fatal` |'Minimum log level. Defaults to info'           |
-|METRICS_ENABLED               |`true or false`                |'enable metric debug log'                                |
 |NODE_ENV|`production or development`|'Indicates if the app should be built for a production environment or not'
 |DEPLOY_ENV                    |`local`                        |'Deployment environment whose backoffice feature flags are retrieved. Defaults to local'|
 |BACKOFFICE_API_URL            |`http://localhost:3010`        |'Base URL of the backoffice API serving the feature flags. Empty disables the integration (local features only)'|
@@ -150,7 +149,6 @@ BRIDGE_ADDRESS='0x0000000000000000000000000000000001000006'
 RSK_NODE_HOST='https://public-node.testnet.rsk.co'
 LOG_FORMAT=pretty
 LOG_LEVEL=debug
-METRICS_ENABLED=false;
 
 # DAEMON SYNC - https://explorer.testnet.rsk.co/block/2019830
 SYNC_INITIAL_BLOCK_HEIGHT=2019830

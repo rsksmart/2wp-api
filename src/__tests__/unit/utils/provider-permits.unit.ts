@@ -3,12 +3,17 @@ import {
   getMetricCounter,
   getMetricGauge,
   resetMetricCounters,
-} from '../../../utils/metric-logger';
+} from '../../helpers/metrics';
 import {
   PermitRejectedError,
+  PERMIT_REJECTION_REASONS,
   PROVIDER_PERMITS_ACTIVE_GAUGE,
   PROVIDER_PERMITS_QUEUED_GAUGE,
   PROVIDER_PERMITS_REJECTED_METRIC,
+  providerPermitsActive,
+  providerPermitsGrantedTotal,
+  providerPermitsQueued,
+  providerPermitsRejectedTotal,
   Semaphore,
 } from '../../../utils/provider-permits';
 import {RequestCancelledError} from '../../../utils/request-cancellation';
@@ -29,6 +34,18 @@ const givenSemaphore = (
 
 describe('Utils: provider permits', () => {
   beforeEach(resetMetricCounters);
+
+  // The `test` pool is not one the service runs, so its series must not outlive
+  // this suite and reach the label-vocabulary check.
+  after(() => {
+    const pool = 'test';
+    providerPermitsActive.remove({pool});
+    providerPermitsQueued.remove({pool});
+    providerPermitsGrantedTotal.remove({pool});
+    PERMIT_REJECTION_REASONS.forEach(reason =>
+      providerPermitsRejectedTotal.remove({pool, reason}),
+    );
+  });
 
   describe('the limit actually holds', () => {
     it('never runs more than `limit` callers at once', async () => {
@@ -95,7 +112,7 @@ describe('Utils: provider permits', () => {
 
       await Promise.all([held, ...queued]);
       expect(
-        getMetricCounter(PROVIDER_PERMITS_REJECTED_METRIC, {
+        await getMetricCounter(PROVIDER_PERMITS_REJECTED_METRIC, {
           pool: 'test',
           reason: 'queue_full',
         }),
@@ -110,7 +127,7 @@ describe('Utils: provider permits', () => {
         PermitRejectedError,
       );
       expect(
-        getMetricCounter(PROVIDER_PERMITS_REJECTED_METRIC, {
+        await getMetricCounter(PROVIDER_PERMITS_REJECTED_METRIC, {
           pool: 'test',
           reason: 'wait_timeout',
         }),
@@ -211,19 +228,47 @@ describe('Utils: provider permits', () => {
       await delay(10);
 
       expect(
-        getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'test'}),
+        await getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'test'}),
       ).to.equal(1);
       expect(
-        getMetricGauge(PROVIDER_PERMITS_QUEUED_GAUGE, {pool: 'test'}),
+        await getMetricGauge(PROVIDER_PERMITS_QUEUED_GAUGE, {pool: 'test'}),
       ).to.equal(1);
 
       await Promise.all([held, queued]);
 
       expect(
-        getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'test'}),
+        await getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'test'}),
       ).to.equal(0);
       expect(
-        getMetricGauge(PROVIDER_PERMITS_QUEUED_GAUGE, {pool: 'test'}),
+        await getMetricGauge(PROVIDER_PERMITS_QUEUED_GAUGE, {pool: 'test'}),
+      ).to.equal(0);
+    });
+
+    it('adds up pools that share a name instead of overwriting them', async () => {
+      const a = givenSemaphore({limit: 2});
+      const b = givenSemaphore({limit: 1});
+      const heldByA = [a.run(() => delay(40)), a.run(() => delay(40))];
+      await b.run(async () => 'done');
+
+      expect(
+        await getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'test'}),
+      ).to.equal(2);
+
+      await Promise.all(heldByA);
+    });
+
+    it('never reports a negative number of held permits', async () => {
+      const sem = givenSemaphore({limit: 1});
+      await sem.run(async () => 'done');
+      // A double release is a bookkeeping bug; it must show as a stuck zero, not
+      // as a negative count that corrupts the signal.
+      const release = () => (sem as unknown as {release(): void}).release();
+      release();
+      release();
+
+      expect(sem.active).to.equal(0);
+      expect(
+        await getMetricGauge(PROVIDER_PERMITS_ACTIVE_GAUGE, {pool: 'test'}),
       ).to.equal(0);
     });
 

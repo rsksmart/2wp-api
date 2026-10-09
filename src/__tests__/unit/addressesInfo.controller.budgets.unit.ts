@@ -8,7 +8,7 @@ import {BitcoinService} from '../../services';
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../utils/metric-logger';
+} from '../helpers/metrics';
 import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
   ResourceBudgetName,
@@ -35,8 +35,8 @@ describe('AddressesInfoController: resource budgets', () => {
   let bitcoinService: SinonStubbedInstance<BitcoinService> & BitcoinService;
   let controller: AddressesInfoController;
 
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     bitcoinService = sinon.createStubInstance(
       BitcoinService,
     ) as SinonStubbedInstance<BitcoinService> & BitcoinService;
@@ -52,7 +52,7 @@ describe('AddressesInfoController: resource budgets', () => {
 
     expect(response.addressesInfo![0].txids).to.have.length(MAX_ADDRESS_INFO_TXIDS);
     expect(
-      getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+      await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
         resource: ResourceBudgetName.ADDRESS_INFO_TXIDS,
       }),
     ).to.equal(0);
@@ -69,7 +69,7 @@ describe('AddressesInfoController: resource budgets', () => {
 
     expect(response.addressesInfo![0].txids).to.have.length(MAX_ADDRESS_INFO_TXIDS);
     expect(
-      getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+      await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
         resource: ResourceBudgetName.ADDRESS_INFO_TXIDS,
       }),
     ).to.equal(1);

@@ -2,6 +2,7 @@
    are one concept: the control and the way it says no. */
 import {Next} from '@loopback/core';
 import {Middleware, MiddlewareContext} from '@loopback/rest';
+import {Counter} from '@prometheus-io/client';
 import {
   RATE_LIMIT_MAX_FANOUT_REQUESTS,
   RATE_LIMIT_MAX_HEALTH_REQUESTS,
@@ -11,7 +12,7 @@ import {
   RATE_LIMIT_WINDOW_MS,
 } from '../config/resource-budgets';
 import {getLogger} from '../utils/logger';
-import {incrementMetricCounter} from '../utils/metric-logger';
+import {METRICS_PREFIX, metricsRegistry} from '../utils/metrics';
 import {
   recordBudgetViolation,
   ResourceBudgetName,
@@ -21,7 +22,7 @@ import {resolveRouteTemplate} from '../utils/route-template';
 const logger = getLogger('rate-limit');
 
 /** Refusals, labelled by route *class* — never the raw path. */
-export const RATE_LIMIT_REJECTED_METRIC = 'rate_limit_rejected_total';
+export const RATE_LIMIT_REJECTED_METRIC = `${METRICS_PREFIX}rate_limit_rejected_total`;
 
 /**
  * Route classes the limiter distinguishes. A closed vocabulary on purpose: the
@@ -29,7 +30,20 @@ export const RATE_LIMIT_REJECTED_METRIC = 'rate_limit_rejected_total';
  * both a cardinality explosion and a way to push arbitrary text into the metrics
  * pipeline.
  */
-export type RateLimitRouteClass = 'fanout' | 'health' | 'other';
+export const RATE_LIMIT_ROUTE_CLASSES = ['fanout', 'health', 'other'] as const;
+
+export type RateLimitRouteClass = (typeof RATE_LIMIT_ROUTE_CLASSES)[number];
+
+const rateLimitRejectedTotal = new Counter<'route_class'>({
+  name: RATE_LIMIT_REJECTED_METRIC,
+  help: 'Requests refused by the rate limiter, by route class.',
+  labelNames: ['route_class'],
+  registers: [metricsRegistry],
+});
+
+RATE_LIMIT_ROUTE_CLASSES.forEach(routeClass =>
+  rateLimitRejectedTotal.inc({route_class: routeClass}, 0),
+);
 
 /**
  * The expensive routes: each one multiplies a single request into far more work
@@ -214,9 +228,7 @@ function refuse(
   observed: number,
   remainingMs: number,
 ): RateLimitedError {
-  incrementMetricCounter(logger, RATE_LIMIT_REJECTED_METRIC, {
-    route: routeClass,
-  });
+  rateLimitRejectedTotal.inc({route_class: routeClass});
   recordBudgetViolation({
     resource: ResourceBudgetName.RATE_LIMIT,
     configuredLimit: limit,

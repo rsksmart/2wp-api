@@ -12,7 +12,7 @@ import {UtxoProvider} from '../../services';
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../utils/metric-logger';
+} from '../helpers/metrics';
 import {RATE_LIMIT_REJECTED_METRIC} from '../../middleware/rate-limit.middleware';
 import {requestRateLimiter} from '../../middleware/rate-limit.middleware';
 import {setupApplication} from './test-helper';
@@ -85,8 +85,8 @@ describe('Rate limiting (Acceptance)', () => {
     await app.stop();
   });
 
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     utxoStub = sinon.stub().resolves([]);
     utxoProviderService.utxoProvider = utxoStub;
     // The limiter is process-wide and other suites share the process, so each
@@ -154,7 +154,7 @@ describe('Rate limiting (Acceptance)', () => {
     }
 
     expect(
-      getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route: 'fanout'}),
+      await getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route_class: 'fanout'}),
     ).to.be.greaterThan(0);
   }).timeout(60000);
 
@@ -195,7 +195,7 @@ describe('Rate limiting (Acceptance)', () => {
     // The other half, and the reason the exemption went: there is no longer a
     // route in this API that a client can send without a ceiling.
     requestRateLimiter.reset();
-    resetMetricCounters();
+    await resetMetricCounters();
     // The cache is static, so a result from another suite could otherwise stand
     // in for the stubs above.
     HealthCheckController.clearCache();
@@ -207,11 +207,11 @@ describe('Rate limiting (Acceptance)', () => {
 
     expect(statuses.filter(s => s === 429).length).to.be.greaterThan(0);
     expect(
-      getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route: 'health'}),
+      await getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route_class: 'health'}),
     ).to.be.greaterThan(0);
     // The path is attacker-controlled text; the label is a closed vocabulary.
     expect(
-      getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route: '/health'}),
+      await getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route_class: '/health'}),
     ).to.equal(0);
   }).timeout(60000);
 

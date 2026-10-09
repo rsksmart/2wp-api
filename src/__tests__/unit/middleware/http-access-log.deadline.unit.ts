@@ -8,7 +8,7 @@ import {httpAccessLogMiddleware} from '../../../middleware/http-access-log.middl
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../../utils/metric-logger';
+} from '../../helpers/metrics';
 import {REQUEST_CANCELLED_METRIC} from '../../../utils/request-cancellation';
 
 /**
@@ -72,8 +72,8 @@ describe('Middleware: request deadline enforcement', () => {
     return {response, sent, headers, socket, pending};
   };
 
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     clock = sinon.useFakeTimers();
   });
 
@@ -134,7 +134,7 @@ describe('Middleware: request deadline enforcement', () => {
     await clock.tickAsync(MAX_REQUEST_DURATION_MS + REQUEST_DEADLINE_GRACE_MS + 1);
 
     expect(
-      getMetricCounter(REQUEST_CANCELLED_METRIC, {reason: 'timeout'}),
+      await getMetricCounter(REQUEST_CANCELLED_METRIC, {reason: 'timeout'}),
     ).to.equal(1);
   });
 });

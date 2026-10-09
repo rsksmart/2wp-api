@@ -15,7 +15,7 @@ import {
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../../utils/metric-logger';
+} from '../../helpers/metrics';
 import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
   ResourceBudgetName,
@@ -70,8 +70,8 @@ const violations = () =>
   });
 
 describe('Middleware: connection output budget', () => {
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     // The sweeper is process-wide, so a registration left behind by one case is
     // state the next one would inherit.
     resetOutputBudgets();
@@ -102,7 +102,7 @@ describe('Middleware: connection output budget', () => {
       await connectionOutputBudgetMiddleware(ctx, next);
       sinon.assert.calledOnce(next);
       sinon.assert.notCalled(destroy);
-      expect(violations()).to.equal(0);
+      expect(await violations()).to.equal(0);
     });
   });
 
@@ -115,14 +115,14 @@ describe('Middleware: connection output budget', () => {
 
       sinon.assert.calledOnce(destroy);
       sinon.assert.notCalled(next);
-      expect(violations()).to.equal(1);
+      expect(await violations()).to.equal(1);
     });
 
     it('records the observed buffer size, not the payload', async () => {
       const {ctx} = givenContext(MAX_CONNECTION_BUFFERED_BYTES * 4);
       await connectionOutputBudgetMiddleware(ctx, sinon.stub().resolves(''));
 
-      expect(violations()).to.equal(1);
+      expect(await violations()).to.equal(1);
     });
   });
 
@@ -175,7 +175,7 @@ describe('Middleware: connection output budget', () => {
       await sweepFor(CONNECTION_OUTPUT_STALL_MS + CONNECTION_OUTPUT_SAMPLE_INTERVAL_MS * 2);
 
       sinon.assert.called(destroy);
-      expect(violations()).to.equal(1);
+      expect(await violations()).to.equal(1);
     });
 
     it('leaves a slow but draining peer alone', async () => {
@@ -201,7 +201,7 @@ describe('Middleware: connection output budget', () => {
       }
 
       sinon.assert.notCalled(destroy);
-      expect(violations()).to.equal(0);
+      expect(await violations()).to.equal(0);
     });
 
     it('does not drop a response that is only briefly over budget', async () => {
@@ -226,7 +226,7 @@ describe('Middleware: connection output budget', () => {
       await sweepFor(CONNECTION_OUTPUT_STALL_MS * 10);
 
       sinon.assert.notCalled(destroy);
-      expect(violations()).to.equal(0);
+      expect(await violations()).to.equal(0);
     });
 
     it('stops sampling once the response closes', async () => {
@@ -293,7 +293,7 @@ describe('Middleware: connection output budget', () => {
 
       const dropped = entries.filter(e => e.destroy.called).length;
       expect(dropped).to.be.greaterThan(0);
-      expect(violations()).to.be.greaterThan(0);
+      expect(await violations()).to.be.greaterThan(0);
     });
 
     it('drops the heaviest holder first', async () => {
@@ -346,7 +346,7 @@ describe('Middleware: connection output budget', () => {
 
       await connectionOutputBudgetMiddleware(ctx, next);
       sinon.assert.calledOnce(next);
-      expect(violations()).to.equal(0);
+      expect(await violations()).to.equal(0);
     });
   });
 });
