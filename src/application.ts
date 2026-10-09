@@ -21,6 +21,10 @@ import {
 import {DependencyInjectionHandler} from './dependency-injection-handler';
 import {MySequence} from './sequence';
 import {httpAccessLogMiddleware} from './middleware/http-access-log.middleware';
+import {
+  httpMetricsMiddleware,
+  seedHttpMetrics,
+} from './middleware/http-metrics.middleware';
 import {requestBodyBudgetMiddleware} from './middleware/request-body-budget.middleware';
 import {
   boundedErrorWriterMiddleware,
@@ -187,6 +191,9 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
     // Log inbound HTTP requests/responses for API routes
     this.middleware(httpAccessLogMiddleware);
 
+    // Ahead of the rate limiter and body budget so their rejections are counted.
+    this.middleware(httpMetricsMiddleware);
+
     // Convert every downstream failure into a bounded JSON error body. Also
     // replaces the framework reject action below, so no error path can reach
     // strong-error-handler's XML/HTML serializers.
@@ -238,6 +245,8 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
         writeBoundedError(ctx.request, ctx.response, err);
       },
     );
+
+    this.onStart(async () => seedHttpMetrics(await this.restServer.getApiSpec()));
 
     DependencyInjectionHandler.configureDependencies(this);
   }

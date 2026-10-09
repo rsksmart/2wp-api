@@ -6,6 +6,7 @@ import {
 } from '../config/resource-budgets';
 import {getLogger} from '../utils/logger';
 import {incrementMetricCounter} from '../utils/metric-logger';
+import {errorsTotal, ErrorType} from '../utils/metrics';
 import {
   recordBudgetViolation,
   ResourceBudgetName,
@@ -304,6 +305,29 @@ export function buildBoundedErrorBody(
   return withDetails;
 }
 
+// Classified from the built body so the metric and the response cannot disagree.
+const errorTypeFor = ({error}: BoundedErrorBody): ErrorType => {
+  if (error.code === VALIDATION_ERROR_CODE) {
+    return 'validation';
+  }
+  if (error.code === 'SERVICE_OVERLOADED') {
+    return 'overloaded';
+  }
+  switch (error.statusCode) {
+    case 429:
+      return 'rate_limited';
+    case 499:
+      return 'cancelled';
+    case 502:
+      return 'upstream';
+    case 503:
+    case 504:
+      return 'timeout';
+    default:
+      return error.statusCode < 500 ? 'rejected' : 'internal';
+  }
+};
+
 /** Resolves the status code the same way LoopBack's default reject provider does. */
 const resolveStatusCode = (err: {
   status?: number;
@@ -352,6 +376,7 @@ export function writeBoundedError(
   const payload = JSON.stringify(body);
 
   recordFormatRejection(err as {statusCode?: number; type?: unknown});
+  errorsTotal.inc({type: errorTypeFor(body)});
 
   // Bounded metadata only: counts and categories, never the payload or the
   // framework's (possibly input-bearing) message.

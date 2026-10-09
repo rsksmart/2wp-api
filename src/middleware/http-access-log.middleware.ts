@@ -39,7 +39,7 @@ export const isRoutineProbe = (request: Request, response: Response): boolean =>
   response.writableFinished &&
   response.statusCode < 400;
 
-const isApiRequest = (path: string): boolean => {
+export const isApiRequest = (path: string): boolean => {
   if (STATIC_PATHS.has(path)) {
     return false;
   }

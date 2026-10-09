@@ -1,12 +1,7 @@
 /* eslint-disable max-classes-per-file -- the limiter and the refusal it raises
    are one concept: the control and the way it says no. */
 import {Next} from '@loopback/core';
-import {
-  Middleware,
-  MiddlewareContext,
-  RestBindings,
-  RestRouter,
-} from '@loopback/rest';
+import {Middleware, MiddlewareContext} from '@loopback/rest';
 import {
   RATE_LIMIT_MAX_FANOUT_REQUESTS,
   RATE_LIMIT_MAX_HEALTH_REQUESTS,
@@ -21,6 +16,7 @@ import {
   recordBudgetViolation,
   ResourceBudgetName,
 } from '../utils/resource-budget';
+import {resolveRouteTemplate} from '../utils/route-template';
 
 const logger = getLogger('rate-limit');
 
@@ -409,41 +405,6 @@ const sweeper = setInterval(
   RATE_LIMIT_WINDOW_MS,
 );
 sweeper.unref();
-
-/**
- * The route a request resolves to, as a template, or `undefined` when it does
- * not resolve to one.
- *
- * Asking the router instead of reading `request.path` is what makes the
- * classification immune to spelling. The router accepts `/utxo` and `/utxo/` for
- * the same route, so anything keyed on the text the client sent files one
- * expensive route under two allowances — and the cheap one is six times wider.
- * Enumerating variants only covers the ones somebody thought of; asking the
- * component that routes covers the ones nobody did.
- *
- * The two router shapes disagree about how to say "no route": `RestRouter.find`
- * answers `undefined`, `RoutingTable.find` throws `NotFound`. Both collapse to
- * `undefined` here — an unroutable request is simply not a fan-out request, and
- * the 404 is the router's business, not this middleware's.
- *
- * @param ctx - The middleware context for this request.
- * @returns The route template, or `undefined` if the request resolves to no route.
- */
-async function resolveRouteTemplate(
-  ctx: MiddlewareContext,
-): Promise<string | undefined> {
-  const router = await ctx.get<RestRouter>(RestBindings.ROUTER, {
-    optional: true,
-  });
-  if (!router) {
-    return undefined;
-  }
-  try {
-    return router.find(ctx.request)?.path;
-  } catch {
-    return undefined;
-  }
-}
 
 /**
  * Refuses requests from a client that is over its allowance.
