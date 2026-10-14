@@ -10,6 +10,7 @@ import { SyncStatusDataService } from '../services/sync-status-data.service';
 import { SyncStatusModel } from '../models/rsk/sync-status.model';
 import { LastBlockInfo } from '../models/btc-last-block.model';
 import { HEALTH_CACHE_TTL_MS } from '../config/resource-budgets';
+import { errorsTotal } from '../utils/metrics';
 
 const packageJson = require('../../package.json');
 
@@ -93,10 +94,15 @@ export class HealthCheckController {
    */
   async health(): Promise<Response> {
     const health = await this.healthSnapshot();
+    const healthy = !!health.up;
+
+    if (!healthy) {
+      errorsTotal.inc({type: 'upstream'});
+    }
 
     // Status semantics are unchanged, cached or not: operators depend on this
     // being a readiness signal.
-    this.response.contentType('application/json').status(health.up! ? 200 : 500).send(
+    this.response.contentType('application/json').status(healthy ? 200 : 500).send(
       health
     );
 

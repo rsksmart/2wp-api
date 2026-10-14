@@ -7,6 +7,7 @@ import {HealthCheckController} from '../../controllers';
 import {BitcoinService, BridgeService, SyncStatusDataService, RskNodeService} from '../../services';
 import {sinon} from '@loopback/testlab/dist/sinon';
 import { writeResultToResponse } from '@loopback/rest';
+import {errorsTotal} from '../../utils/metrics';
 
   describe('health check controller', () => {
     let getLastBlock: sinon.SinonStub;
@@ -119,5 +120,38 @@ import { writeResultToResponse } from '@loopback/rest';
       sinon.assert.calledOnce(getFederationAddress);
       expect(result.payload).not.null();
      });
+
+    describe('errors_total', () => {
+      const upstreamErrors = async (): Promise<number> =>
+        (await errorsTotal.get()).values.find(v => v.labels.type === 'upstream')?.value ?? 0;
+
+      beforeEach(() => {
+        HealthCheckController.clearCache();
+        context = stubExpressContext();
+        controller = new HealthCheckController(
+          bitcoinService,
+          bridgeService,
+          rskNodeService,
+          theSyncStorageService,
+          context.response,
+        );
+      });
+      after(() => HealthCheckController.clearCache());
+
+      it('counts an upstream error when a dependency check fails', async () => {
+        getBlockNumber.rejects(new Error('node down'));
+        const before = await upstreamErrors();
+        await controller.health();
+        const result = await context.result;
+        expect(result.statusCode).to.equal(500);
+        expect(await upstreamErrors()).to.equal(before + 1);
+      });
+
+      it('does not count an error when every check succeeds', async () => {
+        const before = await upstreamErrors();
+        await controller.health();
+        expect(await upstreamErrors()).to.equal(before);
+      });
+    });
 
   });
