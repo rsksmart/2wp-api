@@ -1,13 +1,13 @@
 import * as precompiledAbis from '@rsksmart/rsk-precompiled-abis';
-import {ethers} from 'ethers';
+import { ethers } from 'ethers';
 import { getBridgeState, BridgeState } from '@rsksmart/bridge-state-data-parser';
-import {getLogger, Logger} from '../utils/logger';
+import { getLogger, Logger } from '../utils/logger';
 import * as constants from '../constants';
 
 export class BridgeService {
   private bridgeContract: ethers.Contract;
   private provider: ethers.JsonRpcProvider;
-  private TOTAL_RBTC_STOCK = BigInt(21000000);
+  private TOTAL_RBTC_STOCK = ethers.parseEther('21000000');
   private host: string;
   logger: Logger;
   constructor() {
@@ -29,7 +29,7 @@ export class BridgeService {
           resolve(address);
         })
         .catch((err: any) => {
-          this.logger.warn({method: 'getFederationAddress', err}, 'Bridge call failed');
+          this.logger.warn({ method: 'getFederationAddress', err }, 'Bridge call failed');
           reject(err);
         });
     });
@@ -41,7 +41,7 @@ export class BridgeService {
         .getMinimumLockTxValue()
         .then((minValue: string) => resolve(Number(minValue)))
         .catch((err: any) => {
-          this.logger.warn({method: 'getMinPeginValue', err}, 'Bridge call failed');
+          this.logger.warn({ method: 'getMinPeginValue', err }, 'Bridge call failed');
           reject(err);
         });
     });
@@ -53,7 +53,7 @@ export class BridgeService {
         .getLockingCap()
         .then((lockingCap: string) => resolve(Number(lockingCap)))
         .catch((err: any) => {
-          this.logger.warn({method: 'getLockingCapAmount', err}, 'Bridge call failed');
+          this.logger.warn({ method: 'getLockingCapAmount', err }, 'Bridge call failed');
           reject(err);
         });
     });
@@ -68,7 +68,7 @@ export class BridgeService {
           resolve(Number(amount));
         })
         .catch(err => {
-          this.logger.warn({method: 'getRbtcInCirculation', err}, 'Bridge call failed');
+          this.logger.warn({ method: 'getRbtcInCirculation', err }, 'Bridge call failed');
           reject(err);
         });
     });
@@ -86,7 +86,7 @@ export class BridgeService {
           resolve(Math.min(availability, maxAllowed));
         })
         .catch(err => {
-          this.logger.warn({method: 'getPeginAvailability', err}, 'Bridge call failed');
+          this.logger.warn({ method: 'getPeginAvailability', err }, 'Bridge call failed');
           reject(err);
         });
     });
@@ -98,7 +98,7 @@ export class BridgeService {
         .isBtcTxHashAlreadyProcessed(txHash)
         .then((isProcessed: Boolean) => resolve(isProcessed))
         .catch((err: any) => {
-          this.logger.warn({method: 'isBtcTxHashAlreadyProcessed', err}, 'Bridge call failed');
+          this.logger.warn({ method: 'isBtcTxHashAlreadyProcessed', err }, 'Bridge call failed');
           reject(err);
         });
     });

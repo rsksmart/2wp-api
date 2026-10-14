@@ -1,5 +1,5 @@
-import {expect} from '@loopback/testlab';
-import {BridgeService} from '../../services';
+import { expect } from '@loopback/testlab';
+import { BridgeService } from '../../services';
 import BridgeTransactionParser from '@rsksmart/bridge-transaction-parser';
 import { ethers } from 'ethers';
 import * as constants from '../../constants';
@@ -59,14 +59,32 @@ describe('Service: Bridge', () => {
 
   });
 
-  it('returns rbtc in circulation as number', async() => {
+  it('returns rbtc in circulation as number', async () => {
     const rbtc = await bridgeService.getRbtcInCirculation();
     expect(rbtc).to.be.Number();
   });
 
-  it('returns pegin availability as number', async() => {
+  it('returns pegin availability as number', async () => {
     const availability = await bridgeService.getPeginAvailability();
     expect(availability).to.be.Number();
+  });
+
+  describe('without MAX_AMOUNT_ALLOWED_IN_SATOSHI', () => {
+    let maxAllowed: string | undefined;
+
+    before(() => {
+      maxAllowed = process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI;
+      delete process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI;
+    });
+
+    after(() => {
+      if (maxAllowed !== undefined) process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI = maxAllowed;
+    });
+
+    it('returns pegin availability as locking cap minus locked BTC, in sats', async () => {
+      const availability = await bridgeService.getPeginAvailability();
+      expect(availability).to.equal(2099611289885173);
+    });
   });
 
   it('returns bridge transaction by hash', async () => {
