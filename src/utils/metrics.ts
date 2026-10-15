@@ -36,7 +36,7 @@ new Gauge({
 );
 
 // Closed so `errors_total` stays low-cardinality: never derived from request data.
-const ERROR_TYPES = [
+export const ERROR_TYPES = [
   'validation',
   'rejected',
   'rate_limited',

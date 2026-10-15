@@ -4,7 +4,7 @@ import {assertBridgeCalldataWithinBudget} from '../../../utils/bridge-utils';
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../../utils/metric-logger';
+} from '../../helpers/metrics';
 import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
   ResourceBudgetName,
@@ -76,7 +76,7 @@ describe('Utils: bridge calldata budget', () => {
     });
   });
 
-  it('emits the observability signal on a violation, with no payload in it', () => {
+  it('emits the observability signal on a violation, with no payload in it', async () => {
     try {
       assertBridgeCalldataWithinBudget(hexOf(MAX_BRIDGE_CALLDATA_BYTES + 1), {
         route: 'GET /tx-status-by-type/{txId}/{txType}',
@@ -86,7 +86,7 @@ describe('Utils: bridge calldata budget', () => {
     }
 
     expect(
-      getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+      await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
         resource: ResourceBudgetName.BRIDGE_CALLDATA_BYTES,
       }),
     ).to.equal(1);

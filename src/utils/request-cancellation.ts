@@ -1,15 +1,27 @@
+import {Counter} from '@prometheus-io/client';
 import {getLogger} from './logger';
-import {incrementMetricCounter} from './metric-logger';
+import {METRICS_PREFIX, metricsRegistry} from './metrics';
 import {recordBudgetViolation, ResourceBudgetName} from './resource-budget';
 import {getRequestSignal, getTraceId} from './trace-context';
 
 const logger = getLogger('request-cancellation');
 
 /** Counter incremented whenever a request's work is cancelled. */
-export const REQUEST_CANCELLED_METRIC = 'request_cancelled_total';
+export const REQUEST_CANCELLED_METRIC = `${METRICS_PREFIX}requests_cancelled_total`;
 
 /** Why a request's work was cancelled. Closed, low-cardinality vocabulary. */
-export type CancellationReason = 'client_aborted' | 'timeout';
+export const CANCELLATION_REASONS = ['client_aborted', 'timeout'] as const;
+
+export type CancellationReason = (typeof CANCELLATION_REASONS)[number];
+
+const requestsCancelledTotal = new Counter<'reason'>({
+  name: REQUEST_CANCELLED_METRIC,
+  help: 'Requests whose work was cancelled, by reason.',
+  labelNames: ['reason'],
+  registers: [metricsRegistry],
+});
+
+CANCELLATION_REASONS.forEach(reason => requestsCancelledTotal.inc({reason}, 0));
 
 /** Status used when the client is already gone. Non-standard but conventional. */
 export const CLIENT_CLOSED_REQUEST_STATUS = 499;
@@ -60,7 +72,7 @@ export function recordCancellation(details: {
     },
     'Request cancelled; downstream work stopped',
   );
-  incrementMetricCounter(logger, REQUEST_CANCELLED_METRIC, {reason});
+  requestsCancelledTotal.inc({reason});
 
   // A vanished client is not a budget being exceeded, but a deadline is.
   if (reason === 'timeout' && configuredLimitMs !== undefined) {

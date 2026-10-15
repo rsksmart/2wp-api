@@ -1,36 +1,59 @@
 /* eslint-disable max-classes-per-file -- the semaphore and the error it raises
    are one concept: the pool and the way it says no. Splitting them would put
    the contract in one file and its failure mode in another. */
+import {Counter, Gauge} from '@prometheus-io/client';
 import {
   BLOCKBOOK_MAX_IN_FLIGHT,
   BLOCKBOOK_QUEUE_MAX_DEPTH,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS,
   TX_PROVIDER_MAX_IN_FLIGHT,
 } from '../config/resource-budgets';
-import {getLogger} from './logger';
-import {
-  adjustMetricGauge,
-  incrementMetricCounter,
-  setMetricGauge,
-} from './metric-logger';
+import {METRICS_PREFIX, metricsRegistry} from './metrics';
 import {cancellationOf, RequestCancelledError} from './request-cancellation';
 import {recordBudgetViolation, ResourceBudgetName} from './resource-budget';
 import {getRequestSignal} from './trace-context';
 
-const logger = getLogger('provider-permits');
-
 /** Gauge: permits currently held. */
-export const PROVIDER_PERMITS_ACTIVE_GAUGE = 'provider_permits_active';
+export const PROVIDER_PERMITS_ACTIVE_GAUGE = `${METRICS_PREFIX}provider_permits_active`;
 /** Gauge: callers currently waiting for a permit. */
-export const PROVIDER_PERMITS_QUEUED_GAUGE = 'provider_permits_queued';
+export const PROVIDER_PERMITS_QUEUED_GAUGE = `${METRICS_PREFIX}provider_permits_queued`;
 /** Counter: permits handed out. */
-export const PROVIDER_PERMITS_GRANTED_METRIC = 'provider_permits_granted_total';
+export const PROVIDER_PERMITS_GRANTED_METRIC = `${METRICS_PREFIX}provider_permits_granted_total`;
 /** Counter: callers refused, labelled by reason. */
-export const PROVIDER_PERMITS_REJECTED_METRIC =
-  'provider_permits_rejected_total';
+export const PROVIDER_PERMITS_REJECTED_METRIC = `${METRICS_PREFIX}provider_permits_rejected_total`;
 
 /** Why a caller was refused a permit. Closed, low-cardinality vocabulary. */
-export type PermitRejectionReason = 'queue_full' | 'wait_timeout';
+export const PERMIT_REJECTION_REASONS = ['queue_full', 'wait_timeout'] as const;
+
+export type PermitRejectionReason = (typeof PERMIT_REJECTION_REASONS)[number];
+
+export const providerPermitsActive = new Gauge<'pool'>({
+  name: PROVIDER_PERMITS_ACTIVE_GAUGE,
+  help: 'Provider permits currently held, by pool.',
+  labelNames: ['pool'],
+  registers: [metricsRegistry],
+});
+
+export const providerPermitsQueued = new Gauge<'pool'>({
+  name: PROVIDER_PERMITS_QUEUED_GAUGE,
+  help: 'Callers currently waiting for a provider permit, by pool.',
+  labelNames: ['pool'],
+  registers: [metricsRegistry],
+});
+
+export const providerPermitsGrantedTotal = new Counter<'pool'>({
+  name: PROVIDER_PERMITS_GRANTED_METRIC,
+  help: 'Provider permits handed out, by pool.',
+  labelNames: ['pool'],
+  registers: [metricsRegistry],
+});
+
+export const providerPermitsRejectedTotal = new Counter<'pool' | 'reason'>({
+  name: PROVIDER_PERMITS_REJECTED_METRIC,
+  help: 'Callers refused a provider permit, by pool and reason.',
+  labelNames: ['pool', 'reason'],
+  registers: [metricsRegistry],
+});
 
 /**
  * Raised when the pool and its queue are both full.
@@ -187,7 +210,7 @@ export class Semaphore {
         const index = this.waiters.indexOf(waiter);
         if (index !== -1) {
           this.waiters.splice(index, 1);
-          this.publishQueued();
+          providerPermitsQueued.dec({pool: this.options.name});
         }
       };
 
@@ -213,7 +236,7 @@ export class Semaphore {
       };
 
       this.waiters.push(waiter);
-      this.publishQueued();
+      providerPermitsQueued.inc({pool: this.options.name});
 
       timer = setTimeout(() => {
         waiter.refuse(this.rejection('wait_timeout'));
@@ -231,26 +254,24 @@ export class Semaphore {
   /** Marks a permit as held. */
   private take(): void {
     this.held += 1;
-    adjustMetricGauge(logger, PROVIDER_PERMITS_ACTIVE_GAUGE, 1, {
-      pool: this.options.name,
-    });
-    incrementMetricCounter(logger, PROVIDER_PERMITS_GRANTED_METRIC, {
-      pool: this.options.name,
-    });
+    providerPermitsActive.inc({pool: this.options.name});
+    providerPermitsGrantedTotal.inc({pool: this.options.name});
   }
 
   /** Returns a permit and hands it to the next waiter, if any. */
   private release(): void {
-    this.held = Math.max(0, this.held - 1);
-    adjustMetricGauge(logger, PROVIDER_PERMITS_ACTIVE_GAUGE, -1, {
-      pool: this.options.name,
-    });
+    // Clamped, and the gauge only moves when the count did, so a double release
+    // can never drive it below zero.
+    if (this.held > 0) {
+      this.held -= 1;
+      providerPermitsActive.dec({pool: this.options.name});
+    }
 
     // Skip waiters that have already given up, so a cancelled queue does not
     // swallow the permit that was meant for whoever is still waiting.
     while (this.waiters.length > 0 && this.held < this.options.limit) {
       const next = this.waiters.shift();
-      this.publishQueued();
+      providerPermitsQueued.dec({pool: this.options.name});
       const before = this.held;
       next?.grant();
       if (this.held > before) {
@@ -266,10 +287,7 @@ export class Semaphore {
 
   private rejection(reason: PermitRejectionReason): PermitRejectedError {
     const {name, limit} = this.options;
-    incrementMetricCounter(logger, PROVIDER_PERMITS_REJECTED_METRIC, {
-      pool: name,
-      reason,
-    });
+    providerPermitsRejectedTotal.inc({pool: name, reason});
     recordBudgetViolation({
       resource: ResourceBudgetName.PROVIDER_PERMITS,
       configuredLimit: limit,
@@ -285,13 +303,6 @@ export class Semaphore {
       count: this.waits.count + 1,
       max: Math.max(this.waits.max, ms),
     };
-  }
-
-  /** Queue depth is known exactly, so publish it rather than nudging it. */
-  private publishQueued(): void {
-    setMetricGauge(logger, PROVIDER_PERMITS_QUEUED_GAUGE, this.waiters.length, {
-      pool: this.options.name,
-    });
   }
 }
 
@@ -332,4 +343,14 @@ export const txProviderPermits = new Semaphore({
   limit: TX_PROVIDER_MAX_IN_FLIGHT,
   queueDepth: BLOCKBOOK_QUEUE_MAX_DEPTH,
   waitMs: BLOCKBOOK_QUEUE_MAX_WAIT_MS,
+});
+
+// A series that does not exist yet cannot be alerted on.
+[blockbookPermits, txProviderPermits].forEach(({name: pool}) => {
+  providerPermitsActive.set({pool}, 0);
+  providerPermitsQueued.set({pool}, 0);
+  providerPermitsGrantedTotal.inc({pool}, 0);
+  PERMIT_REJECTION_REASONS.forEach(reason =>
+    providerPermitsRejectedTotal.inc({pool, reason}, 0),
+  );
 });

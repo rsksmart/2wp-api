@@ -9,7 +9,7 @@ import {BRIDGE_METHODS, getBridgeSignature} from '../../utils/bridge-utils';
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../utils/metric-logger';
+} from '../helpers/metrics';
 import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
   ResourceBudgetName,
@@ -172,7 +172,7 @@ describe('Bridge calldata budget (Acceptance)', () => {
     });
 
     expect(
-      getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+      await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
         resource: ResourceBudgetName.BRIDGE_CALLDATA_BYTES,
       }),
     ).to.equal(1);
@@ -190,7 +190,7 @@ describe('Bridge calldata budget (Acceptance)', () => {
     // The cheaper, more specific check runs first, so the size bound is never
     // consulted. Both refuse it; only one of them gets to.
     expect(
-      getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+      await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
         resource: ResourceBudgetName.BRIDGE_CALLDATA_BYTES,
       }),
     ).to.equal(0);
@@ -213,7 +213,7 @@ describe('Bridge calldata budget (Acceptance)', () => {
 
     expect(res.status).to.equal(200);
     expect(
-      getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+      await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
         resource: ResourceBudgetName.BRIDGE_CALLDATA_BYTES,
       }),
     ).to.equal(0);

@@ -6,7 +6,7 @@ import {requestBodyBudgetMiddleware} from '../../../middleware/request-body-budg
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../../utils/metric-logger';
+} from '../../helpers/metrics';
 import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
   ResourceBudgetName,
@@ -63,7 +63,7 @@ describe('Middleware: request body budget', () => {
     expect(caught.statusCode).to.equal(413);
     sinon.assert.notCalled(next);
     expect(
-      getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+      await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
         resource: ResourceBudgetName.REQUEST_BODY_BYTES,
       }),
     ).to.equal(1);

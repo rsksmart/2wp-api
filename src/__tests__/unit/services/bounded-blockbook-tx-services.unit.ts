@@ -11,7 +11,7 @@ import {
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../../utils/metric-logger';
+} from '../../helpers/metrics';
 import {blockbookPermits} from '../../../utils/provider-permits';
 import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
@@ -47,8 +47,8 @@ describe('Services: bounded cheap Blockbook calls', () => {
     nock.restore();
   });
 
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     nock.cleanAll();
     sinon.restore();
   });
@@ -101,7 +101,7 @@ describe('Services: bounded cheap Blockbook calls', () => {
       await expect(fetchFeeEstimate(6)).to.be.rejected();
 
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.PROVIDER_RESPONSE_BYTES,
         }),
       ).to.equal(1);

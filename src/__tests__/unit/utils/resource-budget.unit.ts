@@ -2,7 +2,7 @@ import {expect} from '@loopback/testlab';
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../../utils/metric-logger';
+} from '../../helpers/metrics';
 import {
   assertWithinBudget,
   budgetExceededError,
@@ -70,7 +70,7 @@ describe('Utils: resource budget', () => {
       expect(caught.statusCode).to.equal(502);
     });
 
-    it('does not record a violation while inside the budget', () => {
+    it('does not record a violation while inside the budget', async () => {
       assertWithinBudget({
         resource: ResourceBudgetName.UTXO_RESPONSE_ROWS,
         configuredLimit: 100,
@@ -78,7 +78,7 @@ describe('Utils: resource budget', () => {
       });
 
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.UTXO_RESPONSE_ROWS,
         }),
       ).to.equal(0);
@@ -86,7 +86,7 @@ describe('Utils: resource budget', () => {
   });
 
   describe('observability', () => {
-    it('counts violations per resource', () => {
+    it('counts violations per resource', async () => {
       recordBudgetViolation({
         resource: ResourceBudgetName.ADDRESS_LIST_ITEMS,
         configuredLimit: 1,
@@ -104,12 +104,12 @@ describe('Utils: resource budget', () => {
       });
 
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.ADDRESS_LIST_ITEMS,
         }),
       ).to.equal(2);
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.REQUEST_BODY_BYTES,
         }),
       ).to.equal(1);

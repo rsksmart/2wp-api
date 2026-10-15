@@ -9,7 +9,7 @@ import {
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../utils/metric-logger';
+} from '../helpers/metrics';
 import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
   ResourceBudgetName,
@@ -108,8 +108,8 @@ describe('Provider response budget (Acceptance)', () => {
     process.env.BLOCKBOOK_URL = previousBlockbookUrl;
   });
 
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     upstream.servedBytes = 0;
   });
 
@@ -127,7 +127,7 @@ describe('Provider response budget (Acceptance)', () => {
     expect(res.status).to.equal(200);
     expect(body.hex.length).to.be.greaterThan(2_000_000);
     expect(
-      getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+      await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
         resource: ResourceBudgetName.PROVIDER_RESPONSE_BYTES,
       }),
     ).to.equal(0);
@@ -172,7 +172,7 @@ describe('Provider response budget (Acceptance)', () => {
     });
 
     expect(
-      getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+      await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
         resource: ResourceBudgetName.PROVIDER_RESPONSE_BYTES,
       }),
     ).to.equal(1);
