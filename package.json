@@ -61,6 +61,7 @@
     "@loopback/rest": "^15.0.13",
     "@loopback/rest-explorer": "^8.0.13",
     "@loopback/service-proxy": "^8.0.12",
+    "@prometheus-io/client": "^0.16.1",
     "@rsksmart/bridge-state-data-parser": "^2.0.0",
     "@rsksmart/bridge-transaction-parser": "^2.0.0",
     "@rsksmart/rsk-precompiled-abis": "^8.0.0-REED",

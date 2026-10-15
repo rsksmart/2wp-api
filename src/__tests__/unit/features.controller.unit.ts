@@ -6,6 +6,7 @@ import { FeaturesController } from '../../controllers/features.controller';
 import { FeaturesDataService } from '../../services';
 import { FeaturesDbDataModel } from '../../models/features-data.model';
 import { FeaturesMongoDbDataService } from '../../services/features-mongo.service';
+import { errorsTotal } from '../../utils/metrics';
 import { BackofficeFeatureFlagsService } from '../../services/backoffice-feature-flags.service';
 
   describe('FeaturesController (unit)', () => {
@@ -129,6 +130,29 @@ import { BackofficeFeatureFlagsService } from '../../services/backoffice-feature
         expect(byName.get('boltz')?.pairs).to.eql(pairs);
         expect(byName.get('changelly')?.value).to.equal('disabled');
         expect(byName.get('changelly')?.pairs).to.eql([]);
+      });
+      describe('errors_total', () => {
+        const internalErrors = async (): Promise<number> =>
+          (await errorsTotal.get()).values.find(v => v.labels.type === 'internal')?.value ?? 0;
+
+        it('counts an internal error when the features cannot be retrieved', async() => {
+          getAll.rejects(new Error('db down'));
+          const before = await internalErrors();
+          const controller = new FeaturesController(context.response, mockedService, mockedBackofficeService);
+          await controller.get();
+          const result = await context.result;
+          expect(result.statusCode).to.equal(500);
+          expect(await internalErrors()).to.equal(before + 1);
+        });
+        it('does not count an error when only the backoffice flags fail', async() => {
+          getProviderFlags.rejects(new Error('backoffice down'));
+          const before = await internalErrors();
+          const controller = new FeaturesController(context.response, mockedService, mockedBackofficeService);
+          await controller.get();
+          const result = await context.result;
+          expect(result.statusCode).to.equal(200);
+          expect(await internalErrors()).to.equal(before);
+        });
       });
     });
 
