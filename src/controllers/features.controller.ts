@@ -5,6 +5,7 @@ import { ServicesBindings } from '../dependency-injection-bindings';
 import { FeaturesDataService } from '../services/features-data.service';
 import { BackofficeFeatureFlagsService, MergedFeature, applyProviderFlags } from '../services/backoffice-feature-flags.service';
 import { FeaturesDbDataModel } from '../models/features-data.model';
+import { errorsTotal } from '../utils/metrics';
 
 export class FeaturesController {
   logger: Logger;
@@ -75,6 +76,9 @@ export class FeaturesController {
         this.logger.debug({method: 'get', featureCount: features.length}, 'Retrieved the features');
     } catch (err) {
         this.logger.warn({method: 'get', err}, 'Failed to retrieve features');
+    }
+    if (responseCode >= this.HTTP_ERROR) {
+      errorsTotal.inc({type: 'internal'});
     }
     this.response.contentType('application/json').status(responseCode).send(
         features

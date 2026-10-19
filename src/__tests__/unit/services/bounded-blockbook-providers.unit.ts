@@ -9,7 +9,7 @@ import {fetchAddressUtxos} from '../../../services/utxo-provider.service';
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../../utils/metric-logger';
+} from '../../helpers/metrics';
 import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
   ResourceBudgetName,
@@ -50,8 +50,8 @@ describe('Services: bounded Blockbook providers', () => {
     nock.restore();
   });
 
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     nock.cleanAll();
   });
 
@@ -94,7 +94,7 @@ describe('Services: bounded Blockbook providers', () => {
       expect(caught).to.not.be.null();
       expect(caught.statusCode).to.equal(413);
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.UTXOS_PER_ADDRESS,
         }),
       ).to.equal(1);
@@ -138,7 +138,7 @@ describe('Services: bounded Blockbook providers', () => {
         'Provider response exceeded the configured size budget',
       );
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.PROVIDER_RESPONSE_BYTES,
         }),
       ).to.equal(1);

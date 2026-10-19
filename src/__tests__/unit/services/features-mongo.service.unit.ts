@@ -5,7 +5,7 @@ import {FeaturesMongoDbDataService} from '../../../services/features-mongo.servi
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../../utils/metric-logger';
+} from '../../helpers/metrics';
 import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
   ResourceBudgetName,
@@ -31,8 +31,8 @@ describe('Service: FeaturesMongoService bounded reads', () => {
       lastUpdateDate: new Date(),
     }));
 
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     // The datasource is never reached: the connector is stubbed below.
     service = new FeaturesMongoDbDataService({} as never);
     exec = sinon.stub();
@@ -71,7 +71,7 @@ describe('Service: FeaturesMongoService bounded reads', () => {
     await service.getAll();
 
     expect(
-      getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+      await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
         resource: ResourceBudgetName.MONGO_DOCUMENTS,
       }),
     ).to.equal(1);
@@ -83,7 +83,7 @@ describe('Service: FeaturesMongoService bounded reads', () => {
     await service.getAll();
 
     expect(
-      getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+      await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
         resource: ResourceBudgetName.MONGO_DOCUMENTS,
       }),
     ).to.equal(0);

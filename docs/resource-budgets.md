@@ -456,8 +456,9 @@ counted — doing so would hand an attacker a free reset: flood the map to displ
 your own counter, then resume.
 
 Refusals are `429` with `Retry-After` and code `RATE_LIMITED`, and are counted by
-`rate_limit_rejected_total{route}` where `route` is the **closed** vocabulary
-`fanout` / `other` — never the raw path, which is attacker-controlled.
+`twp_api_rate_limit_rejected_total{route_class}` where `route_class` is the
+**closed** vocabulary `fanout` / `health` / `other` — never the raw path, which
+is attacker-controlled.
 
 **This is half of what is needed.** Authentication is the other half;
 rate limiting is the only access control implemented here, and the API
@@ -703,7 +704,7 @@ Once tripped, two things stop:
 The abort carries a reason, so consumers report why work stopped: a client abort
 is logged as `499` (conventional for "client closed the request", and never
 delivered), a deadline breach as `503`. Both increment
-`request_cancelled_total{reason}`; a deadline additionally records a
+`twp_api_requests_cancelled_total{reason}`; a deadline additionally records a
 `request_duration_ms` budget violation, because unlike a vanished client it *is*
 a ceiling the service set for itself.
 
@@ -972,12 +973,9 @@ Every violation emits, at `warn`:
 The attacker-controlled payload is deliberately **never** logged — only the
 configured limit, the observed scalar, the route, and the trace id.
 
-Alongside the log, a `resource_budget_exceeded_total` counter is incremented,
-labelled by `resource`, through the existing metrics stack
-([`metric-logger.ts`](../src/utils/metric-logger.ts)). Counters are always
-recorded in process; `METRICS_ENABLED=true` additionally emits each sample on the
-metric debug-log channel. `getMetricCounters()` / `getMetricCounter()` expose the
-registry.
+Alongside the log, the `twp_api_resource_budget_exceeded_total` counter is
+incremented, labelled by `resource`. [`metrics.md`](./metrics.md) lists every
+series the service exposes.
 
 `resource` values, one per budget category, are the members of
 `ResourceBudgetName`: `request_body_bytes`, `provider_response_bytes`,
@@ -993,19 +991,10 @@ hit with `observedValue` near the limit is a recalibration due, not an attack.
 `observedValue: -1` means the calldata was refused before it was measured
 (malformed hex) — it is not a size.
 
-The provider pool additionally publishes its own series, since "how many are in
-flight right now" is a gauge and cannot be expressed as a monotonic counter:
-
-| Metric | Type | Labels |
-|---|---|---|
-| `provider_permits_active` | gauge | `pool` |
-| `provider_permits_queued` | gauge | `pool` |
-| `provider_permits_granted_total` | counter | `pool` |
-| `provider_permits_rejected_total` | counter | `pool`, `reason` |
-
-`pool` is `blockbook` or `blockbook-tx`. `reason` is a closed vocabulary of
-`queue_full` and `wait_timeout`. Saturation is `active` over that pool's limit,
-derived rather than stored. Sustained refusals on `blockbook-tx` mean the pool is
+The provider pools also publish their own `twp_api_provider_permits_*` series
+(see [`metrics.md`](./metrics.md)), since "how many are in
+flight right now" is a gauge and cannot be expressed as a monotonic counter.
+Sustained refusals on `blockbook-tx` mean the pool is
 undersized for real traffic, not that anything is under attack. Wait times are
 aggregated as a sum/count/max triple on the pool, which is enough for a mean and
 a tail without inventing histogram buckets nothing consumes yet.

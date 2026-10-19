@@ -1,11 +1,17 @@
 import {Next} from '@loopback/core';
 import {MiddlewareContext, Request, Response} from '@loopback/rest';
+import {Counter} from '@prometheus-io/client';
 import {
   MAX_ERROR_RESPONSE_BYTES,
   MAX_VALIDATION_ERROR_DETAILS,
 } from '../config/resource-budgets';
 import {getLogger} from '../utils/logger';
-import {incrementMetricCounter} from '../utils/metric-logger';
+import {
+  errorsTotal,
+  ErrorType,
+  METRICS_PREFIX,
+  metricsRegistry,
+} from '../utils/metrics';
 import {
   recordBudgetViolation,
   ResourceBudgetName,
@@ -62,18 +68,34 @@ export const GENERIC_ERROR_MESSAGE = 'Request could not be processed.';
 export const VALIDATION_ERROR_MESSAGE = 'Invalid request payload.';
 
 /** Counter incremented when a request is refused on format grounds. */
-export const FORMAT_REJECTED_METRIC = 'format_rejected_total';
+export const FORMAT_REJECTED_METRIC = `${METRICS_PREFIX}http_format_rejected_total`;
 
 /**
  * The fixed vocabulary of format-rejection reasons. Kept closed so the metric
  * stays low-cardinality: the rejected header values are attacker-controlled and
  * unbounded, so they must never reach a label.
  */
-export type FormatRejectionReason =
-  | 'content_encoding'
-  | 'media_type'
-  | 'method'
-  | 'body_size';
+export const FORMAT_REJECTION_REASONS = [
+  'content_encoding',
+  'media_type',
+  'unroutable',
+  'body_size',
+] as const;
+
+export type FormatRejectionReason = (typeof FORMAT_REJECTION_REASONS)[number];
+
+// Overlaps the 4xx statuses on purpose: `content_encoding` and `media_type` are
+// both 415, and only the first one is a security control.
+const httpFormatRejectedTotal = new Counter<'reason'>({
+  name: FORMAT_REJECTED_METRIC,
+  help: 'Requests refused on format grounds, by reason.',
+  labelNames: ['reason'],
+  registers: [metricsRegistry],
+});
+
+FORMAT_REJECTION_REASONS.forEach(reason =>
+  httpFormatRejectedTotal.inc({reason}, 0),
+);
 
 /**
  * Classifies a refusal by *why* the request was unacceptable, from the status
@@ -97,9 +119,11 @@ const rejectionReason = (err: {
         : 'media_type';
     case 413:
       return 'body_size';
+    // LoopBack answers a wrong method with 404 too, so this cannot be told apart
+    // from an unknown path and also counts scanner traffic.
     case 404:
     case 405:
-      return 'method';
+      return 'unroutable';
     default:
       return undefined;
   }
@@ -122,7 +146,7 @@ export function recordFormatRejection(err: {
 }): void {
   const reason = rejectionReason(err);
   if (reason) {
-    incrementMetricCounter(logger, FORMAT_REJECTED_METRIC, {reason});
+    httpFormatRejectedTotal.inc({reason});
   }
 }
 
@@ -304,6 +328,29 @@ export function buildBoundedErrorBody(
   return withDetails;
 }
 
+// Classified from the built body so the metric and the response cannot disagree.
+const errorTypeFor = ({error}: BoundedErrorBody): ErrorType => {
+  if (error.code === VALIDATION_ERROR_CODE) {
+    return 'validation';
+  }
+  if (error.code === 'SERVICE_OVERLOADED') {
+    return 'overloaded';
+  }
+  switch (error.statusCode) {
+    case 429:
+      return 'rate_limited';
+    case 499:
+      return 'cancelled';
+    case 502:
+      return 'upstream';
+    case 503:
+    case 504:
+      return 'timeout';
+    default:
+      return error.statusCode < 500 ? 'rejected' : 'internal';
+  }
+};
+
 /** Resolves the status code the same way LoopBack's default reject provider does. */
 const resolveStatusCode = (err: {
   status?: number;
@@ -352,6 +399,7 @@ export function writeBoundedError(
   const payload = JSON.stringify(body);
 
   recordFormatRejection(err as {statusCode?: number; type?: unknown});
+  errorsTotal.inc({type: errorTypeFor(body)});
 
   // Bounded metadata only: counts and categories, never the payload or the
   // framework's (possibly input-bearing) message.

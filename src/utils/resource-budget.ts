@@ -1,6 +1,7 @@
 import {HttpErrors} from '@loopback/rest';
+import {Counter} from '@prometheus-io/client';
 import {getLogger} from './logger';
-import {incrementMetricCounter} from './metric-logger';
+import {METRICS_PREFIX, metricsRegistry} from './metrics';
 import {getTraceId} from './trace-context';
 
 const logger = getLogger('resource-budget');
@@ -9,7 +10,7 @@ const logger = getLogger('resource-budget');
 export const RESOURCE_BUDGET_EXCEEDED_EVENT = 'resource_budget_exceeded';
 
 /** Counter incremented for every budget violation, labelled by `resource`. */
-export const RESOURCE_BUDGET_EXCEEDED_METRIC = 'resource_budget_exceeded_total';
+export const RESOURCE_BUDGET_EXCEEDED_METRIC = `${METRICS_PREFIX}resource_budget_exceeded_total`;
 
 /**
  * The resource categories a budget can be declared for. One value per budget
@@ -32,6 +33,17 @@ export enum ResourceBudgetName {
   MONGO_DOCUMENTS = 'mongo_documents',
   BRIDGE_CALLDATA_BYTES = 'bridge_calldata_bytes',
 }
+
+const resourceBudgetExceededTotal = new Counter<'resource'>({
+  name: RESOURCE_BUDGET_EXCEEDED_METRIC,
+  help: 'Resource budget violations, by resource.',
+  labelNames: ['resource'],
+  registers: [metricsRegistry],
+});
+
+Object.values(ResourceBudgetName).forEach(resource =>
+  resourceBudgetExceededTotal.inc({resource}, 0),
+);
 
 /**
  * A single budget violation. Everything here is a bounded scalar — never the
@@ -77,7 +89,7 @@ export function recordBudgetViolation(violation: BudgetViolation): void {
     },
     'Resource budget exceeded',
   );
-  incrementMetricCounter(logger, RESOURCE_BUDGET_EXCEEDED_METRIC, {resource});
+  resourceBudgetExceededTotal.inc({resource});
 }
 
 /**

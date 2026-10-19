@@ -11,7 +11,7 @@ import {UtxoProvider} from '../../services';
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../utils/metric-logger';
+} from '../helpers/metrics';
 import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
   ResourceBudgetName,
@@ -43,8 +43,8 @@ describe('UtxoController: resource budgets', () => {
   let utxoProvider: sinon.SinonStub;
   let controller: UtxoController;
 
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     const service: UtxoProvider = {utxoProvider: sinon.stub()};
     utxoProvider = service.utxoProvider as sinon.SinonStub;
     controller = new UtxoController(service);
@@ -83,7 +83,7 @@ describe('UtxoController: resource budgets', () => {
       expect(caught).to.not.be.null();
       expect(caught.statusCode).to.equal(413);
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.UTXO_RESPONSE_ROWS,
         }),
       ).to.equal(1);
@@ -136,7 +136,7 @@ describe('UtxoController: resource budgets', () => {
       expect(caught).to.not.be.null();
       expect(caught.statusCode).to.equal(413);
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.UTXOS_PER_ADDRESS,
         }),
       ).to.equal(1);

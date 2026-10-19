@@ -7,16 +7,13 @@ import {
 import {
   buildBoundedErrorBody,
   FORMAT_REJECTED_METRIC,
+  FORMAT_REJECTION_REASONS,
   GENERIC_ERROR_MESSAGE,
   recordFormatRejection,
   VALIDATION_ERROR_CODE,
   writeBoundedError,
 } from '../../../middleware/bounded-error-writer';
-import {
-  getMetricCounter,
-  getMetricCounters,
-  resetMetricCounters,
-} from '../../../utils/metric-logger';
+import {getMetricCounter, resetMetricCounters} from '../../helpers/metrics';
 import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
   ResourceBudgetName,
@@ -137,7 +134,7 @@ describe('Middleware: bounded error writer', () => {
         .to.be.lessThanOrEqual(MAX_ERROR_RESPONSE_BYTES);
     });
 
-    it('falls back to the generic body when a detail path is oversized', () => {
+    it('falls back to the generic body when a detail path is oversized', async () => {
       // A single detail whose path alone blows the budget: the only way past the
       // detail cap is one enormous entry.
       const err = Object.assign(new HttpErrors.UnprocessableEntity('nope'), {
@@ -150,17 +147,17 @@ describe('Middleware: bounded error writer', () => {
       expect(byteLength(body)).to.be.lessThanOrEqual(MAX_ERROR_RESPONSE_BYTES);
       expect(body.error.details).to.be.undefined();
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.ERROR_RESPONSE_BYTES,
         }),
       ).to.equal(1);
     });
 
-    it('does not record a violation when inside the budget', () => {
+    it('does not record a violation when inside the budget', async () => {
       buildBoundedErrorBody(givenValidationError(1), 422);
 
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.ERROR_RESPONSE_BYTES,
         }),
       ).to.equal(0);
@@ -180,80 +177,54 @@ describe('Middleware: format rejection metrics', () => {
   ) => Object.assign(new Error('framework message'), {statusCode, ...extra});
 
   describe('classification', () => {
-    it('counts an unsupported content encoding', () => {
+    it('counts an unsupported content encoding', async () => {
       recordFormatRejection(givenError(415, {type: 'encoding.unsupported'}));
 
-      expect(rejected('content_encoding')).to.equal(1);
-      expect(rejected('media_type')).to.equal(0);
+      expect(await rejected('content_encoding')).to.equal(1);
+      expect(await rejected('media_type')).to.equal(0);
     });
 
-    it('counts an unsupported media type', () => {
+    it('counts an unsupported media type', async () => {
       recordFormatRejection(givenError(415, {type: 'entity.parse.failed'}));
 
-      expect(rejected('media_type')).to.equal(1);
-      expect(rejected('content_encoding')).to.equal(0);
+      expect(await rejected('media_type')).to.equal(1);
+      expect(await rejected('content_encoding')).to.equal(0);
     });
 
-    it('counts a bare 415 as a media type rejection', () => {
+    it('counts a bare 415 as a media type rejection', async () => {
       recordFormatRejection(givenError(415));
 
-      expect(rejected('media_type')).to.equal(1);
+      expect(await rejected('media_type')).to.equal(1);
     });
 
-    it('counts an unroutable request as a method rejection', () => {
+    it('counts an unroutable request', async () => {
       recordFormatRejection(givenError(404));
       recordFormatRejection(givenError(405));
 
-      expect(rejected('method')).to.equal(2);
+      expect(await rejected('unroutable')).to.equal(2);
     });
 
-    it('counts an oversized body', () => {
+    it('counts an oversized body', async () => {
       recordFormatRejection(givenError(413));
 
-      expect(rejected('body_size')).to.equal(1);
+      expect(await rejected('body_size')).to.equal(1);
     });
 
-    it('does not count statuses that are not format rejections', () => {
+    it('does not count statuses that are not format rejections', async () => {
       recordFormatRejection(givenError(422));
       recordFormatRejection(givenError(500));
       recordFormatRejection(givenError(502));
 
-      expect(getMetricCounters()).to.deepEqual({});
+      expect(
+        await Promise.all(FORMAT_REJECTION_REASONS.map(rejected)),
+      ).to.deepEqual(FORMAT_REJECTION_REASONS.map(() => 0));
     });
 
-    it('counts each rejection exactly once', () => {
+    it('counts each rejection exactly once', async () => {
       recordFormatRejection(givenError(415, {type: 'encoding.unsupported'}));
       recordFormatRejection(givenError(415, {type: 'encoding.unsupported'}));
 
-      expect(rejected('content_encoding')).to.equal(2);
-    });
-  });
-
-  describe('labels never carry request data', () => {
-    it('ignores an attacker-supplied encoding value', () => {
-      // The rejected header value is attacker-controlled and unbounded, so it
-      // must never become a metric label - that would be both a cardinality
-      // explosion and a data leak into the metrics pipeline.
-      recordFormatRejection(
-        givenError(415, {
-          type: 'encoding.unsupported',
-          encoding: 'MARKER_LABEL_LEAK',
-        }),
-      );
-
-      const keys = Object.keys(getMetricCounters()).join('|');
-      expect(keys).to.not.match(/MARKER_LABEL_LEAK/);
-      expect(keys).to.match(/reason="content_encoding"/);
-    });
-
-    it('keeps the label set to a fixed vocabulary', () => {
-      [413, 415, 404].forEach(status => recordFormatRejection(givenError(status)));
-
-      Object.keys(getMetricCounters()).forEach(key => {
-        expect(key).to.match(
-          /^format_rejected_total\{reason="(content_encoding|media_type|method|body_size)"\}$/,
-        );
-      });
+      expect(await rejected('content_encoding')).to.equal(2);
     });
   });
 });

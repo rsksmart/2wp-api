@@ -12,7 +12,7 @@ import {
 import {
   getMetricCounter,
   resetMetricCounters,
-} from '../../../utils/metric-logger';
+} from '../../helpers/metrics';
 import {
   RESOURCE_BUDGET_EXCEEDED_METRIC,
   ResourceBudgetName,
@@ -57,8 +57,8 @@ describe('Utils: bounded HTTP client', () => {
     nock.restore();
   });
 
-  beforeEach(() => {
-    resetMetricCounters();
+  beforeEach(async () => {
+    await resetMetricCounters();
     nock.cleanAll();
   });
 
@@ -141,7 +141,7 @@ describe('Utils: bounded HTTP client', () => {
 
       await expect(call()).to.be.rejected();
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.PROVIDER_RESPONSE_BYTES,
         }),
       ).to.equal(1);
@@ -238,7 +238,7 @@ describe('Utils: bounded HTTP client', () => {
       await expect(call({timeoutMs: 50})).to.be.rejected();
 
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.PROVIDER_TIMEOUT_MS,
         }),
       ).to.equal(1);
@@ -254,7 +254,7 @@ describe('Utils: bounded HTTP client', () => {
 
       await expect(call({timeoutMs: 50})).to.be.rejected();
       expect(
-        getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
+        await getMetricCounter(RESOURCE_BUDGET_EXCEEDED_METRIC, {
           resource: ResourceBudgetName.PROVIDER_TIMEOUT_MS,
         }),
       ).to.equal(1);

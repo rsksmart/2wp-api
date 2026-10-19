@@ -1,13 +1,21 @@
 import {inject} from '@loopback/core';
+import {Histogram} from '@prometheus-io/client';
 import {getLogger, Logger} from '../utils/logger';
 import {ConstantsBindings, ServicesBindings} from '../dependency-injection-bindings';
 import {RskBlock} from '../models/rsk/rsk-block.model';
-import {getMetricLogger} from '../utils/metric-logger';
+import {METRICS_PREFIX, metricsRegistry} from '../utils/metrics';
 import {PeginStatusDataService} from './pegin-status-data-services/pegin-status-data.service';
 import {PeginDataProcessor} from './pegin-data.processor';
 import {PegoutDataProcessor} from './pegout-data.processor';
 import {RskChainSyncService} from './rsk-chain-sync.service';
 import RskBlockProcessorPublisher from './rsk-block-processor-publisher';
+
+const daemonSyncDurationSeconds = new Histogram<never>({
+  name: `${METRICS_PREFIX}daemon_sync_duration_seconds`,
+  help: 'Duration of a daemon sync pass in seconds, including failed passes.',
+  buckets: [0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60],
+  registers: [metricsRegistry],
+});
 
 export class DaemonService implements IDaemonService {
   peginStatusStorageService: PeginStatusDataService;
@@ -82,7 +90,7 @@ export class DaemonService implements IDaemonService {
       this.startTimer();
       return;
     }
-    const logMetrics = getMetricLogger(this.logger, 'sync');
+    const stopTimer = daemonSyncDurationSeconds.startTimer();
     try {
       this.lastSyncLog++;
       if (this.lastSyncLog >= 5) {
@@ -94,7 +102,7 @@ export class DaemonService implements IDaemonService {
     } catch (error) {
       this.logger.warn({method: 'sync', err: error}, 'Got an error syncing');
     }
-    logMetrics();
+    stopTimer();
     this.startTimer();
   }
 

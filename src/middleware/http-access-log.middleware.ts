@@ -7,6 +7,7 @@ import {
 } from '../config/resource-budgets';
 import {writeBoundedError} from './bounded-error-writer';
 import {getLogger} from '../utils/logger';
+import {resolveRouteTemplate} from '../utils/route-template';
 import {
   CancellationReason,
   recordCancellation,
@@ -29,15 +30,21 @@ const STATIC_PATHS = new Set<string>([
 ]);
 const STATIC_PATH_PREFIXES = ['/explorer'];
 
-// Probes poll this every few seconds.
-const HEALTH_PATH = '/health';
+const ROUTINE_PROBE_PATHS: ReadonlySet<string> = new Set([
+  '/health',
+  '/internal/metrics',
+]);
 
-const isRoutineHealthProbe = (request: Request, response: Response): boolean =>
-  request.path === HEALTH_PATH &&
+export const isRoutineProbe = (
+  routeTemplate: string | undefined,
+  response: Response,
+): boolean =>
+  !!routeTemplate &&
+  ROUTINE_PROBE_PATHS.has(routeTemplate) &&
   response.writableFinished &&
   response.statusCode < 400;
 
-const isApiRequest = (path: string): boolean => {
+export const isApiRequest = (path: string): boolean => {
   if (STATIC_PATHS.has(path)) {
     return false;
   }
@@ -47,7 +54,8 @@ const isApiRequest = (path: string): boolean => {
 };
 
 const isSafeCorrelationId = (value: string): boolean =>
-  value.length <= MAX_CORRELATION_ID_LENGTH && SAFE_CORRELATION_ID_PATTERN.test(value);
+  value.length <= MAX_CORRELATION_ID_LENGTH &&
+  SAFE_CORRELATION_ID_PATTERN.test(value);
 
 const firstValidCorrelationIdHeader = (
   request: Request,
@@ -55,7 +63,7 @@ const firstValidCorrelationIdHeader = (
 ): string | undefined =>
   names
     .map(name => request.get(name)?.trim())
-    .find((value) => !!value && isSafeCorrelationId(value));
+    .find(value => !!value && isSafeCorrelationId(value));
 
 // Extract the trace-id segment from a W3C traceparent header
 const extractTraceparentId = (traceparent?: string): string | null => {
@@ -80,7 +88,11 @@ const resolveTraceId = (request: Request): string => {
   if (traceparentId) {
     return traceparentId;
   }
-  const traceId = firstValidCorrelationIdHeader(request, 'x-trace-id', 'traceid');
+  const traceId = firstValidCorrelationIdHeader(
+    request,
+    'x-trace-id',
+    'traceid',
+  );
   if (traceId) {
     return traceId;
   }
@@ -122,7 +134,8 @@ export const httpAccessLogMiddleware: Middleware = async (
       reason,
       route,
       elapsedMs: elapsed(),
-      configuredLimitMs: reason === 'timeout' ? MAX_REQUEST_DURATION_MS : undefined,
+      configuredLimitMs:
+        reason === 'timeout' ? MAX_REQUEST_DURATION_MS : undefined,
     });
 
     // Aborting the signal only reaches work that observes it. `web3`, `ethers`,
@@ -138,7 +151,11 @@ export const httpAccessLogMiddleware: Middleware = async (
         // already ended or was destroyed, and drops the connection when headers
         // are already on the wire.
         runWithRequestContext({traceId, signal: controller.signal}, () =>
-          writeBoundedError(request, response, new RequestCancelledError(reason)),
+          writeBoundedError(
+            request,
+            response,
+            new RequestCancelledError(reason),
+          ),
         );
       }, REQUEST_DEADLINE_GRACE_MS);
       grace.unref();
@@ -164,12 +181,13 @@ export const httpAccessLogMiddleware: Middleware = async (
   // Run the rest of the request within a request context so every log line
   // emitted by downstream controllers and services carries the traceId, and so
   // they can observe cancellation.
-  return runWithRequestContext({traceId, signal: controller.signal}, () => {
+  return runWithRequestContext({traceId, signal: controller.signal}, async () => {
     if (isApiRequest(request.path)) {
+      const routeTemplate = await resolveRouteTemplate(ctx);
       // 'close' rather than 'finish': 'finish' never fires for an abandoned
       // request, which is precisely the case worth having in the log.
       response.once('close', () => {
-        if (isRoutineHealthProbe(request, response)) {
+        if (isRoutineProbe(routeTemplate, response)) {
           return;
         }
         logger.info(
