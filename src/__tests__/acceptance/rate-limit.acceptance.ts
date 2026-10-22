@@ -6,6 +6,7 @@ import {
   RATE_LIMIT_MAX_HEALTH_REQUESTS,
   RATE_LIMIT_MAX_REQUESTS,
 } from '../../config/resource-budgets';
+import {HealthCheckController} from '../../controllers/health-check.controller';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {UtxoProvider} from '../../services';
 import {
@@ -61,6 +62,21 @@ describe('Rate limiting (Acceptance)', () => {
         initialSync: false,
         syncMode: true,
       }),
+    } as never);
+
+    // `/health` also reaches the sync-status database, the RSK node and the
+    // Bridge, and each has to answer instantly for the same reason. A slow check
+    // does not merely slow the burst down: the limiter's window is fixed, so a
+    // burst that outlasts it gets its allowance back and is never refused at all.
+    // With Mongo unreachable a single uncached `/health` took ~10.7 s.
+    app.getBinding(ServicesBindings.SYNC_STATUS_DATA_SERVICE).to({
+      getBestBlock: async () => ({rskBlockHeight: 1, rskBlockHash: '0x01'}),
+    } as never);
+    app.getBinding(ServicesBindings.RSK_NODE_SERVICE).to({
+      getBlockNumber: async () => 1,
+    } as never);
+    app.getBinding(ServicesBindings.BRIDGE_SERVICE).to({
+      getFederationAddress: async () => '2N1GMB8gxHYR5HLPSRgf9CJ9Lunjb9CTnKB',
     } as never);
   });
 
@@ -180,6 +196,9 @@ describe('Rate limiting (Acceptance)', () => {
     // route in this API that a client can send without a ceiling.
     requestRateLimiter.reset();
     resetMetricCounters();
+    // The cache is static, so a result from another suite could otherwise stand
+    // in for the stubs above.
+    HealthCheckController.clearCache();
 
     const statuses: number[] = [];
     for (let i = 0; i < RATE_LIMIT_MAX_HEALTH_REQUESTS + 2; i += 1) {
@@ -194,7 +213,7 @@ describe('Rate limiting (Acceptance)', () => {
     expect(
       getMetricCounter(RATE_LIMIT_REJECTED_METRIC, {route: '/health'}),
     ).to.equal(0);
-  }).timeout(120000);
+  }).timeout(60000);
 
   // The router accepts more than one spelling of the same route, so the limiter
   // has to count every spelling in the same bucket. Classifying on the text the

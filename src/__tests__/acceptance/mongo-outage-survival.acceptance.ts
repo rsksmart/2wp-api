@@ -23,8 +23,35 @@ const PORT = 43212;
  */
 const MONGOOSE_SERVER_SELECTION_TIMEOUT_MS = 30_000;
 
-/** Margin over the timeout, so a slow machine does not turn the kill into a pass. */
-const OBSERVATION_WINDOW_MS = MONGOOSE_SERVER_SELECTION_TIMEOUT_MS + 15_000;
+/**
+ * How long to wait for the connection attempt to fail before giving up on it.
+ * Margin over the timeout, so a slow machine fails loudly instead of passing.
+ */
+const SELECTION_FAILURE_DEADLINE_MS = MONGOOSE_SERVER_SELECTION_TIMEOUT_MS + 15_000;
+
+/**
+ * How long to keep watching once the attempt has failed. The crash, when there
+ * was one, followed the failure within the same few ticks — the rejection is
+ * orphaned the moment it is thrown — so this only has to cover the logging.
+ */
+const POST_FAILURE_GRACE_MS = 3_000;
+
+/** Resolves once `pattern` shows up in the child's output, or throws at the deadline. */
+async function waitForOutput(
+  api: ChildApi,
+  pattern: RegExp,
+  timeoutMs: number,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!pattern.test(api.output())) {
+    if (Date.now() > deadline) {
+      throw new Error(
+        `Timed out after ${timeoutMs} ms waiting for ${pattern}. Output:\n${api.output()}`,
+      );
+    }
+    await delay(250);
+  }
+}
 
 /**
  * An upstream that answers immediately, whatever it is asked.
@@ -119,6 +146,10 @@ describe('Mongo outage (Acceptance)', () => {
       RSK_NODE_HOST: rskNode.url,
       RSK_DB_CONNECTION_HOST: '127.0.0.1',
       RSK_DB_CONNECTION_PORT: String(closedMongoPort),
+      // Every assertion on the log below needs `error` and `info` lines, and
+      // `.env.test` sets `fatal`. Inherited as-is, the child logs nothing and
+      // the negative checks pass whether or not the process is about to die.
+      LOG_LEVEL: 'info',
     });
 
     // What `/health` reports is already correct today, and must stay correct:
@@ -128,32 +159,22 @@ describe('Mongo outage (Acceptance)', () => {
     const body = (await health.json()) as {dataBase: {up: boolean}};
     expect(body.dataBase.up).to.be.false();
 
-    await delay(OBSERVATION_WINDOW_MS);
+    // The discriminator. Without it this could go green for the wrong reason —
+    // a process that never reached Mongo at all is also a process that is still
+    // alive. Seeing the failure proves the connection really was attempted and
+    // really did fail, and it is also the moment the old crash was triggered.
+    await waitForOutput(
+      api,
+      /MongooseServerSelectionError/,
+      SELECTION_FAILURE_DEADLINE_MS,
+    );
+    await delay(POST_FAILURE_GRACE_MS);
 
-    expect(api.child.exitCode).to.be.null();
-    expect((await fetch(`${api.baseUrl}/api`)).status).to.equal(200);
-  }).timeout(180_000);
-
-  it('does not log a fatal unhandled rejection for the failed connection', async () => {
-    // The discriminator. Without this the first test could go green for the
-    // wrong reason — a process that never reached Mongo at all is also a process
-    // that is still alive.
-    api = await startApi(PORT, {
-      BLOCKBOOK_URL: `${blockbook.url}/`,
-      RSK_NODE_HOST: rskNode.url,
-      RSK_DB_CONNECTION_HOST: '127.0.0.1',
-      RSK_DB_CONNECTION_PORT: String(closedMongoPort),
-    });
-
-    await fetch(`${api.baseUrl}/health`);
-    await delay(OBSERVATION_WINDOW_MS);
-
-    const log = api.output();
-    // The connection really was attempted and really did fail: this is what
-    // proves the test reached the code path at all.
-    expect(log).to.match(/MongooseServerSelectionError/);
     // And it was handled rather than orphaned.
+    const log = api.output();
     expect(log).to.not.match(/"event":"unhandledRejection"/);
     expect(log).to.not.match(/Shutting down/);
-  }).timeout(180_000);
+    expect(api.child.exitCode).to.be.null();
+    expect((await fetch(`${api.baseUrl}/api`)).status).to.equal(200);
+  }).timeout(120_000);
 });

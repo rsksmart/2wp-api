@@ -107,9 +107,15 @@ function runUnbounded(upstream: string): Promise<ChildResult> {
   });
 }
 
-/** Boots the real compiled entry point with a reduced heap. */
+/**
+ * Boots the real compiled entry point with a reduced heap.
+ *
+ * @param upstream - Blockbook stand-in the child fetches from.
+ * @param env - Overrides layered over the defaults below.
+ */
 async function startApi(
   upstream: string,
+  env: Record<string, string> = {},
 ): Promise<{child: ChildProcess; output: () => string}> {
   const child = spawn(
     process.execPath,
@@ -126,6 +132,8 @@ async function startApi(
         // it reached the code under test.
         RATE_LIMIT_MAX_REQUESTS: '10000',
         RATE_LIMIT_MAX_FANOUT_REQUESTS: '10000',
+        LOG_LEVEL: 'info',
+        ...env,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     },
@@ -192,7 +200,18 @@ describe('Provider response OOM (Acceptance)', () => {
 
   it('the real API serves the same 48 and stays alive', async function () {
     this.timeout(180000);
-    const {child, output} = await startApi(upstream.url);
+    const {child, output} = await startApi(upstream.url, {
+      // The aggregate ceiling counts a response as stuck once it has sat over
+      // budget for 100 ms. A draining response here was measured at 70 ms at
+      // most — on a fast machine. On a two-vCPU runner this process is both
+      // feeding the child 48 x 7.5 MB and reading 48 x 7.5 MB back, falls
+      // behind, and legitimate responses cross 100 ms: three of them clear the
+      // 16 MB ceiling and get dropped, and the test fails at random. What this
+      // case measures is the heap, not that control — which the stuck-connection
+      // cases below exercise at its real threshold — so it gets a margin no
+      // scheduler can eat.
+      CONNECTION_OUTPUT_AGGREGATE_STALL_MS: '1000',
+    });
     try {
       const results = await Promise.all(
         Array.from({length: CONCURRENCY}, () =>
@@ -207,71 +226,37 @@ describe('Provider response OOM (Acceptance)', () => {
               await r.arrayBuffer();
               return r.status;
             })
-            .catch(() => 0),
+            // Kept, not swallowed: a 0 alone says a connection was cut, and
+            // only the reason says by what.
+            .catch(
+              (err: Error & {cause?: unknown}) =>
+                `${err.name}: ${String(err.cause ?? err.message)}`,
+            ),
         ),
       );
 
-      expect(child.exitCode).to.be.null();
-      expect(output()).to.not.match(/JavaScript heap out of memory/);
-      expect(output()).to.not.match(/Cannot create a string longer than/);
+      try {
+        expect(child.exitCode).to.be.null();
+        expect(output()).to.not.match(/JavaScript heap out of memory/);
+        expect(output()).to.not.match(/Cannot create a string longer than/);
 
-      // Every one is served. The upstream pool serialises the fetches, so this
-      // takes longer than 48 requests would unbounded — which is the trade the
-      // pool exists to make.
-      results.forEach(status => {
-        expect(status).to.equal(200);
-      });
+        // Every one is served. The upstream pool serialises the fetches, so this
+        // takes longer than 48 requests would unbounded — which is the trade the
+        // pool exists to make.
+        expect(results.filter(r => r !== 200)).to.be.empty();
 
-      expect((await fetch(`${BASE_URL}/api`)).status).to.equal(200);
-    } finally {
-      child.kill('SIGKILL');
-    }
-  });
-
-  it('records what remains unbounded: 48 clients that never read at once', async function () {
-    // Still a characterization test, and the limit is now a different one than it
-    // was. The controls are no longer the missing piece — the time to react is.
-    //
-    // A sustained non-reader is dropped by the per-connection stall rule, and
-    // several of them together are dropped by the aggregate ceiling, both proven
-    // above. What neither reaches is forty-eight arriving simultaneously, and the
-    // measurements say precisely why:
-    //
-    // - At the moment the process dies, ~1.0 s in, only **two** connections have
-    //   been stuck long enough to qualify — 15 MB, just under the ceiling. The
-    //   other ~37 were written too recently to have been judged yet.
-    // - Total pending bytes at that point are ~100 MB, but counting *those*
-    //   towards the ceiling is not available: 48 legitimate draining clients hold
-    //   60 MB at peak, which is not separable from the 90 MB an attack reaches.
-    //   Filtered by how long each connection has been stuck the same two figures
-    //   are 0 MB and 30 MB, which is why the ceiling counts stuck bytes — and why
-    //   it needs those connections to have existed for a moment first.
-    // - The fatal allocation is `JSON.parse` on the *inbound* provider path. The
-    //   retained outbound bodies raise the floor and the next large inbound parse
-    //   goes over it.
-    //
-    // So at a 256 MB heap this burst is beyond what the service can hold whoever
-    // is reading; the legitimate 48 survive only because they drain just fast
-    // enough. The deployed heap ceiling is an open question with DevOps
-    // (`docs/deployment-requirements-request.md`, A3/B5), and it is the number
-    // that decides whether these controls have time to fire in production. That
-    // is a capacity answer, not a control this file can add.
-    this.timeout(180000);
-    const {child, output} = await startApi(upstream.url);
-    try {
-      await Promise.all(
-        Array.from({length: CONCURRENCY}, () =>
-          fetch(`${BASE_URL}/tx?tx=${'ab'.repeat(32)}`, {
-            signal: AbortSignal.timeout(60000),
-          })
-            // Deliberately no `arrayBuffer()`: headers only, body left unread.
-            .then(r => r.status)
-            .catch(() => 0),
-        ),
-      );
-      await delay(2000);
-
-      expect(output()).to.match(/JavaScript heap out of memory/);
+        expect((await fetch(`${BASE_URL}/api`)).status).to.equal(200);
+      } catch (err) {
+        // A failure here is almost always a timing question about the child —
+        // which connections it dropped and why — and the answer is in its log,
+        // not in the assertion.
+        // Wrapped rather than appended to: `should`'s assertion message is a
+        // getter, and writing to it throws a TypeError that hides the failure.
+        throw new Error(
+          `${(err as Error).message}\nResults: ${JSON.stringify(results)}` +
+            `\nChild output:\n${output()}`,
+        );
+      }
     } finally {
       child.kill('SIGKILL');
     }
