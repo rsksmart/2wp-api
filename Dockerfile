@@ -1,6 +1,6 @@
 # Build stage: needs the toolchain for native modules, the sources and the
 # devDependencies. None of that belongs in the image that runs in production.
-FROM node:24-alpine AS build
+FROM node:24.22.1-alpine AS build
 
 RUN apk add --no-cache build-base git python3
 
@@ -21,7 +21,7 @@ RUN npm prune --omit=dev
 
 # Runtime stage: compiled output, production dependencies and the static assets,
 # on the same Node major the build used.
-FROM node:24-alpine AS runtime
+FROM node:24.22.1-alpine AS runtime
 
 WORKDIR /home/node/app
 RUN chown node:node .
