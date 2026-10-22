@@ -28,7 +28,7 @@ npm --version
 
 **Expected output:**
 - Node.js: v20.18.2
-- npm: Should be compatible with Node.js 20.18.2
+- npm: Should be compatible with Node.js 24.22.1
 
 ## Step 2: Install Dependencies
 
