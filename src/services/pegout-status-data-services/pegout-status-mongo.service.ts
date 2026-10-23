@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-floating-promises */
 import mongoose from 'mongoose';
 import {PegoutStatuses, PegoutStatusDbDataModel} from '../../models/rsk/pegout-status-data-model';
 import {MongoDbDataService} from '../mongodb-data.service';
@@ -42,11 +41,8 @@ export class PegoutStatusMongoDbDataService extends MongoDbDataService<PegoutSta
     return 'pegoutStatusMongoService';
   }
   protected getConnector(): mongoose.Model<PegoutStatusMongoModel, {}, {}> {
-    this.verifyAndCreateConnectionIfIsNecessary();
+    this.connectInBackground();
     return PegoutStatusConnector;
-  }
-  async verifyAndCreateConnectionIfIsNecessary() {
-    await this.ensureConnection();
   }
   protected getByIdFilter(id: any) {
     return {rskTxHash: id};

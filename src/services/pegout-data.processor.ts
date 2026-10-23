@@ -3,7 +3,11 @@ import { BridgeEvent } from '@rsksmart/bridge-transaction-parser';
 import * as bitcoin from 'bitcoinjs-lib';
 import Web3 from 'web3';
 import {getLogger, Logger} from '../utils/logger';
-import {BRIDGE_EVENTS, BRIDGE_METHODS, getBridgeSignature} from '../utils/bridge-utils';
+import {
+  BRIDGE_EVENTS,
+  PEGOUT_ROUTE_METHODS,
+  PEGOUT_ROUTE_SELECTORS,
+} from '../utils/bridge-utils';
 import FilteredBridgeTransactionProcessor from './filtered-bridge-transaction-processor';
 import { BridgeDataFilterModel } from '../models/bridge-data-filter.model';
 import { PegoutStatusDataService } from './pegout-status-data-services/pegout-status-data.service';
@@ -17,6 +21,7 @@ import { PegoutStatusBuilder } from './pegout-status/pegout-status-builder';
 import {ExtendedBridgeEvent} from "../models/types/bridge-transaction-parser";
 import { sha256 } from '../utils/sha256-utils';
 import { FullRskTransaction } from '../models/rsk/full-rsk-transaction.model';
+import {createRskWeb3} from '../utils/rsk-web3';
 
 export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
   private logger: Logger;
@@ -33,13 +38,17 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     this.bridgeService = bridgeService;
   }
 
+  /**
+   * The methods this processor indexes, derived from `PEGOUT_ROUTE_SELECTORS`
+   * rather than restated here. The HTTP pegout route refuses to decode anything
+   * outside that set, and two hand-written copies of the list would drift —
+   * silently, since a missing selector stops indexing a method rather than
+   * failing loudly.
+   */
   getFilters(): BridgeDataFilterModel[] {
-    return [
-      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.UPDATE_COLLECTIONS)),
-      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.ADD_SIGNATURE)),
-      BridgeDataFilterModel.EMPTY_DATA_FILTER,
-      new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.RELEASE_BTC))
-    ];
+    return [...PEGOUT_ROUTE_SELECTORS].map(
+      signature => new BridgeDataFilterModel(signature),
+    );
   }
 
   async process(extendedBridgeTx: ExtendedBridgeTx): Promise<void> {
@@ -444,19 +453,21 @@ export class PegoutDataProcessor implements FilteredBridgeTransactionProcessor {
     await this.pegoutStatusDataService.deleteByRskBlockHeight(rskBlockHeight);
   }
 
+  /**
+   * The same policy as `getFilters`, applied after the decode and by method name
+   * rather than by selector. Derived from the one list for that reason: this was
+   * a third hand-written copy, and a method dropped from one and not the others
+   * stops being processed without anything saying so. `''` is the empty-calldata
+   * case — the parser reports no method name for a plain value transfer.
+   */
   public isMethodAccepted(extendedBridgeTx: ExtendedBridgeTx) {
-    const acceptedMethods = [
-      '',
-      BRIDGE_METHODS.UPDATE_COLLECTIONS,
-      BRIDGE_METHODS.ADD_SIGNATURE,
-      BRIDGE_METHODS.RELEASE_BTC
-    ];
+    const acceptedMethods: string[] = ['', ...PEGOUT_ROUTE_METHODS];
     const name = (extendedBridgeTx.method.name || extendedBridgeTx.method.name === '') ? extendedBridgeTx.method.name : extendedBridgeTx.method as unknown as string;
     return acceptedMethods.some(am => am == name);
   }
 
   private async getTxFromRskTransaction(rskTxHash: string): Promise<FullRskTransaction> {
-    const web3: Web3 = new Web3(`${process.env.RSK_NODE_HOST}`)
+    const web3: Web3 = createRskWeb3(`${process.env.RSK_NODE_HOST}`)
     const web3Tx = await web3.eth.getTransaction(rskTxHash);
     return FullRskTransaction.fromWeb3TransactionWithValue(web3Tx);
   }

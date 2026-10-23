@@ -1,5 +1,4 @@
 import {Application, BindingScope} from '@loopback/core';
-import {TxV2ProviderDataSource} from './datasources';
 import {MongoDbDataSource} from './datasources/mongodb.datasource';
 import {ConstantsBindings, DatasourcesBindings, ServicesBindings} from './dependency-injection-bindings';
 import {RskBlock} from './models/rsk/rsk-block.model';
@@ -70,11 +69,6 @@ export class DependencyInjectionHandler {
     app
       .bind(DatasourcesBindings.MONGO_DB_DATASOURCE)
       .toClass(MongoDbDataSource)
-      .inScope(BindingScope.SINGLETON);
-
-    app
-      .bind(DatasourcesBindings.TX_V2_PROVIDER)
-      .toClass(TxV2ProviderDataSource)
       .inScope(BindingScope.SINGLETON);
 
   }

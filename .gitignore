@@ -79,3 +79,5 @@ rsk-database/db
 .DS_Store
 
 .claude
+# Scratch space for working documents. Never part of the repository.
+_to_delete/

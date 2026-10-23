@@ -30,14 +30,10 @@ export class FlyoverService extends MongoDbDataService<FlyoverStatusModel, Flyov
   }
 
   protected getConnector(): mongoose.Model<FlyoverStatusMongoModel, {}, {}> {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this.verifyAndCreateConnectionIfIsNecessary();
+    this.connectInBackground();
     return FlyoverStatusConnector;
   }
 
-  async verifyAndCreateConnectionIfIsNecessary() {
-    await this.ensureConnection();
-  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected getByIdFilter(id: any) {

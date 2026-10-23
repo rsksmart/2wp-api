@@ -1,0 +1,180 @@
+import http from 'http';
+import net, {AddressInfo} from 'net';
+import {expect} from '@loopback/testlab';
+import {ChildApi, delay, startApi} from './child-api';
+
+const PORT = 43212;
+
+/**
+ * How long mongoose waits for a server before giving up.
+ *
+ * This is the number the whole test is built around, and the one thing that
+ * makes this easy to record as not reproducible. The failing `connect()`
+ * does not reject when the TCP connection is refused — it rejects when server
+ * selection times out, which is mongoose's 30 s default and nothing this code
+ * configures. `/health` answers its (correct) 500 after ~10 s, the mongoose
+ * buffering timeout; the process dies twenty seconds later still. Any window
+ * measured from the response and shorter than this sees a healthy process.
+ *
+ * Nothing else about the reproduction is delicate. Leaving `BLOCKBOOK_URL`
+ * unconfigured was suspected of short-circuiting the check before it reached
+ * Mongo; it does not — the database check runs first and unconditionally, and
+ * the kill happens either way. The window is the whole trap.
+ */
+const MONGOOSE_SERVER_SELECTION_TIMEOUT_MS = 30_000;
+
+/**
+ * How long to wait for the connection attempt to fail before giving up on it.
+ * Margin over the timeout, so a slow machine fails loudly instead of passing.
+ */
+const SELECTION_FAILURE_DEADLINE_MS = MONGOOSE_SERVER_SELECTION_TIMEOUT_MS + 15_000;
+
+/**
+ * How long to keep watching once the attempt has failed. The crash, when there
+ * was one, followed the failure within the same few ticks — the rejection is
+ * orphaned the moment it is thrown — so this only has to cover the logging.
+ */
+const POST_FAILURE_GRACE_MS = 3_000;
+
+/** Resolves once `pattern` shows up in the child's output, or throws at the deadline. */
+async function waitForOutput(
+  api: ChildApi,
+  pattern: RegExp,
+  timeoutMs: number,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!pattern.test(api.output())) {
+    if (Date.now() > deadline) {
+      throw new Error(
+        `Timed out after ${timeoutMs} ms waiting for ${pattern}. Output:\n${api.output()}`,
+      );
+    }
+    await delay(250);
+  }
+}
+
+/**
+ * An upstream that answers immediately, whatever it is asked.
+ *
+ * Both stubs exist for timing, not for fidelity. `/health` checks four
+ * dependencies in sequence; pointed at the real Blockbook and RSK node from
+ * `.env` the two network checks alone outlast `MAX_REQUEST_DURATION_MS`, so the
+ * request deadline answers 503 and the database — the thing under test — never
+ * shows up in the status code at all. Answering instantly makes the database the
+ * only slow check and the only failing one.
+ */
+function startFastUpstream(
+  handler: (body: string) => string,
+): Promise<{url: string; stop: () => Promise<void>}> {
+  const server = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', chunk => (body += chunk));
+    req.on('end', () => {
+      res.setHeader('content-type', 'application/json');
+      res.end(handler(body));
+    });
+  });
+  return new Promise(resolve =>
+    server.listen(0, '127.0.0.1', () =>
+      resolve({
+        url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+        stop: () =>
+          new Promise<void>(done => {
+            server.closeAllConnections?.();
+            server.close(() => done());
+          }),
+      }),
+    ),
+  );
+}
+
+/** A JSON-RPC endpoint that refuses every call, immediately. */
+const rskNodeHandler = (body: string): string => {
+  const asError = (id: unknown) => ({
+    jsonrpc: '2.0',
+    id: id ?? 1,
+    error: {code: -32000, message: 'stub node'},
+  });
+  try {
+    const parsed = JSON.parse(body);
+    return JSON.stringify(
+      Array.isArray(parsed)
+        ? parsed.map(call => asError(call?.id))
+        : asError(parsed?.id),
+    );
+  } catch {
+    return JSON.stringify(asError(1));
+  }
+};
+
+/** Reserves a port and gives it straight back, so nothing is listening on it. */
+function findClosedPort(): Promise<number> {
+  return new Promise(resolve => {
+    const probe = net.createServer();
+    probe.listen(0, '127.0.0.1', () => {
+      const {port} = probe.address() as AddressInfo;
+      probe.close(() => resolve(port));
+    });
+  });
+}
+
+describe('Mongo outage (Acceptance)', () => {
+  let api: ChildApi;
+  let blockbook: Awaited<ReturnType<typeof startFastUpstream>>;
+  let rskNode: Awaited<ReturnType<typeof startFastUpstream>>;
+  let closedMongoPort: number;
+
+  before(async function () {
+    this.timeout(30_000);
+    blockbook = await startFastUpstream(() => '{}');
+    rskNode = await startFastUpstream(rskNodeHandler);
+    closedMongoPort = await findClosedPort();
+  });
+
+  after(async () => {
+    await blockbook?.stop();
+    await rskNode?.stop();
+  });
+
+  afterEach(() => api?.stop());
+
+  it('survives an unauthenticated /health while Mongo is unreachable', async () => {
+    api = await startApi(PORT, {
+      // Every upstream pinned, so nothing here depends on what `.env` happens
+      // to hold or on whether the real hosts are reachable from this machine.
+      BLOCKBOOK_URL: `${blockbook.url}/`,
+      RSK_NODE_HOST: rskNode.url,
+      RSK_DB_CONNECTION_HOST: '127.0.0.1',
+      RSK_DB_CONNECTION_PORT: String(closedMongoPort),
+      // Every assertion on the log below needs `error` and `info` lines, and
+      // `.env.test` sets `fatal`. Inherited as-is, the child logs nothing and
+      // the negative checks pass whether or not the process is about to die.
+      LOG_LEVEL: 'info',
+    });
+
+    // What `/health` reports is already correct today, and must stay correct:
+    // the fix is about surviving that answer, not about changing it.
+    const health = await fetch(`${api.baseUrl}/health`);
+    expect(health.status).to.equal(500);
+    const body = (await health.json()) as {dataBase: {up: boolean}};
+    expect(body.dataBase.up).to.be.false();
+
+    // The discriminator. Without it this could go green for the wrong reason —
+    // a process that never reached Mongo at all is also a process that is still
+    // alive. Seeing the failure proves the connection really was attempted and
+    // really did fail, and it is also the moment the old crash was triggered.
+    await waitForOutput(
+      api,
+      /MongooseServerSelectionError/,
+      SELECTION_FAILURE_DEADLINE_MS,
+    );
+    await delay(POST_FAILURE_GRACE_MS);
+
+    // And it was handled rather than orphaned.
+    const log = api.output();
+    expect(log).to.not.match(/"event":"unhandledRejection"/);
+    expect(log).to.not.match(/Shutting down/);
+    expect(api.child.exitCode).to.be.null();
+    expect((await fetch(`${api.baseUrl}/api`)).status).to.equal(200);
+  }).timeout(120_000);
+});

@@ -13,8 +13,6 @@ export const ConstantsBindings = {
 
 export const DatasourcesBindings = {
   MONGO_DB_DATASOURCE: 'datasources.MongoDbDataSource',
-  TX_V2_PROVIDER: 'datasources.txV2Provider',
-  BTC_LAST_BLOCK_PROVIDER: 'datasources.lastBlockProvider'
 };
 
 export const ServicesBindings = {

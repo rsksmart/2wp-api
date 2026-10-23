@@ -67,7 +67,7 @@ npm run start-daemon
 
 ## Endpoints / API Reference
 
-The running application serves an interactive REST Explorer at `/explorer` and an OpenAPI spec at `/openapi.json` (both disabled when `NODE_ENV=production`). For the full route table plus the data-access extension point, see [`docs/api.md`](./docs/api.md) and [`docs/data-services.md`](./docs/data-services.md).
+The running application serves an interactive REST Explorer at `/explorer` and an OpenAPI spec at `/openapi.json` (both disabled when `NODE_ENV=production`). For the full route table plus the data-access extension point, see [`docs/api.md`](./docs/api.md) and [`docs/data-services.md`](./docs/data-services.md). Request, provider and Bridge-decode work is bounded by explicit resource budgets — see [`docs/resource-budgets.md`](./docs/resource-budgets.md).
 
 ## Testing
 
@@ -141,7 +141,7 @@ The API will be accessible at `http://localhost:3000` and will automatically con
 
 ## Documentation
 
-See [`docs/`](./docs/) for setup details beyond this README ([`setup.md`](./docs/setup.md)), the full routes table and live API docs ([`api.md`](./docs/api.md)), and the `GenericDataService` storage extension point and its MongoDB implementations ([`data-services.md`](./docs/data-services.md)).
+See [`docs/`](./docs/) for setup details beyond this README ([`setup.md`](./docs/setup.md)), the full routes table and live API docs ([`api.md`](./docs/api.md)), the resource budgets that bound request, provider and decode work ([`resource-budgets.md`](./docs/resource-budgets.md)), and the `GenericDataService` storage extension point and its MongoDB implementations ([`data-services.md`](./docs/data-services.md)).
 
 [![LoopBack](<https://github.com/strongloop/loopback-next/raw/master/docs/site/imgs/branding/Powered-by-LoopBack-Badge-(blue)-@2x.png>)](http://loopback.io/)
 
