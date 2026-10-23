@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-floating-promises */
 import mongoose from 'mongoose';
 import {getLogger, Logger} from '../utils/logger';
 import {SyncStatusModel} from '../models/rsk/sync-status.model';
@@ -21,12 +20,9 @@ const SyncStatusConnector = mongoose.model<SyncStatusMongoModel>("SyncStatus", S
 
 export class SyncStatusMongoService extends MongoDbDataService<SyncStatusModel, SyncStatusMongoModel> implements SyncStatusDataService {
   logger: Logger = getLogger('syncStatusMongoService');
-  async verifyAndCreateConnectionIfIsNecessary() {
-    await this.ensureConnection();
-  }
 
   protected getConnector(): mongoose.Model<SyncStatusMongoModel, {}, {}> {
-    this.verifyAndCreateConnectionIfIsNecessary();
+    this.connectInBackground();
     return SyncStatusConnector;
   }
 

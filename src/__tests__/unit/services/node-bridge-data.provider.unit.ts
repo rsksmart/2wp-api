@@ -5,15 +5,30 @@ import {BridgeDataFilterModel} from '../../../models/bridge-data-filter.model';
 import {NodeBridgeDataProvider} from '../../../services/node-bridge-data.provider';
 import ExtendedBridgeTx from '../../../services/extended-bridge-tx'
 import FilteredBridgeTransactionProcessor from '../../../services/filtered-bridge-transaction-processor';
-import {BRIDGE_METHODS, getBridgeSignature} from '../../../utils/bridge-utils';
+import {
+  BRIDGE_METHODS,
+  encodeBridgeMethodParameters,
+  getBridgeSignature,
+} from '../../../utils/bridge-utils';
 import { PeginDataProcessor } from '../../../services/pegin-data.processor';
 import { RskBlock } from '../../../models/rsk/rsk-block.model';
 import { RskTransaction } from '../../../models/rsk/rsk-transaction.model';
 import { PeginStatusDataService } from '../../../services/pegin-status-data-services/pegin-status-data.service';
-import { BridgeService } from '../../../services';
+import { RskNodeService } from '../../../services/rsk-node.service';
 import {Transaction} from '@rsksmart/bridge-transaction-parser';
 
 const rskTxHash = '0xd2852f38fedf1915978715b8a0dc0670040ac4e9065989c810a5bf29c1e006fb';
+
+// Canonically ABI-encoded registerBtcTransaction calldata. The provider now vets
+// calldata against the decode budgets before handing it to the parser, so
+// fixtures have to be encoded the way the RSK node would deliver them.
+const registerBtcTransactionCalldata = (): string =>
+  getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION) +
+  encodeBridgeMethodParameters(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION, [
+    '0x0100000001',
+    2195587,
+    '0x4100000008',
+  ]).slice(2);
 
 // Method args for both pegin_btc and lock_btc are the same.
 const getMockedLockPeginBtcMethodArgs = () => {
@@ -42,14 +57,24 @@ const getMockedLockBtcEventsArgs = () => {
   return lockBtcEventsArgs;
 };
 
+// The provider now refuses to decode anything the EVM did not execute
+// successfully, so tests that expect a decode must supply a successful receipt.
+const givenRskNodeService = (status: unknown = 1) => {
+  const rskNodeService = sinon.createStubInstance(
+    RskNodeService,
+  ) as SinonStubbedInstance<RskNodeService> & RskNodeService;
+  rskNodeService.getTransactionReceipt.resolves({status});
+  return rskNodeService;
+};
+
 describe('Service: NodeBridgeDataProvider', () => {
 
   it('adds and removes subscribers', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService);
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     const peginDataProcessorSubscriber = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
     expect(thisService.getSubscribers()).to.be.empty;
 
@@ -69,8 +94,8 @@ describe('Service: NodeBridgeDataProvider', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService);
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     const peginDataProcessorSubscriber = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
     expect(thisService.getSubscribers()).to.be.empty;
 
@@ -96,8 +121,8 @@ describe('Service: NodeBridgeDataProvider', () => {
     const mockedPeginStatusDataService = <PeginStatusDataService>{};
     mockedPeginStatusDataService.start = sinon.stub();
     mockedPeginStatusDataService.stop = sinon.stub();
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService);
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     
     const peginDataProcessorSubscriber1 = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
     const peginDataProcessorSubscriber2 = new PeginDataProcessor(mockedPeginStatusDataService) as FilteredBridgeTransactionProcessor;
@@ -123,14 +148,14 @@ describe('Service: NodeBridgeDataProvider', () => {
 
   it('informs subscribers', async () => {
 
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService);
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     const mockedPeginDataProcessorSubscriber = sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
 
     // Adds one subscribers
     thisService.addSubscriber(mockedPeginDataProcessorSubscriber);
 
-    const data = getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION) + '00001';
+    const data = registerBtcTransactionCalldata();
     const blockHash = '0x00002';
 
     const createdOn = new Date();
@@ -146,7 +171,7 @@ describe('Service: NodeBridgeDataProvider', () => {
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
-    mockedPeginDataProcessorSubscriber.getFilters.resolves(mockedFilters);
+    mockedPeginDataProcessorSubscriber.getFilters.returns(mockedFilters);
 
     const rskBlock: RskBlock = {
       height: 1,
@@ -184,7 +209,7 @@ describe('Service: NodeBridgeDataProvider', () => {
       events: bridgeTransaction.events
     };
 
-    bridgeService.getBridgeTransactionByHash.resolves(bridgeTransaction);
+    rskNodeService.getBridgeTransaction.resolves(bridgeTransaction);
 
     await thisService.process(rskBlock);
 
@@ -194,8 +219,8 @@ describe('Service: NodeBridgeDataProvider', () => {
 
   it('does not inform pegin subscriber if no matching filter', async () => {
 
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService);
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     const mockedPeginDataProcessorSubscriber = sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
 
     // Adds one subscribers
@@ -215,7 +240,7 @@ describe('Service: NodeBridgeDataProvider', () => {
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
-    mockedPeginDataProcessorSubscriber.getFilters.resolves(mockedFilters);
+    mockedPeginDataProcessorSubscriber.getFilters.returns(mockedFilters);
 
     const rskBlock: RskBlock = {
       height: 1,
@@ -232,9 +257,8 @@ describe('Service: NodeBridgeDataProvider', () => {
 
   it('requests bridge tx once if more than 1 subscribers share the same transaction', async () => {
 
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    
-    const thisService = new NodeBridgeDataProvider(bridgeService);
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     const mockedPeginDataProcessorSubscriber1 = sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
     const mockedPeginDataProcessorSubscriber2 = sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
 
@@ -243,7 +267,7 @@ describe('Service: NodeBridgeDataProvider', () => {
     // No pegout subscriber at the moment, so, using another pegin subscriber to test
     thisService.addSubscriber(mockedPeginDataProcessorSubscriber2);
 
-    const data = getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION) + '00001';
+    const data = registerBtcTransactionCalldata();
     const blockHash = '0x00002';
 
     const createdOn = new Date();
@@ -259,8 +283,8 @@ describe('Service: NodeBridgeDataProvider', () => {
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
-    mockedPeginDataProcessorSubscriber1.getFilters.resolves(mockedFilters);
-    mockedPeginDataProcessorSubscriber2.getFilters.resolves(mockedFilters);
+    mockedPeginDataProcessorSubscriber1.getFilters.returns(mockedFilters);
+    mockedPeginDataProcessorSubscriber2.getFilters.returns(mockedFilters);
 
     const rskBlock: RskBlock = {
       height: 1,
@@ -298,11 +322,12 @@ describe('Service: NodeBridgeDataProvider', () => {
       events: bridgeTransaction.events
     };
 
-    bridgeService.getBridgeTransactionByHash.resolves(bridgeTransaction);
+    rskNodeService.getBridgeTransaction.resolves(bridgeTransaction);
 
     await thisService.process(rskBlock);
 
-    sinon.assert.calledOnceWithExactly(bridgeService.getBridgeTransactionByHash, rskTxHash);
+    sinon.assert.calledOnce(rskNodeService.getBridgeTransaction);
+    expect(rskNodeService.getBridgeTransaction.firstCall.args[0].hash).to.equal(rskTxHash);
     sinon.assert.calledOnceWithMatch(mockedPeginDataProcessorSubscriber1.process, extendedBridgeTx);
     sinon.assert.calledOnceWithMatch(mockedPeginDataProcessorSubscriber2.process, extendedBridgeTx);
     
@@ -310,14 +335,14 @@ describe('Service: NodeBridgeDataProvider', () => {
 
   it('does not process transaction if it it\'s not a bridge transaction', async () => {
 
-    const bridgeService = sinon.createStubInstance(BridgeService) as SinonStubbedInstance<BridgeService> & BridgeService;
-    const thisService = new NodeBridgeDataProvider(bridgeService);
+    const rskNodeService = givenRskNodeService();
+    const thisService = new NodeBridgeDataProvider(rskNodeService);
     const mockedPeginDataProcessorSubscriber = sinon.createStubInstance(PeginDataProcessor) as SinonStubbedInstance<FilteredBridgeTransactionProcessor>;
 
     // Adds one subscribers
     thisService.addSubscriber(mockedPeginDataProcessorSubscriber);
 
-    const data = getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION) + '00001';
+    const data = registerBtcTransactionCalldata();
     const blockHash = '0x00002';
 
     const transaction: RskTransaction = {
@@ -331,7 +356,7 @@ describe('Service: NodeBridgeDataProvider', () => {
     };
 
     const mockedFilters = [new BridgeDataFilterModel(getBridgeSignature(BRIDGE_METHODS.REGISTER_BTC_TRANSACTION))];
-    mockedPeginDataProcessorSubscriber.getFilters.resolves(mockedFilters);
+    mockedPeginDataProcessorSubscriber.getFilters.returns(mockedFilters);
 
     const rskBlock: RskBlock = {
       height: 1,

@@ -1,7 +1,7 @@
 import {Client} from '@loopback/testlab';
 import {expect} from '@loopback/testlab';
 import {TwpapiApplication} from '../..';
-import {setupApplication} from './test-helper';
+import {setupApplication, bindPermissiveRateLimiter} from './test-helper';
 
 describe('HttpAccessLogMiddleware - trace id resolution', () => {
   let app: TwpapiApplication;
@@ -9,6 +9,7 @@ describe('HttpAccessLogMiddleware - trace id resolution', () => {
 
   before('setupApplication', async () => {
     ({app, client} = await setupApplication());
+    bindPermissiveRateLimiter(app);
   });
 
   after(async () => {

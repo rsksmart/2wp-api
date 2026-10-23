@@ -28,13 +28,43 @@ export abstract class MongoDbDataService<Type extends SearchableModel, T> implem
 
   protected abstract getManyFilter(filter?: any): any;
 
+  /**
+   * Connects if there is no connection yet, and waits for it.
+   *
+   * The previous version resolved immediately and started the connection on a
+   * derived promise it discarded, so it told every caller "connected" before
+   * anything had been attempted, and a connection failure became an orphaned
+   * rejection rather than this caller's problem.
+   *
+   * @throws Whatever the datasource raised while connecting.
+   */
   async ensureConnection(): Promise<void> {
-    const p = Promise.resolve();
     if (!this.db) {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      p.then(() => this.start());
+      await this.start();
     }
-    return p;
+  }
+
+  /**
+   * Starts a connection attempt without waiting for it.
+   *
+   * `getConnector()` is synchronous — every read and write in every subclass
+   * calls it inline — so it cannot await the connection, and making it async
+   * would change the shape of five services and every one of their callers. The
+   * caller does not lose the failure by not waiting for it here: it awaits the
+   * query, and mongoose fails that query on its own once its buffering timeout
+   * elapses. What the caller does lose is the *reason*, so it is logged.
+   *
+   * The `catch` is the point of this method. Without it the discarded promise
+   * became an unhandled rejection the moment `ensureConnection` started
+   * propagating failures properly.
+   */
+  protected connectInBackground(): void {
+    this.ensureConnection().catch(err => {
+      this.logger.warn(
+        {method: 'connectInBackground', err},
+        'Database connection attempt failed',
+      );
+    });
   }
 
   getById(id: any): Promise<Type> {

@@ -5,7 +5,7 @@ import {
   ADDRESS_INFO_MAX_TXIDS,
   ADDRESS_LIST_MAX_ITEMS,
 } from '../../config/limits';
-import {setupApplication} from './test-helper';
+import {setupApplication, bindPermissiveRateLimiter} from './test-helper';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {BitcoinAddress} from '../../models/bitcoin-address.model';
 
@@ -46,6 +46,7 @@ describe('AddressesInfoController (Acceptance)', () => {
 
   before('setupApplication', async () => {
     ({app, client} = await setupApplication());
+    bindPermissiveRateLimiter(app);
   });
 
   after(async () => {
@@ -121,12 +122,42 @@ describe('AddressesInfoController (Acceptance)', () => {
         addressList: Array.from({length: 25000}, () => sampleAddress),
       };
 
+      // ~900 KB of addresses, so the request-body budget rejects it on the
+      // declared Content-Length before a byte is buffered — earlier than the 422
+      // the address-list validator would have produced. Because the server
+      // answers and closes without draining the payload, a client still writing
+      // it can see the reset instead of the 413; either outcome proves the
+      // refusal.
+      try {
+        const res = await client.post('/addresses-info').send(requestBody);
+        expect(res.status).to.equal(413);
+      } catch (err) {
+        expect((err as NodeJS.ErrnoException).code).to.be.oneOf([
+          'EPIPE',
+          'ECONNRESET',
+        ]);
+      }
+
+      sinon.assert.notCalled(getAddressInfoStub);
+    }).timeout(10000);
+
+    it('rejects an over-long address list that fits inside the body budget with 422', async () => {
+      const getAddressInfoStub = sinon.stub().resolves(buildAddressInfo(sampleAddress, []));
+      app.getBinding(ServicesBindings.BITCOIN_SERVICE).to({getAddressInfo: getAddressInfoStub});
+
+      const requestBody = {
+        addressList: Array.from(
+          {length: ADDRESS_LIST_MAX_ITEMS + 1},
+          (_, i) => `${sampleAddress}${i}`,
+        ),
+      };
+
       await client
         .post('/addresses-info')
         .send(requestBody)
         .expect(422);
 
       sinon.assert.notCalled(getAddressInfoStub);
-    }).timeout(10000);
+    });
   });
 });

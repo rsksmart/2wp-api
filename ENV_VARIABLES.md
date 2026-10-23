@@ -86,6 +86,50 @@ very first retrieval waits on the backoffice. On backoffice downtime the last
 retrieved values are served (or the flags are simply omitted from `/features`),
 and failed or invalid retrievals are logged.
 
+### Resource budgets
+
+Caps on how much memory, parsing, serialization and downstream provider work a single request (or provider response) may cause. All are optional — each falls back to a safe default. See [`docs/resource-budgets.md`](./docs/resource-budgets.md).
+
+|NAME                          |DEFAULT                        |DETAILS                                                  |
+|------------------------------|-------------------------------|---------------------------------------------------------|
+|MAX_REQUEST_BODY_BYTES        |262144                         |'Maximum inbound HTTP request body, in bytes'            |
+|MAX_PROVIDER_RESPONSE_BYTES   |1572864                        |'Maximum single outbound provider response, in bytes'    |
+|MAX_UTXOS_PER_ADDRESS         |1000                           |'Maximum UTXO rows retained for one address'             |
+|UTXO_RESPONSE_MAX_ROWS        |1000                           |'Maximum UTXO rows retained for one /utxo request'       |
+|MAX_ADDRESS_INFO_TXIDS        |100                            |'Maximum txids per address in /addresses-info (legacy alias: ADDRESS_INFO_MAX_TXIDS)'|
+|PROVIDER_TIMEOUT_MS           |15000                          |'Outbound provider request deadline, in milliseconds'    |
+|PROVIDER_MAX_RETRIES          |1                              |'Extra provider attempts after the first (0 disables retries)'|
+|PROVIDER_RETRY_BASE_DELAY_MS  |100                            |'Base backoff between provider retries, in milliseconds' |
+|ADDRESS_LIST_MAX_ITEMS        |120                            |'Maximum addresses accepted in one request'              |
+|PROVIDER_CONCURRENCY          |5                              |'Provider requests in flight per API request'            |
+|BLOCKBOOK_MAX_IN_FLIGHT       |50                             |'Blockbook operations in flight across the whole process'|
+|BLOCKBOOK_QUEUE_MAX_DEPTH     |100                            |'Callers allowed to queue for a Blockbook permit'        |
+|BLOCKBOOK_QUEUE_MAX_WAIT_MS   |5000                           |'Longest wait for a Blockbook permit before a 503, in milliseconds'|
+|MAX_ERROR_RESPONSE_BYTES      |8192                           |'Maximum serialized error response body, in bytes'       |
+|MAX_VALIDATION_ERROR_DETAILS  |3                              |'Maximum validation details returned to the client'      |
+|MAX_CONNECTION_BUFFERED_BYTES |1048576                        |'Response bytes buffered per connection before it is dropped'|
+|CONNECTION_OUTPUT_SAMPLE_INTERVAL_MS|50                       |'How often an in-flight response socket buffer is sampled, in ms'|
+|CONNECTION_OUTPUT_STALL_MS    |1000                           |'How long a socket may sit over budget without draining before it is dropped'|
+|MAX_TOTAL_PENDING_OUTPUT_BYTES|16777216                       |'Hard cap on stuck response bytes across every connection at once'|
+|CONNECTION_OUTPUT_AGGREGATE_STALL_MS|100                      |'How long a connection must be stuck before its bytes count towards that cap'|
+|MAX_REQUEST_DURATION_MS       |30000                          |'Wall-clock deadline for handling one inbound request, in ms'|
+|REQUEST_DEADLINE_GRACE_MS     |250                            |'Grace for cooperative unwinding after the request deadline, in milliseconds'|
+|RATE_LIMIT_WINDOW_MS          |30000                          |'Rate-limit window length, in milliseconds'               |
+|RATE_LIMIT_MAX_REQUESTS       |90                             |'Requests per window per client on ordinary routes'       |
+|RATE_LIMIT_MAX_FANOUT_REQUESTS|15                             |'Requests per window per client on /utxo and /addresses-info'|
+|RATE_LIMIT_MAX_HEALTH_REQUESTS|600                            |'Requests per window per client on /health'               |
+|RATE_LIMIT_MAX_TRACKED_CLIENTS|4096                           |'Hard cap on clients the limiter tracks at once'          |
+|RATE_LIMIT_TRUSTED_PROXIES    |(empty)                        |'Comma-separated peers whose X-Forwarded-For is believed; empty ignores the header'|
+|RATE_LIMIT_TRUSTED_HOPS       |1                              |'Proxies in front; the client is this many entries from the right of X-Forwarded-For'|
+|MONGO_MAX_DOCUMENTS           |250                            |'Maximum documents returned by one database read'         |
+|HEALTH_CACHE_TTL_MS           |2000                           |'How long a /health result may be reused, in milliseconds'|
+|PROCESS_FAILURE_TRIPWIRE_MAX  |10                             |'Failures of one kind survived within a window before exiting 1'|
+|PROCESS_FAILURE_TRIPWIRE_WINDOW_MS|60000                      |'Process-failure tripwire window length, in milliseconds' |
+|PROCESS_FAILURE_TRIPWIRE_MAX_KINDS|64                         |'Hard cap on failure kinds the tripwire tracks at once'   |
+|MAX_BRIDGE_CALLDATA_BYTES     |32768                          |'Maximum calldata handed to the Bridge ABI decoder, in bytes'|
+|MAX_TX_PROVIDER_RESPONSE_BYTES|8388608                        |'Maximum single transaction-lookup provider response, in bytes'|
+|TX_PROVIDER_MAX_IN_FLIGHT     |4                              |'Transaction lookups in flight across the whole process'  |
+
 
 ##Example for .env.local.test file
 

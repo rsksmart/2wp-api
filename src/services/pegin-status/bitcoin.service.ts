@@ -25,6 +25,18 @@ export class BitcoinService {
     this.lastBlockService = lastBlockService;
   }
 
+  /**
+   * Transaction information from the provider.
+   *
+   * Provider failures are rethrown unchanged, for the same reason as
+   * {@link getAddressInfo}: they already carry a meaningful status, and
+   * rejecting with a bare string erases it — a 502 or 504 arrives as a 500, and
+   * any cancellation travelling the path is destroyed with it.
+   *
+   * @param txId - Transaction id to look up.
+   * @returns The transaction.
+   * @throws The provider's own error, unchanged.
+   */
   getTx(txId: string): Promise<BitcoinTx> {
     return new Promise<BitcoinTx>((resolve, reject) => {
       this.txV2Service
@@ -47,38 +59,61 @@ export class BitcoinService {
           resolve(responseTx);
         })
         .catch(err => {
-          this.logger.warn({method: 'getTx', err, txId});
-          reject(`Error getting tx ${txId}`);
+          this.logger.warn({method: 'getTx', err, txId}, 'Transaction lookup failed');
+          reject(err);
         });
     });
   }
 
-  getAddressInfo(address: string): Promise<BitcoinAddress> {
-    return new Promise<BitcoinAddress>((resolve, reject) => {
-      this.addressService.addressProvider(address)
-        .then((tx: any) => {
-          const responseAddress = new BitcoinAddress();
-          responseAddress.address = tx[0].address;
-          responseAddress.balance = tx[0].balance;
-          responseAddress.page = tx[0].page;
-          responseAddress.totalPages = tx[0].totalPages;
-          responseAddress.itemsOnPage = tx[0].itemsOnPage;
-          responseAddress.totalReceived = tx[0].totalReceived;
-          responseAddress.totalSent = tx[0].totalSent;
-          responseAddress.unconfirmedBalance = tx[0].unconfirmedBalance;
-          responseAddress.unconfirmedTxs = tx[0].unconfirmedTxs;
-          responseAddress.txs = tx[0].txs;
-          if (responseAddress.txs > 0) {
-            responseAddress.txids = tx[0].txids;
-          }
-          resolve(responseAddress);
-        })
-        .catch(() => {
-          reject(`Error getting address ${address}`);
-        });
-    });
+  /**
+   * Address information from the provider.
+   *
+   * Provider failures are rethrown unchanged. They already carry a meaningful
+   * status — a timeout is a 504, an oversized response a 502, a cancellation a
+   * 499 — and replacing them with a string erased all of that, collapsing every
+   * upstream condition into a 500 and destroying any cancellation travelling
+   * this path. The address goes to the log as a field rather than into the error
+   * message, so nothing request-derived rides along with the error.
+   *
+   * @param address - BTC address to resolve.
+   * @returns The provider's address information.
+   */
+  async getAddressInfo(address: string): Promise<BitcoinAddress> {
+    let tx;
+    try {
+      tx = (await this.addressService.addressProvider(address)) as any;
+    } catch (err) {
+      this.logger.warn({method: 'getAddressInfo', err, address}, 'Address lookup failed');
+      throw err;
+    }
+
+    const responseAddress = new BitcoinAddress();
+    responseAddress.address = tx[0].address;
+    responseAddress.balance = tx[0].balance;
+    responseAddress.page = tx[0].page;
+    responseAddress.totalPages = tx[0].totalPages;
+    responseAddress.itemsOnPage = tx[0].itemsOnPage;
+    responseAddress.totalReceived = tx[0].totalReceived;
+    responseAddress.totalSent = tx[0].totalSent;
+    responseAddress.unconfirmedBalance = tx[0].unconfirmedBalance;
+    responseAddress.unconfirmedTxs = tx[0].unconfirmedTxs;
+    responseAddress.txs = tx[0].txs;
+    if (responseAddress.txs > 0) {
+      responseAddress.txids = tx[0].txids;
+    }
+    return responseAddress;
   }
 
+  /**
+   * Provider chain tip, used by the health probe.
+   *
+   * Rethrows the provider's error unchanged, as {@link getTx} does. Interpolating
+   * it into a string also embedded provider text in the rejection, which the
+   * caller may surface.
+   *
+   * @returns The provider's last-block information.
+   * @throws The provider's own error, unchanged.
+   */
   getLastBlock(): Promise<LastBlockInfo> {
     return new Promise<LastBlockInfo>((resolve, reject) => {
       this.lastBlockService.lastBlockProvider()
@@ -94,8 +129,9 @@ export class BitcoinService {
           lastBlockInfo.syncMode = lbir[0].blockbook.syncMode;
           resolve(lastBlockInfo);
         })
-        .catch((e) => {
-          reject(`Error getting last block ${e}`);
+        .catch((err) => {
+          this.logger.warn({method: 'getLastBlock', err}, 'Last block lookup failed');
+          reject(err);
         });
     });
   }

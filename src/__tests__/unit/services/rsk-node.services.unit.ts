@@ -3,10 +3,23 @@ import { BridgeEvent } from '@rsksmart/bridge-transaction-parser';
 import {RskBlock} from '../../../models/rsk/rsk-block.model';
 import {RskNodeService} from '../../../services/rsk-node.service';
 import { BRIDGE_EVENTS } from '../../../utils/bridge-utils';
+import {
+  installRskRpcMock,
+  restoreRskRpcMock,
+} from '../../fixtures/rsk-rpc.mock';
 
 const getInitialBlock = () => new RskBlock(2863627, '0xba5e', '0x');
 
 describe('Service: RskNodeService', () => {
+    // Recorded RSK responses, replayed — see rsk-rpc.mock.ts for why.
+    before(() => {
+        installRskRpcMock();
+    });
+
+    after(() => {
+        restoreRskRpcMock();
+    });
+
     it('Searches the block using initial block conf', async () => {
         const thisService = new RskNodeService();
         const block = await thisService.getBlock(getInitialBlock().height);
@@ -46,16 +59,21 @@ describe('Service: RskNodeService', () => {
         const block = await thisService.getBlockNumber();
         expect(block).to.not.be.null;
     });
+    // getBridgeTransaction now takes the transaction this service already
+    // fetched rather than its hash, so these first fetch it — which is also the
+    // point: the bytes that get decoded are the ones we held and bounded.
     it('Searches the Bridge Transaction', async () => {
         const simpleTransaction = "0x368cfbff365655d14eeaaba822c20fa8bb0c98fda0eef938094dee4ec7a83a66";
         const thisService = new RskNodeService();
-        const txRsk = await thisService.getBridgeTransaction(simpleTransaction);
+        const rskTx = await thisService.getTransaction(simpleTransaction, true);
+        const txRsk = await thisService.getBridgeTransaction(rskTx);
         expect(txRsk!.events).to.be.null;
     });
     it('Searches the Bridge Transaction RELEASE_REQUEST_RECEIVED', async () => {
         const simpleTransaction = "0x368cfbff365655d14eeaaba822c20fa8bb0c98fda0eef938094dee4ec7a83a66";
         const thisService = new RskNodeService();
-        const txRsk = await thisService.getBridgeTransaction(simpleTransaction);
+        const rskTx = await thisService.getTransaction(simpleTransaction, true);
+        const txRsk = await thisService.getBridgeTransaction(rskTx);
         const releaseRequestRejectedEvent: BridgeEvent = txRsk!.events.find(event => event.name === BRIDGE_EVENTS.RELEASE_REQUEST_RECEIVED)!;
 
         expect(releaseRequestRejectedEvent).to.be.null;

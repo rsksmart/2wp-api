@@ -1,6 +1,6 @@
 import {Client, expect} from '@loopback/testlab';
 import {TwpapiApplication} from '../..';
-import {setupApplication} from './test-helper';
+import {setupApplication, bindPermissiveRateLimiter} from './test-helper';
 
 describe('Pegin configuration Controller', () => {
   let app: TwpapiApplication;
@@ -8,6 +8,7 @@ describe('Pegin configuration Controller', () => {
 
   before('setupApplication', async () => {
     ({app, client} = await setupApplication());
+    bindPermissiveRateLimiter(app);
   });
 
   after(async () => {
