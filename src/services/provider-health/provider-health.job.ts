@@ -34,7 +34,7 @@ export class ProviderHealthJob implements LifeCycleObserver {
   private readonly intervalMs: number;
   private readonly timeoutMs: number;
   private timer?: ReturnType<typeof setInterval>;
-  private round?: Promise<void>;
+  private roundInProgress?: Promise<void>;
 
   /**
    * @param checks - One check per provider.
@@ -93,18 +93,20 @@ export class ProviderHealthJob implements LifeCycleObserver {
    * returns that round instead of starting another one.
    */
   runRound(): Promise<void> {
-    if (!this.round) {
-      this.round = Promise.all(this.checks.map(check => this.runCheck(check)))
+    if (!this.roundInProgress) {
+      this.roundInProgress = Promise.all(
+        this.checks.map(check => this.refreshProviderHealth(check)),
+      )
         .then(() => undefined)
         .finally(() => {
-          this.round = undefined;
+          this.roundInProgress = undefined;
         });
     }
-    return this.round;
+    return this.roundInProgress;
   }
 
   /** Runs one check within the time limit and stores what it found. */
-  private async runCheck(check: ProviderHealthCheck): Promise<void> {
+  private async refreshProviderHealth(check: ProviderHealthCheck): Promise<void> {
     const startedAt = Date.now();
     let reason: HealthFailureReason | null = null;
     let error: unknown;
@@ -124,7 +126,7 @@ export class ProviderHealthJob implements LifeCycleObserver {
     this.store.set(check.provider, result);
     // Before its first check, a provider counts as up, so only a provider
     // that starts out down is logged.
-    this.logChange(check.provider, previous?.status ?? 'up', result, error);
+    this.logIfStatusChanged(check.provider, previous?.status ?? 'up', result, error);
   }
 
   /** Rejects with a `timeout` failure if `work` takes longer than the limit. */
@@ -145,7 +147,7 @@ export class ProviderHealthJob implements LifeCycleObserver {
     return Promise.race([work, timeLimit]).finally(() => clearTimeout(timer));
   }
 
-  private logChange(
+  private logIfStatusChanged(
     provider: string,
     before: ProviderHealthStatus,
     result: ProviderHealthResult,

@@ -11,7 +11,7 @@ import { SyncStatusModel } from '../models/rsk/sync-status.model';
 import { LastBlockInfo } from '../models/btc-last-block.model';
 import { HEALTH_CACHE_TTL_MS } from '../config/resource-budgets';
 import { errorsTotal } from '../utils/metrics';
-import { ProviderHealthList } from '../models/provider-health-report.model';
+import { ProviderHealthResponse } from '../models/provider-health-report.model';
 import {
   PROVIDER_HEALTH_REPORT_SCHEMA,
   providerHealthReports,
@@ -188,7 +188,7 @@ export class HealthCheckController {
    * @returns Every provider's health, sorted by key; an empty list until the
    * first check ends.
    */
-  providers(): ProviderHealthList {
+  providers(): ProviderHealthResponse {
     return {providers: providerHealthReports(this.providerHealthStore)};
   }
 

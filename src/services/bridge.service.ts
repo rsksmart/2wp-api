@@ -86,8 +86,8 @@ export class BridgeService {
   public getRemainingPeginCapacity(): Promise<number> {
     return Promise.all([this.getLockingCapAmount(), this.getRbtcInCirculation()])
       .then(([lockingCap, rbtcInCirculation]) => {
-        const rbtcInCirculationToSatoshis = Math.round(rbtcInCirculation / 1e10);
-        const remaining = lockingCap - rbtcInCirculationToSatoshis;
+        const rbtcInCirculationSatoshis = Math.round(rbtcInCirculation / 1e10);
+        const remaining = lockingCap - rbtcInCirculationSatoshis;
         return remaining > 0 ? remaining : 0;
       });
   }

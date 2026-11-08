@@ -21,11 +21,13 @@ export const HEALTH_FAILURE_REASONS = [
 export type HealthFailureReason = (typeof HEALTH_FAILURE_REASONS)[number];
 
 /**
- * Thrown by a provider check that reached the provider and found it unusable.
+ * A provider check failure whose reason is already known.
  *
- * A failure that comes from the call itself (a timeout, a refused connection)
- * is thrown as the original error instead, and classified where the result is
- * recorded.
+ * Thrown by a check that reached the provider and found it unusable (for
+ * example `no_capacity`), and by the health job when a check runs past its
+ * time limit (`timeout`). A failure of the call itself, such as a refused
+ * connection, is thrown as the original error instead and classified where the
+ * result is recorded.
  */
 export class ProviderCheckFailure extends Error {
   readonly reason: HealthFailureReason;

@@ -19,6 +19,6 @@ export class ProviderHealthReport {
 }
 
 /** The body of `GET /health/providers`. */
-export class ProviderHealthList {
+export class ProviderHealthResponse {
   providers: ProviderHealthReport[];
 }
