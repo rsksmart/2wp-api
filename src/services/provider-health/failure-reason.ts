@@ -45,7 +45,7 @@ export function failureReason(err: unknown): HealthFailureReason {
     const current = queue.shift();
     if (current && typeof current === 'object' && !seen.has(current)) {
       seen.add(current);
-      const reason = reasonFromCode(current as ErrorLike);
+      const reason = reasonOfLink(current as ErrorLike);
       if (reason) {
         return reason;
       }
@@ -56,8 +56,11 @@ export function failureReason(err: unknown): HealthFailureReason {
   return 'error';
 }
 
-/** The reason one error's own code points to, if any. */
-function reasonFromCode(link: ErrorLike): HealthFailureReason | undefined {
+/**
+ * The reason one error in the chain points to, from its own code and HTTP
+ * status, if any. The errors it wraps are the caller's to walk.
+ */
+function reasonOfLink(link: ErrorLike): HealthFailureReason | undefined {
   if (typeof link.code !== 'string') {
     return undefined;
   }
@@ -86,6 +89,6 @@ function httpStatus(link: ErrorLike): number {
   if (typeof statusCode === 'number') {
     return statusCode;
   }
-  const display = link.info?.responseStatus;
-  return typeof display === 'string' ? parseInt(display, 10) || 0 : 0;
+  const responseStatus = link.info?.responseStatus;
+  return typeof responseStatus === 'string' ? parseInt(responseStatus, 10) || 0 : 0;
 }
