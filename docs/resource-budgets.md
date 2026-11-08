@@ -48,6 +48,7 @@ back rather than disabling a budget.
 | `RATE_LIMIT_TRUSTED_HOPS` | 1 | Proxies in front, for reading `X-Forwarded-For` |
 | `MONGO_MAX_DOCUMENTS` | 250 | Documents returned by one database read |
 | `HEALTH_CACHE_TTL_MS` | 2000 (2 s) | How long a `/health` result may be reused |
+| `PROVIDER_HEALTH_CHECK_INTERVAL_MS` | 30000 (30 s) | How often the background job checks every provider; `0` turns it off, and anything else below the 10 s check timeout falls back to the default |
 | `MAX_BRIDGE_CALLDATA_BYTES` | 32768 (32 KiB) | Calldata handed to the Bridge ABI decoder |
 | `MAX_TX_PROVIDER_RESPONSE_BYTES` | 8388608 (8 MiB) | One transaction-lookup provider response |
 | `TX_PROVIDER_MAX_IN_FLIGHT` | 4 | Transaction lookups in flight process-wide |
