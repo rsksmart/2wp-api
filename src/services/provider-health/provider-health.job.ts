@@ -11,7 +11,7 @@ import {
   ProviderHealthCheck,
 } from './provider-health-check';
 import {ProviderHealthStore} from './provider-health.store';
-import {applyCheck, ProviderHealthResult, ProviderStatus} from './status-rules';
+import {applyCheck, ProviderHealthResult, ProviderHealthStatus} from './status-rules';
 
 /** How often the job runs and how long one check may take, in milliseconds. */
 export interface ProviderHealthJobTiming {
@@ -147,7 +147,7 @@ export class ProviderHealthJob implements LifeCycleObserver {
 
   private logChange(
     provider: string,
-    before: ProviderStatus,
+    before: ProviderHealthStatus,
     result: ProviderHealthResult,
     error: unknown,
   ): void {

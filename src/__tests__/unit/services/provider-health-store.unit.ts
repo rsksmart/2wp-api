@@ -15,7 +15,7 @@ function result(
     reason: status === 'up' ? null : 'timeout',
     durationMs: 120,
     checkedAt: at,
-    streak: 0,
+    opposingStreak: 0,
     ...overrides,
   };
 }

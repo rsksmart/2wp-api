@@ -33,7 +33,7 @@ describe('GET /health/providers', () => {
       reason: 'no_capacity',
       durationMs: 120,
       checkedAt: new Date('2026-11-08T10:00:30.000Z'),
-      streak: 0,
+      opposingStreak: 0,
     });
 
     const res = await client

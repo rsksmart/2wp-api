@@ -19,7 +19,7 @@ const powpegDown: ProviderHealthResult = {
   reason: 'timeout',
   durationMs: 10_000,
   checkedAt: CHECKED_AT,
-  streak: 0,
+  opposingStreak: 0,
 };
 
 /** What the routes return for `powpegDown`. */
@@ -121,7 +121,7 @@ describe('Provider health in /health and /health/providers', () => {
 
   describe('report shape', () => {
     it('matches the swap API: latencyMs, ISO timestamps, no internal fields', () => {
-      store.set('powpeg', {...powpegDown, streak: 2});
+      store.set('powpeg', {...powpegDown, opposingStreak: 2});
 
       const [report] = providerHealthReports(store);
 

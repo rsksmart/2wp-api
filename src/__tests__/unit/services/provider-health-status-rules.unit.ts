@@ -38,7 +38,7 @@ describe('Provider health: status rules', () => {
         reason: null,
         durationMs: 100,
         checkedAt: outcome(0, null).checkedAt,
-        streak: 0,
+        opposingStreak: 0,
       });
     });
 
@@ -56,7 +56,7 @@ describe('Provider health: status rules', () => {
       const results = run([null, 'timeout', 'timeout', 'timeout']);
 
       expect(results.map(r => r.status)).to.deepEqual(['up', 'up', 'up', 'down']);
-      expect(results.map(r => r.streak)).to.deepEqual([0, 1, 2, 0]);
+      expect(results.map(r => r.opposingStreak)).to.deepEqual([0, 1, 2, 0]);
     });
 
     it('reports no reason while still up', () => {
@@ -88,7 +88,7 @@ describe('Provider health: status rules', () => {
 
       expect(recovering.status).to.equal('down');
       expect(recovering.reason).to.equal('no_capacity');
-      expect(recovering.streak).to.equal(1);
+      expect(recovering.opposingStreak).to.equal(1);
     });
 
     it('goes up on the second pass and clears the reason', () => {
@@ -97,7 +97,7 @@ describe('Provider health: status rules', () => {
       expect(up.status).to.equal('up');
       expect(up.reason).to.be.null();
       expect(up.since).to.deepEqual(outcome(1, null).checkedAt);
-      expect(up.streak).to.equal(0);
+      expect(up.opposingStreak).to.equal(0);
     });
 
     it('starts counting again after a failure', () => {
