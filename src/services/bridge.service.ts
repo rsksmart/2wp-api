@@ -74,22 +74,35 @@ export class BridgeService {
     });
   }
 
+  /**
+   * How much more BTC the bridge accepts before it reaches its locking cap: the
+   * locking cap minus the RBTC in circulation, in satoshis, never below zero.
+   *
+   * This is the bridge's limit, not the limit on one peg-in, so it ignores
+   * `MAX_AMOUNT_ALLOWED_IN_SATOSHI`; {@link getPeginAvailability} applies that.
+   *
+   * @returns The remaining peg-in capacity, in satoshis.
+   */
+  public getRemainingPeginCapacity(): Promise<number> {
+    return Promise.all([this.getLockingCapAmount(), this.getRbtcInCirculation()])
+      .then(([lockingCap, rbtcInCirculation]) => {
+        const rbtcInCirculationToSatoshis = Math.round(rbtcInCirculation / 1e10);
+        const remaining = lockingCap - rbtcInCirculationToSatoshis;
+        return remaining > 0 ? remaining : 0;
+      });
+  }
+
   public getPeginAvailability(): Promise<number> {
-    return new Promise<number>((resolve, reject) => {
-      Promise.all([this.getLockingCapAmount(), this.getRbtcInCirculation()])
-        .then(([lockingCap, rbtcInCirculation]) => {
-          const rbtcInCirculationToSatoshis = Math.round(rbtcInCirculation / 1e10);
-          let availability = lockingCap - rbtcInCirculationToSatoshis;
-          availability = availability > 0 ? availability : 0
-          const maxAllowed = process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI
-            ? Number(process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI) : Infinity;
-          resolve(Math.min(availability, maxAllowed));
-        })
-        .catch(err => {
-          this.logger.warn({ method: 'getPeginAvailability', err }, 'Bridge call failed');
-          reject(err);
-        });
-    });
+    return this.getRemainingPeginCapacity()
+      .then(remaining => {
+        const maxAllowed = process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI
+          ? Number(process.env.MAX_AMOUNT_ALLOWED_IN_SATOSHI) : Infinity;
+        return Math.min(remaining, maxAllowed);
+      })
+      .catch(err => {
+        this.logger.warn({ method: 'getPeginAvailability', err }, 'Bridge call failed');
+        throw err;
+      });
   }
 
   public async isBtcTxHashAlreadyProcessed(txHash: string): Promise<Boolean> {
