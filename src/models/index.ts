@@ -17,4 +17,5 @@ export *from './btc-last-block.model';
 export * from './fee-amount.model';
 export * from './features.model';
 export * from './pegout-status.model';
+export * from './provider-health-report.model';
 export * from './quote-db.model';

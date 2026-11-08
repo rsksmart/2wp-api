@@ -11,6 +11,12 @@ import { SyncStatusModel } from '../models/rsk/sync-status.model';
 import { LastBlockInfo } from '../models/btc-last-block.model';
 import { HEALTH_CACHE_TTL_MS } from '../config/resource-budgets';
 import { errorsTotal } from '../utils/metrics';
+import { ProviderHealthList } from '../models/provider-health-report.model';
+import {
+  PROVIDER_HEALTH_REPORT_SCHEMA,
+  providerHealthReports,
+  ProviderHealthStore,
+} from '../services/provider-health';
 
 const packageJson = require('../../package.json');
 
@@ -52,7 +58,9 @@ export class HealthCheckController {
     rskNodeService: RskNodeService,
     @inject(ServicesBindings.SYNC_STATUS_DATA_SERVICE)
     syncStorageService: SyncStatusDataService,
-    @inject(RestBindings.Http.RESPONSE) private response: Response
+    @inject(RestBindings.Http.RESPONSE) private response: Response,
+    @inject(ServicesBindings.PROVIDER_HEALTH_STORE)
+    private providerHealthStore: ProviderHealthStore,
   ) {
     this.logger = getLogger('health-check-controller');
     this.syncStorageService = syncStorageService;
@@ -89,6 +97,11 @@ export class HealthCheckController {
    *
    * Writes the JSON body directly onto the injected `Response`: status `200`
    * if every check succeeded, `500` if any of them failed.
+   *
+   * Also lists provider health under `providers`, read from the background
+   * job's stored results. Reading them contacts no provider, and a provider
+   * that is down does not change `up` or the status code: a full locking cap
+   * must not take the API out of its load balancer.
    *
    * @returns The `Response` object, already sent, containing `HealthInformation` with one `HealthInformationChecks`/`BlockBoock` entry per dependency.
    */
@@ -140,9 +153,43 @@ export class HealthCheckController {
     health.blockBook = blockBook;
     health.rskNode = rskNode;
     health.bridgeService = bridgeService;
+    health.providers = providerHealthReports(this.providerHealthStore);
 
     HealthCheckController.cached = {producedAt: now, health};
     return health;
+  }
+
+  @get('/health/providers', {
+    responses: {
+      '200': {
+        description: 'Health of every provider, from the background job',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['providers'],
+              properties: {
+                providers: {type: 'array', items: PROVIDER_HEALTH_REPORT_SCHEMA},
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  /**
+   * `GET /health/providers` — the health of every provider, as the background
+   * job last stored it. The backoffice polls this route on both APIs.
+   *
+   * Reads the stored results only, so it contacts no provider and needs no
+   * cache. Always `200`: a provider that is down is data here, not a failure
+   * of this API.
+   *
+   * @returns Every provider's health, sorted by key; an empty list until the
+   * first check ends.
+   */
+  providers(): ProviderHealthList {
+    return {providers: providerHealthReports(this.providerHealthStore)};
   }
 
   /** Forgets the cached result. Intended for tests. */
