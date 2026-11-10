@@ -1,5 +1,9 @@
 import {BootMixin} from '@loopback/boot';
-import {ApplicationConfig} from '@loopback/core';
+import {
+  ApplicationConfig,
+  asLifeCycleObserver,
+  BindingScope,
+} from '@loopback/core';
 import {RepositoryMixin} from '@loopback/repository';
 import {
   Request,
@@ -19,6 +23,13 @@ import {
   truncateValidationErrors,
 } from './validation/bounded-ajv.factory';
 import {DependencyInjectionHandler} from './dependency-injection-handler';
+import {ServicesBindings} from './dependency-injection-bindings';
+import {BridgeService} from './services/bridge.service';
+import {
+  PowpegHealthCheck,
+  ProviderHealthJob,
+  ProviderHealthStore,
+} from './services/provider-health';
 import {MySequence} from './sequence';
 import {httpAccessLogMiddleware} from './middleware/http-access-log.middleware';
 import {
@@ -249,6 +260,27 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
     this.onStart(async () => seedHttpMetrics(await this.restServer.getApiSpec()));
 
     DependencyInjectionHandler.configureDependencies(this);
+
+    // Check every provider in the background, so /health reports stored
+    // results and never contacts a provider itself. Bound here rather than in
+    // the shared handler because only the API serves /health; the daemon
+    // would run the checks for nobody.
+    this.bind(ServicesBindings.PROVIDER_HEALTH_JOB)
+      .toDynamicValue(
+        async ({context}) =>
+          new ProviderHealthJob(
+            [
+              new PowpegHealthCheck(
+                await context.get<BridgeService>(ServicesBindings.BRIDGE_SERVICE),
+              ),
+            ],
+            await context.get<ProviderHealthStore>(
+              ServicesBindings.PROVIDER_HEALTH_STORE,
+            ),
+          ),
+      )
+      .inScope(BindingScope.SINGLETON)
+      .apply(asLifeCycleObserver);
   }
 
 }
