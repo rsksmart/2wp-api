@@ -87,6 +87,16 @@ describe('Provider health in /health and /health/providers', () => {
       expect(sent.body!.providers).to.deepEqual([powpegDownReport]);
     });
 
+    it('reads providers on every call, not from the cache', async () => {
+      await controller.health(); // caches the dependency checks
+      store.set('powpeg', powpegDown);
+
+      await controller.health(); // still within HEALTH_CACHE_TTL_MS
+
+      expect(sent.body!.providers).to.deepEqual([powpegDownReport]);
+      sinon.assert.calledOnce(bridge.getFederationAddress); // the checks stayed cached
+    });
+
     it('stays 200 and up while a provider is down', async () => {
       // A full locking cap or a slow bridge must not take the API out of its
       // load balancer: provider health is reported, not acted on, here.
