@@ -11,6 +11,11 @@ import { SyncStatusModel } from '../models/rsk/sync-status.model';
 import { LastBlockInfo } from '../models/btc-last-block.model';
 import { HEALTH_CACHE_TTL_MS } from '../config/resource-budgets';
 import { errorsTotal } from '../utils/metrics';
+import { ProviderHealthResponse } from '../models/provider-health-report.model';
+import {
+  providerHealthReports,
+  ProviderHealthStore,
+} from '../services/provider-health';
 
 const packageJson = require('../../package.json');
 
@@ -52,7 +57,9 @@ export class HealthCheckController {
     rskNodeService: RskNodeService,
     @inject(ServicesBindings.SYNC_STATUS_DATA_SERVICE)
     syncStorageService: SyncStatusDataService,
-    @inject(RestBindings.Http.RESPONSE) private response: Response
+    @inject(RestBindings.Http.RESPONSE) private response: Response,
+    @inject(ServicesBindings.PROVIDER_HEALTH_STORE)
+    private providerHealthStore: ProviderHealthStore,
   ) {
     this.logger = getLogger('health-check-controller');
     this.syncStorageService = syncStorageService;
@@ -90,10 +97,19 @@ export class HealthCheckController {
    * Writes the JSON body directly onto the injected `Response`: status `200`
    * if every check succeeded, `500` if any of them failed.
    *
+   * Also lists provider health under `providers`, read from the background
+   * job's stored results on every call, even when the checks above come from
+   * the cache. Reading them contacts no provider, and a provider
+   * that is down does not change `up` or the status code: a full locking cap
+   * must not take the API out of its load balancer.
+   *
    * @returns The `Response` object, already sent, containing `HealthInformation` with one `HealthInformationChecks`/`BlockBoock` entry per dependency.
    */
   async health(): Promise<Response> {
-    const health = await this.healthSnapshot();
+    const snapshot = await this.healthSnapshot();
+    // The dependency checks may come from the cache; the provider list never
+    // does, so /health and /health/providers always agree.
+    const health = {...snapshot, providers: providerHealthReports(this.providerHealthStore)};
     const healthy = !!health.up;
 
     if (!healthy) {
@@ -134,7 +150,7 @@ export class HealthCheckController {
     let dataBase: HealthInformationChecks = await this.getDataBaseInfo(health);
     let blockBook: BlockBoock = await this.getBlockBookInfo(health);
     let rskNode: HealthInformationChecks = await this.getRskNodeInfo(health);
-    let bridgeService: HealthInformationChecks = await this.getBridgeInfo(health);
+    let bridgeService: Federation = await this.getBridgeInfo(health);
 
     health.dataBase = dataBase;
     health.blockBook = blockBook;
@@ -145,12 +161,35 @@ export class HealthCheckController {
     return health;
   }
 
+  @get('/health/providers', {
+    responses: {
+      '200': {
+        description: 'Health of every provider, from the background job',
+        content: {'application/json': {schema: getModelSchemaRef(ProviderHealthResponse)}},
+      },
+    },
+  })
+  /**
+   * `GET /health/providers` — the health of every provider, as the background
+   * job last stored it. The backoffice polls this route on both APIs.
+   *
+   * Reads the stored results only, so it contacts no provider and needs no
+   * cache. Always `200`: a provider that is down is data here, not a failure
+   * of this API.
+   *
+   * @returns Every provider's health, sorted by key; an empty list until the
+   * first check ends.
+   */
+  providers(): ProviderHealthResponse {
+    return {providers: providerHealthReports(this.providerHealthStore)};
+  }
+
   /** Forgets the cached result. Intended for tests. */
   static clearCache(): void {
     HealthCheckController.cached = undefined;
   }
 
-  private async getBridgeInfo(health: HealthInformation): Promise<HealthInformationChecks> {
+  private async getBridgeInfo(health: HealthInformation): Promise<Federation> {
     let bridgeService = new Federation();
     return this.bridgeService.getFederationAddress().then((address: any) => {
       if(address) {

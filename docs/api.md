@@ -16,7 +16,8 @@ An OpenAPI spec can also be generated to a file offline with `npm run openapi-sp
 | Method | Path | Controller | Purpose |
 |---|---|---|---|
 | `GET` | `/api` | `ApiInformationController` | Returns the running API's version (from `package.json`) |
-| `GET` | `/health` | `HealthCheckController` | Aggregate health check: MongoDB (sync status), Blockbook, RSK node, and the RSK Bridge, each reported independently |
+| `GET` | `/health` | `HealthCheckController` | Aggregate health check: MongoDB (sync status), Blockbook, RSK node, and the RSK Bridge, each reported independently. Also lists provider health under `providers` (see `/health/providers`); a provider that is down does not change the 200/500 status |
+| `GET` | `/health/providers` | `HealthCheckController` | Health of every provider (`powpeg` today) as the background job last stored it: `provider`, `status`, `reason`, `latencyMs`, `checkedAt`, `since`. Contacts no provider; always `200`; empty until the first check ends. Counts against the `/health` rate-limit allowance |
 | `GET` | `/features` | `FeaturesController` | Returns the feature-flag documents stored in MongoDB |
 | `GET` | `/pegin-configuration` | `PeginConfigurationController` | Returns current peg-in configuration: minimum/maximum value, federation address, required BTC confirmations |
 | `POST` | `/addresses-info` | `AddressesInfoController` | Given a list of BTC addresses, returns each address's info (balance, txids, capped provider-side at `MAX_ADDRESS_INFO_TXIDS`) via Blockbook, resolved with bounded concurrency |

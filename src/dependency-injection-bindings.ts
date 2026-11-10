@@ -36,4 +36,6 @@ export const ServicesBindings = {
   FEATURES_SERVICE: 'services.FeaturesDataService',
   FLYOVER_SERVICE: 'services.FlyoverService',
   BACKOFFICE_FEATURE_FLAGS_SERVICE: 'services.BackofficeFeatureFlagsService',
+  PROVIDER_HEALTH_STORE: 'services.ProviderHealthStore',
+  PROVIDER_HEALTH_JOB: 'services.ProviderHealthJob',
 };

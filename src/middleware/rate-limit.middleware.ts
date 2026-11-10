@@ -83,8 +83,12 @@ const FANOUT_ROUTES: ReadonlySet<string> = new Set([
  * one, exactly as before; the difference is that `/health` now has a number.
  * `RATE_LIMIT_MAX_HEALTH_REQUESTS` is deliberately far above any real polling
  * cadence, so the only client it can refuse is one that is not monitoring.
+ *
+ * `/health/providers` is monitoring too: the backoffice polls it on every
+ * environment. It only reads stored results, so the allowance costs nothing
+ * upstream.
  */
-const HEALTH_ROUTES: ReadonlySet<string> = new Set(['/health']);
+const HEALTH_ROUTES: ReadonlySet<string> = new Set(['/health', '/health/providers']);
 
 /**
  * The class a resolved route counts against.
