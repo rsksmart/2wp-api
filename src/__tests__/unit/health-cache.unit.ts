@@ -5,6 +5,7 @@ import {HealthCheckController} from '../../controllers/health-check.controller';
 import {BitcoinService, BridgeService} from '../../services';
 import {RskNodeService} from '../../services/rsk-node.service';
 import {SyncStatusDataService} from '../../services/sync-status-data.service';
+import {ProviderHealthStore} from '../../services/provider-health';
 
 /**
  * `GET /health` is public, unauthenticated, exempt from rate limiting (so
@@ -51,6 +52,7 @@ describe('Controller: health check caching', () => {
       {getBlockNumber} as unknown as RskNodeService,
       {getBestBlock} as unknown as SyncStatusDataService,
       response as never,
+      new ProviderHealthStore(),
     );
   };
 
