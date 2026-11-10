@@ -13,7 +13,6 @@ import { HEALTH_CACHE_TTL_MS } from '../config/resource-budgets';
 import { errorsTotal } from '../utils/metrics';
 import { ProviderHealthResponse } from '../models/provider-health-report.model';
 import {
-  PROVIDER_HEALTH_REPORT_SCHEMA,
   providerHealthReports,
   ProviderHealthStore,
 } from '../services/provider-health';
@@ -166,17 +165,7 @@ export class HealthCheckController {
     responses: {
       '200': {
         description: 'Health of every provider, from the background job',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              required: ['providers'],
-              properties: {
-                providers: {type: 'array', items: PROVIDER_HEALTH_REPORT_SCHEMA},
-              },
-            },
-          },
-        },
+        content: {'application/json': {schema: getModelSchemaRef(ProviderHealthResponse)}},
       },
     },
   })
