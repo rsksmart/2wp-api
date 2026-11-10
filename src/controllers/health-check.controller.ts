@@ -150,7 +150,7 @@ export class HealthCheckController {
     let dataBase: HealthInformationChecks = await this.getDataBaseInfo(health);
     let blockBook: BlockBoock = await this.getBlockBookInfo(health);
     let rskNode: HealthInformationChecks = await this.getRskNodeInfo(health);
-    let bridgeService: HealthInformationChecks = await this.getBridgeInfo(health);
+    let bridgeService: Federation = await this.getBridgeInfo(health);
 
     health.dataBase = dataBase;
     health.blockBook = blockBook;
@@ -189,7 +189,7 @@ export class HealthCheckController {
     HealthCheckController.cached = undefined;
   }
 
-  private async getBridgeInfo(health: HealthInformation): Promise<HealthInformationChecks> {
+  private async getBridgeInfo(health: HealthInformation): Promise<Federation> {
     let bridgeService = new Federation();
     return this.bridgeService.getFederationAddress().then((address: any) => {
       if(address) {
