@@ -81,6 +81,11 @@ export interface ResourceBudgets {
   MONGO_MAX_DOCUMENTS: number;
   /** How long a health result may be reused, in milliseconds. */
   HEALTH_CACHE_TTL_MS: number;
+  /**
+   * How often the background job checks every provider, in milliseconds. `0`
+   * turns the job off.
+   */
+  PROVIDER_HEALTH_CHECK_INTERVAL_MS: number;
   /** Hard cap on Blockbook operations in flight across the whole process. */
   BLOCKBOOK_MAX_IN_FLIGHT: number;
   /** Hard cap on callers waiting for a Blockbook permit. */
@@ -273,6 +278,10 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   // Short enough that a readiness signal stays current, long enough that a
   // monitoring loop — or an attacker in one — cannot multiply upstream load.
   HEALTH_CACHE_TTL_MS: 2_000,
+  // One round of provider checks every 30 s. A provider is reported down after
+  // three failed checks in a row, so this interval also sets how long an outage
+  // takes to show: about 90 s.
+  PROVIDER_HEALTH_CHECK_INTERVAL_MS: 30_000,
   BLOCKBOOK_MAX_IN_FLIGHT: 50,
   BLOCKBOOK_QUEUE_MAX_DEPTH: 100,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS: 5_000,
@@ -308,6 +317,39 @@ export function parseNonNegativeInt(raw: string | undefined, defaultVal: number)
   }
   const n = Number(raw);
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : defaultVal;
+}
+
+/**
+ * Longest delay `setInterval` honours. Node runs a timer with a delay of 2^31 ms
+ * or more after 1 ms instead, which would turn a long interval into a busy loop.
+ */
+const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
+
+/**
+ * Parses a timer interval in which `0` means "off".
+ *
+ * Any other value must be a whole number of milliseconds, at most the longest
+ * delay `setInterval` honours; anything else falls back to `defaultVal`. A
+ * fraction is not rounded, because `0.5` rounded down would turn the timer off.
+ *
+ * @param raw - Raw environment-variable value.
+ * @param defaultVal - Value to use when `raw` is unusable.
+ * @returns The interval in milliseconds, `0`, or `defaultVal`.
+ */
+export function parseIntervalMs(
+  raw: string | undefined,
+  defaultVal: number,
+): number {
+  if (raw === undefined || raw.trim() === '') {
+    return defaultVal;
+  }
+  const n = Number(raw);
+  if (n === 0) {
+    return 0;
+  }
+  return Number.isInteger(n) && n > 0 && n <= MAX_TIMER_DELAY_MS
+    ? n
+    : defaultVal;
 }
 
 /**
@@ -443,6 +485,11 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
       env.HEALTH_CACHE_TTL_MS,
       d.HEALTH_CACHE_TTL_MS,
     ),
+    // ProviderHealthJob uses the default if this is below its check timeout.
+    PROVIDER_HEALTH_CHECK_INTERVAL_MS: parseIntervalMs(
+      env.PROVIDER_HEALTH_CHECK_INTERVAL_MS,
+      d.PROVIDER_HEALTH_CHECK_INTERVAL_MS,
+    ),
     BLOCKBOOK_MAX_IN_FLIGHT: parsePositiveInt(
       env.BLOCKBOOK_MAX_IN_FLIGHT,
       d.BLOCKBOOK_MAX_IN_FLIGHT,
@@ -506,6 +553,7 @@ export const {
   PROCESS_FAILURE_TRIPWIRE_MAX_KINDS,
   MONGO_MAX_DOCUMENTS,
   HEALTH_CACHE_TTL_MS,
+  PROVIDER_HEALTH_CHECK_INTERVAL_MS,
   BLOCKBOOK_MAX_IN_FLIGHT,
   BLOCKBOOK_QUEUE_MAX_DEPTH,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS,

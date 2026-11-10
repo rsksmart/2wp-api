@@ -1,6 +1,7 @@
 import {expect} from '@loopback/testlab';
 import {
   loadResourceBudgets,
+  parseIntervalMs,
   parseNonNegativeInt,
   parsePositiveInt,
   RESOURCE_BUDGET_DEFAULTS,
@@ -46,6 +47,7 @@ describe('Config: resource budgets', () => {
         PROCESS_FAILURE_TRIPWIRE_MAX_KINDS: '32',
         MONGO_MAX_DOCUMENTS: '250',
         HEALTH_CACHE_TTL_MS: '2000',
+        PROVIDER_HEALTH_CHECK_INTERVAL_MS: '60000',
         BLOCKBOOK_MAX_IN_FLIGHT: '7',
         BLOCKBOOK_QUEUE_MAX_DEPTH: '11',
         BLOCKBOOK_QUEUE_MAX_WAIT_MS: '2500',
@@ -85,6 +87,7 @@ describe('Config: resource budgets', () => {
         PROCESS_FAILURE_TRIPWIRE_MAX_KINDS: 32,
         MONGO_MAX_DOCUMENTS: 250,
         HEALTH_CACHE_TTL_MS: 2000,
+        PROVIDER_HEALTH_CHECK_INTERVAL_MS: 60000,
         BLOCKBOOK_MAX_IN_FLIGHT: 7,
         BLOCKBOOK_QUEUE_MAX_DEPTH: 11,
         BLOCKBOOK_QUEUE_MAX_WAIT_MS: 2500,
@@ -175,6 +178,21 @@ describe('Config: resource budgets', () => {
       });
     });
 
+    it('turns the provider health job off only on an explicit zero', () => {
+      expect(
+        loadResourceBudgets({PROVIDER_HEALTH_CHECK_INTERVAL_MS: '0'})
+          .PROVIDER_HEALTH_CHECK_INTERVAL_MS,
+      ).to.equal(0);
+      // Anything else unusable keeps the job running at the default rather
+      // than switching it off by accident.
+      ['', '  ', 'never', '-1', '0.5', '30000.5', 'Infinity'].forEach(raw => {
+        expect(
+          loadResourceBudgets({PROVIDER_HEALTH_CHECK_INTERVAL_MS: raw})
+            .PROVIDER_HEALTH_CHECK_INTERVAL_MS,
+        ).to.equal(RESOURCE_BUDGET_DEFAULTS.PROVIDER_HEALTH_CHECK_INTERVAL_MS);
+      });
+    });
+
     it('ignores unusable values rather than disabling a budget', () => {
       const budgets = loadResourceBudgets({
         MAX_REQUEST_BODY_BYTES: '0',
@@ -211,6 +229,17 @@ describe('Config: resource budgets', () => {
       expect(parseNonNegativeInt('-1', 3)).to.equal(3);
       expect(parseNonNegativeInt('  ', 3)).to.equal(3);
       expect(parseNonNegativeInt(undefined, 3)).to.equal(3);
+    });
+
+    it('parseIntervalMs accepts zero, positive whole values, and nothing else', () => {
+      expect(parseIntervalMs('0', 30)).to.equal(0);
+      expect(parseIntervalMs('1', 30)).to.equal(1);
+      expect(parseIntervalMs('-1', 30)).to.equal(30);
+      expect(parseIntervalMs('10.5', 30)).to.equal(30);
+      expect(parseIntervalMs(undefined, 30)).to.equal(30);
+      // setInterval runs a delay of 2^31 ms or more after 1 ms instead.
+      expect(parseIntervalMs(String(2 ** 31 - 1), 30)).to.equal(2 ** 31 - 1);
+      expect(parseIntervalMs(String(2 ** 31), 30)).to.equal(30);
     });
   });
 
