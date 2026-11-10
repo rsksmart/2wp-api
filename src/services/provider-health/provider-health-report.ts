@@ -1,28 +1,5 @@
 import {ProviderHealthReport} from '../../models/provider-health-report.model';
-import {HEALTH_FAILURE_REASONS} from './provider-health-check';
 import {ProviderHealthStore} from './provider-health.store';
-
-/**
- * OpenAPI schema of one {@link ProviderHealthReport}, for the routes that
- * return it.
- */
-export const PROVIDER_HEALTH_REPORT_SCHEMA = {
-  type: 'object',
-  required: ['provider', 'status', 'reason', 'latencyMs', 'checkedAt', 'since'],
-  properties: {
-    provider: {type: 'string', example: 'powpeg'},
-    status: {type: 'string', enum: ['up', 'down']},
-    reason: {
-      type: 'string',
-      nullable: true,
-      enum: [...HEALTH_FAILURE_REASONS, null],
-      description: 'Why the provider is down; null while it is up',
-    },
-    latencyMs: {type: 'integer', description: 'How long the last check took'},
-    checkedAt: {type: 'string', format: 'date-time'},
-    since: {type: 'string', format: 'date-time', description: 'When the status last changed'},
-  },
-};
 
 /**
  * Every stored provider health, in the shape the routes return.
