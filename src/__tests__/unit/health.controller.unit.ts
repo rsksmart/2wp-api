@@ -8,6 +8,7 @@ import {BitcoinService, BridgeService, SyncStatusDataService, RskNodeService} fr
 import {sinon} from '@loopback/testlab/dist/sinon';
 import { writeResultToResponse } from '@loopback/rest';
 import {errorsTotal} from '../../utils/metrics';
+import {ProviderHealthStore} from '../../services/provider-health';
 
   describe('health check controller', () => {
     let getLastBlock: sinon.SinonStub;
@@ -39,6 +40,7 @@ import {errorsTotal} from '../../utils/metrics';
         rskNodeService,
         theSyncStorageService,
         context.response,
+        new ProviderHealthStore(),
       );
 
       getBestBlock.resolves([
@@ -134,6 +136,7 @@ import {errorsTotal} from '../../utils/metrics';
           rskNodeService,
           theSyncStorageService,
           context.response,
+          new ProviderHealthStore(),
         );
       });
       after(() => HealthCheckController.clearCache());
