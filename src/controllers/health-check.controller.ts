@@ -99,14 +99,18 @@ export class HealthCheckController {
    * if every check succeeded, `500` if any of them failed.
    *
    * Also lists provider health under `providers`, read from the background
-   * job's stored results. Reading them contacts no provider, and a provider
+   * job's stored results on every call, even when the checks above come from
+   * the cache. Reading them contacts no provider, and a provider
    * that is down does not change `up` or the status code: a full locking cap
    * must not take the API out of its load balancer.
    *
    * @returns The `Response` object, already sent, containing `HealthInformation` with one `HealthInformationChecks`/`BlockBoock` entry per dependency.
    */
   async health(): Promise<Response> {
-    const health = await this.healthSnapshot();
+    const snapshot = await this.healthSnapshot();
+    // The dependency checks may come from the cache; the provider list never
+    // does, so /health and /health/providers always agree.
+    const health = {...snapshot, providers: providerHealthReports(this.providerHealthStore)};
     const healthy = !!health.up;
 
     if (!healthy) {
@@ -153,7 +157,6 @@ export class HealthCheckController {
     health.blockBook = blockBook;
     health.rskNode = rskNode;
     health.bridgeService = bridgeService;
-    health.providers = providerHealthReports(this.providerHealthStore);
 
     HealthCheckController.cached = {producedAt: now, health};
     return health;
