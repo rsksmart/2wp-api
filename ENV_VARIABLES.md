@@ -123,6 +123,7 @@ Caps on how much memory, parsing, serialization and downstream provider work a s
 |MONGO_MAX_DOCUMENTS           |250                            |'Maximum documents returned by one database read'         |
 |HEALTH_CACHE_TTL_MS           |2000                           |'How long a /health result may be reused, in milliseconds'|
 |PROVIDER_HEALTH_CHECK_INTERVAL_MS|30000                       |'How often the background job checks every provider, in ms; 0 turns it off, minimum 10000'|
+|FLYOVER_DISCOVERY_ADDRESS     |                               |'Flyover discovery contract whose liquidity providers the health job checks. Defaults to the address for NETWORK'|
 |PROCESS_FAILURE_TRIPWIRE_MAX  |10                             |'Failures of one kind survived within a window before exiting 1'|
 |PROCESS_FAILURE_TRIPWIRE_WINDOW_MS|60000                      |'Process-failure tripwire window length, in milliseconds' |
 |PROCESS_FAILURE_TRIPWIRE_MAX_KINDS|64                         |'Hard cap on failure kinds the tripwire tracks at once'   |
