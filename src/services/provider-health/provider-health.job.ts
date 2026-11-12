@@ -5,13 +5,10 @@ import {
 } from '../../config/resource-budgets';
 import {getLogger, Logger} from '../../utils/logger';
 import {failureReason} from './failure-reason';
-import {
-  HealthFailureReason,
-  ProviderCheckFailure,
-  ProviderHealthCheck,
-} from './provider-health-check';
+import {HealthFailureReason, ProviderHealthCheck} from './provider-health-check';
 import {ProviderHealthStore} from './provider-health.store';
 import {nextState, ProviderHealthState, ProviderHealthStatus} from './status-rules';
+import {withinTimeLimit} from './time-limit';
 
 /**
  * Longest time one provider check may take, in milliseconds. A check still
@@ -135,7 +132,7 @@ export class ProviderHealthJob implements LifeCycleObserver {
     let reason: HealthFailureReason | null = null;
     let error: unknown;
     try {
-      await this.withinTimeLimit(check.check());
+      await withinTimeLimit(check.check(), this.timeoutMs, 'The check');
     } catch (err) {
       error = err;
       reason = failureReason(err);
@@ -151,24 +148,6 @@ export class ProviderHealthJob implements LifeCycleObserver {
     // Before its first check, a provider counts as up, so only a provider
     // that starts out down is logged.
     this.logIfStatusChanged(check.provider, previous?.status ?? 'up', state, error);
-  }
-
-  /** Rejects with a `timeout` failure if `work` takes longer than the limit. */
-  private withinTimeLimit(work: Promise<void>): Promise<void> {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeLimit = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () =>
-          reject(
-            new ProviderCheckFailure(
-              'timeout',
-              `The check took longer than ${this.timeoutMs} ms`,
-            ),
-          ),
-        this.timeoutMs,
-      );
-    });
-    return Promise.race([work, timeLimit]).finally(() => clearTimeout(timer));
   }
 
   private logIfStatusChanged(
