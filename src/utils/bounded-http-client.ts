@@ -280,7 +280,12 @@ function attempt<T>(
       // — visible only when no retry remains to re-check the signal.
       const preserve =
         err instanceof BoundedHttpError || err instanceof RequestCancelledError;
-      finish(preserve ? err : new ProviderNetworkError(err.message));
+      // `cause` keeps Node's error code for the health checks.
+      finish(
+        preserve
+          ? err
+          : Object.assign(new ProviderNetworkError(err.message), {cause: err}),
+      );
     });
 
     request.end();
