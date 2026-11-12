@@ -10,6 +10,7 @@ import {
   ProviderCheckFailure,
   ProviderHealthCheck,
 } from './provider-health-check';
+import {PROVIDER_HEALTH_CHECK_TIMEOUT_MS} from './provider-health.job';
 import {LiquidityProviderHealthEntry, ProviderHealthStore} from './provider-health.store';
 import {CheckOutcome, nextState} from './status-rules';
 import {withinTimeLimit} from './time-limit';
@@ -79,6 +80,7 @@ export class FlyoverHealthCheck implements ProviderHealthCheck {
   ) {}
 
   async check(): Promise<void> {
+    const startedAt = Date.now();
     const liquidityProviders = (await this.discover()).filter(lp => lp.status);
     if (liquidityProviders.length === 0) {
       this.store.setLiquidityProviders(this.provider, []);
@@ -91,6 +93,11 @@ export class FlyoverHealthCheck implements ProviderHealthCheck {
     const outcomes = await Promise.all(
       liquidityProviders.map(lp => this.checkLiquidityProvider(lp)),
     );
+    // The job has already reported this round as a timeout; a late write would
+    // contradict it.
+    if (Date.now() - startedAt >= PROVIDER_HEALTH_CHECK_TIMEOUT_MS) {
+      throw new ProviderCheckFailure('timeout', 'The Flyover check ran past the job limit');
+    }
     this.storeLiquidityProviders(liquidityProviders, outcomes);
 
     if (outcomes.some(outcome => outcome.reason === null)) {
@@ -168,8 +175,14 @@ export class FlyoverHealthCheck implements ProviderHealthCheck {
 }
 
 function healthUrl(apiBaseUrl: string): string {
-  if (!apiBaseUrl.toLowerCase().startsWith('https://')) {
-    throw new ProviderCheckFailure('error', 'The LP API base URL is not https');
+  const url = new URL(apiBaseUrl);
+  // A query or fragment would keep `/health` out of the requested path.
+  if (url.protocol !== 'https:' || url.search || url.hash) {
+    throw new ProviderCheckFailure(
+      'error',
+      'The LP API base URL must be https, without a query or fragment',
+    );
   }
-  return `${apiBaseUrl.replace(/\/+$/, '')}/health`;
+  url.pathname = `${url.pathname.replace(/\/+$/, '')}/health`;
+  return url.toString();
 }
