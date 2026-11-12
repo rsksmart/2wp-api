@@ -1,4 +1,5 @@
 export * from './failure-reason';
+export * from './flyover-health-check';
 export * from './powpeg-health-check';
 export * from './provider-health-check';
 export * from './provider-health-report';

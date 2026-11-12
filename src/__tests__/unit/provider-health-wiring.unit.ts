@@ -4,6 +4,7 @@ import {TwpapiApplication} from '../../application';
 import {DaemonRunner} from '../../daemon-runner';
 import {ServicesBindings} from '../../dependency-injection-bindings';
 import {
+  FlyoverHealthCheck,
   PowpegHealthCheck,
   ProviderHealthCheck,
   ProviderHealthJob,
@@ -11,7 +12,7 @@ import {
 } from '../../services/provider-health';
 
 describe('Provider health: wiring', () => {
-  it('runs the job in the API, checking PowPeg and writing the shared store', async () => {
+  it('runs the job in the API, checking PowPeg and Flyover and writing the shared store', async () => {
     const app = new TwpapiApplication();
     const binding = app.getBinding(ServicesBindings.PROVIDER_HEALTH_JOB);
 
@@ -20,9 +21,14 @@ describe('Provider health: wiring', () => {
       ServicesBindings.PROVIDER_HEALTH_JOB,
     );
     const checks = (apiJob as unknown as {checks: ProviderHealthCheck[]}).checks;
-    expect(checks.map(check => check.constructor)).to.deepEqual([PowpegHealthCheck]);
-    expect((apiJob as unknown as {store: ProviderHealthStore}).store).to.equal(
-      await app.get(ServicesBindings.PROVIDER_HEALTH_STORE),
+    expect(checks.map(check => check.constructor)).to.deepEqual([
+      PowpegHealthCheck,
+      FlyoverHealthCheck,
+    ]);
+    const sharedStore = await app.get(ServicesBindings.PROVIDER_HEALTH_STORE);
+    expect((apiJob as unknown as {store: ProviderHealthStore}).store).to.equal(sharedStore);
+    expect((checks[1] as unknown as {store: ProviderHealthStore}).store).to.equal(
+      sharedStore,
     );
   });
 

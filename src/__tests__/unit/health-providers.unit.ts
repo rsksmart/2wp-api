@@ -141,6 +141,27 @@ describe('Provider health in /health and /health/providers', () => {
       expect(report).to.deepEqual(powpegDownReport);
     });
 
+    it('nests the liquidity providers under flyover only', () => {
+      store.set('flyover', {...powpegDown, status: 'up', reason: null});
+      store.set('powpeg', powpegDown);
+      store.setLiquidityProviders('flyover', [{id: 2, name: 'Teks', ...powpegDown}]);
+
+      const [flyover, powpeg] = providerHealthReports(store);
+
+      expect(flyover.liquidityProviders).to.deepEqual([
+        {
+          id: 2,
+          name: 'Teks',
+          status: 'down',
+          reason: 'timeout',
+          latencyMs: 10_000,
+          checkedAt: '2026-11-08T10:00:30.000Z',
+          since: '2026-11-08T09:58:30.000Z',
+        },
+      ]);
+      expect(powpeg).to.deepEqual(powpegDownReport);
+    });
+
     it('reports a null reason for a provider that is up', () => {
       store.set('powpeg', {...powpegDown, status: 'up', reason: null});
 
