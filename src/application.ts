@@ -25,7 +25,11 @@ import {
 import {DependencyInjectionHandler} from './dependency-injection-handler';
 import {ServicesBindings} from './dependency-injection-bindings';
 import {BridgeService} from './services/bridge.service';
+import {RskNodeService} from './services/rsk-node.service';
 import {
+  flyoverDiscoveryAddress,
+  flyoverDiscoveryContract,
+  FlyoverHealthCheck,
   PowpegHealthCheck,
   ProviderHealthJob,
   ProviderHealthStore,
@@ -267,17 +271,30 @@ export class TwpapiApplication extends BootMixin(ServiceMixin(RepositoryMixin(Re
     // would run the checks for nobody.
     this.bind(ServicesBindings.PROVIDER_HEALTH_JOB)
       .toDynamicValue(
-        async ({context}) =>
-          new ProviderHealthJob(
+        async ({context}) => {
+          const store = await context.get<ProviderHealthStore>(
+            ServicesBindings.PROVIDER_HEALTH_STORE,
+          );
+          return new ProviderHealthJob(
             [
               new PowpegHealthCheck(
                 await context.get<BridgeService>(ServicesBindings.BRIDGE_SERVICE),
               ),
+              new FlyoverHealthCheck(
+                flyoverDiscoveryContract(
+                  (
+                    await context.get<RskNodeService>(
+                      ServicesBindings.RSK_NODE_SERVICE,
+                    )
+                  ).ethersProvider,
+                  flyoverDiscoveryAddress(),
+                ),
+                store,
+              ),
             ],
-            await context.get<ProviderHealthStore>(
-              ServicesBindings.PROVIDER_HEALTH_STORE,
-            ),
-          ),
+            store,
+          );
+        },
       )
       .inScope(BindingScope.SINGLETON)
       .apply(asLifeCycleObserver);
