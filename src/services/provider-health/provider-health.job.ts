@@ -13,13 +13,6 @@ import {
 import {ProviderHealthStore} from './provider-health.store';
 import {nextState, ProviderHealthState, ProviderHealthStatus} from './status-rules';
 
-/** How often the job runs and how long one check may take, in milliseconds. */
-export interface ProviderHealthJobTiming {
-  /** `0` turns the job off. */
-  intervalMs: number;
-  timeoutMs: number;
-}
-
 /**
  * Checks every provider on a timer and stores the result, so `/health` can
  * report provider health without contacting any provider.
@@ -31,28 +24,23 @@ export interface ProviderHealthJobTiming {
  */
 export class ProviderHealthJob implements LifeCycleObserver {
   logger: Logger;
-  private readonly intervalMs: number;
-  private readonly timeoutMs: number;
   private timer?: ReturnType<typeof setInterval>;
   private roundInProgress?: Promise<void>;
 
   /**
    * @param checks - One check per provider.
    * @param store - Where each provider's health is kept.
-   * @param timing - Defaults to `PROVIDER_HEALTH_CHECK_INTERVAL_MS` and
-   * `PROVIDER_HEALTH_CHECK_TIMEOUT_MS`.
+   * @param intervalMs - Time between rounds, in milliseconds; `0` turns the
+   * job off.
+   * @param timeoutMs - Longest time one check may take, in milliseconds.
    */
   constructor(
     private readonly checks: readonly ProviderHealthCheck[],
     private readonly store: ProviderHealthStore,
-    {
-      intervalMs = PROVIDER_HEALTH_CHECK_INTERVAL_MS,
-      timeoutMs = PROVIDER_HEALTH_CHECK_TIMEOUT_MS,
-    }: Partial<ProviderHealthJobTiming> = {},
+    private readonly intervalMs = PROVIDER_HEALTH_CHECK_INTERVAL_MS,
+    private readonly timeoutMs = PROVIDER_HEALTH_CHECK_TIMEOUT_MS,
   ) {
     this.logger = getLogger('provider-health-job');
-    this.intervalMs = intervalMs;
-    this.timeoutMs = timeoutMs;
   }
 
   /**

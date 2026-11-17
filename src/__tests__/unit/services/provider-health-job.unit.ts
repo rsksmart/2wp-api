@@ -31,7 +31,7 @@ function makeJob(
   store: ProviderHealthStore,
   intervalMs = 30_000,
 ): ProviderHealthJob {
-  const job = new ProviderHealthJob(checks, store, {intervalMs, timeoutMs: 50});
+  const job = new ProviderHealthJob(checks, store, intervalMs, 50);
   sinon.stub(job.logger, 'info');
   sinon.stub(job.logger, 'warn');
   sinon.stub(job.logger, 'error');
