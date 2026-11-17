@@ -83,7 +83,8 @@ export interface ResourceBudgets {
   HEALTH_CACHE_TTL_MS: number;
   /**
    * How often the background job checks every provider, in milliseconds. `0`
-   * turns the job off.
+   * turns the job off; anything else below
+   * {@link PROVIDER_HEALTH_CHECK_MIN_INTERVAL_MS} is raised to it.
    */
   PROVIDER_HEALTH_CHECK_INTERVAL_MS: number;
   /** Hard cap on Blockbook operations in flight across the whole process. */
@@ -291,6 +292,19 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
 });
 
 /**
+ * Longest time one provider health check may take, in milliseconds. A check
+ * still running at this point is counted as a `timeout` failure.
+ */
+export const PROVIDER_HEALTH_CHECK_TIMEOUT_MS = 10_000;
+
+/**
+ * Shortest provider health check interval, in milliseconds. Rounds closer
+ * together than one check may take would call every provider again as soon as
+ * the last round ends, so a shorter configured interval is raised to this.
+ */
+export const PROVIDER_HEALTH_CHECK_MIN_INTERVAL_MS = PROVIDER_HEALTH_CHECK_TIMEOUT_MS;
+
+/**
  * Parses a strictly positive integer, falling back to `defaultVal` for
  * anything unusable (missing, non-numeric, zero, negative, infinite).
  *
@@ -320,39 +334,6 @@ export function parseNonNegativeInt(raw: string | undefined, defaultVal: number)
 }
 
 /**
- * Longest delay `setInterval` honours. Node runs a timer with a delay of 2^31 ms
- * or more after 1 ms instead, which would turn a long interval into a busy loop.
- */
-const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
-
-/**
- * Parses a timer interval in which `0` means "off".
- *
- * Any other value must be a whole number of milliseconds, at most the longest
- * delay `setInterval` honours; anything else falls back to `defaultVal`. A
- * fraction is not rounded, because `0.5` rounded down would turn the timer off.
- *
- * @param raw - Raw environment-variable value.
- * @param defaultVal - Value to use when `raw` is unusable.
- * @returns The interval in milliseconds, `0`, or `defaultVal`.
- */
-export function parseIntervalMs(
-  raw: string | undefined,
-  defaultVal: number,
-): number {
-  if (raw === undefined || raw.trim() === '') {
-    return defaultVal;
-  }
-  const n = Number(raw);
-  if (n === 0) {
-    return 0;
-  }
-  return Number.isInteger(n) && n > 0 && n <= MAX_TIMER_DELAY_MS
-    ? n
-    : defaultVal;
-}
-
-/**
  * Resolves every resource budget from an environment-variable source.
  *
  * Each budget is read from the environment variable that shares its name.
@@ -364,6 +345,10 @@ export function parseIntervalMs(
  */
 export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudgets {
   const d = RESOURCE_BUDGET_DEFAULTS;
+  const providerHealthIntervalMs = parseNonNegativeInt(
+    env.PROVIDER_HEALTH_CHECK_INTERVAL_MS,
+    d.PROVIDER_HEALTH_CHECK_INTERVAL_MS,
+  );
   return {
     MAX_REQUEST_BODY_BYTES: parsePositiveInt(
       env.MAX_REQUEST_BODY_BYTES,
@@ -485,11 +470,12 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
       env.HEALTH_CACHE_TTL_MS,
       d.HEALTH_CACHE_TTL_MS,
     ),
-    // ProviderHealthJob uses the default if this is below its check timeout.
-    PROVIDER_HEALTH_CHECK_INTERVAL_MS: parseIntervalMs(
-      env.PROVIDER_HEALTH_CHECK_INTERVAL_MS,
-      d.PROVIDER_HEALTH_CHECK_INTERVAL_MS,
-    ),
+    // 0 turns the job off. A faster rate than the minimum gets the minimum,
+    // the closest to what was asked for.
+    PROVIDER_HEALTH_CHECK_INTERVAL_MS:
+      providerHealthIntervalMs === 0
+        ? 0
+        : Math.max(providerHealthIntervalMs, PROVIDER_HEALTH_CHECK_MIN_INTERVAL_MS),
     BLOCKBOOK_MAX_IN_FLIGHT: parsePositiveInt(
       env.BLOCKBOOK_MAX_IN_FLIGHT,
       d.BLOCKBOOK_MAX_IN_FLIGHT,

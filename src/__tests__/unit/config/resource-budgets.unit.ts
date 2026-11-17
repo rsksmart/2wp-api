@@ -1,9 +1,9 @@
 import {expect} from '@loopback/testlab';
 import {
   loadResourceBudgets,
-  parseIntervalMs,
   parseNonNegativeInt,
   parsePositiveInt,
+  PROVIDER_HEALTH_CHECK_MIN_INTERVAL_MS,
   RESOURCE_BUDGET_DEFAULTS,
 } from '../../../config/resource-budgets';
 
@@ -178,18 +178,34 @@ describe('Config: resource budgets', () => {
       });
     });
 
-    it('turns the provider health job off only on an explicit zero', () => {
-      expect(
-        loadResourceBudgets({PROVIDER_HEALTH_CHECK_INTERVAL_MS: '0'})
-          .PROVIDER_HEALTH_CHECK_INTERVAL_MS,
-      ).to.equal(0);
-      // Anything else unusable keeps the job running at the default rather
-      // than switching it off by accident.
-      ['', '  ', 'never', '-1', '0.5', '30000.5', 'Infinity'].forEach(raw => {
-        expect(
-          loadResourceBudgets({PROVIDER_HEALTH_CHECK_INTERVAL_MS: raw})
-            .PROVIDER_HEALTH_CHECK_INTERVAL_MS,
-        ).to.equal(RESOURCE_BUDGET_DEFAULTS.PROVIDER_HEALTH_CHECK_INTERVAL_MS);
+    describe('provider health check interval', () => {
+      const intervalFor = (raw: string) =>
+        loadResourceBudgets({PROVIDER_HEALTH_CHECK_INTERVAL_MS: raw})
+          .PROVIDER_HEALTH_CHECK_INTERVAL_MS;
+
+      it('turns the job off on zero', () => {
+        expect(intervalFor('0')).to.equal(0);
+      });
+
+      it('raises an interval below the minimum to the minimum', () => {
+        expect(PROVIDER_HEALTH_CHECK_MIN_INTERVAL_MS).to.equal(10_000);
+        ['1', '5000', '9999'].forEach(raw => {
+          expect(intervalFor(raw)).to.equal(PROVIDER_HEALTH_CHECK_MIN_INTERVAL_MS);
+        });
+      });
+
+      it('keeps an interval at or above the minimum', () => {
+        expect(intervalFor('10000')).to.equal(10_000);
+        expect(intervalFor('10001')).to.equal(10_001);
+        expect(intervalFor('60000')).to.equal(60_000);
+      });
+
+      it('keeps the job running at the default on an unusable value', () => {
+        ['', '  ', 'never', '-1', 'Infinity'].forEach(raw => {
+          expect(intervalFor(raw)).to.equal(
+            RESOURCE_BUDGET_DEFAULTS.PROVIDER_HEALTH_CHECK_INTERVAL_MS,
+          );
+        });
       });
     });
 
@@ -229,17 +245,6 @@ describe('Config: resource budgets', () => {
       expect(parseNonNegativeInt('-1', 3)).to.equal(3);
       expect(parseNonNegativeInt('  ', 3)).to.equal(3);
       expect(parseNonNegativeInt(undefined, 3)).to.equal(3);
-    });
-
-    it('parseIntervalMs accepts zero, positive whole values, and nothing else', () => {
-      expect(parseIntervalMs('0', 30)).to.equal(0);
-      expect(parseIntervalMs('1', 30)).to.equal(1);
-      expect(parseIntervalMs('-1', 30)).to.equal(30);
-      expect(parseIntervalMs('10.5', 30)).to.equal(30);
-      expect(parseIntervalMs(undefined, 30)).to.equal(30);
-      // setInterval runs a delay of 2^31 ms or more after 1 ms instead.
-      expect(parseIntervalMs(String(2 ** 31 - 1), 30)).to.equal(2 ** 31 - 1);
-      expect(parseIntervalMs(String(2 ** 31), 30)).to.equal(30);
     });
   });
 
