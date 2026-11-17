@@ -1,7 +1,5 @@
 import {expect, sinon} from '@loopback/testlab';
-import {RESOURCE_BUDGET_DEFAULTS} from '../../../config/resource-budgets';
 import {
-  PROVIDER_HEALTH_CHECK_TIMEOUT_MS,
   ProviderCheckFailure,
   ProviderHealthCheck,
   ProviderHealthJob,
@@ -200,33 +198,6 @@ describe('Provider health: background job', () => {
       await clock.tickAsync(30_000);
 
       expect(powpeg.calls).to.equal(2);
-    });
-
-    it('uses the default interval when the configured one is below the time limit', async () => {
-      const fallbackMs = RESOURCE_BUDGET_DEFAULTS.PROVIDER_HEALTH_CHECK_INTERVAL_MS;
-      expect(fallbackMs).to.be.greaterThanOrEqual(PROVIDER_HEALTH_CHECK_TIMEOUT_MS);
-      job = makeJob([powpeg], store, 49); // makeJob sets a 50 ms time limit
-
-      job.start();
-      await clock.tickAsync(fallbackMs - 1);
-      expect(powpeg.calls).to.equal(1);
-      await clock.tickAsync(1);
-      expect(powpeg.calls).to.equal(2);
-      sinon.assert.calledOnceWithMatch(job.logger.warn as sinon.SinonStub, {
-        event: 'provider_health_interval_too_short',
-        configuredMs: 49,
-        intervalMs: fallbackMs,
-      });
-    });
-
-    it('keeps an interval equal to the time limit', async () => {
-      job = makeJob([powpeg], store, 50);
-
-      job.start();
-      await clock.tickAsync(50);
-
-      expect(powpeg.calls).to.equal(2);
-      sinon.assert.notCalled(job.logger.warn as sinon.SinonStub);
     });
 
     it('runs nothing when the interval is 0', async () => {

@@ -1,7 +1,7 @@
 import {LifeCycleObserver} from '@loopback/core';
 import {
   PROVIDER_HEALTH_CHECK_INTERVAL_MS,
-  RESOURCE_BUDGET_DEFAULTS,
+  PROVIDER_HEALTH_CHECK_TIMEOUT_MS,
 } from '../../config/resource-budgets';
 import {getLogger, Logger} from '../../utils/logger';
 import {failureReason} from './failure-reason';
@@ -13,15 +13,9 @@ import {
 import {ProviderHealthStore} from './provider-health.store';
 import {nextState, ProviderHealthState, ProviderHealthStatus} from './status-rules';
 
-/**
- * Longest time one provider check may take, in milliseconds. A check still
- * running at this point is counted as a `timeout` failure.
- */
-export const PROVIDER_HEALTH_CHECK_TIMEOUT_MS = 10_000;
-
 /** How often the job runs and how long one check may take, in milliseconds. */
 export interface ProviderHealthJobTiming {
-  /** `0` turns the job off. Below `timeoutMs`, the job uses the default. */
+  /** `0` turns the job off. */
   intervalMs: number;
   timeoutMs: number;
 }
@@ -63,7 +57,7 @@ export class ProviderHealthJob implements LifeCycleObserver {
 
   /**
    * Runs the first round now and schedules the rest. Does nothing when the
-   * interval is `0`, and uses the default interval when it is below the timeout.
+   * interval is `0`.
    */
   start(): void {
     if (this.intervalMs === 0) {
@@ -73,25 +67,10 @@ export class ProviderHealthJob implements LifeCycleObserver {
     if (this.timer) {
       return;
     }
-    let {intervalMs} = this;
-    if (intervalMs < this.timeoutMs) {
-      // Rounds closer together than one check may take would call every
-      // provider again almost as soon as the last round ends.
-      intervalMs = RESOURCE_BUDGET_DEFAULTS.PROVIDER_HEALTH_CHECK_INTERVAL_MS;
-      this.logger.warn(
-        {
-          event: 'provider_health_interval_too_short',
-          configuredMs: this.intervalMs,
-          timeoutMs: this.timeoutMs,
-          intervalMs,
-        },
-        'Provider health check interval is below the check timeout; using the default',
-      );
-    }
     this.logger.info(
       {
         event: 'provider_health_job_started',
-        intervalMs,
+        intervalMs: this.intervalMs,
         providers: this.checks.map(check => check.provider),
       },
       'Provider health checks started',
@@ -99,7 +78,7 @@ export class ProviderHealthJob implements LifeCycleObserver {
     this.runRound().catch(err => this.logRoundFailure(err));
     this.timer = setInterval(() => {
       this.runRound().catch(err => this.logRoundFailure(err));
-    }, intervalMs);
+    }, this.intervalMs);
     // The job must never be what keeps the process alive.
     this.timer.unref();
   }
