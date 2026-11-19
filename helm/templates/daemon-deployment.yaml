@@ -1,0 +1,65 @@
+{{- if .Values.daemon.enabled }}
+# Exactly one daemon, never two at once: each instance walks the same chain
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "app.daemonFullname" . }}
+  labels:
+    {{- include "app.labels" (dict "ctx" . "component" "daemon") | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "app.selectorLabels" (dict "ctx" . "component" "daemon") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "app.selectorLabels" (dict "ctx" . "component" "daemon") | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.daemon.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "app.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.daemon.terminationGracePeriodSeconds }}
+      containers:
+        - name: daemon
+          image: {{ include "app.image" (dict "ctx" . "image" .Values.daemon.image) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["node", ".", "--appmode=DAEMON"]
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          envFrom:
+            {{- include "app.envFrom" . | nindent 12 }}
+          {{- with .Values.daemon.extraEnv }}
+          env:
+            {{- range $key, $val := . }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+            {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.daemon.resources | nindent 12 }}
+      {{- with .Values.daemon.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.daemon.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.daemon.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

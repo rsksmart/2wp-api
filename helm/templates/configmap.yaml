@@ -1,0 +1,14 @@
+{{- if or .Values.api.enabled .Values.daemon.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "app.configMapName" . }}
+  labels:
+    {{- include "app.labels" (dict "ctx" .) | nindent 4 }}
+data:
+  PORT: {{ .Values.api.service.targetPort | quote }}
+  HOST: "0.0.0.0"
+  {{- range $key, $val := .Values.env }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
+{{- end }}

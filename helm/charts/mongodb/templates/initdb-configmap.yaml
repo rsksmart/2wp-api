@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mongodb.fullname" . }}-initdb
+  labels:
+    {{- include "mongodb.labels" . | nindent 4 }}
+data:
+  # Mirrors mongo-init.js; runs only on an empty data directory
+  01-create-app-user.js: |
+    const dbName = process.env.MONGO_APP_DATABASE;
+    const user = process.env.MONGO_APP_USERNAME;
+    const pwd = process.env.MONGO_APP_PASSWORD;
+
+    if (!user || !pwd) {
+      print('[init] no application credentials supplied; skipping user creation');
+    } else {
+      const appDb = db.getSiblingDB(dbName);
+      if (appDb.getUser(user)) {
+        print(`[init] user ${user} already exists in ${dbName}`);
+      } else {
+        appDb.createUser({
+          user: user,
+          pwd: pwd,
+          roles: [{role: 'readWrite', db: dbName}],
+        });
+        print(`[init] created user ${user} with readWrite on ${dbName}`);
+      }
+    }

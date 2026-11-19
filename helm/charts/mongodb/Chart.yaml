@@ -1,0 +1,7 @@
+apiVersion: v2
+name: mongodb
+description: Single-node MongoDB StatefulSet for 2wp-api, with the application user created at first start
+type: application
+version: 0.2.1
+appVersion: "8.0"
+kubeVersion: ">=1.29.0-0"
