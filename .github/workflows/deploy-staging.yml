@@ -1,0 +1,124 @@
+name: Deploy staging
+run-name: Deploy ${{ github.event.release.tag_name }} to staging
+
+# A pre-release builds at that tag and rolls one cluster: `-rc` to staging-testnet, anything else to staging-mainnet.
+# The two deploy ifs are a predicate and its negation, so exactly one fires - change them together.
+# Config comes from the staging-testnet / staging-mainnet GitHub Environments, whose names the deploy roles trust. Auth is OIDC.
+# Actions are pinned to SHAs with the tag in the trailing comment - bump both.
+
+on:
+  release:
+    types: [prereleased]
+
+permissions: read-all
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build image
+    # Deploy jobs need this one, so they skip when it does.
+    if: github.event.release.prerelease == true
+    # arm64 runner: the clusters are Graviton, so build native instead of emulating. Keep in step with node_group_ami_type in iac-ng.
+    runs-on: ubuntu-24.04-arm
+    # Both clusters share one ECR repo, so either role can push - use the one this release targets.
+    environment: ${{ contains(github.event.release.tag_name, '-rc') && 'staging-testnet' || 'staging-mainnet' }}
+    permissions:
+      id-token: write # required for the OIDC token exchange
+      contents: read
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+      # API and daemon share the image, differing only in appmode.
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      # Immutable commit SHA, the release's tag, and a moving env pointer.
+      IMAGE_TAG: ${{ github.sha }}
+      GIT_TAG: ${{ github.event.release.tag_name }} # e.g. v4.2.0-rc1
+      ENV_TAG: ${{ contains(github.event.release.tag_name, '-rc') && 'staging-testnet' || 'staging-mainnet' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The event's commit, not the tag - tags can move while a run waits.
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ secrets.DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region "$AWS_REGION" \
+            | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+      # A commit always builds the same image, so an existing SHA tag means there is nothing to rebuild.
+      - name: Check whether this commit is already in ECR
+        id: existing
+        run: |
+          if aws ecr describe-images --region "$AWS_REGION" \
+               --repository-name "$ECR_REPOSITORY" \
+               --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # GIT_COMMIT stamps the commit into an OCI label so an ECR tag traces back to its code.
+      # --platform is explicit so an amd64 runner fails loudly instead of pushing an image the clusters can't run.
+      - name: Build and push image
+        if: steps.existing.outputs.found == 'false'
+        env:
+          DOCKER_BUILDKIT: "1"
+        run: |
+          REPO="$ECR_REGISTRY/$ECR_REPOSITORY"
+          docker build --platform linux/arm64 -f Dockerfile \
+            --build-arg GIT_COMMIT="$IMAGE_TAG" \
+            -t "$REPO:$IMAGE_TAG" -t "$REPO:$GIT_TAG" -t "$REPO:$ENV_TAG" .
+          docker push --all-tags "$REPO"
+
+      # No rebuild, but the release tag and env pointer still have to land on that manifest.
+      - name: Retag the existing image
+        if: steps.existing.outputs.found == 'true'
+        run: |
+          manifest=$(aws ecr batch-get-image --region "$AWS_REGION" \
+            --repository-name "$ECR_REPOSITORY" \
+            --image-ids imageTag="$IMAGE_TAG" \
+            --query 'images[0].imageManifest' --output text)
+          for tag in "$GIT_TAG" "$ENV_TAG"; do
+            # put-image rejects a tag that already points at this manifest, which is a no-op not a failure.
+            if ! err=$(aws ecr put-image --region "$AWS_REGION" \
+                 --repository-name "$ECR_REPOSITORY" \
+                 --image-tag "$tag" \
+                 --image-manifest "$manifest" 2>&1 >/dev/null); then
+              case "$err" in
+                *ImageAlreadyExistsException*) echo "$tag already points at $IMAGE_TAG" ;;
+                *) echo "$err" >&2; exit 1 ;;
+              esac
+            fi
+          done
+
+  deploy-staging-testnet:
+    name: Helm upgrade (staging-testnet)
+    if: contains(github.event.release.tag_name, '-rc')
+    needs: [build]
+    uses: ./.github/workflows/deploy-chart.yml
+    with:
+      environment: staging-testnet
+      values: helm/values-staging-testnet.yaml
+    secrets: inherit
+
+  deploy-staging-mainnet:
+    name: Helm upgrade (staging-mainnet)
+    # Negation of the above - release candidates stay off mainnet.
+    if: ${{ !contains(github.event.release.tag_name, '-rc') }}
+    needs: [build]
+    uses: ./.github/workflows/deploy-chart.yml
+    with:
+      environment: staging-mainnet
+      values: helm/values-staging-mainnet.yaml
+    secrets: inherit
