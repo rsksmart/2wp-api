@@ -20,6 +20,7 @@ import {SyncStatusMongoService} from './services/sync-status-mongo.service';
 import { PegoutDataProcessor } from './services/pegout-data.processor';
 import { FeaturesMongoDbDataService } from './services/features-mongo.service';
 import { BackofficeFeatureFlagsService } from './services/backoffice-feature-flags.service';
+import {ProviderHealthStore} from './services/provider-health';
 
 export class DependencyInjectionHandler {
   public static configureDependencies(app: Application): void {
@@ -152,6 +153,13 @@ export class DependencyInjectionHandler {
     app
       .bind(ServicesBindings.BACKOFFICE_FEATURE_FLAGS_SERVICE)
       .toClass(BackofficeFeatureFlagsService)
+      .inScope(BindingScope.SINGLETON);
+
+    // One store per process: the job writes it and /health reads it, so both
+    // must get the same instance.
+    app
+      .bind(ServicesBindings.PROVIDER_HEALTH_STORE)
+      .toClass(ProviderHealthStore)
       .inScope(BindingScope.SINGLETON);
   }
 }

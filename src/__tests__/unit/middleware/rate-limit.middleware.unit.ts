@@ -171,6 +171,17 @@ describe('Middleware: rate limiting', () => {
       expect(() => limiter.check('1.1.1.1', '/anything')).to.not.throw();
     });
 
+    it('covers /health/providers, which the backoffice polls', () => {
+      // Five provider polls spend the monitoring allowance, not the ordinary
+      // one (3 here), and share it with /health.
+      const limiter = givenHealthLimiter();
+
+      for (let i = 0; i < 5; i += 1) limiter.check('1.1.1.1', '/health/providers');
+
+      expect(() => limiter.check('1.1.1.1', '/health')).to.throw(RateLimitedError);
+      expect(() => limiter.check('1.1.1.1', '/anything')).to.not.throw();
+    });
+
     it('is not spent by ordinary traffic', () => {
       const limiter = givenHealthLimiter();
 
