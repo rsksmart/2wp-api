@@ -81,6 +81,12 @@ export interface ResourceBudgets {
   MONGO_MAX_DOCUMENTS: number;
   /** How long a health result may be reused, in milliseconds. */
   HEALTH_CACHE_TTL_MS: number;
+  /**
+   * How often the background job checks every provider, in milliseconds. `0`
+   * turns the job off; anything else below
+   * {@link PROVIDER_HEALTH_CHECK_MIN_INTERVAL_MS} is raised to it.
+   */
+  PROVIDER_HEALTH_CHECK_INTERVAL_MS: number;
   /** Hard cap on Blockbook operations in flight across the whole process. */
   BLOCKBOOK_MAX_IN_FLIGHT: number;
   /** Hard cap on callers waiting for a Blockbook permit. */
@@ -273,6 +279,10 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   // Short enough that a readiness signal stays current, long enough that a
   // monitoring loop — or an attacker in one — cannot multiply upstream load.
   HEALTH_CACHE_TTL_MS: 2_000,
+  // One round of provider checks every 30 s. A provider is reported down after
+  // three failed checks in a row, so this interval also sets how long an outage
+  // takes to show: about 90 s.
+  PROVIDER_HEALTH_CHECK_INTERVAL_MS: 30_000,
   BLOCKBOOK_MAX_IN_FLIGHT: 50,
   BLOCKBOOK_QUEUE_MAX_DEPTH: 100,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS: 5_000,
@@ -280,6 +290,19 @@ export const RESOURCE_BUDGET_DEFAULTS: Readonly<ResourceBudgets> = Object.freeze
   MAX_TX_PROVIDER_RESPONSE_BYTES: 8 * 1024 * 1024,
   TX_PROVIDER_MAX_IN_FLIGHT: 4,
 });
+
+/**
+ * Longest time one provider health check may take, in milliseconds. A check
+ * still running at this point is counted as a `timeout` failure.
+ */
+export const PROVIDER_HEALTH_CHECK_TIMEOUT_MS = 10_000;
+
+/**
+ * Shortest provider health check interval, in milliseconds. Rounds closer
+ * together than one check may take would call every provider again as soon as
+ * the last round ends, so a shorter configured interval is raised to this.
+ */
+export const PROVIDER_HEALTH_CHECK_MIN_INTERVAL_MS = PROVIDER_HEALTH_CHECK_TIMEOUT_MS;
 
 /**
  * Parses a strictly positive integer, falling back to `defaultVal` for
@@ -322,6 +345,10 @@ export function parseNonNegativeInt(raw: string | undefined, defaultVal: number)
  */
 export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudgets {
   const d = RESOURCE_BUDGET_DEFAULTS;
+  const providerHealthIntervalMs = parseNonNegativeInt(
+    env.PROVIDER_HEALTH_CHECK_INTERVAL_MS,
+    d.PROVIDER_HEALTH_CHECK_INTERVAL_MS,
+  );
   return {
     MAX_REQUEST_BODY_BYTES: parsePositiveInt(
       env.MAX_REQUEST_BODY_BYTES,
@@ -443,6 +470,12 @@ export function loadResourceBudgets(env: EnvSource = process.env): ResourceBudge
       env.HEALTH_CACHE_TTL_MS,
       d.HEALTH_CACHE_TTL_MS,
     ),
+    // 0 turns the job off. A faster rate than the minimum gets the minimum,
+    // the closest to what was asked for.
+    PROVIDER_HEALTH_CHECK_INTERVAL_MS:
+      providerHealthIntervalMs === 0
+        ? 0
+        : Math.max(providerHealthIntervalMs, PROVIDER_HEALTH_CHECK_MIN_INTERVAL_MS),
     BLOCKBOOK_MAX_IN_FLIGHT: parsePositiveInt(
       env.BLOCKBOOK_MAX_IN_FLIGHT,
       d.BLOCKBOOK_MAX_IN_FLIGHT,
@@ -506,6 +539,7 @@ export const {
   PROCESS_FAILURE_TRIPWIRE_MAX_KINDS,
   MONGO_MAX_DOCUMENTS,
   HEALTH_CACHE_TTL_MS,
+  PROVIDER_HEALTH_CHECK_INTERVAL_MS,
   BLOCKBOOK_MAX_IN_FLIGHT,
   BLOCKBOOK_QUEUE_MAX_DEPTH,
   BLOCKBOOK_QUEUE_MAX_WAIT_MS,
