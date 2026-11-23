@@ -1,0 +1,6 @@
+dependencies:
+- name: mongodb
+  repository: ""
+  version: 0.2.1
+digest: sha256:51e7a834ed6c92c357cd9d08ad0114427aefcf06934cdd2baa1e7bfb6b5617a9
+generated: "2026-11-18T12:17:04.948036-06:00"

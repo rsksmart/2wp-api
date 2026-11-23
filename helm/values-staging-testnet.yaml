@@ -1,0 +1,85 @@
+# staging-testnet: cluster atlas-staging-testnet, namespace 2wp-api.
+# env mirrors ansible/group_vars/twowp_app_api_staging_testnet; ARNs from `tofu output`.
+
+envSuffix: staging-testnet
+clusterName: atlas-staging-testnet
+
+image:
+  # Set per deploy by the workflow; empty means appVersion
+  tag: ""
+  pullPolicy: IfNotPresent
+
+env:
+  # The EC2 env runs development too
+  NODE_ENV: development
+
+  RSK_NODE_HOST: http://node-01.staging-testnet.2wp.iovlabs.net:4444
+  BLOCKBOOK_URL: https://blockbook.testnet.2wp.iovlabs.net:19130
+  FEDERATION_ADDRESSES_HISTORY: "2N6JWYUb6Li4Kux6UB2eihT7n3rm3YX97uv 2N1y7hSneV9HuWnpLTtGqdRnway1Ag3dQoj 2NF9ndVaez5owUShjSxNnY2E31QkRjLu63k 2N5exbrgeGBuKXqcinfz68atduq6ApHN4b4 2Mu7ayegt8AYi7vGYtG2KGaXErPWBQhPVfu 2N1rW3cBZNzs2ZxSfyNW7cMcNBktt6fzs88 2N1GMB8gxHYR5HLPSRgf9CJ9Lunjb9CTnKB 2MvW72NchDEXiYuTv8SurroHwGw8rSuDKxz"
+
+  SYNC_INTERVAL_TIME: "2000"
+  SYNC_INITIAL_BLOCK_HEIGHT: "3832000"
+  SYNC_INITIAL_BLOCK_HASH: "0x4069d8054f1cb420d24a8cff35e19e7e8cb24afcb522b53c011f8bbd0dde4027"
+  SYNC_INITIAL_BLOCK_PREV_HASH: "0x178d80b189fb4b456d47ca885ea6d0b2f18569137f970f620e709db95e729b10"
+
+  BTC_CONFIRMATIONS: "10"
+  MAX_AMOUNT_ALLOWED_IN_SATOSHI: "10000000000000000000"
+  ADDRESS_LIST_MAX_ITEMS: "120"
+
+  DEPLOY_ENV: staging-testnet
+  BACKOFFICE_API_URL: https://bob.dev.atlas.rootstock.io
+  BACKOFFICE_API_EMAIL: 2wp-api-client@rootstocklabs.com
+  BACKOFFICE_FLAGS_CACHE_TTL_MS: "300000"
+
+# One m7g.medium node, so one replica and no PDB: minAvailable blocks drains.
+api:
+  enabled: true
+  replicaCount: 1
+  podDisruptionBudget:
+    enabled: false
+  targetGroupBinding:
+    enabled: true
+    targetGroupArn: arn:aws:elasticloadbalancing:us-east-1:828880111490:targetgroup/atlas-staging-testnet-api-st/fddcdbd2614c11de
+
+daemon:
+  enabled: true
+
+externalSecrets:
+  enabled: true
+  apiSecrets:
+    - secretKey: RSK_DB_CONNECTION_PASSWORD
+      remoteKey: /atlas-staging-testnet/2wp-api/rsk-db-connection-password
+    - secretKey: BACKOFFICE_API_PASSWORD
+      remoteKey: /atlas-staging-testnet/2wp-api/backoffice-api-password
+
+# Read at grafana.iovproject.com. The push URL carries basic-auth creds, hence Parameter Store.
+alloy:
+  enabled: true
+  loki:
+    remoteKey: /atlas-staging-testnet/2wp-api/loki-ingest-url
+
+mongodb:
+  persistence:
+    # 50Gi matches the EBS volume the EC2 env gives MongoDB
+    size: 50Gi
+    createStorageClass: true
+    # StorageClass parameters are immutable once created
+    storageClassParameters:
+      type: gp3
+      encrypted: "true"
+      kmsKeyId: arn:aws:kms:us-east-1:828880111490:key/4b956ec3-d97a-4c85-80da-f8787f232537
+  # Trimmed from subchart defaults so everything fits one node
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+  externalSecrets:
+    enabled: true
+    secrets:
+      - secretKey: MONGO_INITDB_ROOT_PASSWORD
+        remoteKey: /atlas-staging-testnet/2wp-api/mongodb-root-password
+      - secretKey: MONGO_APP_PASSWORD
+        remoteKey: /atlas-staging-testnet/2wp-api/rsk-db-connection-password

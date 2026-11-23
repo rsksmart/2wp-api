@@ -1,0 +1,111 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  registry: ""
+  repository: mongo
+  tag: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+auth:
+  enabled: true
+  # Must match the parent chart's RSK_DB_CONNECTION_USER / _DATABASE / _AUTH_SOURCE
+  database: rsk
+  rootUser: root
+  username: api-user
+  existingSecret: ""
+  secretKeys:
+    rootPassword: MONGO_INITDB_ROOT_PASSWORD
+    password: MONGO_APP_PASSWORD
+  # Local clusters only; these end up in the Helm release
+  rootPassword: ""
+  password: ""
+
+externalSecrets:
+  enabled: false
+  apiVersion: external-secrets.io/v1beta1
+  refreshInterval: 1h
+  # Defaults to <namespace>-secret-store
+  secretStoreName: ""
+  secrets:
+    - secretKey: MONGO_INITDB_ROOT_PASSWORD
+      remoteKey: mongodb-root-password
+    - secretKey: MONGO_APP_PASSWORD
+      remoteKey: rsk-db-connection-password
+
+service:
+  type: ClusterIP
+  port: 27017
+  annotations: {}
+
+persistence:
+  # Off means a full chain resync on every restart
+  enabled: true
+  storageClass: gp3
+  # StorageClass parameters are immutable once created
+  createStorageClass: false
+  storageClassParameters:
+    type: gp3
+    encrypted: "true"
+  size: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  annotations: {}
+
+extraArgs: []
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+startupProbe:
+  exec:
+    command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+  periodSeconds: 10
+  failureThreshold: 30
+readinessProbe:
+  exec:
+    command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+livenessProbe:
+  exec:
+    command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+  initialDelaySeconds: 30
+  periodSeconds: 20
+  timeoutSeconds: 10
+  failureThreshold: 6
+
+# uid/gid 999 is the mongodb user in the official image
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 999
+  runAsGroup: 999
+  fsGroup: 999
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+terminationGracePeriodSeconds: 60
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,36 @@
+{{ include "app.name" . }} {{ .Chart.Version }} (app {{ .Chart.AppVersion }}) in namespace {{ .Release.Namespace }}
+{{- if .Values.api.enabled }}
+  api:     {{ include "app.fullname" . }} ({{ if .Values.api.autoscaling.enabled }}{{ .Values.api.autoscaling.minReplicas }}-{{ .Values.api.autoscaling.maxReplicas }} replicas, HPA{{ else }}{{ .Values.api.replicaCount }} replica(s){{ end }}, port {{ .Values.api.service.port }})
+{{- end }}
+{{- if .Values.daemon.enabled }}
+  daemon:  {{ include "app.daemonFullname" . }}
+{{- end }}
+{{- if .Values.mongodb.enabled }}
+  mongodb: charts/mongodb subchart
+{{- end }}
+
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+{{- if .Values.api.enabled }}
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "app.fullname" . }} {{ .Values.api.service.port }}
+  curl -s localhost:{{ .Values.api.service.port }}/health
+{{- end }}
+{{- if and .Values.api.enabled (not .Values.api.targetGroupBinding.enabled) }}
+
+The Service is not bound to an ALB target group (api.targetGroupBinding.enabled=false).
+{{- end }}
+{{- if .Values.externalSecrets.enabled }}
+
+Pods start only once every Parameter Store entry below exists with a real value:
+{{- range .Values.externalSecrets.apiSecrets }}
+  {{ .secretKey }} <- {{ .remoteKey }}
+{{- end }}
+  kubectl get externalsecret -n {{ .Release.Namespace }} {{ include "app.fullname" . }}-secrets
+{{- else if not .Values.existingSecret }}
+
+WARNING: no Secret is configured (externalSecrets.enabled=false, existingSecret unset).
+{{- end }}
+{{- if ne (toString .Values.env.RSK_DB_CONNECTION_AUTH_SOURCE) (toString .Values.env.RSK_DB_CONNECTION_DATABASE) }}
+
+WARNING: RSK_DB_CONNECTION_AUTH_SOURCE differs from RSK_DB_CONNECTION_DATABASE; the
+mongodb subchart creates the application user inside RSK_DB_CONNECTION_DATABASE.
+{{- end }}

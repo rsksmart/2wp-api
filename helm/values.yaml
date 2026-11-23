@@ -1,0 +1,250 @@
+envSuffix: ""
+
+# Only a log label; the chart never addresses the cluster by name
+clusterName: ""
+
+# Service names are DNS-1035 labels and cannot start with a digit
+nameOverride: "twowp-api"
+fullnameOverride: ""
+
+image:
+  registry: 828880111490.dkr.ecr.us-east-1.amazonaws.com
+  pullPolicy: IfNotPresent
+  tag: ""
+  pullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+  roleArn: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+existingSecret: ""
+
+# Shared by the API and the daemon. PORT and HOST are set by the chart;
+# passwords come from the Secret.
+env:
+  NODE_ENV: production
+  NETWORK: testnet
+  LOG_FORMAT: json
+  LOG_LEVEL: info
+  METRICS_ENABLED: "false"
+
+  # Must match mongodb.auth.username / .database
+  RSK_DB_CONNECTION_HOST: mongodb
+  RSK_DB_CONNECTION_PORT: "27017"
+  RSK_DB_CONNECTION_USER: api-user
+  RSK_DB_CONNECTION_DATABASE: rsk
+  RSK_DB_CONNECTION_AUTH_SOURCE: rsk
+
+  RSK_NODE_HOST: https://public-node.testnet.rsk.co
+  BLOCKBOOK_URL: ""
+  FEDERATION_ADDRESSES_HISTORY: ""
+
+  SYNC_INTERVAL_TIME: "30000"
+  SYNC_MIN_DEPTH: "6"
+  # Read only on an empty database; all three must describe the same block
+  SYNC_INITIAL_BLOCK_HEIGHT: ""
+  SYNC_INITIAL_BLOCK_HASH: ""
+  SYNC_INITIAL_BLOCK_PREV_HASH: ""
+
+  BTC_CONFIRMATIONS: "100"
+  MAX_AMOUNT_ALLOWED_IN_SATOSHI: ""
+
+  ADDRESS_LIST_MAX_ITEMS: "50"
+  ADDRESS_INFO_MAX_TXIDS: "100"
+  UTXO_RESPONSE_MAX_ROWS: "1000"
+  PROVIDER_CONCURRENCY: "5"
+
+  DEPLOY_ENV: local
+  BACKOFFICE_API_URL: ""
+  BACKOFFICE_API_EMAIL: ""
+  BACKOFFICE_FLAGS_CACHE_TTL_MS: "60000"
+  BACKOFFICE_HTTP_TIMEOUT_MS: "2000"
+
+api:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: 2wp-api
+    tag: ""
+  extraEnv: {}
+
+  service:
+    # NodePort: the ALB target group is instance-type
+    type: NodePort
+    port: 3000
+    targetPort: 3000
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  startupProbe:
+    tcpSocket:
+      port: http
+    periodSeconds: 5
+    failureThreshold: 30
+  # /health checks MongoDB, Blockbook and the RSK node: readiness only, never liveness
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    failureThreshold: 3
+  livenessProbe:
+    tcpSocket:
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 20
+    failureThreshold: 3
+
+  # The app ignores SIGTERM, so every rollout waits this long
+  terminationGracePeriodSeconds: 30
+  lifecycle:
+    preStop:
+      exec:
+        command: ["sleep", "5"]
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: ~
+
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: api
+
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  targetGroupBinding:
+    enabled: false
+    targetGroupArn: ""
+    targetType: instance
+
+daemon:
+  enabled: true
+  image:
+    repository: 2wp-api
+    tag: ""
+  extraEnv: {}
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 768Mi
+  terminationGracePeriodSeconds: 30
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+externalSecrets:
+  enabled: false
+  apiVersion: external-secrets.io/v1beta1
+  refreshInterval: 1h
+  # Defaults to <namespace>-secret-store
+  secretStoreName: ""
+  # One missing parameter fails the whole Secret
+  apiSecrets:
+    - secretKey: RSK_DB_CONNECTION_PASSWORD
+      remoteKey: rsk-db-connection-password
+    - secretKey: BACKOFFICE_API_PASSWORD
+      remoteKey: backoffice-api-password
+
+alloy:
+  # Ship container logs to Loki
+  enabled: false
+  image:
+    # Not in ECR, so image.registry does not apply here
+    repository: docker.io/grafana/alloy
+    # appVersion of alloy chart 0.12.0, as on the other clusters
+    tag: v1.7.0
+    pullPolicy: IfNotPresent
+
+  serviceAccount:
+    create: true
+    name: ""
+    # No IRSA needed: Alloy never talks to AWS
+    annotations: {}
+
+  rbac:
+    # Cluster-wide read on pods and pods/log
+    create: true
+
+  service:
+    port: 12345
+
+  loki:
+    # Parameter Store path of the push URL, credentials included:
+    # https://<user>:<pass>@loki.iovproject.com:3100/loki/api/v1/push
+    remoteKey: ""
+    existingSecret: ""
+    secretKey: LOKI_URL
+    project: twowp
+    # Wins over the labels above
+    externalLabels: {}
+
+  # Each one multiplies cardinality in Loki
+  podLabels:
+    namespace: __meta_kubernetes_namespace
+    pod: __meta_kubernetes_pod_name
+    container: __meta_kubernetes_container_name
+    component: __meta_kubernetes_pod_label_app_kubernetes_io_component
+
+  # Lift the JSON level onto a label, this namespace only
+  parseJsonLevels: true
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+mongodb:
+  enabled: true

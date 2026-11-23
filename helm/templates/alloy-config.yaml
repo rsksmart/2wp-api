@@ -1,0 +1,70 @@
+{{- if .Values.alloy.enabled }}
+{{- $labels := dict }}
+{{- if .Values.clusterName }}{{- $_ := set $labels "cluster" .Values.clusterName }}{{- end }}
+{{- /* project, rsk_network and deploy_env match the EC2 stack's loki driver
+       labels, so one query spans both. Read off env so they cannot drift. */ -}}
+{{- if .Values.alloy.loki.project }}{{- $_ := set $labels "project" .Values.alloy.loki.project }}{{- end }}
+{{- if .Values.env.NETWORK }}{{- $_ := set $labels "rsk_network" .Values.env.NETWORK }}{{- end }}
+{{- if .Values.env.DEPLOY_ENV }}{{- $_ := set $labels "deploy_env" .Values.env.DEPLOY_ENV }}{{- end }}
+{{- range $k, $v := .Values.alloy.loki.externalLabels }}{{- $_ := set $labels $k $v }}{{- end }}
+{{- $sink := ternary "loki.process.app.receiver" "loki.write.central.receiver" .Values.alloy.parseJsonLevels }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "app.alloy.fullname" . }}-config
+  labels:
+    {{- include "app.labels" (dict "ctx" . "component" "alloy") | nindent 4 }}
+data:
+  config.alloy: |
+    loki.write "central" {
+      endpoint {
+        url = env("LOKI_URL")
+      }
+      external_labels = {
+        {{- range $k, $v := $labels }}
+        {{ $k }} = {{ $v | quote }},
+        {{- end }}
+      }
+    }
+
+    discovery.kubernetes "pods" {
+      role = "pod"
+    }
+
+    discovery.relabel "pods" {
+      targets = discovery.kubernetes.pods.targets
+      {{- range $k, $v := .Values.alloy.podLabels }}
+
+      rule {
+        source_labels = [{{ $v | quote }}]
+        target_label  = {{ $k | quote }}
+      }
+      {{- end }}
+    }
+
+    // Tails via the Kubernetes API, so one Deployment covers every node.
+    loki.source.kubernetes "pods" {
+      targets    = discovery.relabel.pods.output
+      forward_to = [{{ $sink }}]
+    }
+    {{- if .Values.alloy.parseJsonLevels }}
+
+    // Levels are already strings, so no numeric mapping. Non-JSON lines
+    // (the ethers provider writes a few) get no level label.
+    loki.process "app" {
+      stage.match {
+        selector = "{namespace=\"{{ .Release.Namespace }}\"}"
+
+        stage.json {
+          expressions = { level = "level" }
+        }
+
+        stage.labels {
+          values = { level = "level" }
+        }
+      }
+
+      forward_to = [loki.write.central.receiver]
+    }
+    {{- end }}
+{{- end }}

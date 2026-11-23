@@ -34,4 +34,7 @@ COPY --chown=node:node --from=build /home/node/app/dist ./dist
 COPY --chown=node:node --from=build /home/node/app/public ./public
 COPY --chown=node:node --from=build /home/node/app/package*.json ./
 
+ARG GIT_COMMIT=""
+LABEL org.opencontainers.image.revision="$GIT_COMMIT"
+
 CMD ["node", "."]

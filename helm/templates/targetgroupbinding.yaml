@@ -1,0 +1,16 @@
+{{- if and .Values.api.enabled .Values.api.targetGroupBinding.enabled }}
+apiVersion: elbv2.k8s.aws/v1beta1
+kind: TargetGroupBinding
+metadata:
+  name: {{ include "app.fullname" . }}
+  labels:
+    {{- include "app.labels" (dict "ctx" . "component" "api") | nindent 4 }}
+spec:
+  serviceRef:
+    name: {{ include "app.fullname" . }}
+    port: {{ .Values.api.service.port }}
+  targetGroupARN: {{ .Values.api.targetGroupBinding.targetGroupArn }}
+  {{- with .Values.api.targetGroupBinding.targetType }}
+  targetType: {{ . }}
+  {{- end }}
+{{- end }}

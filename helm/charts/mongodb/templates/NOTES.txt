@@ -1,0 +1,25 @@
+MongoDB {{ .Chart.AppVersion }} as {{ include "mongodb.fullname" . }} in namespace {{ .Release.Namespace }}
+  host {{ include "mongodb.fullname" . }}:{{ .Values.service.port }}, database {{ .Values.auth.database }}, user {{ .Values.auth.username }}
+{{- if .Values.persistence.enabled }}
+
+The PVC outlives helm uninstall; remove it by hand when the data is no longer wanted:
+  kubectl delete pvc -n {{ .Release.Namespace }} data-{{ include "mongodb.fullname" . }}-0
+{{- else }}
+
+WARNING: persistence is disabled; every restart is a full chain resync.
+{{- end }}
+{{- if not .Values.auth.enabled }}
+
+WARNING: auth.enabled=false; the database has no access control.
+{{- else if .Values.externalSecrets.enabled }}
+
+Passwords come from Parameter Store:
+{{- range .Values.externalSecrets.secrets }}
+  {{ .secretKey }} <- {{ .remoteKey }}
+{{- end }}
+{{- else if not .Values.auth.existingSecret }}
+
+WARNING: passwords were rendered from values into the release; use externalSecrets on EKS.
+{{- end }}
+
+  kubectl exec -it -n {{ .Release.Namespace }} {{ include "mongodb.fullname" . }}-0 -- mongosh

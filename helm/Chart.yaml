@@ -1,0 +1,15 @@
+apiVersion: v2
+name: 2wp-api
+description: Rootstock two-way peg API (LoopBack 4 + MongoDB)
+type: application
+version: 0.4.1
+appVersion: "4.2.0"
+kubeVersion: ">=1.29.0-0"
+keywords:
+  - rootstock
+  - 2wp
+  - powpeg
+dependencies:
+  - name: mongodb
+    version: 0.2.1
+    condition: mongodb.enabled

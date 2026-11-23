@@ -1,0 +1,24 @@
+# Standalone install on twowp-api-dev; as a subchart these live under mongodb: in helm/values-dev.yaml
+
+persistence:
+  createStorageClass: true
+  storageClassParameters:
+    type: gp3
+    encrypted: "true"
+    kmsKeyId: arn:aws:kms:us-east-1:828880111490:key/789d7da8-c4f5-430b-8e13-e92dbdfaf776
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+externalSecrets:
+  enabled: true
+  secrets:
+    - secretKey: MONGO_INITDB_ROOT_PASSWORD
+      remoteKey: /twowp-api-dev/2wp-api-dev/mongodb-root-password
+    - secretKey: MONGO_APP_PASSWORD
+      remoteKey: /twowp-api-dev/2wp-api-dev/rsk-db-connection-password

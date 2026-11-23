@@ -1,0 +1,65 @@
+{{- if .Values.alloy.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "app.alloy.fullname" . }}
+  labels:
+    {{- include "app.labels" (dict "ctx" . "component" "alloy") | nindent 4 }}
+spec:
+  # A second replica would duplicate every line: both tail the same pods.
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "app.selectorLabels" (dict "ctx" . "component" "alloy") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "app.selectorLabels" (dict "ctx" . "component" "alloy") | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/alloy-config.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "app.alloy.serviceAccountName" . }}
+      containers:
+      - name: alloy
+        # Not app.image: that prefixes the ECR registry; Alloy is on Docker Hub.
+        image: {{ printf "%s:%s" .Values.alloy.image.repository .Values.alloy.image.tag | quote }}
+        imagePullPolicy: {{ .Values.alloy.image.pullPolicy }}
+        args:
+        - run
+        - /etc/alloy/config.alloy
+        - --storage.path=/tmp/alloy
+        - --server.http.listen-addr=0.0.0.0:{{ .Values.alloy.service.port }}
+        env:
+        - name: LOKI_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "app.alloy.secretName" . }}
+              key: {{ .Values.alloy.loki.secretKey }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.alloy.service.port }}
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: {{ .Values.alloy.service.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        volumeMounts:
+        - name: config
+          mountPath: /etc/alloy
+          readOnly: true
+        - name: data
+          mountPath: /tmp
+        securityContext:
+          {{- toYaml .Values.alloy.securityContext | nindent 10 }}
+        resources:
+          {{- toYaml .Values.alloy.resources | nindent 10 }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "app.alloy.fullname" . }}-config
+      # WAL; losing it on restart costs at most the unflushed tail.
+      - name: data
+        emptyDir: {}
+{{- end }}
