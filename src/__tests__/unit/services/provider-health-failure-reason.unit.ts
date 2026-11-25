@@ -6,6 +6,11 @@ import {
   failureReason,
   ProviderCheckFailure,
 } from '../../../services/provider-health';
+import {
+  ProviderHttpStatusError,
+  ProviderNetworkError,
+  ProviderTimeoutError,
+} from '../../../utils/bounded-http-client';
 
 const BRIDGE_ADDRESS = '0x0000000000000000000000000000000001000006';
 
@@ -49,6 +54,27 @@ describe('Provider health: failure reason', () => {
 
   after(done => {
     server.close(() => done());
+  });
+
+  describe('from the bounded HTTP client', () => {
+    it('reports an HTTP 5xx as http_5xx', () => {
+      expect(failureReason(new ProviderHttpStatusError(503))).to.equal('http_5xx');
+    });
+
+    it('reports an HTTP 4xx as error', () => {
+      expect(failureReason(new ProviderHttpStatusError(404))).to.equal('error');
+    });
+
+    it('reports a request past its deadline as timeout', () => {
+      expect(failureReason(new ProviderTimeoutError(50))).to.equal('timeout');
+    });
+
+    it('reports a refused connection as refused', () => {
+      const refused = Object.assign(new Error(''), {code: 'ECONNREFUSED'});
+      expect(
+        failureReason(Object.assign(new ProviderNetworkError(''), {cause: refused})),
+      ).to.equal('refused');
+    });
   });
 
   it('keeps the reason of a check that reached the provider', () => {

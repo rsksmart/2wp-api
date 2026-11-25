@@ -65,6 +65,17 @@ describe('Provider health: store', () => {
     ]);
   });
 
+  it('lists liquidity providers only under the provider they were stored for', () => {
+    store.set('flyover', result('up'));
+    store.set('powpeg', result('up'));
+    store.setLiquidityProviders('Flyover', [{id: 1, name: 'LP', ...result('down')}]);
+
+    const [flyover, powpeg] = store.list();
+
+    expect(flyover.liquidityProviders).to.deepEqual([{id: 1, name: 'LP', ...result('down')}]);
+    expect(powpeg).to.not.have.property('liquidityProviders');
+  });
+
   it('is not changed by changing what it returned or was given', () => {
     const given = result('up');
     store.set('powpeg', given);

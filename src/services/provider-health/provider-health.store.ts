@@ -1,9 +1,15 @@
 import {ProviderHealthState} from './status-rules';
 
+export interface LiquidityProviderHealthEntry extends ProviderHealthState {
+  id: number;
+  name: string;
+}
+
 /** A provider's stored health, with the provider it belongs to. */
 export interface ProviderHealthEntry extends ProviderHealthState {
   /** The provider's backoffice key, in lower case. */
   provider: string;
+  liquidityProviders?: LiquidityProviderHealthEntry[];
 }
 
 /**
@@ -17,6 +23,7 @@ export interface ProviderHealthEntry extends ProviderHealthState {
  */
 export class ProviderHealthStore {
   private readonly states = new Map<string, ProviderHealthState>();
+  private readonly liquidityProviders = new Map<string, LiquidityProviderHealthEntry[]>();
 
   /**
    * @param provider - The provider's key.
@@ -37,6 +44,20 @@ export class ProviderHealthStore {
     this.states.set(provider.toLowerCase(), {...state});
   }
 
+  getLiquidityProviders(provider: string): LiquidityProviderHealthEntry[] {
+    return (this.liquidityProviders.get(provider.toLowerCase()) ?? []).map(lp => ({...lp}));
+  }
+
+  setLiquidityProviders(
+    provider: string,
+    liquidityProviders: LiquidityProviderHealthEntry[],
+  ): void {
+    this.liquidityProviders.set(
+      provider.toLowerCase(),
+      liquidityProviders.map(lp => ({...lp})),
+    );
+  }
+
   /**
    * @returns Every provider with a stored health, sorted by key. Empty until
    * the first check ends.
@@ -44,6 +65,12 @@ export class ProviderHealthStore {
   list(): ProviderHealthEntry[] {
     return [...this.states.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([provider, state]) => ({provider, ...state}));
+      .map(([provider, state]) => {
+        const entry: ProviderHealthEntry = {provider, ...state};
+        if (this.liquidityProviders.has(provider)) {
+          entry.liquidityProviders = this.getLiquidityProviders(provider);
+        }
+        return entry;
+      });
   }
 }

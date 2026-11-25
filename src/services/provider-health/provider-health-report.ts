@@ -1,5 +1,9 @@
-import {ProviderHealthReport} from '../../models/provider-health-report.model';
+import {
+  LiquidityProviderHealthReport,
+  ProviderHealthReport,
+} from '../../models/provider-health-report.model';
 import {ProviderHealthStore} from './provider-health.store';
+import {ProviderHealthState} from './status-rules';
 
 /**
  * Every stored provider health, in the shape the routes return.
@@ -11,12 +15,23 @@ import {ProviderHealthStore} from './provider-health.store';
  * check ends.
  */
 export function providerHealthReports(store: ProviderHealthStore): ProviderHealthReport[] {
-  return store.list().map(entry => ({
-    provider: entry.provider,
-    status: entry.status,
-    reason: entry.reason,
-    latencyMs: entry.durationMs,
-    checkedAt: entry.checkedAt.toISOString(),
-    since: entry.since.toISOString(),
-  }));
+  return store.list().map(entry => {
+    const report: ProviderHealthReport = {provider: entry.provider, ...stateReport(entry)};
+    if (entry.liquidityProviders) {
+      report.liquidityProviders = entry.liquidityProviders.map(
+        (lp): LiquidityProviderHealthReport => ({id: lp.id, name: lp.name, ...stateReport(lp)}),
+      );
+    }
+    return report;
+  });
+}
+
+function stateReport(state: ProviderHealthState) {
+  return {
+    status: state.status,
+    reason: state.reason,
+    latencyMs: state.durationMs,
+    checkedAt: state.checkedAt.toISOString(),
+    since: state.since.toISOString(),
+  };
 }

@@ -1,3 +1,7 @@
+import {
+  ProviderHttpStatusError,
+  ProviderTimeoutError,
+} from '../../utils/bounded-http-client';
 import {HealthFailureReason, ProviderCheckFailure} from './provider-health-check';
 
 /** Error codes that mean the provider did not answer in time. */
@@ -61,6 +65,12 @@ export function failureReason(err: unknown): HealthFailureReason {
  * status, if any. The errors it wraps are the caller's to walk.
  */
 function reasonOfLink(link: ErrorLike): HealthFailureReason | undefined {
+  if (link instanceof ProviderTimeoutError) {
+    return 'timeout';
+  }
+  if (link instanceof ProviderHttpStatusError) {
+    return link.statusCode >= 500 ? 'http_5xx' : undefined;
+  }
   if (typeof link.code !== 'string') {
     return undefined;
   }
