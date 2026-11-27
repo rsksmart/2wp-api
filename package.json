@@ -73,7 +73,7 @@
     "dotenv": "^8.6.0",
     "ethers": "^6.16.0",
     "jssha": "^3.2.0",
-    "mongoose": "^7.5.3",
+    "mongoose": "^9.13.0",
     "pegin-address-verificator": "https://git@github.com/rsksmart/pegin-address-verifier#0.3.0",
     "pino": "^10.3.1",
     "source-map-support": "^0.5.21",
